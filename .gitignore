@@ -1,0 +1,9 @@
+vendor/
+**/*.log
+**/*.sqlite
+.idea/
+bin/
+tmp/
+.vscode/
+.env
+bin/imagor
