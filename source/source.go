@@ -1,10 +1,8 @@
 package source
 
-import (
-	"net/http"
-)
+import "net/http"
 
 type Source interface {
-	Match(*http.Request) bool
-	Do(*http.Request) ([]byte, error)
+	Match(r *http.Request, key string) bool
+	Do(r *http.Request) ([]byte, error)
 }
