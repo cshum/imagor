@@ -1,7 +1,6 @@
 package httpsource
 
 import (
-	"crypto/tls"
 	"fmt"
 	"github.com/cshum/imagor"
 	"io"
@@ -10,17 +9,18 @@ import (
 	"strings"
 )
 
-var (
-	// InsecureTransport DefaultTransport with InsecureSkipVerify
-	InsecureTransport = newInsecureSkipVerifyTransport()
-)
-
 type HTTPSource struct {
-	HTTPTransport   *http.Transport
-	ForwardHeaders  []string
+	// The transport used to request images.
+	// If nil, http.DefaultTransport is used.
+	Transport http.RoundTripper
+
+	ForwardHeaders []string
+
 	OverrideHeaders map[string]string
-	AllowedOrigins  []*url.URL
-	MaxAllowedSize  int
+
+	AllowedOrigins []*url.URL
+
+	MaxAllowedSize int
 }
 
 func (h HTTPSource) Match(r *http.Request, key string) bool {
@@ -40,7 +40,7 @@ func (h HTTPSource) Do(r *http.Request, key string) ([]byte, error) {
 	if shouldRestrictOrigin(u, h.AllowedOrigins) {
 		return nil, fmt.Errorf("not allowed remote URL origin: %s%s", u.Host, u.Path)
 	}
-	client := &http.Client{Transport: h.HTTPTransport}
+	client := &http.Client{Transport: h.Transport}
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, key, nil)
 	if err != nil {
 		return nil, err
@@ -96,10 +96,4 @@ func shouldRestrictOrigin(url *url.URL, origins []*url.URL) bool {
 		}
 	}
 	return true
-}
-
-func newInsecureSkipVerifyTransport() *http.Transport {
-	tr := http.DefaultTransport.(*http.Transport).Clone()
-	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	return tr
 }
