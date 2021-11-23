@@ -15,22 +15,24 @@ type Imagor struct {
 	Sources []Source
 }
 
-func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 	params, err := ParseParams(r.URL.Path)
 	if err != nil {
-		o.err(w, r, err)
-		return
+		return nil, err
 	}
 	buf, err := DoSources(r, params.Image, o.Sources)
 	if err != nil {
-		o.err(w, r, err)
-		return
+		return nil, err
 	}
-	fmt.Println(params)
-	w.Write(buf)
-	return
+	return buf, nil
 }
 
-func (o *Imagor) err(w http.ResponseWriter, r *http.Request, err error) {
-	w.Write([]byte(fmt.Sprintf("%v", err)))
+func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	buf, err := o.Do(r)
+	if err != nil {
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		return
+	}
+	w.Write(buf)
+	return
 }
