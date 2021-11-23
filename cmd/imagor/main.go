@@ -9,12 +9,12 @@ func main() {
 	var (
 		logger *zap.Logger
 		err    error
-		srv    *server.HTTP
+		srv    *server.Server
 	)
 	if logger, err = zap.NewProduction(); err != nil {
 		panic(err)
 	}
-	srv = &server.HTTP{
+	srv = &server.Server{
 		Port:   3000,
 		Logger: logger,
 	}
