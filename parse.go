@@ -1,20 +1,21 @@
 package imagor
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 type Params struct {
 	Image           string
-	CropLeft        float64
-	CropTop         float64
-	CropRight       float64
-	CropBottom      float64
-	Width           float64
-	Height          float64
+	CropLeft        int
+	CropTop         int
+	CropRight       int
+	CropBottom      int
+	Width           int
+	Height          int
 	Meta            bool
 	HorizontalFlip  bool
 	VerticalFlip    bool
@@ -26,6 +27,12 @@ type Params struct {
 	TrimTolerance   int
 	Unsafe          bool
 	Hash            string
+	Filters         []Filter
+}
+
+type Filter struct {
+	Name string
+	Args string
 }
 
 var paramsRegex = regexp.MustCompile(
@@ -54,37 +61,81 @@ var paramsRegex = regexp.MustCompile(
 		"(.+)?",
 )
 
+var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
+
 func Parse(u *url.URL) (params *Params, err error) {
-	var from int
 	params = &Params{}
-	segs := strings.Split(u.Path, "/")
-	fmt.Println(strings.Join(paramsRegex.FindStringSubmatch(u.Path), " | "))
-	for to, seg := range segs {
-		if seg == "" {
-			from++
+	match := paramsRegex.FindStringSubmatch(u.Path)
+	if len(match) < 30 {
+		err = errors.New("invalid params")
+		return
+	}
+	index := 1
+	if match[index+1] == "unsafe/" {
+		params.Unsafe = true
+	} else if len(match[index+2]) <= 28 {
+		params.Hash = match[index+3]
+	}
+	index += 4
+	if match[index] != "" {
+		params.Meta = true
+	}
+	index += 1
+	if match[index] != "" {
+		params.TrimOrientation = "top-left"
+		if s := match[index+2]; s != "" {
+			params.TrimOrientation = s
 		}
-		if strings.HasPrefix(seg, "http") {
-			params.Image, _ = url.QueryUnescape(strings.Join(segs[to:], "/"))
-			segs = segs[from:to]
-			return
+		params.TrimTolerance, _ = strconv.Atoi(match[index+4])
+	}
+	index += 5
+	if match[index] != "" {
+		params.CropLeft, _ = strconv.Atoi(match[index+1])
+		params.CropTop, _ = strconv.Atoi(match[index+2])
+		params.CropRight, _ = strconv.Atoi(match[index+3])
+		params.CropBottom, _ = strconv.Atoi(match[index+4])
+	}
+	index += 5
+	if match[index] != "" {
+		params.FitIn = true
+	}
+	index += 1
+	if match[index] != "" {
+		params.HorizontalFlip = match[index+1] != ""
+		params.Width, _ = strconv.Atoi(match[index+2])
+		params.VerticalFlip = match[index+3] != ""
+		params.Height, _ = strconv.Atoi(match[index+4])
+	}
+	index += 5
+	if match[index] != "" {
+		params.HAlign = match[index+1]
+	}
+	index += 2
+	if match[index] != "" {
+		params.VAlign = match[index+1]
+	}
+	index += 2
+	if match[index] != "" {
+		params.Smart = true
+	}
+	index += 1
+	if match[index] != "" {
+		params.Filters = parseFilters(match[index+1])
+	}
+	index += 2
+	params.Image, err = url.QueryUnescape(match[index])
+	return
+}
+
+func parseFilters(filters string) (results []Filter) {
+	splits := strings.Split(filters, ":")
+	for _, seg := range splits {
+		if match := filterRegex.FindStringSubmatch(seg); len(match) >= 3 {
+			results = append(results, Filter{
+				Name: match[1],
+				Args: match[2],
+			})
 		}
 	}
 	return
 }
-
-//func testing() {
-//	var from int
-//	results = &Params{}
-//	match := paramsRegex.FindStringSubmatch(u.Path)
-//	index := 1
-//	ln := len(match)
-//	if ln > index+1 && match[index+1] == "unsafe/" {
-//		results.Unsafe = true
-//	} else if ln > index+3 {
-//		if h := match[index+2]; len(h) <= 28 {
-//			results.Hash = match[index+3]
-//		}
-//	}
-//	index += 4
-//	fmt.Println(match)
-//}

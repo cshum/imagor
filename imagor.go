@@ -21,12 +21,12 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		o.err(w, r, err)
 		return
 	}
+	fmt.Println(params)
 	buf, err := DoSources(r, params.Image, o.Sources)
 	if err != nil {
 		o.err(w, r, err)
 		return
 	}
-	fmt.Println(params)
 	w.Write(buf)
 	return
 }
