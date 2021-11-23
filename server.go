@@ -1,4 +1,4 @@
-package server
+package imagor
 
 import (
 	"fmt"
@@ -7,8 +7,9 @@ import (
 )
 
 type Server struct {
-	Port   int
-	Logger *zap.Logger
+	Port    int
+	Logger  *zap.Logger
+	Sources []Source
 }
 
 func (s *Server) Handler() http.Handler {

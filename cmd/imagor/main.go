@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/cshum/imagor/server"
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/source/httpsource"
 	"go.uber.org/zap"
 )
 
@@ -9,13 +10,16 @@ func main() {
 	var (
 		logger *zap.Logger
 		err    error
-		srv    *server.Server
+		srv    *imagor.Server
 	)
 	if logger, err = zap.NewProduction(); err != nil {
 		panic(err)
 	}
-	srv = &server.Server{
-		Port:   3000,
+	srv = &imagor.Server{
+		Port: 3000,
+		Sources: []imagor.Source{
+			httpsource.HTTPSource{},
+		},
 		Logger: logger,
 	}
 	panic(srv.Run())
