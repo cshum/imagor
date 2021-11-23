@@ -1,6 +1,7 @@
 package imagor
 
 import (
+	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"net/http"
@@ -20,11 +21,21 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buf, err := DoSources(r, params.Image, o.Sources)
+	buf, err := o.doSources(r, params.Image)
 	if err != nil {
 		return nil, err
 	}
 	return buf, nil
+}
+
+func (o *Imagor) doSources(r *http.Request, image string) (buf []byte, err error) {
+	for _, source := range o.Sources {
+		if source.Match(r, image) {
+			return source.Do(r, image)
+		}
+	}
+	err = errors.New("unknown source")
+	return
 }
 
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
