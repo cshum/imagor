@@ -9,6 +9,7 @@ import (
 )
 
 type Params struct {
+	Path            string
 	Image           string
 	CropLeft        int
 	CropTop         int
@@ -63,9 +64,9 @@ var paramsRegex = regexp.MustCompile(
 
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
-func Parse(u *url.URL) (params *Params, err error) {
-	params = &Params{}
-	match := paramsRegex.FindStringSubmatch(u.Path)
+func ParseParams(path string) (params *Params, err error) {
+	params = &Params{Path: path}
+	match := paramsRegex.FindStringSubmatch(path)
 	if len(match) < 30 {
 		err = errors.New("invalid params")
 		return

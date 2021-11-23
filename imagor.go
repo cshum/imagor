@@ -16,17 +16,17 @@ type Imagor struct {
 }
 
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	params, err := Parse(r.URL)
+	params, err := ParseParams(r.URL.Path)
 	if err != nil {
 		o.err(w, r, err)
 		return
 	}
-	fmt.Println(params)
 	buf, err := DoSources(r, params.Image, o.Sources)
 	if err != nil {
 		o.err(w, r, err)
 		return
 	}
+	fmt.Println(params)
 	w.Write(buf)
 	return
 }
