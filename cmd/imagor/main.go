@@ -1,26 +1,30 @@
 package main
 
 import (
+	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/source/httpsource"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 func main() {
 	var (
 		logger *zap.Logger
 		err    error
-		srv    *imagor.Server
+		port   = 3000
 	)
 	if logger, err = zap.NewProduction(); err != nil {
 		panic(err)
 	}
-	srv = &imagor.Server{
-		Port: 3000,
-		Sources: []imagor.Source{
-			httpsource.HTTPSource{},
+	logger.Info("start", zap.Int("port", port))
+	panic(http.ListenAndServe(
+		fmt.Sprintf(":%d", port),
+		&imagor.Imagor{
+			Sources: []imagor.Source{
+				httpsource.HTTPSource{},
+			},
+			Logger: logger,
 		},
-		Logger: logger,
-	}
-	panic(srv.Run())
+	))
 }

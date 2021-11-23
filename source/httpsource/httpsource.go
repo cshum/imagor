@@ -23,17 +23,17 @@ type HTTPSource struct {
 	MaxAllowedSize int
 }
 
-func (h HTTPSource) Match(r *http.Request, key string) bool {
-	if r.Method == http.MethodGet && key != "" {
-		if u, err := url.Parse(key); err == nil && u.Host != "" && u.Scheme != "" {
+func (h HTTPSource) Match(r *http.Request, image string) bool {
+	if r.Method == http.MethodGet && image != "" {
+		if u, err := url.Parse(image); err == nil && u.Host != "" && u.Scheme != "" {
 			return true
 		}
 	}
 	return false
 }
 
-func (h HTTPSource) Do(r *http.Request, key string) ([]byte, error) {
-	u, err := url.Parse(key)
+func (h HTTPSource) Do(r *http.Request, image string) ([]byte, error) {
+	u, err := url.Parse(image)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (h HTTPSource) Do(r *http.Request, key string) ([]byte, error) {
 		return nil, fmt.Errorf("not allowed remote URL origin: %s%s", u.Host, u.Path)
 	}
 	client := &http.Client{Transport: h.Transport}
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, key, nil)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
 	if err != nil {
 		return nil, err
 	}
