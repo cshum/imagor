@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"errors"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -83,11 +82,10 @@ var paramsRegex = regexp.MustCompile(
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
 // ParseParams parse params object from uri string
-func ParseParams(uri string) (params Params, err error) {
+func ParseParams(uri string) (params Params) {
 	params.URI = uri
 	match := pathRegex.FindStringSubmatch(uri)
 	if len(match) < 6 {
-		err = errors.New("invalid params")
 		return
 	}
 	index := 1
@@ -101,7 +99,6 @@ func ParseParams(uri string) (params Params, err error) {
 
 	match = paramsRegex.FindStringSubmatch(params.Path)
 	if len(match) < 26 {
-		err = errors.New("invalid params")
 		return
 	}
 	index = 1
@@ -151,7 +148,10 @@ func ParseParams(uri string) (params Params, err error) {
 		params.Filters = parseFilters(match[index+1])
 	}
 	index += 2
-	params.Image, err = url.QueryUnescape(match[index])
+	params.Image = match[index]
+	if u, err := url.QueryUnescape(match[index]); err == nil {
+		params.Image = u
+	}
 	return
 }
 

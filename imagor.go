@@ -2,6 +2,7 @@ package imagor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
@@ -46,19 +47,16 @@ type Imagor struct {
 	Timeout    time.Duration
 }
 
-func (o *Imagor) Do(r *http.Request) (buf []byte, meta *Meta, err error) {
+func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
+	params := ParseParams(r.URL.RawPath)
 	var cancel func()
 	ctx := r.Context()
 	if o.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, o.Timeout)
 		defer cancel()
 	}
-	params, err := ParseParams(r.URL.RawPath)
-	if err != nil {
-		return
-	}
 	if !o.Unsafe && !params.Verify(o.Secret) {
-		return nil, nil, errors.New("hash mismatch")
+		return nil, errors.New("hash mismatch")
 	}
 	buf, err = o.doLoad(r, params.Image)
 	if err != nil {
@@ -68,10 +66,14 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, meta *Meta, err error) {
 		o.doStore(ctx, o.Storages, params.Image, buf)
 	}
 	for _, processor := range o.Processors {
-		b, m, e := processor.Process(ctx, buf, params)
+		b, meta, e := processor.Process(ctx, buf, params)
 		if e == nil {
 			buf = b
-			meta = m
+			if params.Meta {
+				if b, e := json.Marshal(meta); e == nil {
+					buf = b
+				}
+			}
 			o.Logger.Debug("process", zap.Any("params", params), zap.Any("meta", meta))
 			break
 		} else {
@@ -112,7 +114,7 @@ func (o *Imagor) doStore(ctx context.Context, storages []Storage, image string, 
 }
 
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	buf, _, err := o.Do(r)
+	buf, err := o.Do(r)
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf("%v", err)))
 		return

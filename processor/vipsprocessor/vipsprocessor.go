@@ -38,8 +38,9 @@ func (v *Vips) Process(
 	}, nil
 }
 
-func (v *Vips) Close() {
+func (v *Vips) Close() error {
 	vips.Shutdown()
+	return nil
 }
 
 var imageTypeMap = map[string]vips.ImageType{
