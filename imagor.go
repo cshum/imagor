@@ -55,11 +55,11 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 		ctx, cancel = context.WithTimeout(ctx, o.Timeout)
 		defer cancel()
 	}
-	if !o.Unsafe && !params.Verify(o.Secret) {
-		return nil, errors.New("hash mismatch")
+	if !(o.Unsafe && params.Unsafe) && !params.Verify(o.Secret) {
+		err = errors.New("hash mismatch")
+		return
 	}
-	buf, err = o.doLoad(r, params.Image)
-	if err != nil {
+	if buf, err = o.doLoad(r, params.Image); err != nil {
 		return
 	}
 	if len(o.Storages) > 0 {
