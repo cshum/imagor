@@ -26,9 +26,8 @@ type Storage interface {
 
 // Store both a Loader and Storage
 type Store interface {
-	Match(r *http.Request, image string) bool
-	Load(r *http.Request, image string) ([]byte, error)
-	Store(ctx context.Context, image string, buf []byte) error
+	Loader
+	Storage
 }
 
 // Processor process image buffer
