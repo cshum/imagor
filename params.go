@@ -1,6 +1,9 @@
 package imagor
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
 	"errors"
 	"net/url"
 	"regexp"
@@ -43,6 +46,7 @@ var pathRegex = regexp.MustCompile(
 		// path
 		"(.+)?",
 )
+
 var paramsRegex = regexp.MustCompile(
 	"/?" +
 		// meta
@@ -66,6 +70,7 @@ var paramsRegex = regexp.MustCompile(
 		// image
 		"(.+)?",
 )
+
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
 func ParseParams(uri string) (params *Params, err error) {
@@ -140,8 +145,8 @@ func ParseParams(uri string) (params *Params, err error) {
 	return
 }
 
-func (p *Params) Sign(secret string) (string, error) {
-	return "", nil
+func (p *Params) Verify(secret string) bool {
+	return strings.TrimRight(Hash(p.Path, secret), "=") == p.Hash
 }
 
 func parseFilters(filters string) (results []Filter) {
@@ -155,4 +160,13 @@ func parseFilters(filters string) (results []Filter) {
 		}
 	}
 	return
+}
+
+func Hash(path, secret string) string {
+	h := hmac.New(sha1.New, []byte(secret))
+	h.Write([]byte(strings.TrimPrefix(path, "/")))
+	hash := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	hash = strings.Replace(hash, "/", "_", -1)
+	hash = strings.Replace(hash, "+", "-", -1)
+	return hash
 }

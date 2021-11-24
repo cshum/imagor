@@ -14,30 +14,39 @@ const (
 
 type Imagor struct {
 	Logger  *zap.Logger
+	Unsafe  bool
+	Secret  string
 	Loaders []Loader
 }
 
 func (o *Imagor) Do(r *http.Request) ([]byte, error) {
-	params, err := ParseParams(r.URL.Path)
+	params, err := ParseParams(r.URL.RawPath)
 	if err != nil {
 		return nil, err
 	}
+	if !o.Unsafe && !params.Verify(o.Secret) {
+		return nil, errors.New("hash mismatch")
+	}
 	b, err := json.MarshalIndent(params, "", "  ")
 	fmt.Println(string(b))
-	buf, err := o.load(r, params.Image)
+	buf, err := o.DoLoad(r, params.Image)
 	if err != nil {
 		return nil, err
 	}
 	return buf, nil
 }
 
-func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
+func (o *Imagor) DoLoad(r *http.Request, image string) (buf []byte, err error) {
 	for _, loader := range o.Loaders {
 		if loader.Match(r, image) {
-			return loader.Do(r, image)
+			if buf, err = loader.Do(r, image); err == nil {
+				return
+			}
 		}
 	}
-	err = errors.New("unknown loader")
+	if err == nil {
+		err = errors.New("unknown loader")
+	}
 	return
 }
 
