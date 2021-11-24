@@ -11,7 +11,9 @@ import (
 	"strings"
 )
 
+// Params image resize and hash parameters
 type Params struct {
+	URI             string   `json:"uri,omitempty"`
 	Path            string   `json:"path,omitempty"`
 	Image           string   `json:"image,omitempty"`
 	CropLeft        int      `json:"crop_left,omitempty"`
@@ -73,7 +75,9 @@ var paramsRegex = regexp.MustCompile(
 
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
+// ParseParams parse params object from uri string
 func ParseParams(uri string) (params Params, err error) {
+	params.URI = uri
 	match := pathRegex.FindStringSubmatch(uri)
 	if len(match) < 6 {
 		err = errors.New("invalid params")
@@ -144,6 +148,7 @@ func ParseParams(uri string) (params Params, err error) {
 	return
 }
 
+// Verify if hash matches secret
 func (p *Params) Verify(secret string) bool {
 	return strings.TrimRight(Hash(p.Path, secret), "=") == p.Hash
 }

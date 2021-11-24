@@ -13,19 +13,30 @@ const (
 	Version = "0.1.0"
 )
 
+// Loader load image from image source
 type Loader interface {
-	Match(r *http.Request, key string) bool
-	Load(r *http.Request, key string) ([]byte, error)
+	Match(r *http.Request, image string) bool
+	Load(r *http.Request, image string) ([]byte, error)
 }
 
+// Storage store image buffer
+type Storage interface {
+	Store(ctx context.Context, image string, buf []byte) error
+}
+
+// Store both a Loader and Storage
+type Store interface {
+	Match(r *http.Request, image string) bool
+	Load(r *http.Request, image string) ([]byte, error)
+	Store(ctx context.Context, image string, buf []byte) error
+}
+
+// Processor process image buffer
 type Processor interface {
 	Process(ctx context.Context, buf []byte, params Params) ([]byte, error)
 }
 
-type Storage interface {
-	Store(ctx context.Context, buf []byte, params Params) error
-}
-
+// Imagor image resize HTTP handler
 type Imagor struct {
 	Logger     *zap.Logger
 	Unsafe     bool
@@ -56,6 +67,9 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(o.Storages) > 0 {
+		o.doStore(ctx, buf, params.Image)
+	}
 	for _, processor := range o.Processors {
 		b, e := processor.Process(ctx, buf, params)
 		if e == nil {
@@ -65,7 +79,6 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 			o.Logger.Error("process", zapParams, zap.Error(err))
 		}
 	}
-	o.doStore(ctx, buf, params)
 	return buf, nil
 }
 
@@ -83,7 +96,7 @@ func (o *Imagor) doLoad(r *http.Request, image string) (buf []byte, err error) {
 	return
 }
 
-func (o *Imagor) doStore(ctx context.Context, buf []byte, params Params) {
+func (o *Imagor) doStore(ctx context.Context, buf []byte, image string) {
 	for _, storage := range o.Storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
@@ -92,8 +105,8 @@ func (o *Imagor) doStore(ctx context.Context, buf []byte, params Params) {
 		}
 		go func(s Storage) {
 			defer cancel()
-			if err := s.Store(sCtx, buf, params); err != nil {
-				o.Logger.Error("storage", zap.Any("params", params), zap.Error(err))
+			if err := s.Store(sCtx, image, buf); err != nil {
+				o.Logger.Error("storage", zap.Any("image", image), zap.Error(err))
 			}
 		}(storage)
 	}
