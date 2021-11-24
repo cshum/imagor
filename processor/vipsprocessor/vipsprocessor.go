@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/davidbyttow/govips/v2/vips"
+	"strconv"
 )
 
 type Vips struct {
@@ -41,21 +42,68 @@ func (v *Vips) Close() {
 	vips.Shutdown()
 }
 
+var imageTypeMap = map[string]vips.ImageType{
+	"gif":    vips.ImageTypeGIF,
+	"jpeg":   vips.ImageTypeJPEG,
+	"jpg":    vips.ImageTypeJPEG,
+	"magick": vips.ImageTypeMagick,
+	"pdf":    vips.ImageTypePDF,
+	"png":    vips.ImageTypePNG,
+	"svg":    vips.ImageTypeSVG,
+	"tiff":   vips.ImageTypeTIFF,
+	"webp":   vips.ImageTypeWEBP,
+	"heif":   vips.ImageTypeHEIF,
+	"bmp":    vips.ImageTypeBMP,
+	"avif":   vips.ImageTypeAVIF,
+}
+
 func export(image *vips.ImageRef, params imagor.Params) ([]byte, *vips.ImageMetadata, error) {
-	switch image.Format() {
-	case vips.ImageTypeJPEG:
-		return image.ExportJpeg(vips.NewJpegExportParams())
+	format := image.Format()
+	quality := 0
+	for _, p := range params.Filters {
+		switch p.Name {
+		case "format":
+			if typ, ok := imageTypeMap[p.Args]; ok {
+				format = typ
+			}
+			break
+		case "quality":
+			quality, _ = strconv.Atoi(p.Args)
+		}
+	}
+	switch format {
 	case vips.ImageTypePNG:
-		return image.ExportPng(vips.NewPngExportParams())
+		opts := vips.NewPngExportParams()
+		return image.ExportPng(opts)
 	case vips.ImageTypeWEBP:
-		return image.ExportWebp(vips.NewWebpExportParams())
+		opts := vips.NewWebpExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportWebp(opts)
 	case vips.ImageTypeHEIF:
-		return image.ExportHeif(vips.NewHeifExportParams())
+		opts := vips.NewHeifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportHeif(opts)
 	case vips.ImageTypeTIFF:
-		return image.ExportTiff(vips.NewTiffExportParams())
+		opts := vips.NewTiffExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportTiff(opts)
 	case vips.ImageTypeAVIF:
-		return image.ExportAvif(vips.NewAvifExportParams())
+		opts := vips.NewAvifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportAvif(opts)
 	default:
-		return image.ExportJpeg(vips.NewJpegExportParams())
+		opts := vips.NewJpegExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportJpeg(opts)
 	}
 }
