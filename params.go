@@ -12,31 +12,31 @@ import (
 )
 
 type Params struct {
-	Path            string
-	Image           string
-	CropLeft        int
-	CropTop         int
-	CropRight       int
-	CropBottom      int
-	Width           int
-	Height          int
-	Meta            bool
-	HorizontalFlip  bool
-	VerticalFlip    bool
-	HAlign          string
-	VAlign          string
-	Smart           bool
-	FitIn           bool
-	TrimOrientation string
-	TrimTolerance   int
-	Unsafe          bool
-	Hash            string
-	Filters         []Filter
+	Path            string   `json:"path,omitempty"`
+	Image           string   `json:"image,omitempty"`
+	CropLeft        int      `json:"crop_left,omitempty"`
+	CropTop         int      `json:"crop_top,omitempty"`
+	CropRight       int      `json:"crop_right,omitempty"`
+	CropBottom      int      `json:"crop_bottom,omitempty"`
+	Width           int      `json:"width,omitempty"`
+	Height          int      `json:"height,omitempty"`
+	Meta            bool     `json:"meta,omitempty"`
+	HorizontalFlip  bool     `json:"horizontal_flip,omitempty"`
+	VerticalFlip    bool     `json:"vertical_flip,omitempty"`
+	HAlign          string   `json:"h_align,omitempty"`
+	VAlign          string   `json:"v_align,omitempty"`
+	Smart           bool     `json:"smart,omitempty"`
+	FitIn           bool     `json:"fit_in,omitempty"`
+	TrimOrientation string   `json:"trim_orientation,omitempty"`
+	TrimTolerance   int      `json:"trim_tolerance,omitempty"`
+	Unsafe          bool     `json:"unsafe,omitempty"`
+	Hash            string   `json:"hash,omitempty"`
+	Filters         []Filter `json:"filters,omitempty"`
 }
 
 type Filter struct {
-	Name string
-	Args string
+	Name string `json:"name,omitempty"`
+	Args string `json:"args,omitempty"`
 }
 
 var pathRegex = regexp.MustCompile(
@@ -73,8 +73,7 @@ var paramsRegex = regexp.MustCompile(
 
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
-func ParseParams(uri string) (params *Params, err error) {
-	params = &Params{}
+func ParseParams(uri string) (params Params, err error) {
 	match := pathRegex.FindStringSubmatch(uri)
 	if len(match) < 6 {
 		err = errors.New("invalid params")
