@@ -32,7 +32,7 @@ type Store interface {
 
 // Processor process image buffer
 type Processor interface {
-	Process(ctx context.Context, buf []byte, params Params) ([]byte, error)
+	Process(ctx context.Context, buf []byte, params Params) ([]byte, *Meta, error)
 }
 
 // Imagor image resize HTTP handler
@@ -46,7 +46,7 @@ type Imagor struct {
 	Timeout    time.Duration
 }
 
-func (o *Imagor) Do(r *http.Request) ([]byte, error) {
+func (o *Imagor) Do(r *http.Request) (buf []byte, meta *Meta, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if o.Timeout > 0 {
@@ -55,30 +55,30 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 	}
 	params, err := ParseParams(r.URL.RawPath)
 	if err != nil {
-		return nil, err
+		return
 	}
 	if !o.Unsafe && !params.Verify(o.Secret) {
-		return nil, errors.New("hash mismatch")
+		return nil, nil, errors.New("hash mismatch")
 	}
-	zapParams := zap.Any("params", params)
-	o.Logger.Debug("access", zapParams)
-	buf, err := o.doLoad(r, params.Image)
+	buf, err = o.doLoad(r, params.Image)
 	if err != nil {
-		return nil, err
+		return
 	}
 	if len(o.Storages) > 0 {
 		o.doStore(ctx, o.Storages, params.Image, buf)
 	}
 	for _, processor := range o.Processors {
-		b, e := processor.Process(ctx, buf, params)
+		b, m, e := processor.Process(ctx, buf, params)
 		if e == nil {
 			buf = b
+			meta = m
+			o.Logger.Debug("process", zap.Any("params", params), zap.Any("meta", meta))
 			break
 		} else {
-			o.Logger.Error("process", zapParams, zap.Error(err))
+			o.Logger.Error("process", zap.Any("params", params), zap.Error(err))
 		}
 	}
-	return buf, nil
+	return
 }
 
 func (o *Imagor) doLoad(r *http.Request, image string) (buf []byte, err error) {
@@ -112,7 +112,7 @@ func (o *Imagor) doStore(ctx context.Context, storages []Storage, image string, 
 }
 
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	buf, err := o.Do(r)
+	buf, _, err := o.Do(r)
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf("%v", err)))
 		return

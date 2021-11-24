@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
+	"github.com/cshum/imagor/processor/vipsprocessor"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -19,6 +20,7 @@ func main() {
 		panic(err)
 	}
 	logger.Info("start", zap.Int("port", port))
+
 	panic(http.ListenAndServe(
 		fmt.Sprintf(":%d", port),
 		&imagor.Imagor{
@@ -26,6 +28,9 @@ func main() {
 				httploader.HTTPLoader{
 					ForwardHeaders: []string{"*"},
 				},
+			},
+			Processors: []imagor.Processor{
+				vipsprocessor.New(),
 			},
 			Unsafe:  true,
 			Logger:  logger,

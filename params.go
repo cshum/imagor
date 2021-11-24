@@ -41,6 +41,13 @@ type Filter struct {
 	Args string `json:"args,omitempty"`
 }
 
+type Meta struct {
+	ImageType   string `json:"image_type"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	Orientation int    `json:"orientation"`
+}
+
 var pathRegex = regexp.MustCompile(
 	"/?" +
 		// hash
