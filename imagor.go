@@ -15,15 +15,15 @@ const (
 
 type Loader interface {
 	Match(r *http.Request, key string) bool
-	Do(r *http.Request, key string) ([]byte, error)
+	Load(r *http.Request, key string) ([]byte, error)
 }
 
 type Processor interface {
-	Do(ctx context.Context, buf []byte, params Params) ([]byte, error)
+	Process(ctx context.Context, buf []byte, params Params) ([]byte, error)
 }
 
 type Storage interface {
-	Do(ctx context.Context, buf []byte, params Params) error
+	Store(ctx context.Context, buf []byte, params Params) error
 }
 
 type Imagor struct {
@@ -57,7 +57,7 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	for _, processor := range o.Processors {
-		b, e := processor.Do(ctx, buf, params)
+		b, e := processor.Process(ctx, buf, params)
 		if e == nil {
 			buf = b
 			break
@@ -72,7 +72,7 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 func (o *Imagor) doLoad(r *http.Request, image string) (buf []byte, err error) {
 	for _, loader := range o.Loaders {
 		if loader.Match(r, image) {
-			if buf, err = loader.Do(r, image); err == nil {
+			if buf, err = loader.Load(r, image); err == nil {
 				return
 			}
 		}
@@ -92,7 +92,7 @@ func (o *Imagor) doStore(ctx context.Context, buf []byte, params Params) {
 		}
 		go func(s Storage) {
 			defer cancel()
-			if err := s.Do(sCtx, buf, params); err != nil {
+			if err := s.Store(sCtx, buf, params); err != nil {
 				o.Logger.Error("storage", zap.Any("params", params), zap.Error(err))
 			}
 		}(storage)

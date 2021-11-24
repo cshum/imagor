@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/loader/httploader"
+	"github.com/cshum/imagor/store/httpstore"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -23,7 +23,7 @@ func main() {
 		fmt.Sprintf(":%d", port),
 		&imagor.Imagor{
 			Loaders: []imagor.Loader{
-				httploader.HTTPLoader{
+				httpstore.HTTPStore{
 					ForwardHeaders: []string{"*"},
 				},
 			},

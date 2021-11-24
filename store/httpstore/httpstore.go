@@ -1,4 +1,4 @@
-package httploader
+package httpstore
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type HTTPLoader struct {
+type HTTPStore struct {
 	// The transport used to request images.
 	// If nil, http.DefaultTransport is used.
 	Transport http.RoundTripper
@@ -23,7 +23,7 @@ type HTTPLoader struct {
 	MaxAllowedSize int
 }
 
-func (h HTTPLoader) Match(r *http.Request, image string) bool {
+func (h HTTPStore) Match(r *http.Request, image string) bool {
 	if r.Method == http.MethodGet && image != "" {
 		if u, err := url.Parse(image); err == nil && u.Host != "" && u.Scheme != "" {
 			return true
@@ -32,7 +32,7 @@ func (h HTTPLoader) Match(r *http.Request, image string) bool {
 	return false
 }
 
-func (h HTTPLoader) Do(r *http.Request, image string) ([]byte, error) {
+func (h HTTPStore) Load(r *http.Request, image string) ([]byte, error) {
 	u, err := url.Parse(image)
 	if err != nil {
 		return nil, err
