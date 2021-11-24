@@ -67,7 +67,7 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	if len(o.Storages) > 0 {
-		o.doStore(ctx, buf, params.Image)
+		o.doStore(ctx, params.Image, buf)
 	}
 	for _, processor := range o.Processors {
 		b, e := processor.Process(ctx, buf, params)
@@ -95,7 +95,7 @@ func (o *Imagor) doLoad(r *http.Request, image string) (buf []byte, err error) {
 	return
 }
 
-func (o *Imagor) doStore(ctx context.Context, buf []byte, image string) {
+func (o *Imagor) doStore(ctx context.Context, image string, buf []byte) {
 	for _, storage := range o.Storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
