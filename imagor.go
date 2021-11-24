@@ -47,6 +47,16 @@ type Imagor struct {
 	Timeout    time.Duration
 }
 
+func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	buf, err := o.Do(r)
+	if err != nil {
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		return
+	}
+	w.Write(buf)
+	return
+}
+
 func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 	params := ParseParams(r.URL.RawPath)
 	var cancel func()
@@ -111,14 +121,4 @@ func (o *Imagor) doStore(ctx context.Context, storages []Storage, image string, 
 			}
 		}(storage)
 	}
-}
-
-func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	buf, err := o.Do(r)
-	if err != nil {
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		return
-	}
-	w.Write(buf)
-	return
 }
