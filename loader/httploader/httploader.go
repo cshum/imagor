@@ -1,7 +1,6 @@
 package httploader
 
 import (
-	"fmt"
 	"github.com/cshum/imagor"
 	"io"
 	"net/http"
@@ -24,29 +23,26 @@ type HTTPLoader struct {
 }
 
 func (h HTTPLoader) Match(r *http.Request, image string) bool {
-	if r.Method == http.MethodGet && image != "" {
-		if u, err := url.Parse(image); err == nil && u.Host != "" && u.Scheme != "" {
-			return true
-		}
+	if r.Method != http.MethodGet || image == "" {
+		return false
 	}
-	return false
+	u, err := url.Parse(image)
+	if err != nil || u.Host == "" || u.Scheme == "" {
+		return false
+	}
+	if shouldRestrictOrigin(u, h.AllowedOrigins) {
+		return false
+	}
+	return true
 }
 
 func (h HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
-	u, err := url.Parse(image)
-	if err != nil {
-		return nil, err
-	}
-	if shouldRestrictOrigin(u, h.AllowedOrigins) {
-		return nil, fmt.Errorf("not allowed remote URL origin: %s%s", u.Host, u.Path)
-	}
 	client := &http.Client{Transport: h.Transport}
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "imagor/"+imagor.Version)
-
 	for _, header := range h.ForwardHeaders {
 		if header == "*" {
 			req.Header = r.Header

@@ -41,8 +41,8 @@ type Imagor struct {
 	Unsafe     bool
 	Secret     string
 	Loaders    []Loader
-	Processors []Processor
 	Storages   []Storage
+	Processors []Processor
 	Timeout    time.Duration
 }
 
@@ -67,7 +67,7 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	if len(o.Storages) > 0 {
-		o.doStore(ctx, params.Image, buf)
+		o.doStore(ctx, o.Storages, params.Image, buf)
 	}
 	for _, processor := range o.Processors {
 		b, e := processor.Process(ctx, buf, params)
@@ -95,8 +95,8 @@ func (o *Imagor) doLoad(r *http.Request, image string) (buf []byte, err error) {
 	return
 }
 
-func (o *Imagor) doStore(ctx context.Context, image string, buf []byte) {
-	for _, storage := range o.Storages {
+func (o *Imagor) doStore(ctx context.Context, storages []Storage, image string, buf []byte) {
+	for _, storage := range storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
 		if o.Timeout > 0 {
