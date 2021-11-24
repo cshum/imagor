@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/source/httpsource"
+	"github.com/cshum/imagor/loader/httploader"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -21,8 +21,8 @@ func main() {
 	panic(http.ListenAndServe(
 		fmt.Sprintf(":%d", port),
 		&imagor.Imagor{
-			Sources: []imagor.Source{
-				httpsource.HTTPSource{},
+			Loaders: []imagor.Loader{
+				httploader.HTTPLoader{},
 			},
 			Logger: logger,
 		},

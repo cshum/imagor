@@ -1,6 +1,7 @@
 package imagor
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
@@ -13,7 +14,7 @@ const (
 
 type Imagor struct {
 	Logger  *zap.Logger
-	Sources []Source
+	Loaders []Loader
 }
 
 func (o *Imagor) Do(r *http.Request) ([]byte, error) {
@@ -21,20 +22,22 @@ func (o *Imagor) Do(r *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buf, err := o.doSources(r, params.Image)
+	b, err := json.MarshalIndent(params, "", "  ")
+	fmt.Println(string(b))
+	buf, err := o.load(r, params.Image)
 	if err != nil {
 		return nil, err
 	}
 	return buf, nil
 }
 
-func (o *Imagor) doSources(r *http.Request, image string) (buf []byte, err error) {
-	for _, source := range o.Sources {
-		if source.Match(r, image) {
-			return source.Do(r, image)
+func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
+	for _, loader := range o.Loaders {
+		if loader.Match(r, image) {
+			return loader.Do(r, image)
 		}
 	}
-	err = errors.New("unknown source")
+	err = errors.New("unknown loader")
 	return
 }
 

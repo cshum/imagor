@@ -36,10 +36,15 @@ type Filter struct {
 	Args string
 }
 
+var pathRegex = regexp.MustCompile(
+	"/?" +
+		// hash
+		"((unsafe/)|(([A-Za-z0-9-_]{26,28})[=]{0,2})/)?" +
+		// path
+		"(.+)?",
+)
 var paramsRegex = regexp.MustCompile(
 	"/?" +
-		// unsafe
-		"((unsafe/)|(([A-Za-z0-9-_]{26,28})[=]{0,2})/)?" +
 		// meta
 		"(meta/)?" +
 		// trim
@@ -61,13 +66,12 @@ var paramsRegex = regexp.MustCompile(
 		// image
 		"(.+)?",
 )
-
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
-func ParseParams(path string) (params *Params, err error) {
-	params = &Params{Path: path}
-	match := paramsRegex.FindStringSubmatch(path)
-	if len(match) < 30 {
+func ParseParams(uri string) (params *Params, err error) {
+	params = &Params{}
+	match := pathRegex.FindStringSubmatch(uri)
+	if len(match) < 6 {
 		err = errors.New("invalid params")
 		return
 	}
@@ -78,6 +82,14 @@ func ParseParams(path string) (params *Params, err error) {
 		params.Hash = match[index+3]
 	}
 	index += 4
+	params.Path = match[index]
+
+	match = paramsRegex.FindStringSubmatch(params.Path)
+	if len(match) < 26 {
+		err = errors.New("invalid params")
+		return
+	}
+	index = 1
 	if match[index] != "" {
 		params.Meta = true
 	}
@@ -126,6 +138,10 @@ func ParseParams(path string) (params *Params, err error) {
 	index += 2
 	params.Image, err = url.QueryUnescape(match[index])
 	return
+}
+
+func (p *Params) Sign(secret string) (string, error) {
+	return "", nil
 }
 
 func parseFilters(filters string) (results []Filter) {
