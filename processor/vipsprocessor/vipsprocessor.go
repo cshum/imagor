@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/davidbyttow/govips/v2/vips"
+	"math"
 	"strconv"
 )
 
@@ -18,25 +19,33 @@ func New() *Vips {
 func (v *Vips) Process(
 	_ context.Context, buf []byte, p imagor.Params,
 ) ([]byte, *imagor.Meta, error) {
-	image, err := vips.NewImageFromBuffer(buf)
+	img, err := vips.NewImageFromBuffer(buf)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer image.Close()
+	defer img.Close()
 	var (
-		format  = image.Format()
-		w       = p.Width
-		h       = p.Height
-		quality int
-		fill    string
+		format     = img.Format()
+		w          = p.Width
+		h          = p.Height
+		outerScale = math.Max(
+			float64(w)/float64(img.Width()),
+			float64(h)/float64(img.Height()),
+		)
+		quality  int
+		fill     string
+		interest = vips.InterestingCentre
 	)
 	if w == 0 && h == 0 {
-		w = image.Width()
-		h = image.Height()
+		w = img.Width()
+		h = img.Height()
 	} else if w == 0 {
-		w = image.Width() * h / image.Height()
+		w = img.Width() * h / img.Height()
 	} else if h == 0 {
-		h = image.Height() * w / image.Width()
+		h = img.Height() * w / img.Width()
+	}
+	if p.Smart {
+		interest = vips.InterestingEntropy
 	}
 	for _, p := range p.Filters {
 		switch p.Name {
@@ -54,17 +63,18 @@ func (v *Vips) Process(
 		}
 	}
 	if p.FitIn {
-		if p.Smart {
-			if err := image.Thumbnail(w, h, vips.InterestingAttention); err != nil {
-				return nil, nil, err
-			}
-		} else {
-			if err := image.Thumbnail(w, h, vips.InterestingNone); err != nil {
-				return nil, nil, err
-			}
+		if err := img.Thumbnail(w, h, interest); err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if err := img.Resize(outerScale, vips.KernelAuto); err != nil {
+			return nil, nil, err
+		}
+		if err := img.SmartCrop(w, h, interest); err != nil {
+			return nil, nil, err
 		}
 	}
-	if fill != "" {
+	if fill != "" && (w > img.Width() || h > img.Height()) {
 		extend := vips.ExtendCopy
 		switch fill {
 		case "white":
@@ -76,15 +86,15 @@ func (v *Vips) Process(
 		case "repeat":
 			extend = vips.ExtendRepeat
 		}
-		if err := image.Embed(
-			(w-image.Width())/2,
-			(h-image.Height())/2,
+		if err := img.Embed(
+			(w-img.Width())/2,
+			(h-img.Height())/2,
 			w, h, extend,
 		); err != nil {
 			return nil, nil, err
 		}
 	}
-	buf, meta, err := export(image, format, quality)
+	buf, meta, err := export(img, format, quality)
 	if err != nil {
 		return nil, nil, err
 	}
