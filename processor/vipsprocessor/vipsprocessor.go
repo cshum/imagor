@@ -25,7 +25,6 @@ func (v *Vips) Process(
 	}
 	defer img.Close()
 	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
-		// todo fix
 		cropRight := p.CropRight
 		cropBottom := p.CropBottom
 		if w := img.Width(); cropRight > w {
@@ -42,20 +41,12 @@ func (v *Vips) Process(
 		}
 	}
 	var (
-		format     = img.Format()
-		w          = p.Width
-		h          = p.Height
-		outerScale = math.Max(
-			float64(w)/float64(img.Width()),
-			float64(h)/float64(img.Height()),
-		)
-		quality  int
-		fill     string
-		interest = vips.InterestingCentre
+		format  = img.Format()
+		w       = p.Width
+		h       = p.Height
+		quality int
+		fill    string
 	)
-	if p.Smart {
-		interest = vips.InterestingEntropy
-	}
 	if w == 0 && h == 0 {
 		w = img.Width()
 		h = img.Height()
@@ -80,34 +71,41 @@ func (v *Vips) Process(
 		}
 	}
 	if p.FitIn {
-		if err := img.Thumbnail(w, h, interest); err != nil {
+		if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
 			return nil, nil, err
+		}
+		if fill != "" {
+			extend := vips.ExtendCopy
+			switch fill {
+			case "white":
+				extend = vips.ExtendWhite
+			case "mirror":
+				extend = vips.ExtendMirror
+			case "black":
+				extend = vips.ExtendBlack
+			case "repeat":
+				extend = vips.ExtendRepeat
+			}
+			if err := img.Embed(
+				(w-img.Width())/2,
+				(h-img.Height())/2,
+				w, h, extend,
+			); err != nil {
+				return nil, nil, err
+			}
 		}
 	} else if w < img.Width() || h < img.Height() {
-		if err := img.Resize(outerScale, vips.KernelAuto); err != nil {
+		if err := img.Resize(math.Max(
+			float64(w)/float64(img.Width()),
+			float64(h)/float64(img.Height()),
+		), vips.KernelAuto); err != nil {
 			return nil, nil, err
+		}
+		interest := vips.InterestingCentre
+		if p.Smart {
+			interest = vips.InterestingEntropy
 		}
 		if err := img.SmartCrop(w, h, interest); err != nil {
-			return nil, nil, err
-		}
-	}
-	if fill != "" && (w > img.Width() || h > img.Height()) {
-		extend := vips.ExtendCopy
-		switch fill {
-		case "white":
-			extend = vips.ExtendWhite
-		case "mirror":
-			extend = vips.ExtendMirror
-		case "black":
-			extend = vips.ExtendBlack
-		case "repeat":
-			extend = vips.ExtendRepeat
-		}
-		if err := img.Embed(
-			(w-img.Width())/2,
-			(h-img.Height())/2,
-			w, h, extend,
-		); err != nil {
 			return nil, nil, err
 		}
 	}
