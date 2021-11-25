@@ -55,7 +55,24 @@ func (v *Vips) Process(
 		}
 	}
 	if fill != "" {
-
+		extend := vips.ExtendCopy
+		switch fill {
+		case "white":
+			extend = vips.ExtendWhite
+		case "mirror":
+			extend = vips.ExtendMirror
+		case "black":
+			extend = vips.ExtendBlack
+		case "repeat":
+			extend = vips.ExtendRepeat
+		}
+		if err := image.Embed(
+			(params.Width-image.Width())/2,
+			(params.Height-image.Height())/2,
+			params.Width, params.Height, extend,
+		); err != nil {
+			return nil, nil, err
+		}
 	}
 	buf, meta, err := export(image, format, quality)
 	if err != nil {
