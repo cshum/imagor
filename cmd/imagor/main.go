@@ -14,7 +14,7 @@ func main() {
 	var (
 		logger *zap.Logger
 		err    error
-		port   = 3000
+		port   = 9000
 	)
 	if logger, err = zap.NewDevelopment(); err != nil {
 		panic(err)
