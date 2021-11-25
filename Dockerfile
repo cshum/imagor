@@ -49,6 +49,9 @@ RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
 FROM debian:buster-slim
 
+COPY --from=builder /usr/local/lib /usr/local/lib
+COPY --from=builder /etc/ssl/certs /etc/ssl/certs
+
 # Install runtime dependencies
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
@@ -62,8 +65,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY --from=builder /usr/local/lib /usr/local/lib
-COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 COPY --from=builder /go/bin/imagor /usr/local/bin/imagor
 
 # Server port to listen

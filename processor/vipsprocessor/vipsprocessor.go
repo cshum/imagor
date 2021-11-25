@@ -26,7 +26,7 @@ func (v *Vips) Process(
 	var (
 		format  = image.Format()
 		quality int
-		//fill string
+		fill    string
 	)
 	for _, p := range params.Filters {
 		switch p.Name {
@@ -38,10 +38,24 @@ func (v *Vips) Process(
 		case "quality":
 			quality, _ = strconv.Atoi(p.Args)
 			break
-			//case "fill":
-			//	fill = p.Args
-			//	break
+		case "fill":
+			fill = p.Args
+			break
 		}
+	}
+	if params.FitIn {
+		if params.Smart {
+			if err := image.Thumbnail(params.Width, params.Height, vips.InterestingAttention); err != nil {
+				return nil, nil, err
+			}
+		} else {
+			if err := image.Thumbnail(params.Width, params.Height, vips.InterestingNone); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	if fill != "" {
+
 	}
 	buf, meta, err := export(image, format, quality)
 	if err != nil {
