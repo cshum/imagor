@@ -23,10 +23,27 @@ func (v *Vips) Process(
 		return nil, nil, err
 	}
 	defer image.Close()
-
-	// todo
-
-	buf, meta, err := export(image, params)
+	var (
+		format  = image.Format()
+		quality int
+		//fill string
+	)
+	for _, p := range params.Filters {
+		switch p.Name {
+		case "format":
+			if typ, ok := imageTypeMap[p.Args]; ok {
+				format = typ
+			}
+			break
+		case "quality":
+			quality, _ = strconv.Atoi(p.Args)
+			break
+			//case "fill":
+			//	fill = p.Args
+			//	break
+		}
+	}
+	buf, meta, err := export(image, format, quality)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -58,20 +75,7 @@ var imageTypeMap = map[string]vips.ImageType{
 	"avif":   vips.ImageTypeAVIF,
 }
 
-func export(image *vips.ImageRef, params imagor.Params) ([]byte, *vips.ImageMetadata, error) {
-	format := image.Format()
-	quality := 0
-	for _, p := range params.Filters {
-		switch p.Name {
-		case "format":
-			if typ, ok := imageTypeMap[p.Args]; ok {
-				format = typ
-			}
-			break
-		case "quality":
-			quality, _ = strconv.Atoi(p.Args)
-		}
-	}
+func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
 	switch format {
 	case vips.ImageTypePNG:
 		opts := vips.NewPngExportParams()
