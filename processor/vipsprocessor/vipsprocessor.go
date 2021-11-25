@@ -36,6 +36,9 @@ func (v *Vips) Process(
 		fill     string
 		interest = vips.InterestingCentre
 	)
+	if p.Smart {
+		interest = vips.InterestingEntropy
+	}
 	if w == 0 && h == 0 {
 		w = img.Width()
 		h = img.Height()
@@ -43,9 +46,6 @@ func (v *Vips) Process(
 		w = img.Width() * h / img.Height()
 	} else if h == 0 {
 		h = img.Height() * w / img.Width()
-	}
-	if p.Smart {
-		interest = vips.InterestingEntropy
 	}
 	for _, p := range p.Filters {
 		switch p.Name {
@@ -149,6 +149,12 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 			opts.Quality = quality
 		}
 		return image.ExportTiff(opts)
+	case vips.ImageTypeGIF:
+		opts := vips.NewGifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportGIF(opts)
 	case vips.ImageTypeAVIF:
 		opts := vips.NewAvifExportParams()
 		if quality > 0 {
