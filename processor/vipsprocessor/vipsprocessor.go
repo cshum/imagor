@@ -109,6 +109,16 @@ func (v *Vips) Process(
 			return nil, nil, err
 		}
 	}
+	if p.HorizontalFlip {
+		if err := img.Flip(vips.DirectionHorizontal); err != nil {
+			return nil, nil, err
+		}
+	}
+	if p.VerticalFlip {
+		if err := img.Flip(vips.DirectionVertical); err != nil {
+			return nil, nil, err
+		}
+	}
 	buf, meta, err := export(img, format, quality)
 	if err != nil {
 		return nil, nil, err
