@@ -6,6 +6,7 @@ import (
 	"github.com/davidbyttow/govips/v2/vips"
 	"math"
 	"strconv"
+	"strings"
 )
 
 type Vips struct {
@@ -42,10 +43,10 @@ func (v *Vips) Process(
 	}
 	var (
 		format  = img.Format()
-		w       = p.Width
-		h       = p.Height
 		quality int
 		fill    string
+		w       = p.Width
+		h       = p.Height
 	)
 	if w == 0 && h == 0 {
 		w = img.Width()
@@ -121,6 +122,31 @@ func (v *Vips) Process(
 	if p.VerticalFlip {
 		if err := img.Flip(vips.DirectionVertical); err != nil {
 			return nil, nil, err
+		}
+	}
+	for _, p := range p.Filters {
+		switch p.Name {
+		case "blur":
+			if sigma, _ := strconv.ParseFloat(strings.Split(p.Args, ",")[0], 64); sigma > 0 {
+				if err := img.GaussianBlur(sigma); err != nil {
+					return nil, nil, err
+				}
+			}
+			break
+		case "rotate":
+			if angle, _ := strconv.Atoi(p.Args); angle > 0 {
+				vAngle := vips.Angle0
+				if angle == 90 {
+					vAngle = vips.Angle270
+				} else if angle == 180 {
+					vAngle = vips.Angle180
+				} else if angle == 270 {
+					vAngle = vips.Angle90
+				}
+				if err := img.Rotate(vAngle); err != nil {
+					return nil, nil, err
+				}
+			}
 		}
 	}
 	buf, meta, err := export(img, format, quality)
