@@ -24,6 +24,23 @@ func (v *Vips) Process(
 		return nil, nil, err
 	}
 	defer img.Close()
+	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
+		// todo fix
+		cropRight := p.CropRight
+		cropBottom := p.CropBottom
+		if w := img.Width(); cropRight > w {
+			cropRight = w
+		}
+		if h := img.Height(); cropBottom > h {
+			cropBottom = h
+		}
+		if err := img.ExtractArea(
+			p.CropLeft, p.CropTop,
+			cropRight-p.CropLeft, cropBottom-p.CropTop,
+		); err != nil {
+			return nil, nil, err
+		}
+	}
 	var (
 		format     = img.Format()
 		w          = p.Width
@@ -66,7 +83,7 @@ func (v *Vips) Process(
 		if err := img.Thumbnail(w, h, interest); err != nil {
 			return nil, nil, err
 		}
-	} else {
+	} else if w < img.Width() || h < img.Height() {
 		if err := img.Resize(outerScale, vips.KernelAuto); err != nil {
 			return nil, nil, err
 		}
