@@ -22,7 +22,7 @@ type HTTPLoader struct {
 	MaxAllowedSize int
 }
 
-func (h HTTPLoader) Match(r *http.Request, image string) bool {
+func (h *HTTPLoader) Match(r *http.Request, image string) bool {
 	if r.Method != http.MethodGet || image == "" {
 		return false
 	}
@@ -36,7 +36,7 @@ func (h HTTPLoader) Match(r *http.Request, image string) bool {
 	return true
 }
 
-func (h HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
+func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	client := &http.Client{Transport: h.Transport}
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
 	if err != nil {

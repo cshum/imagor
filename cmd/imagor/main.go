@@ -25,7 +25,7 @@ func main() {
 		fmt.Sprintf(":%d", port),
 		&imagor.Imagor{
 			Loaders: []imagor.Loader{
-				httploader.HTTPLoader{
+				&httploader.HTTPLoader{
 					ForwardHeaders: []string{"*"},
 				},
 			},
