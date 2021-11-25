@@ -16,7 +16,7 @@ func New() *Vips {
 }
 
 func (v *Vips) Process(
-	_ context.Context, buf []byte, params imagor.Params,
+	_ context.Context, buf []byte, p imagor.Params,
 ) ([]byte, *imagor.Meta, error) {
 	image, err := vips.NewImageFromBuffer(buf)
 	if err != nil {
@@ -25,10 +25,18 @@ func (v *Vips) Process(
 	defer image.Close()
 	var (
 		format  = image.Format()
+		w       = p.Width
+		h       = p.Height
 		quality int
 		fill    string
 	)
-	for _, p := range params.Filters {
+	if w == 0 {
+		w = image.Width() * h / image.Height()
+	}
+	if h == 0 {
+		h = image.Height() * w / image.Width()
+	}
+	for _, p := range p.Filters {
 		switch p.Name {
 		case "format":
 			if typ, ok := imageTypeMap[p.Args]; ok {
@@ -43,13 +51,13 @@ func (v *Vips) Process(
 			break
 		}
 	}
-	if params.FitIn {
-		if params.Smart {
-			if err := image.Thumbnail(params.Width, params.Height, vips.InterestingAttention); err != nil {
+	if p.FitIn {
+		if p.Smart {
+			if err := image.Thumbnail(w, h, vips.InterestingAttention); err != nil {
 				return nil, nil, err
 			}
 		} else {
-			if err := image.Thumbnail(params.Width, params.Height, vips.InterestingNone); err != nil {
+			if err := image.Thumbnail(w, h, vips.InterestingNone); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -67,9 +75,9 @@ func (v *Vips) Process(
 			extend = vips.ExtendRepeat
 		}
 		if err := image.Embed(
-			(params.Width-image.Width())/2,
-			(params.Height-image.Height())/2,
-			params.Width, params.Height, extend,
+			(w-image.Width())/2,
+			(h-image.Height())/2,
+			w, h, extend,
 		); err != nil {
 			return nil, nil, err
 		}

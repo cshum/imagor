@@ -32,19 +32,15 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR ${GOPATH}/src/github.com/cshum/imagor
 
-# Cache go modules
 COPY go.mod .
 COPY go.sum .
 
 RUN go mod download
 
-# Copy imagor sources
 COPY . .
 
-# Run quality control
-RUN go test ./... -test.v -race -test.coverprofile=atomic .
+# RUN go test ./... -test.v -race -test.coverprofile=atomic .
 
-# Compile imagor
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
 FROM debian:buster-slim
@@ -67,14 +63,11 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=builder /go/bin/imagor /usr/local/bin/imagor
 
-# Server port to listen
 ENV PORT 9000
 
 # use unprivileged user
 USER nobody
 
-# Run the entrypoint command by default when the container starts.
 ENTRYPOINT ["/usr/local/bin/imagor"]
 
-# Expose the server TCP port
 EXPOSE ${PORT}
