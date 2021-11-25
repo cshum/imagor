@@ -30,14 +30,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
   make install && \
   ldconfig
 
-# ca-certificates is required to call HTTPS endpoints.
-# create appuser
-
 WORKDIR ${GOPATH}/src/github.com/cshum/imagor
 
 # Cache go modules
-ENV GO111MODULE=on
-
 COPY go.mod .
 COPY go.sum .
 
