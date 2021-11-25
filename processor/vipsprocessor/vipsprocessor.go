@@ -30,10 +30,12 @@ func (v *Vips) Process(
 		quality int
 		fill    string
 	)
-	if w == 0 {
+	if w == 0 && h == 0 {
+		w = image.Width()
+		h = image.Height()
+	} else if w == 0 {
 		w = image.Width() * h / image.Height()
-	}
-	if h == 0 {
+	} else if h == 0 {
 		h = image.Height() * w / image.Width()
 	}
 	for _, p := range p.Filters {
