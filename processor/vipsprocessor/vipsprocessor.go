@@ -104,6 +104,10 @@ func (v *Vips) Process(
 		interest := vips.InterestingCentre
 		if p.Smart {
 			interest = vips.InterestingEntropy
+		} else if (p.VAlign == "top" && img.Height() > h) || (p.HAlign == "left" && img.Width() > w) {
+			interest = vips.InterestingLow
+		} else if (p.VAlign == "bottom" && img.Height() > h) || (p.HAlign == "right" && img.Width() > w) {
+			interest = vips.InterestingHigh
 		}
 		if err := img.SmartCrop(w, h, interest); err != nil {
 			return nil, nil, err
