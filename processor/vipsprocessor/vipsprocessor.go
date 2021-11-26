@@ -141,7 +141,7 @@ func (v *Vips) Process(
 			break
 		case "fill", "background_color":
 			fill := strings.ToLower(p.Args)
-			if img.HasAlpha() {
+			if img.HasAlpha() && fill != "blur" {
 				if err := img.Flatten(getColor(fill)); err != nil {
 					return nil, nil, err
 				}
