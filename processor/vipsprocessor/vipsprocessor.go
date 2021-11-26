@@ -224,11 +224,14 @@ func (v *Vips) Process(
 			break
 		case "watermark":
 			args := strings.Split(p.Args, ",")
-			if len(args) >= 4 {
+			if ln := len(args); ln >= 3 {
 				image := args[0]
-				x, _ := strconv.Atoi(args[1])
-				y, _ := strconv.Atoi(args[2])
-				//a, _ := strconv.Atoi(args[3])
+				var x, y, a int
+				x, _ = strconv.Atoi(args[1])
+				y, _ = strconv.Atoi(args[2])
+				if ln >= 4 {
+					a, _ = strconv.Atoi(args[3])
+				}
 				if unescape, e := url.QueryUnescape(args[0]); e == nil {
 					image = unescape
 				}
@@ -246,7 +249,7 @@ func (v *Vips) Process(
 				if y < 0 {
 					y += img.Height() - overlay.Height()
 				}
-				if err := img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
+				if err := watermark(img, overlay, x, y, a); err != nil {
 					return nil, nil, err
 				}
 			}
@@ -368,4 +371,17 @@ func parseHexColor(s string) (c color.RGBA, ok bool) {
 		ok = true
 	}
 	return
+}
+
+func watermark(img, overlay *vips.ImageRef, x, y, alpha int) error {
+	defer overlay.Close()
+	if alpha > 0 && alpha < 100 {
+		if err := overlay.AddAlpha(); err != nil {
+			return err
+		}
+	}
+	if err := img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
+		return err
+	}
+	return nil
 }
