@@ -139,27 +139,9 @@ func (v *Vips) Process(
 	}
 	for _, p := range p.Filters {
 		switch p.Type {
-		case "blur":
-			if sigma, _ := strconv.ParseFloat(strings.Split(p.Args, ",")[0], 64); sigma > 0 {
-				if err := img.GaussianBlur(sigma); err != nil {
-					return nil, nil, err
-				}
-			}
+		case "autojpg":
+			format = vips.ImageTypeJPEG
 			break
-		case "rotate":
-			if angle, _ := strconv.Atoi(p.Args); angle > 0 {
-				vAngle := vips.Angle0
-				if angle == 90 {
-					vAngle = vips.Angle270
-				} else if angle == 180 {
-					vAngle = vips.Angle180
-				} else if angle == 270 {
-					vAngle = vips.Angle90
-				}
-				if err := img.Rotate(vAngle); err != nil {
-					return nil, nil, err
-				}
-			}
 		case "background_color":
 			vc := &vips.Color{}
 			if c, ok := colornames.Map[strings.ToLower(p.Args)]; ok {
@@ -174,6 +156,71 @@ func (v *Vips) Process(
 			if err := img.Flatten(vc); err != nil {
 				return nil, nil, err
 			}
+			break
+		case "blur":
+			args := strings.Split(p.Args, ",")
+			var sigma float64
+			switch len(args) {
+			case 2:
+				sigma, _ = strconv.ParseFloat(args[1], 64)
+				break
+			case 1:
+				sigma, _ = strconv.ParseFloat(args[0], 64)
+				sigma /= 2
+				break
+			}
+			if sigma > 0 {
+				if err := img.GaussianBlur(sigma); err != nil {
+					return nil, nil, err
+				}
+			}
+			break
+		case "sharpen":
+			args := strings.Split(p.Args, ",")
+			var sigma float64
+			switch len(args) {
+			case 1:
+				sigma, _ = strconv.ParseFloat(args[0], 64)
+				sigma = 1 + sigma/2
+				break
+			case 2:
+			case 3:
+				sigma, _ = strconv.ParseFloat(args[1], 64)
+				sigma = 1 + sigma/2
+				break
+			}
+			if sigma > 0 {
+				if err := img.Sharpen(sigma, 1, 2); err != nil {
+					return nil, nil, err
+				}
+			}
+		case "rotate":
+			if angle, _ := strconv.Atoi(p.Args); angle > 0 {
+				vAngle := vips.Angle0
+				if angle == 90 {
+					vAngle = vips.Angle270
+				} else if angle == 180 {
+					vAngle = vips.Angle180
+				} else if angle == 270 {
+					vAngle = vips.Angle90
+				}
+				if err := img.Rotate(vAngle); err != nil {
+					return nil, nil, err
+				}
+			}
+			break
+		case "modulate":
+			if args := strings.Split(p.Args, ","); len(args) == 3 {
+				brightness, _ := strconv.Atoi(args[0])
+				saturation, _ := strconv.Atoi(args[1])
+				hue, _ := strconv.Atoi(args[2])
+				if err := img.Modulate(
+					float64(brightness)/100, float64(saturation)/100, float64(hue),
+				); err != nil {
+					return nil, nil, err
+				}
+			}
+			break
 		}
 	}
 	buf, meta, err := export(img, format, quality)
