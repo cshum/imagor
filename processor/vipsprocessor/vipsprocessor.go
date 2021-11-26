@@ -1,12 +1,12 @@
 package vipsprocessor
 
 import (
+	"context"
 	"github.com/cshum/imagor"
 	"github.com/davidbyttow/govips/v2/vips"
 	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -20,7 +20,7 @@ func New() *Vips {
 }
 
 func (v *Vips) Process(
-	r *http.Request, o *imagor.Imagor, buf []byte, p imagor.Params,
+	_ context.Context, buf []byte, p imagor.Params, load func(string) ([]byte, error),
 ) ([]byte, *imagor.Meta, error) {
 	img, err := vips.NewImageFromBuffer(buf)
 	if err != nil {
