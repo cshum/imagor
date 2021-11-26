@@ -146,27 +146,27 @@ func (v *Vips) Process(
 					return nil, nil, err
 				}
 			}
-			extend := vips.ExtendBackground
-			switch fill {
-			case "white":
-				extend = vips.ExtendWhite
-			case "black":
-				extend = vips.ExtendBlack
-			}
-			if extend == vips.ExtendBackground {
-				c := getColor(fill)
+			if fill == "black" {
+				if err := img.Embed(
+					(w-img.Width())/2, (h-img.Height())/2,
+					w, h, vips.ExtendBlack,
+				); err != nil {
+					return nil, nil, err
+				}
+			} else if fill == "white" {
+				if err := img.Embed(
+					(w-img.Width())/2, (h-img.Height())/2,
+					w, h, vips.ExtendWhite,
+				); err != nil {
+					return nil, nil, err
+				}
+			} else {
 				// hack because no way to set background via govips
 				cp, err := img.Copy()
 				if err != nil {
 					return nil, nil, err
 				}
 				if err := cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
-					cp.Close()
-					return nil, nil, err
-				}
-				if err := img.Linear([]float64{0, 0, 0}, []float64{
-					float64(c.R), float64(c.G), float64(c.B),
-				}); err != nil {
 					cp.Close()
 					return nil, nil, err
 				}
@@ -177,19 +177,26 @@ func (v *Vips) Process(
 					cp.Close()
 					return nil, nil, err
 				}
+				if fill == "blur" {
+					if err := img.GaussianBlur(50); err != nil {
+						cp.Close()
+						return nil, nil, err
+					}
+				} else {
+					c := getColor(fill)
+					if err := img.Linear([]float64{0, 0, 0}, []float64{
+						float64(c.R), float64(c.G), float64(c.B),
+					}); err != nil {
+						cp.Close()
+						return nil, nil, err
+					}
+				}
 				if err = img.Composite(
 					cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.Height())/2); err != nil {
 					cp.Close()
 					return nil, nil, err
 				}
 				cp.Close()
-			} else {
-				if err := img.Embed(
-					(w-img.Width())/2, (h-img.Height())/2,
-					w, h, extend,
-				); err != nil {
-					return nil, nil, err
-				}
 			}
 			break
 		case "blur":
