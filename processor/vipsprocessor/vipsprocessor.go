@@ -57,7 +57,6 @@ func (v *Vips) Process(
 	var (
 		format  = img.Format()
 		quality int
-		fill    string
 		stretch bool
 		w       = p.Width
 		h       = p.Height
@@ -72,17 +71,6 @@ func (v *Vips) Process(
 	}
 	for _, p := range p.Filters {
 		switch p.Type {
-		case "format":
-			if typ, ok := imageTypeMap[p.Args]; ok {
-				format = typ
-			}
-			break
-		case "quality":
-			quality, _ = strconv.Atoi(p.Args)
-			break
-		case "fill":
-			fill = p.Args
-			break
 		case "stretch":
 			stretch = true
 			break
@@ -91,28 +79,6 @@ func (v *Vips) Process(
 	if p.FitIn {
 		if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
 			return nil, nil, err
-		}
-		if fill != "" {
-			extend := vips.ExtendBackground
-			switch fill {
-			case "white":
-				extend = vips.ExtendWhite
-			case "mirror":
-				extend = vips.ExtendMirror
-			case "black":
-				extend = vips.ExtendBlack
-			case "copy":
-				extend = vips.ExtendCopy
-			case "repeat":
-				extend = vips.ExtendRepeat
-			}
-			if err := img.Embed(
-				(w-img.Width())/2,
-				(h-img.Height())/2,
-				w, h, extend,
-			); err != nil {
-				return nil, nil, err
-			}
 		}
 	} else if stretch {
 		if err := img.ResizeWithVScale(
@@ -152,6 +118,14 @@ func (v *Vips) Process(
 	}
 	for _, p := range p.Filters {
 		switch p.Type {
+		case "format":
+			if typ, ok := imageTypeMap[p.Args]; ok {
+				format = typ
+			}
+			break
+		case "quality":
+			quality, _ = strconv.Atoi(p.Args)
+			break
 		case "autojpg":
 			format = vips.ImageTypeJPEG
 			break
@@ -165,9 +139,46 @@ func (v *Vips) Process(
 				return nil, nil, err
 			}
 			break
-		case "background_color":
-			if err := img.Flatten(getColor(p.Args)); err != nil {
-				return nil, nil, err
+		case "fill", "background_color":
+			fill := strings.ToLower(p.Args)
+			if img.HasAlpha() {
+				if err := img.Flatten(getColor(fill)); err != nil {
+					return nil, nil, err
+				}
+			} else {
+				extend := vips.ExtendBackground
+				switch fill {
+				case "white":
+					extend = vips.ExtendWhite
+				case "black":
+					extend = vips.ExtendBlack
+				}
+				if extend == vips.ExtendBackground {
+					// hack because no way to set background via govips
+					bg, err := vips.Black(w, h)
+					if err != nil {
+						return nil, nil, err
+					}
+					c := getColor(fill)
+					if err := bg.Linear([]float64{1, 1, 1}, []float64{
+						float64(c.R), float64(c.G), float64(c.B),
+					}); err != nil {
+						return nil, nil, err
+					}
+					if err = bg.Composite(
+						img, vips.BlendModeOver, (w-img.Width())/2, (h-img.Height())/2); err != nil {
+						return nil, nil, err
+					}
+					img.Close()
+					img = bg
+				} else {
+					if err := img.Embed(
+						(w-img.Width())/2, (h-img.Height())/2,
+						w, h, extend,
+					); err != nil {
+						return nil, nil, err
+					}
+				}
 			}
 			break
 		case "blur":
