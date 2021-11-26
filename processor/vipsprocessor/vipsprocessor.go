@@ -145,41 +145,40 @@ func (v *Vips) Process(
 				if err := img.Flatten(getColor(fill)); err != nil {
 					return nil, nil, err
 				}
-			} else {
-				extend := vips.ExtendBackground
-				switch fill {
-				case "white":
-					extend = vips.ExtendWhite
-				case "black":
-					extend = vips.ExtendBlack
-				}
-				//if extend == vips.ExtendBackground {
-				//	// hack because no way to set background via govips
-				//	bg, err := vips.Black(w, h)
-				//	if err != nil {
-				//		return nil, nil, err
-				//	}
-				//	c := getColor(fill)
-				//	if err := bg.Linear([]float64{1, 1, 1}, []float64{
-				//		float64(c.R), float64(c.G), float64(c.B),
-				//	}); err != nil {
-				//		return nil, nil, err
-				//	}
-				//	if err = bg.Composite(
-				//		img, vips.BlendModeOver, (w-img.Width())/2, (h-img.Height())/2); err != nil {
-				//		return nil, nil, err
-				//	}
-				//	img.Close()
-				//	img = bg
-				//} else {
-				if err := img.Embed(
-					(w-img.Width())/2, (h-img.Height())/2,
-					w, h, extend,
-				); err != nil {
-					return nil, nil, err
-				}
-				//}
 			}
+			extend := vips.ExtendBackground
+			switch fill {
+			case "white":
+				extend = vips.ExtendWhite
+			case "black":
+				extend = vips.ExtendBlack
+			}
+			//if extend == vips.ExtendBackground {
+			//	// hack because no way to set background via govips
+			//	bg, err := vips.Black(w, h)
+			//	if err != nil {
+			//		return nil, nil, err
+			//	}
+			//	c := getColor(fill)
+			//	if err := bg.Linear([]float64{1, 1, 1}, []float64{
+			//		float64(c.R), float64(c.G), float64(c.B),
+			//	}); err != nil {
+			//		return nil, nil, err
+			//	}
+			//	if err = bg.Composite(
+			//		img, vips.BlendModeOver, (w-img.Width())/2, (h-img.Height())/2); err != nil {
+			//		return nil, nil, err
+			//	}
+			//	img.Close()
+			//	img = bg
+			//} else {
+			if err := img.Embed(
+				(w-img.Width())/2, (h-img.Height())/2,
+				w, h, extend,
+			); err != nil {
+				return nil, nil, err
+			}
+			//}
 			break
 		case "blur":
 			args := strings.Split(p.Args, ",")
