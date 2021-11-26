@@ -27,7 +27,7 @@ func (h *HTTPLoader) Match(r *http.Request, image string) bool {
 		return false
 	}
 	u, err := url.Parse(image)
-	if err != nil || u.Host == "" || u.Scheme == "" {
+	if err != nil || u.Host == "" {
 		return false
 	}
 	if shouldRestrictOrigin(u, h.AllowedOrigins) {

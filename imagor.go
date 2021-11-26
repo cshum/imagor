@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cshum/hybridcache"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -14,7 +15,7 @@ const (
 	Version = "0.1.0"
 )
 
-// Loader load image from image source
+// Loader Load image from image source
 type Loader interface {
 	Match(r *http.Request, image string) bool
 	Load(r *http.Request, image string) ([]byte, error)
@@ -39,12 +40,14 @@ type Processor interface {
 // Imagor image resize HTTP handler
 type Imagor struct {
 	Logger     *zap.Logger
+	Cache      cache.Cache
 	Unsafe     bool
 	Secret     string
 	Loaders    []Loader
 	Storages   []Storage
 	Processors []Processor
 	Timeout    time.Duration
+	CacheTTL   time.Duration
 }
 
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -76,14 +79,11 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 	if buf, err = o.load(r, params.Image); err != nil {
 		return
 	}
-	if len(o.Storages) > 0 {
-		o.store(ctx, o.Storages, params.Image, buf)
-	}
-	subload := func(image string) ([]byte, error) {
+	load := func(image string) ([]byte, error) {
 		return o.load(r, image)
 	}
 	for _, processor := range o.Processors {
-		b, meta, e := processor.Process(ctx, buf, params, subload)
+		b, meta, e := processor.Process(ctx, buf, params, load)
 		if e == nil {
 			buf = b
 			if params.Meta {
@@ -101,17 +101,24 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 }
 
 func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
-	for _, loader := range o.Loaders {
-		if loader.Match(r, image) {
-			if buf, err = loader.Load(r, image); err == nil {
-				return
+	return cache.NewFunc(o.Cache, o.Timeout, o.CacheTTL, o.CacheTTL).
+		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
+			dr := r.WithContext(ctx)
+			for _, loader := range o.Loaders {
+				if loader.Match(dr, image) {
+					if buf, err = loader.Load(dr, image); err == nil {
+						return
+					}
+				}
 			}
-		}
-	}
-	if err == nil {
-		err = errors.New("loader not available")
-	}
-	return
+			if err == nil {
+				err = errors.New("loader not available")
+			}
+			if len(o.Storages) > 0 {
+				o.store(ctx, o.Storages, image, buf)
+			}
+			return
+		})
 }
 
 func (o *Imagor) store(ctx context.Context, storages []Storage, image string, buf []byte) {

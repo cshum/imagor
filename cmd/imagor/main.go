@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cshum/hybridcache"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
@@ -24,6 +25,7 @@ func main() {
 	panic(http.ListenAndServe(
 		fmt.Sprintf(":%d", port),
 		&imagor.Imagor{
+			Cache: cache.NewMemory(9999, 1<<28, time.Hour),
 			Loaders: []imagor.Loader{
 				&httploader.HTTPLoader{
 					ForwardHeaders: []string{"*"},
