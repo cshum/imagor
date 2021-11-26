@@ -166,17 +166,7 @@ func (v *Vips) Process(
 			}
 			break
 		case "background_color":
-			vc := &vips.Color{}
-			if c, ok := colornames.Map[strings.ToLower(p.Args)]; ok {
-				vc.R = c.R
-				vc.G = c.G
-				vc.B = c.B
-			} else if c, ok := parseHexColor(p.Args); ok {
-				vc.R = c.R
-				vc.G = c.G
-				vc.B = c.B
-			}
-			if err := img.Flatten(vc); err != nil {
+			if err := img.Flatten(getColor(p.Args)); err != nil {
 				return nil, nil, err
 			}
 			break
@@ -371,6 +361,21 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 		}
 		return image.ExportJpeg(opts)
 	}
+}
+
+func getColor(name string) *vips.Color {
+	vc := &vips.Color{}
+	strings.TrimPrefix(strings.ToLower(name), "#")
+	if c, ok := colornames.Map[strings.ToLower(name)]; ok {
+		vc.R = c.R
+		vc.G = c.G
+		vc.B = c.B
+	} else if c, ok := parseHexColor(name); ok {
+		vc.R = c.R
+		vc.G = c.G
+		vc.B = c.B
+	}
+	return vc
 }
 
 func parseHexColor(s string) (c color.RGBA, ok bool) {
