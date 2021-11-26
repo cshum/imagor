@@ -58,7 +58,11 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
-	params := ParseParams(r.URL.RawPath)
+	path := r.URL.RawPath
+	if path == "" {
+		path = r.URL.Path
+	}
+	params := ParseParams(path)
 	var cancel func()
 	ctx := r.Context()
 	if o.Timeout > 0 {
