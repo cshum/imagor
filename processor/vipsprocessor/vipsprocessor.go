@@ -155,6 +155,16 @@ func (v *Vips) Process(
 		case "autojpg":
 			format = vips.ImageTypeJPEG
 			break
+		case "strip_icc":
+			if err := img.RemoveICCProfile(); err != nil {
+				return nil, nil, err
+			}
+			break
+		case "strip_exif":
+			if err := img.RemoveMetadata(); err != nil {
+				return nil, nil, err
+			}
+			break
 		case "background_color":
 			vc := &vips.Color{}
 			if c, ok := colornames.Map[strings.ToLower(p.Args)]; ok {
@@ -254,11 +264,26 @@ func (v *Vips) Process(
 				if y < 0 {
 					y += img.Height() - overlay.Height()
 				}
+				if ln >= 4 {
+					alpha, _ := strconv.ParseFloat(args[3], 64)
+					alpha /= 100
+					if err := overlay.AddAlpha(); err != nil {
+						return nil, nil, err
+					}
+					if err := overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
+						return nil, nil, err
+					}
+				}
 				err = img.Composite(overlay, vips.BlendModeOver, x, y)
 				overlay.Close()
 				if err != nil {
 					return nil, nil, err
 				}
+			}
+			break
+		case "grayscale":
+			if err := img.Modulate(1, 0, 0); err != nil {
+				return nil, nil, err
 			}
 			break
 		case "modulate":
