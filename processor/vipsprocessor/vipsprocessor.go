@@ -1,12 +1,12 @@
 package vipsprocessor
 
 import (
-	"context"
 	"github.com/cshum/imagor"
 	"github.com/davidbyttow/govips/v2/vips"
 	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -20,13 +20,23 @@ func New() *Vips {
 }
 
 func (v *Vips) Process(
-	_ context.Context, buf []byte, p imagor.Params,
+	r *http.Request, o *imagor.Imagor, buf []byte, p imagor.Params,
 ) ([]byte, *imagor.Meta, error) {
 	img, err := vips.NewImageFromBuffer(buf)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer img.Close()
+	if p.Trim != "" {
+		// todo get color by GetPoint
+		l, t, w, h, err := img.FindTrim(1, &vips.Color{R: 255, G: 255, B: 255})
+		if err != nil {
+			return nil, nil, err
+		}
+		if err = img.ExtractArea(l, t, w, h); err != nil {
+			return nil, nil, err
+		}
+	}
 	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
 		cropRight := p.CropRight
 		cropBottom := p.CropBottom
@@ -82,7 +92,7 @@ func (v *Vips) Process(
 			return nil, nil, err
 		}
 		if fill != "" {
-			extend := vips.ExtendCopy
+			extend := vips.ExtendBackground
 			switch fill {
 			case "white":
 				extend = vips.ExtendWhite
@@ -90,6 +100,8 @@ func (v *Vips) Process(
 				extend = vips.ExtendMirror
 			case "black":
 				extend = vips.ExtendBlack
+			case "copy":
+				extend = vips.ExtendCopy
 			case "repeat":
 				extend = vips.ExtendRepeat
 			}

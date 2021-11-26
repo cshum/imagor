@@ -33,7 +33,7 @@ type Store interface {
 
 // Processor process image buffer
 type Processor interface {
-	Process(ctx context.Context, buf []byte, params Params) ([]byte, *Meta, error)
+	Process(r *http.Request, o *Imagor, buf []byte, params Params) ([]byte, *Meta, error)
 }
 
 // Imagor image resize HTTP handler
@@ -73,14 +73,14 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 		err = errors.New("hash mismatch")
 		return
 	}
-	if buf, err = o.doLoad(r, params.Image); err != nil {
+	if buf, err = o.Load(r, params.Image); err != nil {
 		return
 	}
 	if len(o.Storages) > 0 {
-		o.doStore(ctx, o.Storages, params.Image, buf)
+		o.Store(ctx, params.Image, buf)
 	}
 	for _, processor := range o.Processors {
-		b, meta, e := processor.Process(ctx, buf, params)
+		b, meta, e := processor.Process(r, o, buf, params)
 		if e == nil {
 			buf = b
 			if params.Meta {
@@ -91,13 +91,13 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 			o.Logger.Debug("process", zap.Any("params", params), zap.Any("meta", meta))
 			break
 		} else {
-			o.Logger.Error("process", zap.Any("params", params), zap.Error(err))
+			o.Logger.Error("process", zap.Any("params", params), zap.Error(e))
 		}
 	}
 	return
 }
 
-func (o *Imagor) doLoad(r *http.Request, image string) (buf []byte, err error) {
+func (o *Imagor) Load(r *http.Request, image string) (buf []byte, err error) {
 	for _, loader := range o.Loaders {
 		if loader.Match(r, image) {
 			if buf, err = loader.Load(r, image); err == nil {
@@ -106,13 +106,13 @@ func (o *Imagor) doLoad(r *http.Request, image string) (buf []byte, err error) {
 		}
 	}
 	if err == nil {
-		err = errors.New("unknown loader")
+		err = errors.New("loader not available")
 	}
 	return
 }
 
-func (o *Imagor) doStore(ctx context.Context, storages []Storage, image string, buf []byte) {
-	for _, storage := range storages {
+func (o *Imagor) Store(ctx context.Context, image string, buf []byte) {
+	for _, storage := range o.Storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
 		if o.Timeout > 0 {

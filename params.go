@@ -12,27 +12,27 @@ import (
 
 // Params image resize and hash parameters
 type Params struct {
-	URI             string   `json:"uri,omitempty"`
-	Path            string   `json:"path,omitempty"`
-	Image           string   `json:"image,omitempty"`
-	CropLeft        int      `json:"crop_left,omitempty"`
-	CropTop         int      `json:"crop_top,omitempty"`
-	CropRight       int      `json:"crop_right,omitempty"`
-	CropBottom      int      `json:"crop_bottom,omitempty"`
-	Width           int      `json:"width,omitempty"`
-	Height          int      `json:"height,omitempty"`
-	Meta            bool     `json:"meta,omitempty"`
-	HorizontalFlip  bool     `json:"horizontal_flip,omitempty"`
-	VerticalFlip    bool     `json:"vertical_flip,omitempty"`
-	HAlign          string   `json:"h_align,omitempty"`
-	VAlign          string   `json:"v_align,omitempty"`
-	Smart           bool     `json:"smart,omitempty"`
-	FitIn           bool     `json:"fit_in,omitempty"`
-	TrimOrientation string   `json:"trim_orientation,omitempty"`
-	TrimTolerance   int      `json:"trim_tolerance,omitempty"`
-	Unsafe          bool     `json:"unsafe,omitempty"`
-	Hash            string   `json:"hash,omitempty"`
-	Filters         []Filter `json:"filters,omitempty"`
+	URI            string   `json:"uri,omitempty"`
+	Path           string   `json:"path,omitempty"`
+	Image          string   `json:"image,omitempty"`
+	CropLeft       int      `json:"crop_left,omitempty"`
+	CropTop        int      `json:"crop_top,omitempty"`
+	CropRight      int      `json:"crop_right,omitempty"`
+	CropBottom     int      `json:"crop_bottom,omitempty"`
+	Width          int      `json:"width,omitempty"`
+	Height         int      `json:"height,omitempty"`
+	Meta           bool     `json:"meta,omitempty"`
+	HorizontalFlip bool     `json:"horizontal_flip,omitempty"`
+	VerticalFlip   bool     `json:"vertical_flip,omitempty"`
+	HAlign         string   `json:"h_align,omitempty"`
+	VAlign         string   `json:"v_align,omitempty"`
+	Smart          bool     `json:"smart,omitempty"`
+	FitIn          bool     `json:"fit_in,omitempty"`
+	Trim           string   `json:"trim_orientation,omitempty"`
+	TrimTolerance  int      `json:"trim_tolerance,omitempty"`
+	Unsafe         bool     `json:"unsafe,omitempty"`
+	Hash           string   `json:"hash,omitempty"`
+	Filters        []Filter `json:"filters,omitempty"`
 }
 
 type Filter struct {
@@ -107,9 +107,9 @@ func ParseParams(uri string) (params Params) {
 	}
 	index += 1
 	if match[index] != "" {
-		params.TrimOrientation = "top-left"
+		params.Trim = "top-left"
 		if s := match[index+2]; s != "" {
-			params.TrimOrientation = s
+			params.Trim = s
 		}
 		params.TrimTolerance, _ = strconv.Atoi(match[index+4])
 	}
