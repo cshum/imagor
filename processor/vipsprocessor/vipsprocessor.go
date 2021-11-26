@@ -189,9 +189,9 @@ func (v *Vips) Process(
 				break
 			case 1:
 				sigma, _ = strconv.ParseFloat(args[0], 64)
-				sigma /= 2
 				break
 			}
+			sigma /= 2
 			if sigma > 0 {
 				if err := img.GaussianBlur(sigma); err != nil {
 					return nil, nil, err
@@ -204,18 +204,15 @@ func (v *Vips) Process(
 			switch len(args) {
 			case 1:
 				sigma, _ = strconv.ParseFloat(args[0], 64)
-				sigma = 1 + sigma/2
 				break
 			case 2:
 			case 3:
 				sigma, _ = strconv.ParseFloat(args[1], 64)
-				sigma = 1 + sigma/2
 				break
 			}
-			if sigma > 0 {
-				if err := img.Sharpen(sigma, 1, 2); err != nil {
-					return nil, nil, err
-				}
+			sigma = 1 + sigma*2
+			if err := img.Sharpen(sigma, 1, 2); err != nil {
+				return nil, nil, err
 			}
 		case "rotate":
 			if angle, _ := strconv.Atoi(p.Args); angle > 0 {
