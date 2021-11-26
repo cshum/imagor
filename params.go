@@ -36,12 +36,12 @@ type Params struct {
 }
 
 type Filter struct {
-	Name string `json:"name,omitempty"`
+	Type string `json:"type,omitempty"`
 	Args string `json:"args,omitempty"`
 }
 
 type Meta struct {
-	ImageType   string `json:"image_type"`
+	Format      string `json:"format"`
 	Width       int    `json:"width"`
 	Height      int    `json:"height"`
 	Orientation int    `json:"orientation"`
@@ -165,7 +165,7 @@ func parseFilters(filters string) (results []Filter) {
 	for _, seg := range splits {
 		if match := filterRegex.FindStringSubmatch(seg); len(match) >= 3 {
 			results = append(results, Filter{
-				Name: match[1],
+				Type: strings.ToLower(match[1]),
 				Args: match[2],
 			})
 		}

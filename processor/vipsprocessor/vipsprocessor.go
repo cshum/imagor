@@ -45,6 +45,7 @@ func (v *Vips) Process(
 		format  = img.Format()
 		quality int
 		fill    string
+		stretch bool
 		w       = p.Width
 		h       = p.Height
 	)
@@ -57,7 +58,7 @@ func (v *Vips) Process(
 		h = img.Height() * w / img.Width()
 	}
 	for _, p := range p.Filters {
-		switch p.Name {
+		switch p.Type {
 		case "format":
 			if typ, ok := imageTypeMap[p.Args]; ok {
 				format = typ
@@ -68,6 +69,9 @@ func (v *Vips) Process(
 			break
 		case "fill":
 			fill = p.Args
+			break
+		case "stretch":
+			stretch = true
 			break
 		}
 	}
@@ -94,6 +98,13 @@ func (v *Vips) Process(
 			); err != nil {
 				return nil, nil, err
 			}
+		}
+	} else if stretch {
+		if err := img.ResizeWithVScale(
+			float64(w)/float64(img.Width()),
+			float64(h)/float64(img.Height()),
+			vips.KernelAuto); err != nil {
+			return nil, nil, err
 		}
 	} else if w < img.Width() || h < img.Height() {
 		if err := img.Resize(math.Max(
@@ -125,7 +136,7 @@ func (v *Vips) Process(
 		}
 	}
 	for _, p := range p.Filters {
-		switch p.Name {
+		switch p.Type {
 		case "blur":
 			if sigma, _ := strconv.ParseFloat(strings.Split(p.Args, ",")[0], 64); sigma > 0 {
 				if err := img.GaussianBlur(sigma); err != nil {
@@ -154,7 +165,7 @@ func (v *Vips) Process(
 		return nil, nil, err
 	}
 	return buf, &imagor.Meta{
-		ImageType:   vips.ImageTypes[meta.Format],
+		Format:      vips.ImageTypes[meta.Format],
 		Width:       meta.Width,
 		Height:      meta.Height,
 		Orientation: meta.Orientation,
