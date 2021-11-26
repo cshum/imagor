@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/davidbyttow/govips/v2/vips"
+	"golang.org/x/image/colornames"
+	"image/color"
 	"math"
 	"strconv"
 	"strings"
@@ -158,6 +160,20 @@ func (v *Vips) Process(
 					return nil, nil, err
 				}
 			}
+		case "background_color":
+			vc := &vips.Color{}
+			if c, ok := colornames.Map[strings.ToLower(p.Args)]; ok {
+				vc.R = c.R
+				vc.G = c.G
+				vc.B = c.B
+			} else if c, ok := parseHexColor(p.Args); ok {
+				vc.R = c.R
+				vc.G = c.G
+				vc.B = c.B
+			}
+			if err := img.Flatten(vc); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 	buf, meta, err := export(img, format, quality)
@@ -234,4 +250,33 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 		}
 		return image.ExportJpeg(opts)
 	}
+}
+
+func parseHexColor(s string) (c color.RGBA, ok bool) {
+	c.A = 0xff
+
+	hexToByte := func(b byte) byte {
+		switch {
+		case b >= '0' && b <= '9':
+			return b - '0'
+		case b >= 'a' && b <= 'f':
+			return b - 'a' + 10
+		case b >= 'A' && b <= 'F':
+			return b - 'A' + 10
+		}
+		return 0
+	}
+	switch len(s) {
+	case 6:
+		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
+		c.G = hexToByte(s[2])<<4 + hexToByte(s[3])
+		c.B = hexToByte(s[4])<<4 + hexToByte(s[5])
+		ok = true
+	case 3:
+		c.R = hexToByte(s[0]) * 17
+		c.G = hexToByte(s[1]) * 17
+		c.B = hexToByte(s[2]) * 17
+		ok = true
+	}
+	return
 }
