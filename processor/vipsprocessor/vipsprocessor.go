@@ -155,9 +155,8 @@ func (v *Vips) Process(
 			}
 			if extend == vips.ExtendBackground {
 				c := getColor(fill)
-				var cp *vips.ImageRef
 				// hack because no way to set background via govips
-				cp, err = img.Copy()
+				cp, err := img.Copy()
 				if err != nil {
 					return nil, nil, err
 				}
@@ -165,16 +164,16 @@ func (v *Vips) Process(
 					cp.Close()
 					return nil, nil, err
 				}
-				if err := img.Embed(
-					(w-img.Width())/2, (h-img.Height())/2,
-					w, h, extend,
-				); err != nil {
-					cp.Close()
-					return nil, nil, err
-				}
 				if err := img.Linear([]float64{0, 0, 0}, []float64{
 					float64(c.R), float64(c.G), float64(c.B),
 				}); err != nil {
+					cp.Close()
+					return nil, nil, err
+				}
+				if err := img.ResizeWithVScale(
+					float64(w)/float64(img.Width()), float64(h)/float64(img.Height()),
+					vips.KernelLinear,
+				); err != nil {
 					cp.Close()
 					return nil, nil, err
 				}
