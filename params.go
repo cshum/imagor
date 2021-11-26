@@ -74,7 +74,7 @@ var paramsRegex = regexp.MustCompile(
 		// smart
 		"(smart/)?" +
 		// filters
-		"(filters:(.+?\\))\\/)?" +
+		"(filters:(.+?\\))/)?" +
 		// image
 		"(.+)?",
 )
