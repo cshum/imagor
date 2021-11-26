@@ -226,12 +226,6 @@ func (v *Vips) Process(
 			args := strings.Split(p.Args, ",")
 			if ln := len(args); ln >= 3 {
 				image := args[0]
-				var x, y, a int
-				x, _ = strconv.Atoi(args[1])
-				y, _ = strconv.Atoi(args[2])
-				if ln >= 4 {
-					a, _ = strconv.Atoi(args[3])
-				}
 				if unescape, e := url.QueryUnescape(args[0]); e == nil {
 					image = unescape
 				}
@@ -243,13 +237,26 @@ func (v *Vips) Process(
 				if err != nil {
 					return nil, nil, err
 				}
+				var x, y int
+				if args[1] == "center" {
+					x = (img.Width() - overlay.Width()) / 2
+				} else {
+					x, _ = strconv.Atoi(args[1])
+				}
+				if args[2] == "center" {
+					y = (img.Height() - overlay.Height()) / 2
+				} else {
+					y, _ = strconv.Atoi(args[2])
+				}
 				if x < 0 {
 					x += img.Width() - overlay.Width()
 				}
 				if y < 0 {
 					y += img.Height() - overlay.Height()
 				}
-				if err := watermark(img, overlay, x, y, a); err != nil {
+				err = img.Composite(overlay, vips.BlendModeOver, x, y)
+				overlay.Close()
+				if err != nil {
 					return nil, nil, err
 				}
 			}
@@ -371,17 +378,4 @@ func parseHexColor(s string) (c color.RGBA, ok bool) {
 		ok = true
 	}
 	return
-}
-
-func watermark(img, overlay *vips.ImageRef, x, y, alpha int) error {
-	defer overlay.Close()
-	if alpha > 0 && alpha < 100 {
-		if err := overlay.AddAlpha(); err != nil {
-			return err
-		}
-	}
-	if err := img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
-		return err
-	}
-	return nil
 }
