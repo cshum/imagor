@@ -97,6 +97,23 @@ func TestParseParams(t *testing.T) {
 				Unsafe: true,
 			},
 		},
+		{
+			name: "url in filters",
+			uri:  "/unsafe/500x350/filters:watermark(http://thumborize.me/static/img/beach.jpg,100,100,50)/http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
+			expected: Params{
+				Path:   "500x350/filters:watermark(http://thumborize.me/static/img/beach.jpg,100,100,50)/http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
+				Image:  "http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
+				Width:  500,
+				Height: 350,
+				Unsafe: true,
+				Filters: []Filter{
+					{
+						Type: "watermark",
+						Args: "http://thumborize.me/static/img/beach.jpg,100,100,50",
+					},
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.name == "" {

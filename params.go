@@ -161,8 +161,9 @@ func (p *Params) Verify(secret string) bool {
 }
 
 func parseFilters(filters string) (results []Filter) {
-	splits := strings.Split(filters, ":")
+	splits := strings.Split(filters, "):")
 	for _, seg := range splits {
+		seg = strings.TrimSuffix(seg, ")") + ")"
 		if match := filterRegex.FindStringSubmatch(seg); len(match) >= 3 {
 			results = append(results, Filter{
 				Type: strings.ToLower(match[1]),
