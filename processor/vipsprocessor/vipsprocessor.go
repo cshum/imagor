@@ -7,6 +7,7 @@ import (
 	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -217,6 +218,35 @@ func (v *Vips) Process(
 					vAngle = vips.Angle90
 				}
 				if err := img.Rotate(vAngle); err != nil {
+					return nil, nil, err
+				}
+			}
+			break
+		case "watermark":
+			args := strings.Split(p.Args, ",")
+			if len(args) >= 4 {
+				image := args[0]
+				x, _ := strconv.Atoi(args[1])
+				y, _ := strconv.Atoi(args[2])
+				//a, _ := strconv.Atoi(args[3])
+				if unescape, e := url.QueryUnescape(args[0]); e == nil {
+					image = unescape
+				}
+				buf, err := load(image)
+				if err != nil {
+					return nil, nil, err
+				}
+				overlay, err := vips.NewImageFromBuffer(buf)
+				if err != nil {
+					return nil, nil, err
+				}
+				if x < 0 {
+					x += img.Width() - overlay.Width()
+				}
+				if y < 0 {
+					y += img.Height() - overlay.Height()
+				}
+				if err := img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
 					return nil, nil, err
 				}
 			}
