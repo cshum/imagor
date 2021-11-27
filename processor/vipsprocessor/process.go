@@ -176,8 +176,16 @@ func (v *Vips) Process(
 			break
 		case "brightness":
 			b, _ := strconv.ParseFloat(p.Args, 64)
-			b = b * 255 / 100
+			b = b * 256 / 100
 			if err := img.Linear([]float64{1, 1, 1}, []float64{b, b, b}); err != nil {
+				return nil, nil, err
+			}
+			break
+		case "contrast":
+			a, _ := strconv.ParseFloat(p.Args, 64)
+			a = a * 256 / 100
+			b := 128 - a*128
+			if err := img.Linear([]float64{a, a, a}, []float64{b, b, b}); err != nil {
 				return nil, nil, err
 			}
 			break
