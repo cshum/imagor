@@ -49,7 +49,7 @@ func (v *Vips) Process(
 	var (
 		format  = img.Format()
 		quality int
-		stretch bool
+		stretch = p.Stretch
 		w       = p.Width
 		h       = p.Height
 	)

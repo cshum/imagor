@@ -28,6 +28,7 @@ type Params struct {
 	VAlign         string   `json:"v_align,omitempty"`
 	Smart          bool     `json:"smart,omitempty"`
 	FitIn          bool     `json:"fit_in,omitempty"`
+	Stretch        bool     `json:"stretch,omitempty"`
 	Trim           string   `json:"trim_orientation,omitempty"`
 	TrimTolerance  int      `json:"trim_tolerance,omitempty"`
 	Unsafe         bool     `json:"unsafe,omitempty"`
@@ -65,6 +66,8 @@ var paramsRegex = regexp.MustCompile(
 		"((\\d+)x(\\d+):(\\d+)x(\\d+)/)?" +
 		// fit-in
 		"(fit-in/)?" +
+		// stretch
+		"(stretch/)?" +
 		// dimensions
 		"((\\-?)(\\d*)x(\\-?)(\\d*)/)?" +
 		// halign
@@ -98,7 +101,7 @@ func ParseParams(uri string) (params Params) {
 	params.Path = match[index]
 
 	match = paramsRegex.FindStringSubmatch(params.Path)
-	if len(match) < 26 {
+	if len(match) < 27 {
 		return
 	}
 	index = 1
@@ -123,6 +126,10 @@ func ParseParams(uri string) (params Params) {
 	index += 5
 	if match[index] != "" {
 		params.FitIn = true
+	}
+	index += 1
+	if match[index] != "" {
+		params.Stretch = true
 	}
 	index += 1
 	if match[index] != "" {

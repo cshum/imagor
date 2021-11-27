@@ -99,13 +99,14 @@ func TestParseParams(t *testing.T) {
 		},
 		{
 			name: "url in filters",
-			uri:  "/unsafe/500x350/filters:watermark(http://thumborize.me/static/img/beach.jpg,100,100,50)/http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
+			uri:  "/unsafe/stretch/500x350/filters:watermark(http://thumborize.me/static/img/beach.jpg,100,100,50)/http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
 			expected: Params{
-				Path:   "500x350/filters:watermark(http://thumborize.me/static/img/beach.jpg,100,100,50)/http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
-				Image:  "http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
-				Width:  500,
-				Height: 350,
-				Unsafe: true,
+				Path:    "stretch/500x350/filters:watermark(http://thumborize.me/static/img/beach.jpg,100,100,50)/http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
+				Image:   "http://thumborize.me/static/img/beach.jpg?v=93ce8775572809c2fa498f3ba53c9ef6",
+				Width:   500,
+				Height:  350,
+				Unsafe:  true,
+				Stretch: true,
 				Filters: []Filter{
 					{
 						Type: "watermark",
