@@ -1,6 +1,7 @@
 package vipsprocessor
 
 import (
+	"fmt"
 	"github.com/davidbyttow/govips/v2/vips"
 	"golang.org/x/image/colornames"
 	"image/color"
@@ -129,6 +130,26 @@ func watermark(img *vips.ImageRef, args []string, load func(string) ([]byte, err
 	return
 }
 
+func roundCorner(img *vips.ImageRef, rx, ry int) (err error) {
+	var rect *vips.ImageRef
+	var w = img.Width()
+	var h = img.Height()
+	if rect, err = vips.NewImageFromBuffer([]byte(fmt.Sprintf(`
+		<svg viewBox="0 0 %d %d">
+			<rect rx="%d" ry="%d" 
+			 x="0" y="0" width="%d" height="%d" 
+			 fill="#fff"/>
+		</svg>
+	`, w, h, rx, ry, w, h))); err != nil {
+		return
+	}
+	defer rect.Close()
+	if err = img.Composite(rect, vips.BlendModeDestIn, 0, 0); err != nil {
+		return
+	}
+	return nil
+}
+
 func getColor(name string) *vips.Color {
 	vc := &vips.Color{}
 	strings.TrimPrefix(strings.ToLower(name), "#")
@@ -142,13 +163,6 @@ func getColor(name string) *vips.Color {
 		vc.B = c.B
 	}
 	return vc
-}
-
-func toRGBA(c *vips.Color, a uint8) *vips.ColorRGBA {
-	if c == nil {
-		return nil
-	}
-	return &vips.ColorRGBA{R: c.R, G: c.G, B: c.B, A: a}
 }
 
 func parseHexColor(s string) (c color.RGBA, ok bool) {

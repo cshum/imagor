@@ -136,6 +136,23 @@ func (v *Vips) Process(
 				return nil, nil, err
 			}
 			break
+		case "watermark":
+			if err := watermark(img, strings.Split(p.Args, ","), load); err != nil {
+				return nil, nil, err
+			}
+			break
+		case "round_corner":
+			args := strings.Split(p.Args, ",")
+			if len(args) > 0 {
+				rx, _ := strconv.Atoi(args[0])
+				ry := rx
+				if len(args) > 1 {
+					rx, _ = strconv.Atoi(args[1])
+				}
+				if err := roundCorner(img, rx, ry); err != nil {
+					return nil, nil, err
+				}
+			}
 		case "blur":
 			args := strings.Split(p.Args, ",")
 			var sigma float64
@@ -183,11 +200,6 @@ func (v *Vips) Process(
 				if err := img.Rotate(vAngle); err != nil {
 					return nil, nil, err
 				}
-			}
-			break
-		case "watermark":
-			if err := watermark(img, strings.Split(p.Args, ","), load); err != nil {
-				return nil, nil, err
 			}
 			break
 		case "grayscale":
