@@ -153,39 +153,6 @@ func (v *Vips) Process(
 					return nil, nil, err
 				}
 			}
-		case "blur":
-			args := strings.Split(p.Args, ",")
-			var sigma float64
-			switch len(args) {
-			case 2:
-				sigma, _ = strconv.ParseFloat(args[1], 64)
-				break
-			case 1:
-				sigma, _ = strconv.ParseFloat(args[0], 64)
-				break
-			}
-			sigma /= 2
-			if sigma > 0 {
-				if err := img.GaussianBlur(sigma); err != nil {
-					return nil, nil, err
-				}
-			}
-			break
-		case "sharpen":
-			args := strings.Split(p.Args, ",")
-			var sigma float64
-			switch len(args) {
-			case 1:
-				sigma, _ = strconv.ParseFloat(args[0], 64)
-				break
-			case 2, 3:
-				sigma, _ = strconv.ParseFloat(args[1], 64)
-				break
-			}
-			sigma = 1 + sigma*2
-			if err := img.Sharpen(sigma, 1, 2); err != nil {
-				return nil, nil, err
-			}
 		case "rotate":
 			if angle, _ := strconv.Atoi(p.Args); angle > 0 {
 				vAngle := vips.Angle0
@@ -219,6 +186,39 @@ func (v *Vips) Process(
 				}
 			}
 			break
+		case "blur":
+			args := strings.Split(p.Args, ",")
+			var sigma float64
+			switch len(args) {
+			case 2:
+				sigma, _ = strconv.ParseFloat(args[1], 64)
+				break
+			case 1:
+				sigma, _ = strconv.ParseFloat(args[0], 64)
+				break
+			}
+			sigma /= 2
+			if sigma > 0 {
+				if err := img.GaussianBlur(sigma); err != nil {
+					return nil, nil, err
+				}
+			}
+			break
+		case "sharpen":
+			args := strings.Split(p.Args, ",")
+			var sigma float64
+			switch len(args) {
+			case 1:
+				sigma, _ = strconv.ParseFloat(args[0], 64)
+				break
+			case 2, 3:
+				sigma, _ = strconv.ParseFloat(args[1], 64)
+				break
+			}
+			sigma = 1 + sigma*2
+			if err := img.Sharpen(sigma, 1, 2); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 	buf, meta, err := export(img, format, quality)
