@@ -4,10 +4,7 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/davidbyttow/govips/v2/vips"
-	"golang.org/x/image/colornames"
-	"image/color"
 	"math"
-	"net/url"
 	"strconv"
 	"strings"
 )
@@ -140,63 +137,8 @@ func (v *Vips) Process(
 			}
 			break
 		case "fill", "background_color":
-			fill := strings.ToLower(p.Args)
-			if img.HasAlpha() && fill != "blur" {
-				if err := img.Flatten(getColor(fill)); err != nil {
-					return nil, nil, err
-				}
-			}
-			if fill == "black" {
-				if err := img.Embed(
-					(w-img.Width())/2, (h-img.Height())/2,
-					w, h, vips.ExtendBlack,
-				); err != nil {
-					return nil, nil, err
-				}
-			} else if fill == "white" {
-				if err := img.Embed(
-					(w-img.Width())/2, (h-img.Height())/2,
-					w, h, vips.ExtendWhite,
-				); err != nil {
-					return nil, nil, err
-				}
-			} else {
-				// hack because no way to set background via govips
-				cp, err := img.Copy()
-				if err != nil {
-					return nil, nil, err
-				}
-				if err := cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
-					cp.Close()
-					return nil, nil, err
-				}
-				if err := img.ResizeWithVScale(
-					float64(w)/float64(img.Width()), float64(h)/float64(img.Height()),
-					vips.KernelLinear,
-				); err != nil {
-					cp.Close()
-					return nil, nil, err
-				}
-				if fill == "blur" {
-					if err := img.GaussianBlur(50); err != nil {
-						cp.Close()
-						return nil, nil, err
-					}
-				} else {
-					c := getColor(fill)
-					if err := img.Linear([]float64{0, 0, 0}, []float64{
-						float64(c.R), float64(c.G), float64(c.B),
-					}); err != nil {
-						cp.Close()
-						return nil, nil, err
-					}
-				}
-				if err = img.Composite(
-					cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.Height())/2); err != nil {
-					cp.Close()
-					return nil, nil, err
-				}
-				cp.Close()
+			if err := background(img, w, h, p.Args); err != nil {
+				return nil, nil, err
 			}
 			break
 		case "blur":
@@ -249,52 +191,8 @@ func (v *Vips) Process(
 			}
 			break
 		case "watermark":
-			args := strings.Split(p.Args, ",")
-			if ln := len(args); ln >= 3 {
-				image := args[0]
-				if unescape, e := url.QueryUnescape(args[0]); e == nil {
-					image = unescape
-				}
-				buf, err := load(image)
-				if err != nil {
-					return nil, nil, err
-				}
-				overlay, err := vips.NewImageFromBuffer(buf)
-				if err != nil {
-					return nil, nil, err
-				}
-				var x, y int
-				if args[1] == "center" {
-					x = (img.Width() - overlay.Width()) / 2
-				} else {
-					x, _ = strconv.Atoi(args[1])
-				}
-				if args[2] == "center" {
-					y = (img.Height() - overlay.Height()) / 2
-				} else {
-					y, _ = strconv.Atoi(args[2])
-				}
-				if x < 0 {
-					x += img.Width() - overlay.Width()
-				}
-				if y < 0 {
-					y += img.Height() - overlay.Height()
-				}
-				if ln >= 4 {
-					alpha, _ := strconv.ParseFloat(args[3], 64)
-					alpha /= 100
-					if err := overlay.AddAlpha(); err != nil {
-						return nil, nil, err
-					}
-					if err := overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
-						return nil, nil, err
-					}
-				}
-				err = img.Composite(overlay, vips.BlendModeOver, x, y)
-				overlay.Close()
-				if err != nil {
-					return nil, nil, err
-				}
+			if err := watermark(img, strings.Split(p.Args, ","), load); err != nil {
+				return nil, nil, err
 			}
 			break
 		case "grayscale":
@@ -390,48 +288,4 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 		}
 		return image.ExportJpeg(opts)
 	}
-}
-
-func getColor(name string) *vips.Color {
-	vc := &vips.Color{}
-	strings.TrimPrefix(strings.ToLower(name), "#")
-	if c, ok := colornames.Map[strings.ToLower(name)]; ok {
-		vc.R = c.R
-		vc.G = c.G
-		vc.B = c.B
-	} else if c, ok := parseHexColor(name); ok {
-		vc.R = c.R
-		vc.G = c.G
-		vc.B = c.B
-	}
-	return vc
-}
-
-func parseHexColor(s string) (c color.RGBA, ok bool) {
-	c.A = 0xff
-
-	hexToByte := func(b byte) byte {
-		switch {
-		case b >= '0' && b <= '9':
-			return b - '0'
-		case b >= 'a' && b <= 'f':
-			return b - 'a' + 10
-		case b >= 'A' && b <= 'F':
-			return b - 'A' + 10
-		}
-		return 0
-	}
-	switch len(s) {
-	case 6:
-		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
-		c.G = hexToByte(s[2])<<4 + hexToByte(s[3])
-		c.B = hexToByte(s[4])<<4 + hexToByte(s[5])
-		ok = true
-	case 3:
-		c.R = hexToByte(s[0]) * 17
-		c.G = hexToByte(s[1]) * 17
-		c.B = hexToByte(s[2]) * 17
-		ok = true
-	}
-	return
 }
