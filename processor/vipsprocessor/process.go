@@ -201,6 +201,19 @@ func (v *Vips) Process(
 			if err := img.Modulate(1, s, 0); err != nil {
 				return nil, nil, err
 			}
+		case "rgb":
+			if args := strings.Split(p.Args, ","); len(args) == 3 {
+				r, _ := strconv.ParseFloat(args[0], 64)
+				g, _ := strconv.ParseFloat(args[1], 64)
+				b, _ := strconv.ParseFloat(args[2], 64)
+				r = r * 256 / 100
+				g = g * 256 / 100
+				b = b * 256 / 100
+				if err := img.Linear([]float64{1, 1, 1}, []float64{r, g, b}); err != nil {
+					return nil, nil, err
+				}
+			}
+			break
 		case "blur":
 			args := strings.Split(p.Args, ",")
 			var sigma float64
