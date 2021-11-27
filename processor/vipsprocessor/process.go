@@ -189,18 +189,18 @@ func (v *Vips) Process(
 				return nil, nil, err
 			}
 			break
-		case "modulate":
-			if args := strings.Split(p.Args, ","); len(args) == 3 {
-				brightness, _ := strconv.ParseFloat(args[0], 64)
-				saturation, _ := strconv.ParseFloat(args[1], 64)
-				hue, _ := strconv.ParseFloat(args[2], 64)
-				brightness = 1 + brightness/100
-				saturation = 1 + saturation/100
-				if err := img.Modulate(brightness, saturation, hue); err != nil {
-					return nil, nil, err
-				}
+		case "hue":
+			h, _ := strconv.ParseFloat(p.Args, 64)
+			if err := img.Modulate(1, 1, h); err != nil {
+				return nil, nil, err
 			}
 			break
+		case "saturation":
+			s, _ := strconv.ParseFloat(p.Args, 64)
+			s = 1 + s/100
+			if err := img.Modulate(1, s, 0); err != nil {
+				return nil, nil, err
+			}
 		case "blur":
 			args := strings.Split(p.Args, ",")
 			var sigma float64
