@@ -32,7 +32,10 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	}
 	if u.Host == "" || u.Scheme == "" {
 		// assume https if no scheme provided
-		image = "https://" + image
+		if u, err = url.Parse("https://" + image); err != nil {
+			return nil, imagor.ErrPass
+		}
+		image = u.String()
 	}
 	if shouldRestrictOrigin(u, h.AllowedOrigins) {
 		return nil, imagor.ErrPass
