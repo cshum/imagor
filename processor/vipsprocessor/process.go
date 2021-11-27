@@ -50,6 +50,7 @@ func (v *Vips) Process(
 		format  = img.Format()
 		quality int
 		stretch = p.Stretch
+		upscale = p.Upscale
 		w       = p.Width
 		h       = p.Height
 	)
@@ -66,11 +67,16 @@ func (v *Vips) Process(
 		case "stretch":
 			stretch = true
 			break
+		case "upscale":
+			upscale = true
+			break
 		}
 	}
 	if p.FitIn {
-		if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
-			return nil, nil, err
+		if upscale || w < img.Width() || h < img.Height() {
+			if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
+				return nil, nil, err
+			}
 		}
 	} else if stretch {
 		if err := img.ResizeWithVScale(
@@ -132,7 +138,7 @@ func (v *Vips) Process(
 			}
 			break
 		case "fill", "background_color":
-			if err := background(img, w, h, p.Args); err != nil {
+			if err := background(img, w, h, p.Args, upscale); err != nil {
 				return nil, nil, err
 			}
 			break

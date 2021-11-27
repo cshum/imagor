@@ -22,7 +22,7 @@ func trim(img *vips.ImageRef) error {
 	return nil
 }
 
-func background(img *vips.ImageRef, w, h int, fill string) (err error) {
+func background(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
 	fill = strings.ToLower(fill)
 	if img.HasAlpha() && fill != "blur" {
 		if err = img.Flatten(getColor(fill)); err != nil {
@@ -50,8 +50,10 @@ func background(img *vips.ImageRef, w, h int, fill string) (err error) {
 			return
 		}
 		defer cp.Close()
-		if err = cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
-			return
+		if upscale || w < cp.Width() || h < cp.Height() {
+			if err = cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
+				return
+			}
 		}
 		if err = img.ResizeWithVScale(
 			float64(w)/float64(img.Width()), float64(h)/float64(img.Height()),
