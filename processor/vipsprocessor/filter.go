@@ -9,6 +9,18 @@ import (
 	"strings"
 )
 
+func trim(img *vips.ImageRef) error {
+	// todo GetPoint
+	l, t, w, h, err := img.FindTrim(1, &vips.Color{R: 255, G: 255, B: 255})
+	if err != nil {
+		return err
+	}
+	if err = img.ExtractArea(l, t, w, h); err != nil {
+		return err
+	}
+	return nil
+}
+
 func background(img *vips.ImageRef, w, h int, fill string) (err error) {
 	fill = strings.ToLower(fill)
 	if img.HasAlpha() && fill != "blur" {

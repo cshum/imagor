@@ -26,12 +26,7 @@ func (v *Vips) Process(
 	}
 	defer img.Close()
 	if p.Trim != "" {
-		// todo get color by GetPoint
-		l, t, w, h, err := img.FindTrim(1, &vips.Color{R: 255, G: 255, B: 255})
-		if err != nil {
-			return nil, nil, err
-		}
-		if err = img.ExtractArea(l, t, w, h); err != nil {
+		if err := trim(img); err != nil {
 			return nil, nil, err
 		}
 	}
