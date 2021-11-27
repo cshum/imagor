@@ -63,11 +63,10 @@ func background(img *vips.ImageRef, w, h int, fill string) (err error) {
 				return
 			}
 		} else {
-			// hack because no way to set background via govips
 			c := getColor(fill)
-			if err = img.Linear([]float64{0, 0, 0}, []float64{
-				float64(c.R), float64(c.G), float64(c.B),
-			}); err != nil {
+			if err = img.DrawRect(vips.ColorRGBA{
+				R: c.R, G: c.G, B: c.B, A: 255,
+			}, 0, 0, w, h, true); err != nil {
 				return
 			}
 		}
@@ -143,6 +142,13 @@ func getColor(name string) *vips.Color {
 		vc.B = c.B
 	}
 	return vc
+}
+
+func toRGBA(c *vips.Color, a uint8) *vips.ColorRGBA {
+	if c == nil {
+		return nil
+	}
+	return &vips.ColorRGBA{R: c.R, G: c.G, B: c.B, A: a}
 }
 
 func parseHexColor(s string) (c color.RGBA, ok bool) {
