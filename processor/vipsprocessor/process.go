@@ -176,12 +176,12 @@ func (v *Vips) Process(
 			break
 		case "modulate":
 			if args := strings.Split(p.Args, ","); len(args) == 3 {
-				brightness, _ := strconv.Atoi(args[0])
-				saturation, _ := strconv.Atoi(args[1])
-				hue, _ := strconv.Atoi(args[2])
-				if err := img.Modulate(
-					float64(brightness)/100, float64(saturation)/100, float64(hue),
-				); err != nil {
+				brightness, _ := strconv.ParseFloat(args[0], 64)
+				saturation, _ := strconv.ParseFloat(args[1], 64)
+				hue, _ := strconv.ParseFloat(args[2], 64)
+				brightness = 1 + brightness/100
+				saturation = 1 + saturation/100
+				if err := img.Modulate(brightness, saturation, hue); err != nil {
 					return nil, nil, err
 				}
 			}
