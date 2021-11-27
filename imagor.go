@@ -11,13 +11,12 @@ import (
 	"time"
 )
 
-const (
-	Version = "0.1.0"
-)
+const Version = "0.1.0"
+
+var ErrPass = errors.New("imagor: pass")
 
 // Loader Load image from image source
 type Loader interface {
-	Match(r *http.Request, image string) bool
 	Load(r *http.Request, image string) ([]byte, error)
 }
 
@@ -93,6 +92,10 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 			}
 			o.Logger.Debug("process", zap.Any("params", params), zap.Any("meta", meta))
 			break
+		} else if e == ErrPass {
+			if len(b) > 0 {
+				buf = b
+			}
 		} else {
 			o.Logger.Error("process", zap.Any("params", params), zap.Error(e))
 		}
@@ -105,23 +108,28 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 			dr := r.WithContext(ctx)
 			for _, loader := range o.Loaders {
-				if loader.Match(dr, image) {
-					if buf, err = loader.Load(dr, image); err == nil {
-						return
-					}
+				buf, err = loader.Load(dr, image)
+				if err == nil {
+					break
+				}
+				if err != nil && err != ErrPass {
+					o.Logger.Error("load", zap.String("image", image), zap.Error(err))
 				}
 			}
 			if err == nil {
+				if len(o.Storages) > 0 {
+					o.store(ctx, o.Storages, image, buf)
+				}
+			} else if err == ErrPass {
 				err = errors.New("loader not available")
-			}
-			if len(o.Storages) > 0 {
-				o.store(ctx, o.Storages, image, buf)
 			}
 			return
 		})
 }
 
-func (o *Imagor) store(ctx context.Context, storages []Storage, image string, buf []byte) {
+func (o *Imagor) store(
+	ctx context.Context, storages []Storage, image string, buf []byte,
+) {
 	for _, storage := range storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)

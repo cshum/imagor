@@ -22,21 +22,21 @@ type HTTPLoader struct {
 	MaxAllowedSize int
 }
 
-func (h *HTTPLoader) Match(r *http.Request, image string) bool {
+func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if r.Method != http.MethodGet || image == "" {
-		return false
+		return nil, imagor.ErrPass
 	}
 	u, err := url.Parse(image)
-	if err != nil || u.Host == "" {
-		return false
+	if err != nil {
+		return nil, imagor.ErrPass
+	}
+	if u.Host == "" || u.Scheme == "" {
+		// assume https if no scheme provided
+		image = "https://" + image
 	}
 	if shouldRestrictOrigin(u, h.AllowedOrigins) {
-		return false
+		return nil, imagor.ErrPass
 	}
-	return true
-}
-
-func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	client := &http.Client{Transport: h.Transport}
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
 	if err != nil {
