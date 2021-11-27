@@ -42,7 +42,7 @@ func (v *Vips) Process(
 			break
 		}
 	}
-	if err := process(ctx, img, p, load); err != nil {
+	if err := v.process(ctx, img, p, load); err != nil {
 		return nil, nil, err
 	}
 	buf, meta, err := export(img, format, quality)

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func process(
+func (v *Vips) process(
 	_ context.Context, img *vips.ImageRef, p imagor.Params,
 	load func(string) ([]byte, error),
 ) error {
