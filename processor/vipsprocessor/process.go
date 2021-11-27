@@ -178,8 +178,7 @@ func (v *Vips) Process(
 			case 1:
 				sigma, _ = strconv.ParseFloat(args[0], 64)
 				break
-			case 2:
-			case 3:
+			case 2, 3:
 				sigma, _ = strconv.ParseFloat(args[1], 64)
 				break
 			}
@@ -190,11 +189,12 @@ func (v *Vips) Process(
 		case "rotate":
 			if angle, _ := strconv.Atoi(p.Args); angle > 0 {
 				vAngle := vips.Angle0
-				if angle == 90 {
+				switch angle {
+				case 90:
 					vAngle = vips.Angle270
-				} else if angle == 180 {
+				case 180:
 					vAngle = vips.Angle180
-				} else if angle == 270 {
+				case 270:
 					vAngle = vips.Angle90
 				}
 				if err := img.Rotate(vAngle); err != nil {
