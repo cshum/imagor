@@ -91,7 +91,7 @@ var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 func ParseParams(uri string) (params Params) {
 	params.URI = uri
 	match := pathRegex.FindStringSubmatch(uri)
-	if len(match) < 6 {
+	if len(match) == 0 {
 		return
 	}
 	index := 1
@@ -104,7 +104,7 @@ func ParseParams(uri string) (params Params) {
 	params.Path = match[index]
 
 	match = paramsRegex.FindStringSubmatch(params.Path)
-	if len(match) < 27 {
+	if len(match) == 0 {
 		return
 	}
 	index = 1
