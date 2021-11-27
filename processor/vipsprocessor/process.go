@@ -9,25 +9,13 @@ import (
 	"strings"
 )
 
-type Vips struct {
-}
-
-func New() *Vips {
-	vips.Startup(nil)
-	return &Vips{}
-}
-
-func (v *Vips) Process(
-	_ context.Context, buf []byte, p imagor.Params, load func(string) ([]byte, error),
-) ([]byte, *imagor.Meta, error) {
-	img, err := vips.NewImageFromBuffer(buf)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer img.Close()
+func process(
+	_ context.Context, img *vips.ImageRef, p imagor.Params,
+	load func(string) ([]byte, error),
+) error {
 	if p.Trim != "" {
 		if err := trim(img); err != nil {
-			return nil, nil, err
+			return err
 		}
 	}
 	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
@@ -43,12 +31,10 @@ func (v *Vips) Process(
 			p.CropLeft, p.CropTop,
 			cropRight-p.CropLeft, cropBottom-p.CropTop,
 		); err != nil {
-			return nil, nil, err
+			return err
 		}
 	}
 	var (
-		format  = img.Format()
-		quality int
 		stretch = p.Stretch
 		upscale = p.Upscale
 		w       = p.Width
@@ -75,7 +61,7 @@ func (v *Vips) Process(
 	if p.FitIn {
 		if upscale || w < img.Width() || h < img.Height() {
 			if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
-				return nil, nil, err
+				return err
 			}
 		}
 	} else if stretch {
@@ -83,14 +69,14 @@ func (v *Vips) Process(
 			float64(w)/float64(img.Width()),
 			float64(h)/float64(img.Height()),
 			vips.KernelAuto); err != nil {
-			return nil, nil, err
+			return err
 		}
 	} else if w < img.Width() || h < img.Height() {
 		if err := img.Resize(math.Max(
 			float64(w)/float64(img.Width()),
 			float64(h)/float64(img.Height()),
 		), vips.KernelAuto); err != nil {
-			return nil, nil, err
+			return err
 		}
 		interest := vips.InterestingCentre
 		if p.Smart {
@@ -101,50 +87,29 @@ func (v *Vips) Process(
 			interest = vips.InterestingHigh
 		}
 		if err := img.SmartCrop(w, h, interest); err != nil {
-			return nil, nil, err
+			return err
 		}
 	}
 	if p.HorizontalFlip {
 		if err := img.Flip(vips.DirectionHorizontal); err != nil {
-			return nil, nil, err
+			return err
 		}
 	}
 	if p.VerticalFlip {
 		if err := img.Flip(vips.DirectionVertical); err != nil {
-			return nil, nil, err
+			return err
 		}
 	}
 	for _, p := range p.Filters {
 		switch p.Type {
-		case "format":
-			if typ, ok := imageTypeMap[p.Args]; ok {
-				format = typ
-			}
-			break
-		case "quality":
-			quality, _ = strconv.Atoi(p.Args)
-			break
-		case "autojpg":
-			format = vips.ImageTypeJPEG
-			break
-		case "strip_icc":
-			if err := img.RemoveICCProfile(); err != nil {
-				return nil, nil, err
-			}
-			break
-		case "strip_exif":
-			if err := img.RemoveMetadata(); err != nil {
-				return nil, nil, err
-			}
-			break
 		case "fill", "background_color":
-			if err := background(img, w, h, p.Args, upscale); err != nil {
-				return nil, nil, err
+			if err := fill(img, w, h, p.Args, upscale); err != nil {
+				return err
 			}
 			break
 		case "watermark":
 			if err := watermark(img, strings.Split(p.Args, ","), load); err != nil {
-				return nil, nil, err
+				return err
 			}
 			break
 		case "round_corner":
@@ -156,7 +121,7 @@ func (v *Vips) Process(
 					rx, _ = strconv.Atoi(args[1])
 				}
 				if err := roundCorner(img, rx, ry); err != nil {
-					return nil, nil, err
+					return err
 				}
 			}
 		case "rotate":
@@ -171,20 +136,20 @@ func (v *Vips) Process(
 					vAngle = vips.Angle90
 				}
 				if err := img.Rotate(vAngle); err != nil {
-					return nil, nil, err
+					return err
 				}
 			}
 			break
 		case "grayscale":
 			if err := img.Modulate(1, 0, 0); err != nil {
-				return nil, nil, err
+				return err
 			}
 			break
 		case "brightness":
 			b, _ := strconv.ParseFloat(p.Args, 64)
 			b = b * 256 / 100
 			if err := img.Linear([]float64{1, 1, 1}, []float64{b, b, b}); err != nil {
-				return nil, nil, err
+				return err
 			}
 			break
 		case "contrast":
@@ -192,20 +157,20 @@ func (v *Vips) Process(
 			a = a * 256 / 100
 			b := 128 - a*128
 			if err := img.Linear([]float64{a, a, a}, []float64{b, b, b}); err != nil {
-				return nil, nil, err
+				return err
 			}
 			break
 		case "hue":
 			h, _ := strconv.ParseFloat(p.Args, 64)
 			if err := img.Modulate(1, 1, h); err != nil {
-				return nil, nil, err
+				return err
 			}
 			break
 		case "saturation":
 			s, _ := strconv.ParseFloat(p.Args, 64)
 			s = 1 + s/100
 			if err := img.Modulate(1, s, 0); err != nil {
-				return nil, nil, err
+				return err
 			}
 		case "rgb":
 			if args := strings.Split(p.Args, ","); len(args) == 3 {
@@ -216,7 +181,7 @@ func (v *Vips) Process(
 				g = g * 256 / 100
 				b = b * 256 / 100
 				if err := img.Linear([]float64{1, 1, 1}, []float64{r, g, b}); err != nil {
-					return nil, nil, err
+					return err
 				}
 			}
 			break
@@ -234,7 +199,7 @@ func (v *Vips) Process(
 			sigma /= 2
 			if sigma > 0 {
 				if err := img.GaussianBlur(sigma); err != nil {
-					return nil, nil, err
+					return err
 				}
 			}
 			break
@@ -251,82 +216,19 @@ func (v *Vips) Process(
 			}
 			sigma = 1 + sigma*2
 			if err := img.Sharpen(sigma, 1, 2); err != nil {
-				return nil, nil, err
+				return err
 			}
+		case "strip_icc":
+			if err := img.RemoveICCProfile(); err != nil {
+				return err
+			}
+			break
+		case "strip_exif":
+			if err := img.RemoveMetadata(); err != nil {
+				return err
+			}
+			break
 		}
 	}
-	buf, meta, err := export(img, format, quality)
-	if err != nil {
-		return nil, nil, err
-	}
-	return buf, &imagor.Meta{
-		Format:      vips.ImageTypes[meta.Format],
-		Width:       meta.Width,
-		Height:      meta.Height,
-		Orientation: meta.Orientation,
-	}, nil
-}
-
-func (v *Vips) Close() error {
-	vips.Shutdown()
 	return nil
-}
-
-var imageTypeMap = map[string]vips.ImageType{
-	"gif":    vips.ImageTypeGIF,
-	"jpeg":   vips.ImageTypeJPEG,
-	"jpg":    vips.ImageTypeJPEG,
-	"magick": vips.ImageTypeMagick,
-	"pdf":    vips.ImageTypePDF,
-	"png":    vips.ImageTypePNG,
-	"svg":    vips.ImageTypeSVG,
-	"tiff":   vips.ImageTypeTIFF,
-	"webp":   vips.ImageTypeWEBP,
-	"heif":   vips.ImageTypeHEIF,
-	"bmp":    vips.ImageTypeBMP,
-	"avif":   vips.ImageTypeAVIF,
-}
-
-func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
-	switch format {
-	case vips.ImageTypePNG:
-		opts := vips.NewPngExportParams()
-		return image.ExportPng(opts)
-	case vips.ImageTypeWEBP:
-		opts := vips.NewWebpExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportWebp(opts)
-	case vips.ImageTypeHEIF:
-		opts := vips.NewHeifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportHeif(opts)
-	case vips.ImageTypeTIFF:
-		opts := vips.NewTiffExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportTiff(opts)
-	case vips.ImageTypeGIF:
-		opts := vips.NewGifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportGIF(opts)
-	case vips.ImageTypeAVIF:
-		opts := vips.NewAvifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportAvif(opts)
-	default:
-		opts := vips.NewJpegExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportJpeg(opts)
-	}
 }

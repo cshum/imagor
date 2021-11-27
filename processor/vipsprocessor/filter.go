@@ -22,7 +22,7 @@ func trim(img *vips.ImageRef) error {
 	return nil
 }
 
-func background(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
+func fill(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
 	fill = strings.ToLower(fill)
 	if img.HasAlpha() && fill != "blur" {
 		if err = img.Flatten(getColor(fill)); err != nil {
