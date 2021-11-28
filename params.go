@@ -12,7 +12,6 @@ import (
 
 // Params image resize and hash parameters
 type Params struct {
-	URI            string   `json:"uri,omitempty"`
 	Path           string   `json:"path,omitempty"`
 	Image          string   `json:"image,omitempty"`
 	CropLeft       int      `json:"crop_left,omitempty"`
@@ -89,7 +88,6 @@ var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
 // ParseParams parse params object from uri string
 func ParseParams(uri string) (params Params) {
-	params.URI = uri
 	match := pathRegex.FindStringSubmatch(uri)
 	if len(match) == 0 {
 		return

@@ -122,7 +122,6 @@ func TestParseParams(t *testing.T) {
 			test.name = test.uri
 		}
 		t.Run(strings.TrimPrefix(test.name, "/"), func(t *testing.T) {
-			test.expected.URI = test.uri
 			resp := ParseParams(test.uri)
 			respJSON, _ := json.MarshalIndent(resp, "", "  ")
 			expectedJSON, _ := json.MarshalIndent(test.expected, "", "  ")
