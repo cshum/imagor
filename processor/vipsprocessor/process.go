@@ -2,8 +2,8 @@ package vipsprocessor
 
 import (
 	"context"
+	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
-	"github.com/davidbyttow/govips/v2/vips"
 	"math"
 	"strconv"
 	"strings"
@@ -13,8 +13,8 @@ func (v *Vips) process(
 	_ context.Context, img *vips.ImageRef, p imagor.Params,
 	load func(string) ([]byte, error),
 ) error {
-	if p.Trim != "" {
-		if err := trim(img); err != nil {
+	if p.TrimPosition != "" {
+		if err := trim(img, p.TrimPosition, p.TrimTolerance); err != nil {
 			return err
 		}
 	}

@@ -2,7 +2,7 @@ package vipsprocessor
 
 import (
 	"fmt"
-	"github.com/davidbyttow/govips/v2/vips"
+	"github.com/cshum/govips/v2/vips"
 	"golang.org/x/image/colornames"
 	"image/color"
 	"net/url"
@@ -10,9 +10,23 @@ import (
 	"strings"
 )
 
-func trim(img *vips.ImageRef) error {
-	// todo GetPoint
-	l, t, w, h, err := img.FindTrim(1, &vips.Color{R: 255, G: 255, B: 255})
+func trim(img *vips.ImageRef, pos string, tolerance int) error {
+	var x, y int
+	if pos == "bottom-right" {
+		x = img.Width()
+		y = img.Height()
+	}
+	if tolerance == 0 {
+		tolerance = 1
+	}
+	p, err := img.GetPoint(x, y)
+	if err != nil {
+		return err
+	}
+	l, t, w, h, err := img.FindTrim(float64(tolerance), &vips.Color{
+		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
+	})
+	fmt.Println(l, t, w, h)
 	if err != nil {
 		return err
 	}

@@ -29,7 +29,7 @@ type Params struct {
 	FitIn          bool     `json:"fit_in,omitempty"`
 	Stretch        bool     `json:"stretch,omitempty"`
 	Upscale        bool     `json:"upscale,omitempty"`
-	Trim           string   `json:"trim_orientation,omitempty"`
+	TrimPosition   string   `json:"trim_position,omitempty"`
 	TrimTolerance  int      `json:"trim_tolerance,omitempty"`
 	Unsafe         bool     `json:"unsafe,omitempty"`
 	Hash           string   `json:"hash,omitempty"`
@@ -111,9 +111,9 @@ func ParseParams(uri string) (params Params) {
 	}
 	index += 1
 	if match[index] != "" {
-		params.Trim = "top-left"
+		params.TrimPosition = "top-left"
 		if s := match[index+2]; s != "" {
-			params.Trim = s
+			params.TrimPosition = s
 		}
 		params.TrimTolerance, _ = strconv.Atoi(match[index+4])
 	}
