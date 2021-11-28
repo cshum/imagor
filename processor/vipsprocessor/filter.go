@@ -13,8 +13,8 @@ import (
 func trim(img *vips.ImageRef, pos string, tolerance int) error {
 	var x, y int
 	if pos == "bottom-right" {
-		x = img.Width()
-		y = img.Height()
+		x = img.Width() - 1
+		y = img.Height() - 1
 	}
 	if tolerance == 0 {
 		tolerance = 1
@@ -26,7 +26,6 @@ func trim(img *vips.ImageRef, pos string, tolerance int) error {
 	l, t, w, h, err := img.FindTrim(float64(tolerance), &vips.Color{
 		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
 	})
-	fmt.Println(l, t, w, h)
 	if err != nil {
 		return err
 	}
