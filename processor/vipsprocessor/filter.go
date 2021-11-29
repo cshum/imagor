@@ -79,7 +79,7 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 		}
 		if args[2] == "center" {
 			y = (img.Height() - overlay.Height()) / 2
-		} else if args[1] == "repeat" {
+		} else if args[2] == "repeat" {
 			y = 0
 			repeatY = img.Height()/overlay.Height() + 1
 		} else if strings.HasSuffix(args[2], "p") {
