@@ -102,11 +102,9 @@ func (v *vipsProcessor) process(
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if v.Filters != nil {
-			if fn := v.Filters[p.Type]; fn != nil {
-				if err := fn(img, load, strings.Split(p.Args, ",")...); err != nil {
-					return err
-				}
+		if fn := v.Filters[p.Type]; fn != nil {
+			if err := fn(img, load, strings.Split(p.Args, ",")...); err != nil {
+				return err
 			}
 		}
 		switch p.Type {

@@ -32,7 +32,8 @@ func main() {
 				httploader.WithForwardHeaders("*"),
 			)),
 			imagor.WithProcessors(vipsprocessor.New()),
-			imagor.WithUnsafe(),
+			imagor.WithSecret(""),
+			imagor.WithUnsafe(true),
 		),
 	))
 }

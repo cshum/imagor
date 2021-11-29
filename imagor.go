@@ -42,13 +42,13 @@ type Processor interface {
 type imagor struct {
 	Logger     *zap.Logger
 	Cache      cache.Cache
+	CacheTTL   time.Duration
 	Unsafe     bool
 	Secret     string
 	Loaders    []Loader
 	Storages   []Storage
 	Processors []Processor
 	Timeout    time.Duration
-	CacheTTL   time.Duration
 }
 
 func New(options ...Option) *imagor {

@@ -45,8 +45,14 @@ func WithTimeout(timeout time.Duration) Option {
 	}
 }
 
-func WithUnsafe() Option {
+func WithUnsafe(unsafe bool) Option {
 	return func(o *imagor) {
-		o.Unsafe = true
+		o.Unsafe = unsafe
+	}
+}
+
+func WithSecret(secret string) Option {
+	return func(o *imagor) {
+		o.Secret = secret
 	}
 }
