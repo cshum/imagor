@@ -40,3 +40,9 @@ func WithMaxAllowedSize(maxAllowedSize int) Option {
 		h.MaxAllowedSize = maxAllowedSize
 	}
 }
+
+func WithAutoScheme(autoScheme bool) Option {
+	return func(h *httpLoader) {
+		h.AutoScheme = autoScheme
+	}
+}

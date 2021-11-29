@@ -20,6 +20,8 @@ type httpLoader struct {
 	AllowedOrigins []*url.URL
 
 	MaxAllowedSize int
+
+	AutoScheme bool
 }
 
 func New(options ...Option) *httpLoader {
@@ -41,11 +43,15 @@ func (h *httpLoader) Load(r *http.Request, image string) ([]byte, error) {
 		return nil, imagor.ErrPass
 	}
 	if u.Host == "" || u.Scheme == "" {
-		// assume https if no scheme provided
-		if u, err = url.Parse("https://" + image); err != nil {
+		if h.AutoScheme {
+			// assume https if no scheme provided
+			if u, err = url.Parse("https://" + image); err != nil {
+				return nil, imagor.ErrPass
+			}
+			image = u.String()
+		} else {
 			return nil, imagor.ErrPass
 		}
-		image = u.String()
 	}
 	if shouldRestrictOrigin(u, h.AllowedOrigins) {
 		return nil, imagor.ErrPass

@@ -33,7 +33,9 @@ func New(root string, options ...Option) *fileStore {
 }
 
 func (s *fileStore) Path(image string) (string, bool) {
-	image = "/" + strings.TrimPrefix(path.Clean(image), "/")
+	image = "/" + strings.TrimPrefix(path.Clean(
+		strings.ReplaceAll(image, ":/", "%3A"),
+	), "/")
 	for _, pattern := range s.Blacklists {
 		if ok, err := doublestar.Match(pattern, image); ok || err != nil {
 			return "", false
