@@ -51,6 +51,19 @@ type imagor struct {
 	CacheTTL   time.Duration
 }
 
+func New(options ...Option) *imagor {
+	o := &imagor{
+		Logger:   zap.NewNop(),
+		Cache:    cache.NewMemory(1000, 1<<28, time.Minute),
+		CacheTTL: time.Minute,
+		Timeout:  time.Second * 30,
+	}
+	for _, option := range options {
+		option(o)
+	}
+	return o
+}
+
 func (o *imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	buf, err := o.Do(r)
 	if err != nil {

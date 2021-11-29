@@ -8,19 +8,6 @@ import (
 
 type Option func(o *imagor)
 
-func New(options ...Option) *imagor {
-	o := &imagor{
-		Logger:   zap.NewNop(),
-		Cache:    cache.NewMemory(1000, 1<<28, time.Minute),
-		CacheTTL: time.Minute,
-		Timeout:  time.Second * 30,
-	}
-	for _, option := range options {
-		option(o)
-	}
-	return o
-}
-
 func WithLogger(logger *zap.Logger) Option {
 	return func(o *imagor) {
 		o.Logger = logger

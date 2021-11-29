@@ -22,6 +22,16 @@ type httpLoader struct {
 	MaxAllowedSize int
 }
 
+func New(options ...Option) *httpLoader {
+	h := &httpLoader{
+		OverrideHeaders: map[string]string{},
+	}
+	for _, option := range options {
+		option(h)
+	}
+	return h
+}
+
 func (h *httpLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if r.Method != http.MethodGet || image == "" {
 		return nil, imagor.ErrPass

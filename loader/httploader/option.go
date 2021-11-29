@@ -7,16 +7,6 @@ import (
 
 type Option func(h *httpLoader)
 
-func New(options ...Option) *httpLoader {
-	h := &httpLoader{
-		OverrideHeaders: map[string]string{},
-	}
-	for _, option := range options {
-		option(h)
-	}
-	return h
-}
-
 func WithTransport(transport http.RoundTripper) Option {
 	return func(h *httpLoader) {
 		h.Transport = transport
