@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"regexp"
 	"testing"
 )
 
@@ -10,7 +11,7 @@ func TestFileStore_Path(t *testing.T) {
 		root       string
 		baseURI    string
 		image      string
-		blacklist  []string
+		blacklist  *regexp.Regexp
 		expected   string
 		expectedOk bool
 	}{
@@ -78,7 +79,7 @@ func TestFileStore_Path(t *testing.T) {
 			root:       "/home/imagor",
 			baseURI:    "/foo",
 			image:      "/foo/bar/abc/def/ghi.txt",
-			blacklist:  []string{"**/*.txt"},
+			blacklist:  regexp.MustCompile("\\.txt"),
 			expectedOk: false,
 		},
 	}
@@ -86,7 +87,7 @@ func TestFileStore_Path(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			res, ok := New(tt.root,
 				WithBaseURI(tt.baseURI),
-				WithBlacklists(tt.blacklist...),
+				WithBlacklist(tt.blacklist),
 			).Path(tt.image)
 			if res != tt.expected || ok != tt.expectedOk {
 				t.Errorf(" = %s,%v want %s,%v", res, ok, tt.expected, tt.expectedOk)

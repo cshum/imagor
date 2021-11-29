@@ -1,5 +1,7 @@
 package filestore
 
+import "regexp"
+
 type Option func(h *fileStore)
 
 func WithBaseURI(baseURI string) Option {
@@ -8,8 +10,10 @@ func WithBaseURI(baseURI string) Option {
 	}
 }
 
-func WithBlacklists(pattern ...string) Option {
+func WithBlacklist(blacklist *regexp.Regexp) Option {
 	return func(s *fileStore) {
-		s.Blacklists = append(s.Blacklists, pattern...)
+		if blacklist != nil {
+			s.Blacklists = append(s.Blacklists, blacklist)
+		}
 	}
 }

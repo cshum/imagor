@@ -2,13 +2,13 @@ package filestore
 
 import (
 	"context"
-	"github.com/bmatcuk/doublestar"
 	"github.com/cshum/imagor"
 	"io"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -16,7 +16,7 @@ import (
 type fileStore struct {
 	FileRoot   string
 	BaseURI    string
-	Blacklists []string
+	Blacklists []*regexp.Regexp
 	once       sync.Once
 }
 
@@ -24,10 +24,10 @@ func New(root string, options ...Option) *fileStore {
 	s := &fileStore{
 		FileRoot:   root,
 		BaseURI:    "/",
-		Blacklists: []string{"**/.*", "**/.*/**"},
+		Blacklists: []*regexp.Regexp{regexp.MustCompile("/\\.")},
 	}
-	for _, options := range options {
-		options(s)
+	for _, option := range options {
+		option(s)
 	}
 	return s
 }
@@ -36,8 +36,8 @@ func (s *fileStore) Path(image string) (string, bool) {
 	image = "/" + strings.TrimPrefix(path.Clean(
 		strings.ReplaceAll(image, ":/", "%3A"),
 	), "/")
-	for _, pattern := range s.Blacklists {
-		if ok, err := doublestar.Match(pattern, image); ok || err != nil {
+	for _, blacklist := range s.Blacklists {
+		if blacklist.MatchString(image) {
 			return "", false
 		}
 	}
