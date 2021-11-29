@@ -10,8 +10,7 @@ import (
 )
 
 func (v *Vips) process(
-	_ context.Context, img *vips.ImageRef, p imagor.Params,
-	load func(string) ([]byte, error),
+	_ context.Context, img *vips.ImageRef, p imagor.Params, load imagor.LoadFunc,
 ) error {
 	if p.TrimPosition != "" {
 		if err := trim(img, p.TrimPosition, p.TrimTolerance); err != nil {
@@ -108,7 +107,7 @@ func (v *Vips) process(
 			}
 			break
 		case "watermark":
-			if err := watermark(img, strings.Split(p.Args, ","), load); err != nil {
+			if err := watermark(img, load, strings.Split(p.Args, ",")...); err != nil {
 				return err
 			}
 			break

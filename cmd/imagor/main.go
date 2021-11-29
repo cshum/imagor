@@ -25,7 +25,7 @@ func main() {
 	panic(http.ListenAndServe(
 		fmt.Sprintf(":%d", port),
 		&imagor.Imagor{
-			Cache: cache.NewMemory(9999, 1<<28, time.Hour),
+			Cache: cache.NewMemory(1000, 1<<28, time.Minute*5),
 			Loaders: []imagor.Loader{
 				&httploader.HTTPLoader{
 					ForwardHeaders: []string{"*"},

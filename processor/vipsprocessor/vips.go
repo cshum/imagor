@@ -16,7 +16,7 @@ func New() *Vips {
 }
 
 func (v *Vips) Process(
-	ctx context.Context, buf []byte, p imagor.Params, load func(string) ([]byte, error),
+	ctx context.Context, buf []byte, p imagor.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {
 	img, err := vips.NewImageFromBuffer(buf)
 	if err != nil {

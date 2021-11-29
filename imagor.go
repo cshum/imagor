@@ -15,6 +15,8 @@ const Version = "0.1.0"
 
 var ErrPass = errors.New("imagor: pass")
 
+type LoadFunc func(string) ([]byte, error)
+
 // Loader Load image from image source
 type Loader interface {
 	Load(r *http.Request, image string) ([]byte, error)
@@ -33,7 +35,7 @@ type Store interface {
 
 // Processor process image buffer
 type Processor interface {
-	Process(ctx context.Context, buf []byte, params Params, load func(string) ([]byte, error)) ([]byte, *Meta, error)
+	Process(ctx context.Context, buf []byte, params Params, load LoadFunc) ([]byte, *Meta, error)
 }
 
 // Imagor image resize HTTP handler

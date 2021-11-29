@@ -3,6 +3,7 @@ package vipsprocessor
 import (
 	"fmt"
 	"github.com/cshum/govips/v2/vips"
+	"github.com/cshum/imagor"
 	"golang.org/x/image/colornames"
 	"image/color"
 	"net/url"
@@ -58,8 +59,7 @@ func fill(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
 		}
 	} else {
 		var cp *vips.ImageRef
-		cp, err = img.Copy()
-		if err != nil {
+		if cp, err = img.Copy(); err != nil {
 			return
 		}
 		defer cp.Close()
@@ -94,7 +94,7 @@ func fill(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
 	return
 }
 
-func watermark(img *vips.ImageRef, args []string, load func(string) ([]byte, error)) (err error) {
+func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 3 {
 		return
