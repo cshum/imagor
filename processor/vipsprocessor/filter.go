@@ -81,7 +81,7 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 			y = (img.Height() - overlay.Height()) / 2
 		} else if args[1] == "repeat" {
 			y = 0
-			repeatX = img.Height()/overlay.Height() + 1
+			repeatY = img.Height()/overlay.Height() + 1
 		} else if strings.HasSuffix(args[2], "p") {
 			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
 			y = y * img.Height() / 100
