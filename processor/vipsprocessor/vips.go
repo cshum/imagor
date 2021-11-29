@@ -23,6 +23,7 @@ func New(options ...Option) *vipsProcessor {
 			"brightness":       brightness,
 			"background_color": backgroundColor,
 			"contrast":         contrast,
+			"modulate":         modulate,
 			"hue":              hue,
 			"saturation":       saturation,
 			"rgb":              rgb,

@@ -103,7 +103,6 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 			}
 		}
 	}
-
 	return
 }
 
@@ -241,6 +240,18 @@ func rgb(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	g = g * 256 / 100
 	b = b * 256 / 100
 	return img.Linear([]float64{1, 1, 1}, []float64{r, g, b})
+}
+
+func modulate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) != 3 {
+		return
+	}
+	b, _ := strconv.ParseFloat(args[0], 64)
+	s, _ := strconv.ParseFloat(args[1], 64)
+	h, _ := strconv.ParseFloat(args[2], 64)
+	b = 1 + b/100
+	s = 1 + s/100
+	return img.Modulate(b, s, h)
 }
 
 func blur(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
