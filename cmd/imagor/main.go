@@ -31,9 +31,7 @@ func main() {
 		&imagor.Imagor{
 			Cache: cache.NewMemory(1000, 1<<28, time.Minute*5),
 			Loaders: []imagor.Loader{
-				&httploader.HTTPLoader{
-					ForwardHeaders: []string{"*"},
-				},
+				httploader.New(httploader.WithForwardHeaders("*")),
 			},
 			Processors: []imagor.Processor{
 				vipsprocessor.New(),

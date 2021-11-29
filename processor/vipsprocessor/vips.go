@@ -13,26 +13,6 @@ type VipsProcessor struct {
 	Filters map[string]FilterFunc
 }
 
-func New() *VipsProcessor {
-	return &VipsProcessor{
-		Filters: map[string]FilterFunc{
-			"watermark":    watermark,
-			"round_corner": roundCorner,
-			"rotate":       rotate,
-			"grayscale":    grayscale,
-			"brightness":   brightness,
-			"contrast":     contrast,
-			"hue":          hue,
-			"saturation":   saturation,
-			"rgb":          rgb,
-			"blur":         blur,
-			"sharpen":      sharpen,
-			"strip_icc":    stripIcc,
-			"strip_exif":   stripExif,
-		},
-	}
-}
-
 func (v *VipsProcessor) Process(
 	ctx context.Context, buf []byte, p imagor.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {

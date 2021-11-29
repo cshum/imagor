@@ -9,7 +9,7 @@ import (
 )
 
 type HTTPLoader struct {
-	// The transport used to request images.
+	// The Transport used to request images.
 	// If nil, http.DefaultTransport is used.
 	Transport http.RoundTripper
 
