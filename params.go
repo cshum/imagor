@@ -37,7 +37,7 @@ type Params struct {
 }
 
 type Filter struct {
-	Type string `json:"type,omitempty"`
+	Name string `json:"type,omitempty"`
 	Args string `json:"args,omitempty"`
 }
 
@@ -178,7 +178,7 @@ func parseFilters(filters string) (results []Filter) {
 		seg = strings.TrimSuffix(seg, ")") + ")"
 		if match := filterRegex.FindStringSubmatch(seg); len(match) >= 3 {
 			results = append(results, Filter{
-				Type: strings.ToLower(match[1]),
+				Name: strings.ToLower(match[1]),
 				Args: match[2],
 			})
 		}

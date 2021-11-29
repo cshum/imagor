@@ -33,7 +33,7 @@ func TestParseParams(t *testing.T) {
 				VAlign:         "top",
 				Smart:          true,
 				FitIn:          true,
-				Filters:        []Filter{{Type: "some_filter"}},
+				Filters:        []Filter{{Name: "some_filter"}},
 			},
 		},
 		{
@@ -56,7 +56,7 @@ func TestParseParams(t *testing.T) {
 				VAlign:         "top",
 				Smart:          true,
 				FitIn:          true,
-				Filters:        []Filter{{Type: "some_filter"}},
+				Filters:        []Filter{{Name: "some_filter"}},
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func TestParseParams(t *testing.T) {
 			expected: Params{
 				Path:    "filters:watermark(s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0)/img",
 				Image:   "img",
-				Filters: []Filter{{Type: "watermark", Args: "s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0"}},
+				Filters: []Filter{{Name: "watermark", Args: "s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0"}},
 			},
 		},
 		{
@@ -76,15 +76,15 @@ func TestParseParams(t *testing.T) {
 				Image: "img",
 				Filters: []Filter{
 					{
-						Type: "watermark",
+						Name: "watermark",
 						Args: "s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0",
 					},
 					{
-						Type: "brightness",
+						Name: "brightness",
 						Args: "-50",
 					},
 					{
-						Type: "grayscale",
+						Name: "grayscale",
 					},
 				},
 			},
@@ -110,7 +110,7 @@ func TestParseParams(t *testing.T) {
 				Stretch: true,
 				Filters: []Filter{
 					{
-						Type: "watermark",
+						Name: "watermark",
 						Args: "http://thumborize.me/static/img/beach.jpg,100,100,50",
 					},
 				},

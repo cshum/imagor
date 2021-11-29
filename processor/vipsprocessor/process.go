@@ -47,7 +47,7 @@ func (v *vipsProcessor) process(
 		h = img.Height() * w / img.Width()
 	}
 	for _, p := range p.Filters {
-		switch p.Type {
+		switch p.Name {
 		case "stretch":
 			stretch = true
 			break
@@ -102,12 +102,12 @@ func (v *vipsProcessor) process(
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if fn := v.Filters[p.Type]; fn != nil {
+		if fn := v.Filters[p.Name]; fn != nil {
 			if err := fn(img, load, strings.Split(p.Args, ",")...); err != nil {
 				return err
 			}
 		}
-		switch p.Type {
+		switch p.Name {
 		case "fill", "background_color":
 			if err := fill(img, w, h, p.Args, upscale); err != nil {
 				return err

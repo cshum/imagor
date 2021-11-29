@@ -96,6 +96,12 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 	if len(args) == 0 {
 		return
 	}
+	if a, e := url.QueryUnescape(args[0]); e == nil {
+		args[0] = a
+	}
+	if strings.Contains(args[0], "|") {
+		args = append(strings.Split(args[0], "|"), args[1:]...)
+	}
 	rx, _ = strconv.Atoi(args[0])
 	ry = rx
 	if len(args) > 1 {

@@ -50,7 +50,7 @@ func (v *vipsProcessor) Process(
 		quality int
 	)
 	for _, p := range p.Filters {
-		switch p.Type {
+		switch p.Name {
 		case "format":
 			if typ, ok := imageTypeMap[p.Args]; ok {
 				format = typ
