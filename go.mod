@@ -3,6 +3,7 @@ module github.com/cshum/imagor
 go 1.17
 
 require (
+	github.com/bmatcuk/doublestar v1.3.4
 	github.com/cshum/govips/v2 v2.7.2
 	github.com/cshum/hybridcache v0.2.0
 	go.uber.org/zap v1.19.1

@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"context"
+	"github.com/bmatcuk/doublestar"
 	"github.com/cshum/imagor"
 	"io"
 	"net/http"
@@ -13,15 +14,17 @@ import (
 )
 
 type fileStore struct {
-	Root    string
-	BaseURI string
-	once    sync.Once
+	FileRoot   string
+	BaseURI    string
+	Blacklists []string
+	once       sync.Once
 }
 
 func New(root string, options ...Option) *fileStore {
 	s := &fileStore{
-		Root:    root,
-		BaseURI: "/",
+		FileRoot:   root,
+		BaseURI:    "/",
+		Blacklists: []string{"**/.*", "**/.*/**"},
 	}
 	for _, options := range options {
 		options(s)
@@ -31,10 +34,19 @@ func New(root string, options ...Option) *fileStore {
 
 func (s *fileStore) Path(image string) (string, bool) {
 	image = "/" + strings.TrimPrefix(path.Clean(image), "/")
-	if !strings.HasPrefix(image, s.BaseURI) {
+	for _, pattern := range s.Blacklists {
+		if ok, err := doublestar.Match(pattern, image); ok || err != nil {
+			return "", false
+		}
+	}
+	baseURI := "/" + strings.Trim(s.BaseURI, "/")
+	if baseURI != "/" {
+		baseURI += "/"
+	}
+	if !strings.HasPrefix(image, baseURI) {
 		return "", false
 	}
-	return filepath.Join(s.Root, strings.TrimPrefix(image, s.BaseURI)), true
+	return filepath.Join(s.FileRoot, strings.TrimPrefix(image, baseURI)), true
 }
 
 func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
@@ -51,7 +63,7 @@ func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
 
 func (s *fileStore) Store(_ context.Context, image string, buf []byte) (err error) {
 	s.once.Do(func() {
-		_, err = os.Stat(s.Root)
+		_, err = os.Stat(s.FileRoot)
 	})
 	if err != nil {
 		return

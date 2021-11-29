@@ -10,6 +10,7 @@ func TestFileStore_Path(t *testing.T) {
 		root       string
 		baseURI    string
 		image      string
+		blacklist  []string
 		expected   string
 		expectedOk bool
 	}{
@@ -50,15 +51,45 @@ func TestFileStore_Path(t *testing.T) {
 			expected:   "/home/imagor/etc/passwd",
 			expectedOk: true,
 		},
+		{
+			name:       "path under must not expose sensitive",
+			root:       "/home/imagor",
+			baseURI:    "/foo",
+			image:      "/foo/bar/.git",
+			expectedOk: false,
+		},
+		{
+			name:       "path under must not expose sensitive",
+			root:       "/home/imagor",
+			baseURI:    "/foo",
+			image:      "/foo/bar/.git/logs/HEAD",
+			expectedOk: false,
+		},
+		{
+			name:       "path under",
+			root:       "/home/imagor",
+			baseURI:    "/foo",
+			image:      "/foo/bar/abc/def/ghi.txt",
+			expected:   "/home/imagor/bar/abc/def/ghi.txt",
+			expectedOk: true,
+		},
+		{
+			name:       "path under blacklist",
+			root:       "/home/imagor",
+			baseURI:    "/foo",
+			image:      "/foo/bar/abc/def/ghi.txt",
+			blacklist:  []string{"**/*.txt"},
+			expectedOk: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, ok := New(tt.root, WithBaseURI(tt.baseURI)).Path(tt.image)
-			if res != tt.expected {
-				t.Errorf(" = %s want %s", res, tt.expected)
-			}
-			if ok != tt.expectedOk {
-				t.Errorf(" = %v want %v", ok, tt.expectedOk)
+			res, ok := New(tt.root,
+				WithBaseURI(tt.baseURI),
+				WithBlacklists(tt.blacklist...),
+			).Path(tt.image)
+			if res != tt.expected || ok != tt.expectedOk {
+				t.Errorf(" = %s,%v want %s,%v", res, ok, tt.expected, tt.expectedOk)
 			}
 		})
 	}
