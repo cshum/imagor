@@ -40,23 +40,23 @@ type Processor interface {
 
 // imagor image resize HTTP handler
 type imagor struct {
-	Logger     *zap.Logger
-	Cache      cache.Cache
-	CacheTTL   time.Duration
-	Unsafe     bool
-	Secret     string
-	Loaders    []Loader
-	Storages   []Storage
-	Processors []Processor
-	Timeout    time.Duration
+	Logger         *zap.Logger
+	Cache          cache.Cache
+	CacheTTL       time.Duration
+	Unsafe         bool
+	Secret         string
+	Loaders        []Loader
+	Storages       []Storage
+	Processors     []Processor
+	RequestTimeout time.Duration
 }
 
 func New(options ...Option) *imagor {
 	o := &imagor{
-		Logger:   zap.NewNop(),
-		Cache:    cache.NewMemory(1000, 1<<28, time.Minute),
-		CacheTTL: time.Minute,
-		Timeout:  time.Second * 30,
+		Logger:         zap.NewNop(),
+		Cache:          cache.NewMemory(1000, 1<<28, time.Minute),
+		CacheTTL:       time.Minute,
+		RequestTimeout: time.Second * 30,
 	}
 	for _, option := range options {
 		option(o)
@@ -82,8 +82,8 @@ func (o *imagor) Do(r *http.Request) (buf []byte, err error) {
 	params := ParseParams(path)
 	var cancel func()
 	ctx := r.Context()
-	if o.Timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, o.Timeout)
+	if o.RequestTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, o.RequestTimeout)
 		defer cancel()
 	}
 	if !(o.Unsafe && params.Unsafe) && !params.Verify(o.Secret) {
@@ -119,7 +119,7 @@ func (o *imagor) Do(r *http.Request) (buf []byte, err error) {
 }
 
 func (o *imagor) load(r *http.Request, image string) (buf []byte, err error) {
-	return cache.NewFunc(o.Cache, o.Timeout, o.CacheTTL, o.CacheTTL).
+	return cache.NewFunc(o.Cache, o.RequestTimeout, o.CacheTTL, o.CacheTTL).
 		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 			dr := r.WithContext(ctx)
 			for _, loader := range o.Loaders {
@@ -148,8 +148,8 @@ func (o *imagor) store(
 	for _, storage := range storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
-		if o.Timeout > 0 {
-			sCtx, cancel = context.WithTimeout(sCtx, o.Timeout)
+		if o.RequestTimeout > 0 {
+			sCtx, cancel = context.WithTimeout(sCtx, o.RequestTimeout)
 		}
 		go func(s Storage) {
 			defer cancel()

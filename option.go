@@ -39,9 +39,11 @@ func WithStorages(storages ...Storage) Option {
 	}
 }
 
-func WithTimeout(timeout time.Duration) Option {
+func WithRequestTimeout(timeout time.Duration) Option {
 	return func(o *imagor) {
-		o.Timeout = timeout
+		if timeout > 0 {
+			o.RequestTimeout = timeout
+		}
 	}
 }
 

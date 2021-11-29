@@ -117,3 +117,86 @@ func (v *vipsProcessor) process(
 	}
 	return nil
 }
+
+func trim(img *vips.ImageRef, pos string, tolerance int) error {
+	var x, y int
+	if pos == "bottom-right" {
+		x = img.Width() - 1
+		y = img.Height() - 1
+	}
+	if tolerance == 0 {
+		tolerance = 1
+	}
+	p, err := img.GetPoint(x, y)
+	if err != nil {
+		return err
+	}
+	l, t, w, h, err := img.FindTrim(float64(tolerance), &vips.Color{
+		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
+	})
+	if err != nil {
+		return err
+	}
+	if err = img.ExtractArea(l, t, w, h); err != nil {
+		return err
+	}
+	return nil
+}
+
+func fill(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
+	fill = strings.ToLower(fill)
+	if img.HasAlpha() && fill != "blur" {
+		if err = img.Flatten(getColor(fill)); err != nil {
+			return
+		}
+	}
+	if fill == "black" {
+		if err = img.Embed(
+			(w-img.Width())/2, (h-img.Height())/2,
+			w, h, vips.ExtendBlack,
+		); err != nil {
+			return
+		}
+	} else if fill == "white" {
+		if err = img.Embed(
+			(w-img.Width())/2, (h-img.Height())/2,
+			w, h, vips.ExtendWhite,
+		); err != nil {
+			return
+		}
+	} else {
+		var cp *vips.ImageRef
+		if cp, err = img.Copy(); err != nil {
+			return
+		}
+		defer cp.Close()
+		if upscale || w < cp.Width() || h < cp.Height() {
+			if err = cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
+				return
+			}
+		}
+		if err = img.ResizeWithVScale(
+			float64(w)/float64(img.Width()), float64(h)/float64(img.Height()),
+			vips.KernelLinear,
+		); err != nil {
+			return
+		}
+		if fill == "blur" {
+			if err = img.GaussianBlur(50); err != nil {
+				return
+			}
+		} else {
+			c := getColor(fill)
+			if err = img.DrawRect(vips.ColorRGBA{
+				R: c.R, G: c.G, B: c.B, A: 255,
+			}, 0, 0, w, h, true); err != nil {
+				return
+			}
+		}
+		if err = img.Composite(
+			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.Height())/2); err != nil {
+			return
+		}
+	}
+	return
+}
