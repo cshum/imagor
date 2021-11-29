@@ -54,6 +54,9 @@ func (v *vipsProcessor) process(
 		case "upscale":
 			upscale = true
 			break
+		case "no_upscale":
+			upscale = false
+			break
 		}
 	}
 	if p.FitIn {

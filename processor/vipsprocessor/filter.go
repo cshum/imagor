@@ -30,6 +30,8 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 	}
 	defer overlay.Close()
 	var x, y, w, h int
+	var repeatX = 1
+	var repeatY = 1
 
 	// w_ratio h_ratio
 	if ln >= 6 {
@@ -49,6 +51,8 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 			}
 		}
 	}
+	w = overlay.Width()
+	h = overlay.Height()
 	// alpha
 	if ln >= 4 {
 		alpha, _ := strconv.ParseFloat(args[3], 64)
@@ -64,6 +68,9 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 	if ln >= 3 {
 		if args[1] == "center" {
 			x = (img.Width() - overlay.Width()) / 2
+		} else if args[1] == "repeat" {
+			x = 0
+			repeatX = img.Width()/overlay.Width() + 1
 		} else if strings.HasSuffix(args[1], "p") {
 			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
 			x = x * img.Width() / 100
@@ -72,6 +79,9 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 		}
 		if args[2] == "center" {
 			y = (img.Height() - overlay.Height()) / 2
+		} else if args[1] == "repeat" {
+			y = 0
+			repeatX = img.Height()/overlay.Height() + 1
 		} else if strings.HasSuffix(args[2], "p") {
 			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
 			y = y * img.Height() / 100
@@ -85,9 +95,15 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 			y += img.Height() - overlay.Height()
 		}
 	}
-	if err = img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
-		return
+	for i := 0; i < repeatX; i++ {
+		for j := 0; j < repeatY; j++ {
+			if err = img.Composite(
+				overlay, vips.BlendModeOver, x+w*i, y+h*j); err != nil {
+				return
+			}
+		}
 	}
+
 	return
 }
 
