@@ -334,17 +334,6 @@ func getColor(name string) *vips.Color {
 
 func parseHexColor(s string) (c color.RGBA, ok bool) {
 	c.A = 0xff
-	hexToByte := func(b byte) byte {
-		switch {
-		case b >= '0' && b <= '9':
-			return b - '0'
-		case b >= 'a' && b <= 'f':
-			return b - 'a' + 10
-		case b >= 'A' && b <= 'F':
-			return b - 'A' + 10
-		}
-		return 0
-	}
 	switch len(s) {
 	case 6:
 		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
@@ -358,4 +347,16 @@ func parseHexColor(s string) (c color.RGBA, ok bool) {
 		ok = true
 	}
 	return
+}
+
+func hexToByte(b byte) byte {
+	switch {
+	case b >= '0' && b <= '9':
+		return b - '0'
+	case b >= 'a' && b <= 'f':
+		return b - 'a' + 10
+	case b >= 'A' && b <= 'F':
+		return b - 'A' + 10
+	}
+	return 0
 }
