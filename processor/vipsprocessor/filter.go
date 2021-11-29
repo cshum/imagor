@@ -207,7 +207,7 @@ func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error)
 		return
 	}
 	a, _ := strconv.ParseFloat(args[0], 64)
-	a = a * 256 / 100
+	a = 1 + a/100 // todo align with thumbor https://thumbor.readthedocs.io/en/latest/contrast.html
 	b := 128 - a*128
 	return img.Linear([]float64{a, a, a}, []float64{b, b, b})
 }
