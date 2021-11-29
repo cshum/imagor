@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/hybridcache"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
@@ -21,6 +22,9 @@ func main() {
 		panic(err)
 	}
 	logger.Info("start", zap.Int("port", port))
+
+	vips.Startup(nil)
+	defer vips.Shutdown()
 
 	panic(http.ListenAndServe(
 		fmt.Sprintf(":%d", port),

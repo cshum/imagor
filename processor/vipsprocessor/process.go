@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (v *Vips) process(
+func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagor.Params, load imagor.LoadFunc,
 ) error {
 	if p.TrimPosition != "" {
