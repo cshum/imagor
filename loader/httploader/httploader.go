@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type HTTPLoader struct {
+type httpLoader struct {
 	// The Transport used to request images.
 	// If nil, http.DefaultTransport is used.
 	Transport http.RoundTripper
@@ -22,7 +22,7 @@ type HTTPLoader struct {
 	MaxAllowedSize int
 }
 
-func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
+func (h *httpLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if r.Method != http.MethodGet || image == "" {
 		return nil, imagor.ErrPass
 	}

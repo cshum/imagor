@@ -5,10 +5,10 @@ import (
 	"net/url"
 )
 
-type Option func(h *HTTPLoader)
+type Option func(h *httpLoader)
 
-func New(options ...Option) *HTTPLoader {
-	h := &HTTPLoader{
+func New(options ...Option) *httpLoader {
+	h := &httpLoader{
 		OverrideHeaders: map[string]string{},
 	}
 	for _, option := range options {
@@ -18,25 +18,25 @@ func New(options ...Option) *HTTPLoader {
 }
 
 func WithTransport(transport http.RoundTripper) Option {
-	return func(h *HTTPLoader) {
+	return func(h *httpLoader) {
 		h.Transport = transport
 	}
 }
 
 func WithForwardHeaders(headers ...string) Option {
-	return func(h *HTTPLoader) {
+	return func(h *httpLoader) {
 		h.ForwardHeaders = append(h.ForwardHeaders, headers...)
 	}
 }
 
 func WithOverrideHeader(name, value string) Option {
-	return func(h *HTTPLoader) {
+	return func(h *httpLoader) {
 		h.OverrideHeaders[name] = value
 	}
 }
 
 func WithAllowedOrigins(urls ...string) Option {
-	return func(h *HTTPLoader) {
+	return func(h *httpLoader) {
 		for _, rawUrl := range urls {
 			if u, err := url.Parse(rawUrl); err == nil {
 				h.AllowedOrigins = append(h.AllowedOrigins, u)
@@ -46,7 +46,7 @@ func WithAllowedOrigins(urls ...string) Option {
 }
 
 func WithMaxAllowedSize(maxAllowedSize int) Option {
-	return func(h *HTTPLoader) {
+	return func(h *httpLoader) {
 		h.MaxAllowedSize = maxAllowedSize
 	}
 }

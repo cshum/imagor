@@ -1,9 +1,9 @@
 package vipsprocessor
 
-type Option func(h *VipsProcessor)
+type Option func(h *vipsProcessor)
 
-func New(options ...Option) *VipsProcessor {
-	v := &VipsProcessor{
+func New(options ...Option) *vipsProcessor {
+	v := &vipsProcessor{
 		Filters: map[string]FilterFunc{
 			"watermark":    watermark,
 			"round_corner": roundCorner,
@@ -27,7 +27,7 @@ func New(options ...Option) *VipsProcessor {
 }
 
 func WithFilter(name string, filter FilterFunc) Option {
-	return func(h *VipsProcessor) {
+	return func(h *vipsProcessor) {
 		h.Filters[name] = filter
 	}
 }

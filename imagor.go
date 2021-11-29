@@ -38,8 +38,8 @@ type Processor interface {
 	Process(ctx context.Context, buf []byte, params Params, load LoadFunc) ([]byte, *Meta, error)
 }
 
-// Imagor image resize HTTP handler
-type Imagor struct {
+// imagor image resize HTTP handler
+type imagor struct {
 	Logger     *zap.Logger
 	Cache      cache.Cache
 	Unsafe     bool
@@ -51,7 +51,7 @@ type Imagor struct {
 	CacheTTL   time.Duration
 }
 
-func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (o *imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	buf, err := o.Do(r)
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf("%v", err)))
@@ -61,7 +61,7 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
+func (o *imagor) Do(r *http.Request) (buf []byte, err error) {
 	path := r.URL.RawPath
 	if path == "" {
 		path = r.URL.Path
@@ -105,7 +105,7 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 	return
 }
 
-func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
+func (o *imagor) load(r *http.Request, image string) (buf []byte, err error) {
 	return cache.NewFunc(o.Cache, o.Timeout, o.CacheTTL, o.CacheTTL).
 		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 			dr := r.WithContext(ctx)
@@ -129,7 +129,7 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 		})
 }
 
-func (o *Imagor) store(
+func (o *imagor) store(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
 	for _, storage := range storages {

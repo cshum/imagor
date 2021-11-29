@@ -9,11 +9,11 @@ import (
 
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
-type VipsProcessor struct {
+type vipsProcessor struct {
 	Filters map[string]FilterFunc
 }
 
-func (v *VipsProcessor) Process(
+func (v *vipsProcessor) Process(
 	ctx context.Context, buf []byte, p imagor.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {
 	img, err := vips.NewImageFromBuffer(buf)
