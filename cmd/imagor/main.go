@@ -28,9 +28,11 @@ func main() {
 		fmt.Sprintf(":%d", port),
 		imagor.New(
 			imagor.WithLogger(logger),
-			imagor.WithLoaders(httploader.New(
-				httploader.WithForwardHeaders("*"),
-			)),
+			imagor.WithLoaders(
+				httploader.New(
+					httploader.WithForwardHeaders("*"),
+				),
+			),
 			imagor.WithProcessors(vipsprocessor.New()),
 			imagor.WithSecret(""),
 			imagor.WithUnsafe(true),

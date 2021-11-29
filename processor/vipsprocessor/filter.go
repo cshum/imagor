@@ -93,12 +93,26 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 
 func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	var rx, ry int
+	var c *vips.Color
 	if len(args) == 0 {
 		return
 	}
 	if a, e := url.QueryUnescape(args[0]); e == nil {
 		args[0] = a
 	}
+	if len(args) == 3 {
+		// rx,ry,color
+		c = getColor(args[2])
+		args = args[:2]
+	} else if len(args) >= 4 {
+		// rx|ry,r,g,b
+		r, _ := strconv.Atoi(args[1])
+		g, _ := strconv.Atoi(args[2])
+		b, _ := strconv.Atoi(args[3])
+		c = &vips.Color{R: uint8(r), G: uint8(g), B: uint8(b)}
+		args = args[:1]
+	}
+	// rx|ry
 	if strings.Contains(args[0], "|") {
 		args = append(strings.Split(args[0], "|"), args[1:]...)
 	}
@@ -108,10 +122,10 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 		rx, _ = strconv.Atoi(args[1])
 	}
 
-	var rect *vips.ImageRef
+	var rounded *vips.ImageRef
 	var w = img.Width()
 	var h = img.Height()
-	if rect, err = vips.NewImageFromBuffer([]byte(fmt.Sprintf(`
+	if rounded, err = vips.NewImageFromBuffer([]byte(fmt.Sprintf(`
 		<svg viewBox="0 0 %d %d">
 			<rect rx="%d" ry="%d" 
 			 x="0" y="0" width="%d" height="%d" 
@@ -120,9 +134,25 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 	`, w, h, rx, ry, w, h))); err != nil {
 		return
 	}
-	defer rect.Close()
-	if err = img.Composite(rect, vips.BlendModeDestIn, 0, 0); err != nil {
+	defer rounded.Close()
+	if err = img.Composite(rounded, vips.BlendModeDestIn, 0, 0); err != nil {
 		return
+	}
+	if c != nil {
+		// set background color if specified
+		var rect *vips.ImageRef
+		if rect, err = vips.Black(img.Width(), img.Height()); err != nil {
+			return
+		}
+		defer rect.Close()
+		if err = rect.Linear([]float64{1, 1, 1}, []float64{
+			float64(c.R), float64(c.G), float64(c.B),
+		}); err != nil {
+			return
+		}
+		if err = img.Composite(rect, vips.BlendModeDestOver, 0, 0); err != nil {
+			return
+		}
 	}
 	return nil
 }

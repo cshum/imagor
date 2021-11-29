@@ -143,21 +143,21 @@ func trim(img *vips.ImageRef, pos string, tolerance int) error {
 	return nil
 }
 
-func fill(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
-	fill = strings.ToLower(fill)
-	if img.HasAlpha() && fill != "blur" {
-		if err = img.Flatten(getColor(fill)); err != nil {
+func fill(img *vips.ImageRef, w, h int, color string, upscale bool) (err error) {
+	color = strings.ToLower(color)
+	if img.HasAlpha() && color != "blur" {
+		if err = img.Flatten(getColor(color)); err != nil {
 			return
 		}
 	}
-	if fill == "black" {
+	if color == "black" {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendBlack,
 		); err != nil {
 			return
 		}
-	} else if fill == "white" {
+	} else if color == "white" {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendWhite,
@@ -181,12 +181,12 @@ func fill(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
 		); err != nil {
 			return
 		}
-		if fill == "blur" {
+		if color == "blur" {
 			if err = img.GaussianBlur(50); err != nil {
 				return
 			}
 		} else {
-			c := getColor(fill)
+			c := getColor(color)
 			if err = img.DrawRect(vips.ColorRGBA{
 				R: c.R, G: c.G, B: c.B, A: 255,
 			}, 0, 0, w, h, true); err != nil {
