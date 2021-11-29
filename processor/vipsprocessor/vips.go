@@ -16,19 +16,20 @@ type vipsProcessor struct {
 func New(options ...Option) *vipsProcessor {
 	v := &vipsProcessor{
 		Filters: map[string]FilterFunc{
-			"watermark":    watermark,
-			"round_corner": roundCorner,
-			"rotate":       rotate,
-			"grayscale":    grayscale,
-			"brightness":   brightness,
-			"contrast":     contrast,
-			"hue":          hue,
-			"saturation":   saturation,
-			"rgb":          rgb,
-			"blur":         blur,
-			"sharpen":      sharpen,
-			"strip_icc":    stripIcc,
-			"strip_exif":   stripExif,
+			"watermark":        watermark,
+			"round_corner":     roundCorner,
+			"rotate":           rotate,
+			"grayscale":        grayscale,
+			"brightness":       brightness,
+			"background_color": backgroundColor,
+			"contrast":         contrast,
+			"hue":              hue,
+			"saturation":       saturation,
+			"rgb":              rgb,
+			"blur":             blur,
+			"sharpen":          sharpen,
+			"strip_icc":        stripIcc,
+			"strip_exif":       stripExif,
 		},
 	}
 	for _, option := range options {

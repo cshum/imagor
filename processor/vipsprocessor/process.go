@@ -108,7 +108,7 @@ func (v *vipsProcessor) process(
 			}
 		}
 		switch p.Name {
-		case "fill", "background_color":
+		case "fill":
 			if err := fill(img, w, h, p.Args, upscale); err != nil {
 				return err
 			}

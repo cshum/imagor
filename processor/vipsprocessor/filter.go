@@ -139,22 +139,18 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 		return
 	}
 	if c != nil {
-		// set background color if specified
-		var rect *vips.ImageRef
-		if rect, err = vips.Black(img.Width(), img.Height()); err != nil {
-			return
-		}
-		defer rect.Close()
-		if err = rect.Linear([]float64{1, 1, 1}, []float64{
-			float64(c.R), float64(c.G), float64(c.B),
-		}); err != nil {
-			return
-		}
-		if err = img.Composite(rect, vips.BlendModeDestOver, 0, 0); err != nil {
+		if err = applyBackgroundColor(img, c); err != nil {
 			return
 		}
 	}
 	return nil
+}
+
+func backgroundColor(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	return applyBackgroundColor(img, getColor(args[0]))
 }
 
 func rotate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
@@ -268,6 +264,24 @@ func stripIcc(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
 
 func stripExif(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.RemoveICCProfile()
+}
+
+func applyBackgroundColor(img *vips.ImageRef, c *vips.Color) (err error) {
+	// set background color if specified
+	var rect *vips.ImageRef
+	if rect, err = vips.Black(img.Width(), img.Height()); err != nil {
+		return
+	}
+	defer rect.Close()
+	if err = rect.Linear([]float64{1, 1, 1}, []float64{
+		float64(c.R), float64(c.G), float64(c.B),
+	}); err != nil {
+		return
+	}
+	if err = img.Composite(rect, vips.BlendModeDestOver, 0, 0); err != nil {
+		return
+	}
+	return
 }
 
 func getColor(name string) *vips.Color {
