@@ -96,7 +96,7 @@ func fill(img *vips.ImageRef, w, h int, fill string, upscale bool) (err error) {
 
 func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
-	if ln < 3 {
+	if ln < 1 {
 		return
 	}
 	image := args[0]
@@ -112,31 +112,60 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 		return
 	}
 	defer overlay.Close()
-	var x, y int
-	if args[1] == "center" {
-		x = (img.Width() - overlay.Width()) / 2
-	} else {
-		x, _ = strconv.Atoi(args[1])
+	var x, y, w, h int
+
+	// w_ratio h_ratio
+	if ln >= 6 {
+		w = img.Width()
+		h = img.Height()
+		if args[4] != "none" {
+			w, _ = strconv.Atoi(args[4])
+			w = img.Width() * w / 100
+		}
+		if args[5] != "none" {
+			h, _ = strconv.Atoi(args[5])
+			h = img.Height() * h / 100
+		}
+		if w < overlay.Width() || h < overlay.Height() {
+			if err = overlay.Thumbnail(w, h, vips.InterestingNone); err != nil {
+				return
+			}
+		}
 	}
-	if args[2] == "center" {
-		y = (img.Height() - overlay.Height()) / 2
-	} else {
-		y, _ = strconv.Atoi(args[2])
-	}
-	if x < 0 {
-		x += img.Width() - overlay.Width()
-	}
-	if y < 0 {
-		y += img.Height() - overlay.Height()
-	}
+	// alpha
 	if ln >= 4 {
 		alpha, _ := strconv.ParseFloat(args[3], 64)
-		alpha /= 100
+		alpha = 1 - alpha/100
 		if err = overlay.AddAlpha(); err != nil {
 			return
 		}
 		if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
 			return
+		}
+	}
+	// x y
+	if ln >= 3 {
+		if args[1] == "center" {
+			x = (img.Width() - overlay.Width()) / 2
+		} else if strings.HasSuffix(args[1], "p") {
+			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
+			x = x * img.Width() / 100
+		} else {
+			x, _ = strconv.Atoi(args[1])
+		}
+		if args[2] == "center" {
+			y = (img.Height() - overlay.Height()) / 2
+		} else if strings.HasSuffix(args[2], "p") {
+			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
+			y = y * img.Height() / 100
+		} else {
+			y, _ = strconv.Atoi(args[2])
+		}
+		if x < 0 {
+			x += img.Width() - overlay.Width()
+		}
+		if y < 0 {
+			y += img.Height() - overlay.Height()
 		}
 	}
 	if err = img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
