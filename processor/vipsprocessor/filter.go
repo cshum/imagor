@@ -174,7 +174,17 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 	return
 }
 
-func roundCorner(img *vips.ImageRef, rx, ry int) (err error) {
+func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	var rx, ry int
+	if len(args) == 0 {
+		return
+	}
+	rx, _ = strconv.Atoi(args[0])
+	ry = rx
+	if len(args) > 1 {
+		rx, _ = strconv.Atoi(args[1])
+	}
+
 	var rect *vips.ImageRef
 	var w = img.Width()
 	var h = img.Height()
@@ -192,6 +202,119 @@ func roundCorner(img *vips.ImageRef, rx, ry int) (err error) {
 		return
 	}
 	return nil
+}
+
+func rotate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	if angle, _ := strconv.Atoi(args[0]); angle > 0 {
+		vAngle := vips.Angle0
+		switch angle {
+		case 90:
+			vAngle = vips.Angle270
+		case 180:
+			vAngle = vips.Angle180
+		case 270:
+			vAngle = vips.Angle90
+		}
+		if err = img.Rotate(vAngle); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func grayscale(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+	return img.Modulate(1, 0, 0)
+}
+
+func brightness(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	b, _ := strconv.ParseFloat(args[0], 64)
+	b = b * 256 / 100
+	return img.Linear([]float64{1, 1, 1}, []float64{b, b, b})
+}
+
+func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	a, _ := strconv.ParseFloat(args[0], 64)
+	a = a * 256 / 100
+	b := 128 - a*128
+	return img.Linear([]float64{a, a, a}, []float64{b, b, b})
+}
+
+func hue(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	h, _ := strconv.ParseFloat(args[0], 64)
+	return img.Modulate(1, 1, h)
+}
+
+func saturation(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	s, _ := strconv.ParseFloat(args[0], 64)
+	s = 1 + s/100
+	return img.Modulate(1, s, 0)
+}
+
+func rgb(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) != 3 {
+		return
+	}
+	r, _ := strconv.ParseFloat(args[0], 64)
+	g, _ := strconv.ParseFloat(args[1], 64)
+	b, _ := strconv.ParseFloat(args[2], 64)
+	r = r * 256 / 100
+	g = g * 256 / 100
+	b = b * 256 / 100
+	return img.Linear([]float64{1, 1, 1}, []float64{r, g, b})
+}
+
+func blur(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	var sigma float64
+	switch len(args) {
+	case 2:
+		sigma, _ = strconv.ParseFloat(args[1], 64)
+		break
+	case 1:
+		sigma, _ = strconv.ParseFloat(args[0], 64)
+		break
+	}
+	sigma /= 2
+	if sigma > 0 {
+		return img.GaussianBlur(sigma)
+	}
+	return
+}
+
+func sharpen(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	var sigma float64
+	switch len(args) {
+	case 1:
+		sigma, _ = strconv.ParseFloat(args[0], 64)
+		break
+	case 2, 3:
+		sigma, _ = strconv.ParseFloat(args[1], 64)
+		break
+	}
+	sigma = 1 + sigma*2
+	return img.Sharpen(sigma, 1, 2)
+}
+
+func stripIcc(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+	return img.RemoveICCProfile()
+}
+
+func stripExif(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+	return img.RemoveICCProfile()
 }
 
 func getColor(name string) *vips.Color {

@@ -7,12 +7,31 @@ import (
 	"strconv"
 )
 
+type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
+
 type Vips struct {
+	Filters map[string]FilterFunc
 }
 
 func New() *Vips {
 	vips.Startup(nil)
-	return &Vips{}
+	return &Vips{
+		Filters: map[string]FilterFunc{
+			"watermark":    watermark,
+			"round_corner": roundCorner,
+			"rotate":       rotate,
+			"grayscale":    grayscale,
+			"brightness":   brightness,
+			"contrast":     contrast,
+			"hue":          hue,
+			"saturation":   saturation,
+			"rgb":          rgb,
+			"blur":         blur,
+			"sharpen":      sharpen,
+			"strip_icc":    stripIcc,
+			"strip_exif":   stripExif,
+		},
+	}
 }
 
 func (v *Vips) Process(
