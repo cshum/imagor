@@ -4,9 +4,9 @@ import "regexp"
 
 type Option func(h *fileStore)
 
-func WithBaseURI(baseURI string) Option {
+func WithBasePath(basePath string) Option {
 	return func(s *fileStore) {
-		s.BaseURI = baseURI
+		s.BasePath = basePath
 	}
 }
 

@@ -10,20 +10,18 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 )
 
 type fileStore struct {
-	FileRoot   string
-	BaseURI    string
+	Root       string
+	BasePath   string
 	Blacklists []*regexp.Regexp
-	once       sync.Once
 }
 
 func New(root string, options ...Option) *fileStore {
 	s := &fileStore{
-		FileRoot:   root,
-		BaseURI:    "/",
+		Root:       root,
+		BasePath:   "/",
 		Blacklists: []*regexp.Regexp{regexp.MustCompile("/\\.")},
 	}
 	for _, option := range options {
@@ -41,14 +39,14 @@ func (s *fileStore) Path(image string) (string, bool) {
 			return "", false
 		}
 	}
-	baseURI := "/" + strings.Trim(s.BaseURI, "/")
+	baseURI := "/" + strings.Trim(s.BasePath, "/")
 	if baseURI != "/" {
 		baseURI += "/"
 	}
 	if !strings.HasPrefix(image, baseURI) {
 		return "", false
 	}
-	return filepath.Join(s.FileRoot, strings.TrimPrefix(image, baseURI)), true
+	return filepath.Join(s.Root, strings.TrimPrefix(image, baseURI)), true
 }
 
 func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
@@ -64,10 +62,7 @@ func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
 }
 
 func (s *fileStore) Store(_ context.Context, image string, buf []byte) (err error) {
-	s.once.Do(func() {
-		_, err = os.Stat(s.FileRoot)
-	})
-	if err != nil {
+	if _, err = os.Stat(s.Root); err != nil {
 		return
 	}
 	image, ok := s.Path(image)
