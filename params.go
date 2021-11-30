@@ -169,7 +169,7 @@ func ParseParams(uri string) (params Params) {
 
 // Verify if hash matches secret
 func (p *Params) Verify(secret string) bool {
-	return strings.TrimRight(Hash(p.Path, secret), "=") == p.Hash
+	return Hash(p.Path, secret) == strings.TrimRight(p.Hash, "=")
 }
 
 func parseFilters(filters string) (results []Filter) {
@@ -192,5 +192,5 @@ func Hash(path, secret string) string {
 	hash := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	hash = strings.Replace(hash, "/", "_", -1)
 	hash = strings.Replace(hash, "+", "-", -1)
-	return hash
+	return strings.TrimRight(hash, "=")
 }

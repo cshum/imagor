@@ -15,6 +15,7 @@ const Version = "0.1.0"
 
 var ErrPass = errors.New("imagor: pass")
 var ErrNotFound = errors.New("imagor: not found")
+var ErrHashMismatch = errors.New("imagor: hash mismatch")
 
 type LoadFunc func(string) ([]byte, error)
 
@@ -89,7 +90,10 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 		defer cancel()
 	}
 	if !(o.Unsafe && params.Unsafe) && !params.Verify(o.Secret) {
-		err = errors.New("hash mismatch")
+		err = ErrHashMismatch
+		if o.Debug {
+			o.Logger.Debug("hash mismatch", zap.Any("params", params), zap.String("expected", Hash(params.Path, o.Secret)))
+		}
 		return
 	}
 	if buf, err = o.load(r, params.Image); err != nil {
@@ -109,7 +113,7 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 				}
 			}
 			if o.Debug {
-				o.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta))
+				o.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta), zap.Int("size", len(buf)))
 			}
 			break
 		} else if e == ErrPass {
