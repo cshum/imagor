@@ -37,17 +37,16 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	Cache            cache.Cache
-	CacheTTL         time.Duration
-	Unsafe           bool
-	Secret           string
-	Loaders          []Loader
-	Storages         []Storage
-	Processors       []Processor
-	RequestTimeout   time.Duration
-	PlaceholderImage []byte
-	Logger           *zap.Logger
-	Debug            bool
+	Cache          cache.Cache
+	CacheTTL       time.Duration
+	Unsafe         bool
+	Secret         string
+	Loaders        []Loader
+	Storages       []Storage
+	Processors     []Processor
+	RequestTimeout time.Duration
+	Logger         *zap.Logger
+	Debug          bool
 }
 
 func New(options ...Option) *Imagor {
@@ -68,8 +67,8 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		e := wrapError(err)
 		w.WriteHeader(e.Code)
-		if len(o.PlaceholderImage) > 0 {
-			w.Write(o.PlaceholderImage)
+		if len(buf) > 0 {
+			w.Write(buf)
 			return
 		}
 		w.Write(e.JSON())
@@ -118,15 +117,19 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 				o.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta), zap.Int("size", len(buf)))
 			}
 			break
-		} else if e == ErrPass {
-			if len(b) > 0 {
-				buf = b
-			}
-			if o.Debug {
-				o.Logger.Debug("process", zap.Any("params", params), zap.Error(e))
-			}
 		} else {
-			o.Logger.Error("process", zap.Any("params", params), zap.Error(e))
+			if e == ErrPass {
+				if len(b) > 0 {
+					// pass to next processor
+					buf = b
+				}
+				if o.Debug {
+					o.Logger.Debug("process", zap.Any("params", params), zap.Error(e))
+				}
+			} else {
+				err = e
+				o.Logger.Error("process", zap.Any("params", params), zap.Error(e))
+			}
 		}
 	}
 	return

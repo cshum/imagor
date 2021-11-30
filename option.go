@@ -59,12 +59,6 @@ func WithSecret(secret string) Option {
 	}
 }
 
-func WithPlaceholderImage(image []byte) Option {
-	return func(o *Imagor) {
-		o.PlaceholderImage = image
-	}
-}
-
 func WithDebug(debug bool) Option {
 	return func(o *Imagor) {
 		o.Debug = debug

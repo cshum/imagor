@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 )
 
 var (
 	ErrNotFound          = NewError("not found", http.StatusNotFound)
 	ErrPass              = NewError("pass", http.StatusBadRequest)
+	ErrMethodNotAllowed  = NewError("method not allowed", http.StatusMethodNotAllowed)
 	ErrHashMismatch      = NewError("hash mismatch", http.StatusForbidden)
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
-	ErrMethodNotAllowed  = NewError("method not allowed", http.StatusMethodNotAllowed)
 	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
 )
 
@@ -35,11 +36,16 @@ func NewError(msg string, code int) Error {
 }
 
 func wrapError(err error) Error {
+	if err == ErrPass {
+		// passed till the end means no handler
+		return ErrMethodNotAllowed
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrTimeout
 	}
 	if e, ok := err.(Error); ok {
 		return e
 	}
-	return NewError(err.Error(), http.StatusInternalServerError)
+	msg := strings.Replace(err.Error(), "\n", "", -1)
+	return NewError(msg, http.StatusInternalServerError)
 }

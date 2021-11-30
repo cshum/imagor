@@ -44,6 +44,9 @@ func (v *VipsProcessor) Process(
 ) ([]byte, *imagor.Meta, error) {
 	img, err := vips.NewImageFromBuffer(buf)
 	if err != nil {
+		if err == vips.ErrUnsupportedImageFormat {
+			err = imagor.ErrUnsupportedFormat
+		}
 		return nil, nil, err
 	}
 	defer img.Close()
