@@ -140,16 +140,20 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 			dr := r.WithContext(ctx)
 			for _, loader := range o.Loaders {
-				buf, err = loader.Load(dr, image)
-				if err == nil {
+				b, e := loader.Load(dr, image)
+				if len(b) > 0 {
+					buf = b
+				}
+				if e == nil {
 					break
 				}
 				// should not log expected error as of now, as it has not reached the end
-				if err != nil && err != ErrPass && err != ErrNotFound && !errors.Is(err, context.Canceled) {
-					o.Logger.Error("load", zap.String("image", image), zap.Error(err))
+				if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
+					o.Logger.Error("load", zap.String("image", image), zap.Error(e))
 				} else if o.Debug {
-					o.Logger.Debug("load", zap.String("image", image), zap.Error(err))
+					o.Logger.Debug("load", zap.String("image", image), zap.Error(e))
 				}
+				err = e
 			}
 			if err == nil {
 				if o.Debug {
