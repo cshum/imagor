@@ -22,6 +22,6 @@ func WithBaseDir(baseDir string) Option {
 		if baseDir != "/" {
 			baseDir += "/"
 		}
-		s.BaseURI = baseDir
+		s.BaseDir = baseDir
 	}
 }
