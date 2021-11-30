@@ -124,7 +124,7 @@ func (o *imagor) load(r *http.Request, image string) (buf []byte, err error) {
 				if err == nil {
 					break
 				}
-				if err != nil && err != ErrPass {
+				if err != nil && err != ErrPass && err != ErrNotFound {
 					o.Logger.Error("load", zap.String("image", image), zap.Error(err))
 				}
 			}
@@ -133,7 +133,7 @@ func (o *imagor) load(r *http.Request, image string) (buf []byte, err error) {
 					o.store(ctx, o.Storages, image, buf)
 				}
 			} else if err == ErrPass {
-				err = errors.New("loader not available")
+				err = ErrNotFound
 			}
 			return
 		})
