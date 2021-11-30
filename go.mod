@@ -3,6 +3,7 @@ module github.com/cshum/imagor
 go 1.17
 
 require (
+	github.com/aws/aws-sdk-go v1.42.15
 	github.com/cshum/govips/v2 v2.7.2
 	github.com/cshum/hybridcache v0.2.0
 	go.uber.org/zap v1.19.1
@@ -15,6 +16,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
