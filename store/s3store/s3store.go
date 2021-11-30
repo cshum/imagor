@@ -26,13 +26,18 @@ type s3Store struct {
 	BaseURI string
 }
 
-func New(session *session.Session, bucket string, options ...Option) *s3Store {
+func New(sess *session.Session, bucket string, options ...Option) *s3Store {
+	baseDir := "/"
+	if idx := strings.Index(bucket, "/"); idx > -1 {
+		baseDir = bucket[idx:]
+		bucket = bucket[:idx]
+	}
 	s := &s3Store{
-		S3:       s3.New(session),
-		Uploader: s3manager.NewUploader(session),
+		S3:       s3.New(sess),
+		Uploader: s3manager.NewUploader(sess),
 		Bucket:   bucket,
 
-		BaseDir: "/",
+		BaseDir: baseDir,
 		BaseURI: "/",
 	}
 	for _, option := range options {
