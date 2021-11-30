@@ -25,7 +25,7 @@ type Loader interface {
 
 // Storage store image buffer
 type Storage interface {
-	Store(ctx context.Context, image string, buf []byte) error
+	Save(ctx context.Context, image string, buf []byte) error
 }
 
 // Store both a Loader and Storage
@@ -150,7 +150,7 @@ func (o *imagor) store(
 		}
 		go func(s Storage) {
 			defer cancel()
-			if err := s.Store(sCtx, image, buf); err != nil {
+			if err := s.Save(sCtx, image, buf); err != nil {
 				o.Logger.Error("storage", zap.Any("image", image), zap.Error(err))
 			}
 		}(storage)

@@ -59,7 +59,7 @@ func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
 	return io.ReadAll(r)
 }
 
-func (s *fileStore) Store(_ context.Context, image string, buf []byte) (err error) {
+func (s *fileStore) Save(_ context.Context, image string, buf []byte) (err error) {
 	if _, err = os.Stat(s.BaseDir); err != nil {
 		return
 	}

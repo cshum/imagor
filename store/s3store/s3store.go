@@ -74,7 +74,7 @@ func (s *s3Store) Load(r *http.Request, image string) ([]byte, error) {
 	return io.ReadAll(out.Body)
 }
 
-func (s *s3Store) Store(ctx context.Context, image string, buf []byte) error {
+func (s *s3Store) Save(ctx context.Context, image string, buf []byte) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

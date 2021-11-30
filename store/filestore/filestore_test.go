@@ -111,7 +111,7 @@ func TestFileStore_Load_Store(t *testing.T) {
 		t.Errorf("= %v, want ErrNotFound", err)
 	}
 	ctx := context.Background()
-	if err := s.Store(ctx, "/foo", []byte("bar")); err != nil {
+	if err := s.Save(ctx, "/foo", []byte("bar")); err != nil {
 		t.Error(err)
 	}
 	b, err = s.Load(&http.Request{}, "/foo")
