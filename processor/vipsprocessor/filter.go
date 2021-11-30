@@ -198,7 +198,7 @@ func brightness(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err erro
 		return
 	}
 	b, _ := strconv.ParseFloat(args[0], 64)
-	b = b * 256 / 100
+	b = b * 255 / 100
 	return img.Linear([]float64{1, 1, 1}, []float64{b, b, b})
 }
 
@@ -207,7 +207,8 @@ func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error)
 		return
 	}
 	a, _ := strconv.ParseFloat(args[0], 64)
-	a = 1 + a/100 // todo align with thumbor https://thumbor.readthedocs.io/en/latest/contrast.html
+	a = a * 255 / 100
+	a = (259 * (a + 255)) / (255 * (259 - a))
 	b := 128 - a*128
 	return img.Linear([]float64{a, a, a}, []float64{b, b, b})
 }
@@ -236,9 +237,9 @@ func rgb(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	r, _ := strconv.ParseFloat(args[0], 64)
 	g, _ := strconv.ParseFloat(args[1], 64)
 	b, _ := strconv.ParseFloat(args[2], 64)
-	r = r * 256 / 100
-	g = g * 256 / 100
-	b = b * 256 / 100
+	r = r * 255 / 100
+	g = g * 255 / 100
+	b = b * 255 / 100
 	return img.Linear([]float64{1, 1, 1}, []float64{r, g, b})
 }
 
