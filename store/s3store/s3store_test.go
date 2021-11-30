@@ -26,6 +26,33 @@ func TestS3Store_Path(t *testing.T) {
 			expectedPath:   "/home/imagor/bar",
 			expectedOk:     true,
 		},
+		{
+			name:           "path under no base uri",
+			bucket:         "mybucket",
+			baseDir:        "/home/imagor",
+			image:          "/foo/bar",
+			expectedBucket: "mybucket",
+			expectedPath:   "/home/imagor/foo/bar",
+			expectedOk:     true,
+		},
+		{
+			name:           "path not under",
+			bucket:         "mybucket",
+			baseDir:        "/home/imagor",
+			baseURI:        "/foo",
+			image:          "/fooo/bar",
+			expectedBucket: "mybucket",
+			expectedOk:     false,
+		},
+		{
+			name:           "extract bucket path under",
+			bucket:         "mybucket/home/imagor",
+			baseURI:        "/foo",
+			image:          "/foo/bar",
+			expectedBucket: "mybucket",
+			expectedPath:   "/home/imagor/bar",
+			expectedOk:     true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -33,7 +60,6 @@ func TestS3Store_Path(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			var s *S3Store
 			var opts []Option
 			if tt.baseURI != "" {
 				opts = append(opts, WithBaseURI(tt.baseURI))
@@ -41,7 +67,8 @@ func TestS3Store_Path(t *testing.T) {
 			if tt.baseDir != "" {
 				opts = append(opts, WithBaseDir(tt.baseDir))
 			}
-			res, ok := New(sess, tt.bucket, opts...).Path(tt.image)
+			s := New(sess, tt.bucket, opts...)
+			res, ok := s.Path(tt.image)
 			if res != tt.expectedPath || ok != tt.expectedOk || s.Bucket != tt.expectedBucket {
 				t.Errorf("= %s,%s,%v want %s,%s,%v", tt.bucket, res, ok, tt.expectedBucket, tt.expectedPath, tt.expectedOk)
 			}
