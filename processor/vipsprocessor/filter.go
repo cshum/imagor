@@ -6,6 +6,7 @@ import (
 	"github.com/cshum/imagor"
 	"golang.org/x/image/colornames"
 	"image/color"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -208,6 +209,7 @@ func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error)
 	}
 	a, _ := strconv.ParseFloat(args[0], 64)
 	a = a * 255 / 100
+	a = math.Min(math.Max(a, -255), 255)
 	a = (259 * (a + 255)) / (255 * (259 - a))
 	b := 128 - a*128
 	return img.Linear([]float64{a, a, a}, []float64{b, b, b})
