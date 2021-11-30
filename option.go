@@ -58,3 +58,9 @@ func WithSecret(secret string) Option {
 		o.Secret = secret
 	}
 }
+
+func WithDebug(debug bool) Option {
+	return func(o *Imagor) {
+		o.Debug = debug
+	}
+}

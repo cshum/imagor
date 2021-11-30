@@ -23,7 +23,7 @@ type Loader interface {
 	Load(r *http.Request, image string) ([]byte, error)
 }
 
-// Storage store image buffer
+// Storage save image buffer
 type Storage interface {
 	Save(ctx context.Context, image string, buf []byte) error
 }
@@ -41,6 +41,7 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
+	Debug          bool
 	Logger         *zap.Logger
 	Cache          cache.Cache
 	CacheTTL       time.Duration
@@ -76,7 +77,11 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
-	params := ParseParams(r.URL.EscapedPath())
+	uri := r.URL.EscapedPath()
+	params := ParseParams(uri)
+	if o.Debug {
+		o.Logger.Debug("params", zap.Any("params", params), zap.String("uri", uri))
+	}
 	var cancel func()
 	ctx := r.Context()
 	if o.RequestTimeout > 0 {
@@ -88,6 +93,7 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 		return
 	}
 	if buf, err = o.load(r, params.Image); err != nil {
+		o.Logger.Info("load", zap.Any("params", params), zap.Error(err))
 		return
 	}
 	load := func(image string) ([]byte, error) {
@@ -102,11 +108,16 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 					buf = b
 				}
 			}
-			o.Logger.Debug("process", zap.Any("params", params), zap.Any("meta", meta))
+			if o.Debug {
+				o.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta))
+			}
 			break
 		} else if e == ErrPass {
 			if len(b) > 0 {
 				buf = b
+			}
+			if o.Debug {
+				o.Logger.Debug("process", zap.Any("params", params), zap.Error(e))
 			}
 		} else {
 			o.Logger.Error("process", zap.Any("params", params), zap.Error(e))
@@ -124,13 +135,18 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 				if err == nil {
 					break
 				}
-				if err != nil && err != ErrPass && err != ErrNotFound {
+				if err != nil && err != ErrPass && err != ErrNotFound && !errors.Is(err, context.Canceled) {
 					o.Logger.Error("load", zap.String("image", image), zap.Error(err))
+				} else if o.Debug {
+					o.Logger.Debug("load", zap.String("image", image), zap.Error(err))
 				}
 			}
 			if err == nil {
+				if o.Debug {
+					o.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
+				}
 				if len(o.Storages) > 0 {
-					o.store(ctx, o.Storages, image, buf)
+					o.save(ctx, o.Storages, image, buf)
 				}
 			} else if err == ErrPass {
 				err = ErrNotFound
@@ -139,7 +155,7 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 		})
 }
 
-func (o *Imagor) store(
+func (o *Imagor) save(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
 	for _, storage := range storages {
@@ -151,7 +167,9 @@ func (o *Imagor) store(
 		go func(s Storage) {
 			defer cancel()
 			if err := s.Save(sCtx, image, buf); err != nil {
-				o.Logger.Error("storage", zap.Any("image", image), zap.Error(err))
+				o.Logger.Error("save", zap.String("image", image), zap.Error(err))
+			} else if o.Debug {
+				o.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
 			}
 		}(storage)
 	}

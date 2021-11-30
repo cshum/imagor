@@ -42,6 +42,7 @@ func main() {
 			imagor.WithProcessors(vipsprocessor.New()),
 			imagor.WithSecret(""),
 			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
 		),
 	))
 }
