@@ -13,8 +13,8 @@ import (
 
 const Version = "0.1.0"
 
-var ErrPass = errors.New("Imagor: pass")
-var ErrNotFound = errors.New("Imagor: not found")
+var ErrPass = errors.New("imagor: pass")
+var ErrNotFound = errors.New("imagor: not found")
 
 type LoadFunc func(string) ([]byte, error)
 
