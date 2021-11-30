@@ -39,14 +39,10 @@ func (s *fileStore) Path(image string) (string, bool) {
 			return "", false
 		}
 	}
-	baseURI := "/" + strings.Trim(s.BasePath, "/")
-	if baseURI != "/" {
-		baseURI += "/"
-	}
-	if !strings.HasPrefix(image, baseURI) {
+	if !strings.HasPrefix(image, s.BasePath) {
 		return "", false
 	}
-	return filepath.Join(s.Root, strings.TrimPrefix(image, baseURI)), true
+	return filepath.Join(s.Root, strings.TrimPrefix(image, s.BasePath)), true
 }
 
 func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
