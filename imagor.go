@@ -42,8 +42,6 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	Debug          bool
-	Logger         *zap.Logger
 	Cache          cache.Cache
 	CacheTTL       time.Duration
 	Unsafe         bool
@@ -52,6 +50,8 @@ type Imagor struct {
 	Storages       []Storage
 	Processors     []Processor
 	RequestTimeout time.Duration
+	Logger         *zap.Logger
+	Debug          bool
 }
 
 func New(options ...Option) *Imagor {
@@ -139,6 +139,7 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 				if err == nil {
 					break
 				}
+				// should not log expected error as of now, as it has not reached the end
 				if err != nil && err != ErrPass && err != ErrNotFound && !errors.Is(err, context.Canceled) {
 					o.Logger.Error("load", zap.String("image", image), zap.Error(err))
 				} else if o.Debug {
@@ -152,8 +153,12 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 				if len(o.Storages) > 0 {
 					o.save(ctx, o.Storages, image, buf)
 				}
-			} else if err == ErrPass {
-				err = ErrNotFound
+			} else if !errors.Is(err, context.Canceled) {
+				if err == ErrPass {
+					err = ErrNotFound
+				}
+				// log non user-initiated error finally
+				o.Logger.Error("load", zap.String("image", image), zap.Error(err))
 			}
 			return
 		})
