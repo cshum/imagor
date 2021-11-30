@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-type s3Store struct {
+type S3Store struct {
 	S3       *s3.S3
 	Uploader *s3manager.Uploader
 	Bucket   string
@@ -26,13 +26,13 @@ type s3Store struct {
 	BaseURI string
 }
 
-func New(sess *session.Session, bucket string, options ...Option) *s3Store {
+func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 	baseDir := "/"
 	if idx := strings.Index(bucket, "/"); idx > -1 {
 		baseDir = bucket[idx:]
 		bucket = bucket[:idx]
 	}
-	s := &s3Store{
+	s := &S3Store{
 		S3:       s3.New(sess),
 		Uploader: s3manager.NewUploader(sess),
 		Bucket:   bucket,
@@ -46,7 +46,7 @@ func New(sess *session.Session, bucket string, options ...Option) *s3Store {
 	return s
 }
 
-func (s *s3Store) Path(image string) (string, bool) {
+func (s *S3Store) Path(image string) (string, bool) {
 	image = "/" + strings.TrimPrefix(path.Clean(
 		strings.ReplaceAll(image, ":/", "%3A"),
 	), "/")
@@ -56,7 +56,7 @@ func (s *s3Store) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.BaseURI)), true
 }
 
-func (s *s3Store) Load(r *http.Request, image string) ([]byte, error) {
+func (s *S3Store) Load(r *http.Request, image string) ([]byte, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -74,7 +74,7 @@ func (s *s3Store) Load(r *http.Request, image string) ([]byte, error) {
 	return io.ReadAll(out.Body)
 }
 
-func (s *s3Store) Save(ctx context.Context, image string, buf []byte) error {
+func (s *S3Store) Save(ctx context.Context, image string, buf []byte) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

@@ -1,9 +1,9 @@
 package vipsprocessor
 
-type Option func(h *vipsProcessor)
+type Option func(h *VipsProcessor)
 
 func WithFilter(name string, filter FilterFunc) Option {
-	return func(h *vipsProcessor) {
+	return func(h *VipsProcessor) {
 		h.Filters[name] = filter
 	}
 }

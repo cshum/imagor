@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-type Option func(h *fileStore)
+type Option func(h *FileStore)
 
 func WithBaseURI(baseURI string) Option {
-	return func(s *fileStore) {
+	return func(s *FileStore) {
 		baseURI = "/" + strings.Trim(baseURI, "/")
 		if baseURI != "/" {
 			baseURI += "/"
@@ -18,7 +18,7 @@ func WithBaseURI(baseURI string) Option {
 }
 
 func WithBlacklist(blacklist *regexp.Regexp) Option {
-	return func(s *fileStore) {
+	return func(s *FileStore) {
 		if blacklist != nil {
 			s.Blacklists = append(s.Blacklists, blacklist)
 		}

@@ -14,14 +14,14 @@ import (
 
 var dotFileRegex = regexp.MustCompile("/\\.")
 
-type fileStore struct {
+type FileStore struct {
 	BaseDir    string
 	BaseURI    string
 	Blacklists []*regexp.Regexp
 }
 
-func New(baseDir string, options ...Option) *fileStore {
-	s := &fileStore{
+func New(baseDir string, options ...Option) *FileStore {
+	s := &FileStore{
 		BaseDir:    baseDir,
 		BaseURI:    "/",
 		Blacklists: []*regexp.Regexp{dotFileRegex},
@@ -32,7 +32,7 @@ func New(baseDir string, options ...Option) *fileStore {
 	return s
 }
 
-func (s *fileStore) Path(image string) (string, bool) {
+func (s *FileStore) Path(image string) (string, bool) {
 	image = "/" + strings.TrimPrefix(path.Clean(
 		strings.ReplaceAll(image, ":/", "%3A"),
 	), "/")
@@ -47,7 +47,7 @@ func (s *fileStore) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.BaseURI)), true
 }
 
-func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
+func (s *FileStore) Load(_ *http.Request, image string) ([]byte, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -59,7 +59,7 @@ func (s *fileStore) Load(_ *http.Request, image string) ([]byte, error) {
 	return io.ReadAll(r)
 }
 
-func (s *fileStore) Save(_ context.Context, image string, buf []byte) (err error) {
+func (s *FileStore) Save(_ context.Context, image string, buf []byte) (err error) {
 	if _, err = os.Stat(s.BaseDir); err != nil {
 		return
 	}

@@ -9,12 +9,12 @@ import (
 
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
-type vipsProcessor struct {
+type VipsProcessor struct {
 	Filters map[string]FilterFunc
 }
 
-func New(options ...Option) *vipsProcessor {
-	v := &vipsProcessor{
+func New(options ...Option) *VipsProcessor {
+	v := &VipsProcessor{
 		Filters: map[string]FilterFunc{
 			"watermark":        watermark,
 			"round_corner":     roundCorner,
@@ -39,7 +39,7 @@ func New(options ...Option) *vipsProcessor {
 	return v
 }
 
-func (v *vipsProcessor) Process(
+func (v *VipsProcessor) Process(
 	ctx context.Context, buf []byte, p imagor.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {
 	img, err := vips.NewImageFromBuffer(buf)

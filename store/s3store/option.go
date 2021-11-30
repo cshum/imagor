@@ -4,10 +4,10 @@ import (
 	"strings"
 )
 
-type Option func(h *s3Store)
+type Option func(h *S3Store)
 
 func WithBaseURI(baseURI string) Option {
-	return func(s *s3Store) {
+	return func(s *S3Store) {
 		baseURI = "/" + strings.Trim(baseURI, "/")
 		if baseURI != "/" {
 			baseURI += "/"
@@ -17,7 +17,7 @@ func WithBaseURI(baseURI string) Option {
 }
 
 func WithBaseDir(baseDir string) Option {
-	return func(s *s3Store) {
+	return func(s *S3Store) {
 		baseDir = "/" + strings.Trim(baseDir, "/")
 		if baseDir != "/" {
 			baseDir += "/"

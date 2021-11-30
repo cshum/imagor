@@ -13,8 +13,8 @@ import (
 
 const Version = "0.1.0"
 
-var ErrPass = errors.New("imagor: pass")
-var ErrNotFound = errors.New("imagor: not found")
+var ErrPass = errors.New("Imagor: pass")
+var ErrNotFound = errors.New("Imagor: not found")
 
 type LoadFunc func(string) ([]byte, error)
 
@@ -39,8 +39,8 @@ type Processor interface {
 	Process(ctx context.Context, buf []byte, params Params, load LoadFunc) ([]byte, *Meta, error)
 }
 
-// imagor image resize HTTP handler
-type imagor struct {
+// Imagor image resize HTTP handler
+type Imagor struct {
 	Logger         *zap.Logger
 	Cache          cache.Cache
 	CacheTTL       time.Duration
@@ -52,8 +52,8 @@ type imagor struct {
 	RequestTimeout time.Duration
 }
 
-func New(options ...Option) *imagor {
-	o := &imagor{
+func New(options ...Option) *Imagor {
+	o := &Imagor{
 		Logger:         zap.NewNop(),
 		Cache:          cache.NewMemory(1000, 1<<28, time.Minute),
 		CacheTTL:       time.Minute,
@@ -65,7 +65,7 @@ func New(options ...Option) *imagor {
 	return o
 }
 
-func (o *imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	buf, err := o.Do(r)
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf("%v", err)))
@@ -75,7 +75,7 @@ func (o *imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (o *imagor) Do(r *http.Request) (buf []byte, err error) {
+func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 	params := ParseParams(r.URL.EscapedPath())
 	var cancel func()
 	ctx := r.Context()
@@ -115,7 +115,7 @@ func (o *imagor) Do(r *http.Request) (buf []byte, err error) {
 	return
 }
 
-func (o *imagor) load(r *http.Request, image string) (buf []byte, err error) {
+func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 	return cache.NewFunc(o.Cache, o.RequestTimeout, o.CacheTTL, o.CacheTTL).
 		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 			dr := r.WithContext(ctx)
@@ -139,7 +139,7 @@ func (o *imagor) load(r *http.Request, image string) (buf []byte, err error) {
 		})
 }
 
-func (o *imagor) store(
+func (o *Imagor) store(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
 	for _, storage := range storages {
