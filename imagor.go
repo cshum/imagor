@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/cshum/hybridcache"
 	"go.uber.org/zap"
 	"net/http"
@@ -12,10 +11,6 @@ import (
 )
 
 const Version = "0.1.0"
-
-var ErrPass = errors.New("imagor: pass")
-var ErrNotFound = errors.New("imagor: not found")
-var ErrHashMismatch = errors.New("imagor: hash mismatch")
 
 type LoadFunc func(string) ([]byte, error)
 
@@ -42,16 +37,17 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	Cache          cache.Cache
-	CacheTTL       time.Duration
-	Unsafe         bool
-	Secret         string
-	Loaders        []Loader
-	Storages       []Storage
-	Processors     []Processor
-	RequestTimeout time.Duration
-	Logger         *zap.Logger
-	Debug          bool
+	Cache            cache.Cache
+	CacheTTL         time.Duration
+	Unsafe           bool
+	Secret           string
+	Loaders          []Loader
+	Storages         []Storage
+	Processors       []Processor
+	RequestTimeout   time.Duration
+	PlaceholderImage []byte
+	Logger           *zap.Logger
+	Debug            bool
 }
 
 func New(options ...Option) *Imagor {
@@ -70,7 +66,13 @@ func New(options ...Option) *Imagor {
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	buf, err := o.Do(r)
 	if err != nil {
-		w.Write([]byte(fmt.Sprintf("%v", err)))
+		e := wrapError(err)
+		w.WriteHeader(e.Code)
+		if len(o.PlaceholderImage) > 0 {
+			w.Write(o.PlaceholderImage)
+			return
+		}
+		w.Write(e.JSON())
 		return
 	}
 	w.Write(buf)
