@@ -51,7 +51,7 @@ type Meta struct {
 var pathRegex = regexp.MustCompile(
 	"/?" +
 		// hash
-		"((unsafe/)|(([A-Za-z0-9-_=]{26,30}))/)?" +
+		"((unsafe/)|([A-Za-z0-9-_=]{26,30})/)?" +
 		// path
 		"(.+)?",
 )
@@ -89,16 +89,16 @@ var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 // ParseParams parse params object from uri string
 func ParseParams(uri string) (params Params) {
 	match := pathRegex.FindStringSubmatch(uri)
-	if len(match) == 0 {
+	if len(match) < 5 {
 		return
 	}
 	index := 1
 	if match[index+1] == "unsafe/" {
 		params.Unsafe = true
 	} else if len(match[index+2]) <= 28 {
-		params.Hash = match[index+3]
+		params.Hash = match[index+2]
 	}
-	index += 4
+	index += 3
 	params.Path = match[index]
 
 	match = paramsRegex.FindStringSubmatch(params.Path)

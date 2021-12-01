@@ -116,6 +116,30 @@ func TestParseParams(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:   "non url image with hash",
+			uri:    "/BN6FhBfq7-AoATQ3on7eucpTw4Q=/meta/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
+			secret: "1234",
+			expected: Params{
+				Path:           "meta/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
+				Hash:           "BN6FhBfq7-AoATQ3on7eucpTw4Q=",
+				Image:          "img",
+				CropLeft:       10,
+				CropTop:        11,
+				CropRight:      12,
+				CropBottom:     13,
+				Width:          300,
+				Height:         200,
+				Meta:           true,
+				HorizontalFlip: true,
+				VerticalFlip:   true,
+				HAlign:         "left",
+				VAlign:         "top",
+				Smart:          true,
+				FitIn:          true,
+				Filters:        []Filter{{Name: "some_filter"}},
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.name == "" {
@@ -129,7 +153,7 @@ func TestParseParams(t *testing.T) {
 				t.Errorf(" = %s, want %s", string(respJSON), string(expectedJSON))
 			}
 			if test.secret != "" && !resp.Verify(test.secret) {
-				t.Errorf("hash %s mismatch", resp.Hash)
+				t.Errorf("hash mismatch = %s, wabt %s", resp.Hash, Hash(resp.Path, test.secret))
 			}
 		})
 	}
