@@ -145,6 +145,7 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 					buf = b
 				}
 				if e == nil {
+					err = nil
 					break
 				}
 				// should not log expected error as of now, as it has not reached the end
