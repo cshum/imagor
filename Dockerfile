@@ -63,6 +63,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=builder /go/bin/imagor /usr/local/bin/imagor
 
+ENV VIPS_WARNING=0
+ENV MALLOC_ARENA_MAX=2
+
 ENV PORT 9000
 
 # use unprivileged user
