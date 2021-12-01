@@ -43,6 +43,7 @@ type Filter struct {
 
 type Meta struct {
 	Format      string `json:"format"`
+	ContentType string `json:"content_type"`
 	Width       int    `json:"width"`
 	Height      int    `json:"height"`
 	Orientation int    `json:"orientation"`

@@ -2,7 +2,6 @@ package imagor
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -20,11 +19,6 @@ var (
 type Error struct {
 	Message string `json:"message,omitempty"`
 	Code    int    `json:"status,omitempty"`
-}
-
-func (e Error) JSON() []byte {
-	buf, _ := json.Marshal(e)
-	return buf
 }
 
 func (e Error) Error() string {

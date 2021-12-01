@@ -7,6 +7,7 @@ import (
 	"github.com/cshum/hybridcache"
 	"go.uber.org/zap"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -63,27 +64,40 @@ func New(options ...Option) *Imagor {
 }
 
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	buf, err := o.Do(r)
-	if err != nil {
-		e := wrapError(err)
-		w.WriteHeader(e.Code)
-		if len(buf) > 0 {
-			w.Write(buf)
-			return
-		}
-		w.Write(e.JSON())
-		return
-	}
-	w.Write(buf)
-	return
-}
-
-func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 	uri := r.URL.EscapedPath()
 	params := ParseParams(uri)
 	if o.Debug {
 		o.Logger.Debug("params", zap.Any("params", params), zap.String("uri", uri))
 	}
+	buf, meta, err := o.Do(r, params)
+	ln := len(buf)
+	if meta != nil {
+		if params.Meta {
+			resJSON(w, meta)
+			return
+		} else {
+			w.Header().Set("Content-Type", meta.ContentType)
+		}
+	} else if ln > 0 {
+		w.Header().Set("Content-Type", http.DetectContentType(buf))
+	}
+	if err != nil {
+		e := wrapError(err)
+		w.WriteHeader(e.Code)
+		if ln > 0 {
+			w.Header().Set("Content-Length", strconv.Itoa(ln))
+			w.Write(buf)
+			return
+		}
+		resJSON(w, e)
+		return
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(ln))
+	w.Write(buf)
+	return
+}
+
+func (o *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if o.RequestTimeout > 0 {
@@ -105,14 +119,10 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 		return o.load(r, image)
 	}
 	for _, processor := range o.Processors {
-		b, meta, e := processor.Process(ctx, buf, params, load)
+		b, m, e := processor.Process(ctx, buf, params, load)
 		if e == nil {
 			buf = b
-			if params.Meta {
-				if b, e := json.Marshal(meta); e == nil {
-					buf = b
-				}
-			}
+			meta = m
 			if o.Debug {
 				o.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta), zap.Int("size", len(buf)))
 			}
@@ -192,4 +202,12 @@ func (o *Imagor) save(
 			}
 		}(storage)
 	}
+}
+
+func resJSON(w http.ResponseWriter, v interface{}) []byte {
+	buf, _ := json.Marshal(v)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+	w.Write(buf)
+	return buf
 }
