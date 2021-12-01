@@ -83,6 +83,10 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		e := wrapError(err)
+		if e == ErrPass {
+			// passed till the end means no handler
+			e = ErrMethodNotAllowed
+		}
 		w.WriteHeader(e.Code)
 		if ln > 0 {
 			w.Header().Set("Content-Length", strconv.Itoa(ln))

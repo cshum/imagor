@@ -3,6 +3,7 @@ package imagor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -14,7 +15,24 @@ var (
 	ErrHashMismatch      = NewError("hash mismatch", http.StatusForbidden)
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
 	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
+	ErrUnknown           = NewError("unknown", http.StatusInternalServerError)
 )
+
+var errorMap = (func() map[string]Error {
+	m := make(map[string]Error, 0)
+	for _, err := range []Error{
+		ErrNotFound,
+		ErrPass,
+		ErrMethodNotAllowed,
+		ErrHashMismatch,
+		ErrTimeout,
+		ErrUnsupportedFormat,
+		ErrUnknown,
+	} {
+		m[err.Error()] = err
+	}
+	return m
+})()
 
 type Error struct {
 	Message string `json:"message,omitempty"`
@@ -22,7 +40,7 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return "imagor: " + e.Message
+	return fmt.Sprintf("imagor: %d %s", e.Code, e.Message)
 }
 
 func NewError(msg string, code int) Error {
@@ -30,14 +48,16 @@ func NewError(msg string, code int) Error {
 }
 
 func wrapError(err error) Error {
-	if err == ErrPass {
-		// passed till the end means no handler
-		return ErrMethodNotAllowed
+	if err == nil {
+		return ErrUnknown
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrTimeout
 	}
 	if e, ok := err.(Error); ok {
+		return e
+	}
+	if e, ok := errorMap[err.Error()]; ok {
 		return e
 	}
 	msg := strings.Replace(err.Error(), "\n", "", -1)
