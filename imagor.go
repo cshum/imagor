@@ -82,7 +82,7 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", http.DetectContentType(buf))
 	}
 	if err != nil {
-		e := wrapError(err)
+		e := WrapError(err)
 		if e == ErrPass {
 			// passed till the end means no handler
 			e = ErrMethodNotAllowed

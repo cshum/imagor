@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -18,21 +20,7 @@ var (
 	ErrUnknown           = NewError("unknown", http.StatusInternalServerError)
 )
 
-var errorMap = (func() map[string]Error {
-	m := make(map[string]Error, 0)
-	for _, err := range []Error{
-		ErrNotFound,
-		ErrPass,
-		ErrMethodNotAllowed,
-		ErrHashMismatch,
-		ErrTimeout,
-		ErrUnsupportedFormat,
-		ErrUnknown,
-	} {
-		m[err.Error()] = err
-	}
-	return m
-})()
+var errMsgRegexp = regexp.MustCompile("^imagor: ([0-9]+) (.*)$")
 
 type Error struct {
 	Message string `json:"message,omitempty"`
@@ -47,7 +35,7 @@ func NewError(msg string, code int) Error {
 	return Error{Message: msg, Code: code}
 }
 
-func wrapError(err error) Error {
+func WrapError(err error) Error {
 	if err == nil {
 		return ErrUnknown
 	}
@@ -57,8 +45,11 @@ func wrapError(err error) Error {
 	if e, ok := err.(Error); ok {
 		return e
 	}
-	if e, ok := errorMap[err.Error()]; ok {
-		return e
+	if msg := err.Error(); errMsgRegexp.MatchString(msg) {
+		if match := errMsgRegexp.FindStringSubmatch(msg); len(match) == 3 {
+			code, _ := strconv.Atoi(match[1])
+			return NewError(match[2], code)
+		}
 	}
 	msg := strings.Replace(err.Error(), "\n", "", -1)
 	return NewError(msg, http.StatusInternalServerError)
