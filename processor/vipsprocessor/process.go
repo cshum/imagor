@@ -12,7 +12,7 @@ func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagor.Params, load imagor.LoadFunc,
 ) error {
 	if p.TrimPosition != "" {
-		if err := trim(img, p.TrimPosition, p.TrimTolerance); err != nil {
+		if err := v.trim(img, p.TrimPosition, p.TrimTolerance); err != nil {
 			return err
 		}
 	}
@@ -112,7 +112,7 @@ func (v *VipsProcessor) process(
 		}
 		switch p.Name {
 		case "fill":
-			if err := fill(img, w, h, p.Args, upscale); err != nil {
+			if err := v.fill(img, w, h, p.Args, upscale); err != nil {
 				return err
 			}
 			break
@@ -121,7 +121,7 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
-func trim(img *vips.ImageRef, pos string, tolerance int) error {
+func (v *VipsProcessor) trim(img *vips.ImageRef, pos string, tolerance int) error {
 	var x, y int
 	if pos == "bottom-right" {
 		x = img.Width() - 1
@@ -146,14 +146,14 @@ func trim(img *vips.ImageRef, pos string, tolerance int) error {
 	return nil
 }
 
-func fill(img *vips.ImageRef, w, h int, color string, upscale bool) (err error) {
+func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale bool) (err error) {
 	color = strings.ToLower(color)
 	if img.HasAlpha() && color != "blur" {
 		if err = img.Flatten(getColor(color)); err != nil {
 			return
 		}
 	}
-	if color == "black" {
+	if color == "black" || (color == "blur" && v.DisableBlur) {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendBlack,
@@ -184,7 +184,7 @@ func fill(img *vips.ImageRef, w, h int, color string, upscale bool) (err error) 
 		); err != nil {
 			return
 		}
-		if color == "blur" {
+		if color == "blur" && !v.DisableBlur {
 			if err = img.GaussianBlur(50); err != nil {
 				return
 			}

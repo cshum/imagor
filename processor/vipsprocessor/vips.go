@@ -10,7 +10,8 @@ import (
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
 type VipsProcessor struct {
-	Filters map[string]FilterFunc
+	Filters     map[string]FilterFunc
+	DisableBlur bool
 }
 
 func New(options ...Option) *VipsProcessor {
@@ -35,6 +36,9 @@ func New(options ...Option) *VipsProcessor {
 	}
 	for _, option := range options {
 		option(v)
+	}
+	if v.DisableBlur {
+		WithoutFilter("blur", "sharpen")(v)
 	}
 	return v
 }

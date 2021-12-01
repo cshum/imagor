@@ -7,3 +7,17 @@ func WithFilter(name string, filter FilterFunc) Option {
 		h.Filters[name] = filter
 	}
 }
+
+func WithDisableBlur(disableBlur bool) Option {
+	return func(h *VipsProcessor) {
+		h.DisableBlur = disableBlur
+	}
+}
+
+func WithoutFilter(names ...string) Option {
+	return func(h *VipsProcessor) {
+		for _, name := range names {
+			delete(h.Filters, name)
+		}
+	}
+}
