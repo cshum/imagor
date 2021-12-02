@@ -38,9 +38,11 @@ func WithPathPrefix(prefix string) Option {
 	}
 }
 
-func WithCORS() Option {
+func WithCORS(enable bool) Option {
 	return func(s *Server) {
-		s.Handler = cors.Default().Handler(s.Handler)
+		if enable {
+			s.Handler = cors.Default().Handler(s.Handler)
+		}
 	}
 }
 
