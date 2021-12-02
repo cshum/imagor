@@ -52,12 +52,16 @@ func WithCORS(enable bool) Option {
 
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.ReadTimeout = timeout
+		if timeout > 0 {
+			s.ReadTimeout = timeout
+		}
 	}
 }
 
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.WriteTimeout = timeout
+		if timeout > 0 {
+			s.WriteTimeout = timeout
+		}
 	}
 }

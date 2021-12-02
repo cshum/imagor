@@ -10,15 +10,19 @@ type Option func(h *HTTPLoader)
 
 func WithTransport(transport http.RoundTripper) Option {
 	return func(h *HTTPLoader) {
-		h.Transport = transport
+		if transport != nil {
+			h.Transport = transport
+		}
 	}
 }
 
-func WithInsecureSkipVerifyTransport() Option {
+func WithInsecureSkipVerifyTransport(insecure bool) Option {
 	return func(h *HTTPLoader) {
-		transport := http.DefaultTransport.(*http.Transport).Clone()
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		h.Transport = transport
+		if insecure {
+			transport := http.DefaultTransport.(*http.Transport).Clone()
+			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			h.Transport = transport
+		}
 	}
 }
 
@@ -46,12 +50,14 @@ func WithAllowedOrigins(urls ...string) Option {
 
 func WithMaxAllowedSize(maxAllowedSize int) Option {
 	return func(h *HTTPLoader) {
-		h.MaxAllowedSize = maxAllowedSize
+		if maxAllowedSize > 0 {
+			h.MaxAllowedSize = maxAllowedSize
+		}
 	}
 }
 
-func WithAutoScheme(autoScheme bool) Option {
+func WithAutoScheme(enable bool) Option {
 	return func(h *HTTPLoader) {
-		h.AutoScheme = autoScheme
+		h.AutoScheme = enable
 	}
 }

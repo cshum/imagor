@@ -22,7 +22,7 @@ func main() {
 	loaders = append(loaders,
 		httploader.New(
 			httploader.WithForwardHeaders("*"),
-			httploader.WithAutoScheme(true),
+			httploader.WithInsecureSkipVerifyTransport(false),
 		),
 	)
 
@@ -36,11 +36,14 @@ func main() {
 				vipsprocessor.WithDebug(true),
 			)),
 			imagor.WithSecret(""),
+			imagor.WithRequestTimeout(0),
 			imagor.WithUnsafe(true),
 			imagor.WithDebug(true),
 		),
 		server.WithPort(9000),
 		server.WithLogger(logger),
+		server.WithPathPrefix(""),
+		server.WithReadTimeout(0),
 		server.WithCORS(true),
 	).Run()
 }
