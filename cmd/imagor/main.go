@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
+	"github.com/cshum/imagor/server"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 func main() {
@@ -23,9 +21,6 @@ func main() {
 	}
 	logger.Info("start", zap.Int("port", port))
 
-	vips.Startup(nil)
-	defer vips.Shutdown()
-
 	loaders = append(loaders,
 		httploader.New(
 			httploader.WithForwardHeaders("*"),
@@ -33,8 +28,7 @@ func main() {
 		),
 	)
 
-	panic(http.ListenAndServe(
-		fmt.Sprintf(":%d", port),
+	server.New(
 		imagor.New(
 			imagor.WithLogger(logger),
 			imagor.WithLoaders(loaders...),
@@ -44,5 +38,8 @@ func main() {
 			imagor.WithUnsafe(true),
 			imagor.WithDebug(true),
 		),
-	))
+		server.WithPort(9000),
+		server.WithLogger(logger),
+		server.WithCORS(true),
+	).Run()
 }
