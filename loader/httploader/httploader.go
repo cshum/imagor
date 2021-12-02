@@ -1,7 +1,6 @@
 package httploader
 
 import (
-	"fmt"
 	"github.com/cshum/imagor"
 	"io"
 	"net/http"
@@ -84,7 +83,7 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode >= 400 {
-		return buf, imagor.NewError(fmt.Sprintf("error %d", resp.StatusCode), resp.StatusCode)
+		return buf, imagor.NewError(http.StatusText(resp.StatusCode), resp.StatusCode)
 	}
 	return buf, nil
 }

@@ -1,6 +1,7 @@
 package httploader
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/url"
 )
@@ -9,6 +10,14 @@ type Option func(h *HTTPLoader)
 
 func WithTransport(transport http.RoundTripper) Option {
 	return func(h *HTTPLoader) {
+		h.Transport = transport
+	}
+}
+
+func WithInsecureSkipVerifyTransport() Option {
+	return func(h *HTTPLoader) {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		h.Transport = transport
 	}
 }

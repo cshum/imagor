@@ -80,12 +80,23 @@ func (v *VipsProcessor) Process(
 	if err != nil {
 		return nil, nil, err
 	}
-	return buf, &imagor.Meta{
-		Format:      vips.ImageTypes[meta.Format],
+	return buf, getMeta(meta), nil
+}
+
+func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
+	format, ok := vips.ImageTypes[meta.Format]
+	contentType, ok2 := imageMimeTypeMap[format]
+	if !ok || !ok2 {
+		format = "jpeg"
+		contentType = "image/jpeg"
+	}
+	return &imagor.Meta{
+		Format:      format,
+		ContentType: contentType,
 		Width:       meta.Width,
 		Height:      meta.Height,
 		Orientation: meta.Orientation,
-	}, nil
+	}
 }
 
 var imageTypeMap = map[string]vips.ImageType{
@@ -101,6 +112,20 @@ var imageTypeMap = map[string]vips.ImageType{
 	"heif":   vips.ImageTypeHEIF,
 	"bmp":    vips.ImageTypeBMP,
 	"avif":   vips.ImageTypeAVIF,
+}
+
+var imageMimeTypeMap = map[string]string{
+	"gif":  "image/gif",
+	"jpeg": "image/jpeg",
+	"jpg":  "image/jpeg",
+	"pdf":  "application/pdf",
+	"png":  "image/png",
+	"svg":  "image/svg+xml",
+	"tiff": "image/tiff",
+	"webp": "image/webp",
+	"heif": "image/heif",
+	"bmp":  "image/bmp",
+	"avif": "image/avif",
 }
 
 func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
