@@ -21,7 +21,8 @@ func main() {
 
 	loaders = append(loaders,
 		httploader.New(
-			httploader.WithForwardHeaders("*"),
+			httploader.WithForwardUserAgent(true),
+			httploader.WithAllowedSources(""),
 			httploader.WithInsecureSkipVerifyTransport(false),
 		),
 	)
@@ -45,5 +46,6 @@ func main() {
 		server.WithPathPrefix(""),
 		server.WithReadTimeout(0),
 		server.WithCORS(true),
+		server.WithDebug(true),
 	).Run()
 }

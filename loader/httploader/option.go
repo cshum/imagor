@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Option func(h *HTTPLoader)
@@ -32,17 +33,32 @@ func WithForwardHeaders(headers ...string) Option {
 	}
 }
 
+func WithForwardUserAgent(enabled bool) Option {
+	return func(h *HTTPLoader) {
+		if enabled {
+			h.ForwardHeaders = append(h.ForwardHeaders, "User-Agent")
+		}
+	}
+}
+
 func WithOverrideHeader(name, value string) Option {
 	return func(h *HTTPLoader) {
 		h.OverrideHeaders[name] = value
 	}
 }
 
-func WithAllowedOrigins(urls ...string) Option {
+func WithAllowedSources(urls ...string) Option {
 	return func(h *HTTPLoader) {
-		for _, rawUrl := range urls {
-			if u, err := url.Parse(rawUrl); err == nil {
-				h.AllowedOrigins = append(h.AllowedOrigins, u)
+		for _, raw := range urls {
+			rawUrls := strings.Split(raw, ",")
+			for _, rawUrl := range rawUrls {
+				rawUrl = strings.TrimSpace(rawUrl)
+				if !strings.Contains(rawUrl, "://") {
+					rawUrl = "https://" + rawUrl
+				}
+				if u, err := url.Parse(rawUrl); err == nil && len(u.Host) > 0 {
+					h.AllowedSources = append(h.AllowedSources, u)
+				}
 			}
 		}
 	}

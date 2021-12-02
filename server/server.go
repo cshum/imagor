@@ -18,6 +18,7 @@ type Server struct {
 	http.Server
 	Imagor     *imagor.Imagor
 	Logger     *zap.Logger
+	Debug      bool
 	Address    string
 	Port       int
 	CertFile   string

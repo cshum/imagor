@@ -65,3 +65,9 @@ func WithWriteTimeout(timeout time.Duration) Option {
 		}
 	}
 }
+
+func WithDebug(debug bool) Option {
+	return func(s *Server) {
+		s.Debug = debug
+	}
+}

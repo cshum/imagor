@@ -200,7 +200,7 @@ func brightness(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err erro
 	}
 	b, _ := strconv.ParseFloat(args[0], 64)
 	b = b * 255 / 100
-	return img.Linear([]float64{1, 1, 1}, []float64{b, b, b})
+	return linearRGB(img, []float64{1, 1, 1}, []float64{b, b, b})
 }
 
 func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
@@ -212,7 +212,7 @@ func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error)
 	a = math.Min(math.Max(a, -255), 255)
 	a = (259 * (a + 255)) / (255 * (259 - a))
 	b := 128 - a*128
-	return img.Linear([]float64{a, a, a}, []float64{b, b, b})
+	return linearRGB(img, []float64{a, a, a}, []float64{b, b, b})
 }
 
 func hue(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
@@ -242,7 +242,7 @@ func rgb(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	r = r * 255 / 100
 	g = g * 255 / 100
 	b = b * 255 / 100
-	return img.Linear([]float64{1, 1, 1}, []float64{r, g, b})
+	return linearRGB(img, []float64{1, 1, 1}, []float64{r, g, b})
 }
 
 func modulate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
@@ -312,6 +312,14 @@ func applyBackgroundColor(img *vips.ImageRef, c *vips.Color) (err error) {
 		return
 	}
 	return
+}
+
+func linearRGB(img *vips.ImageRef, a, b []float64) error {
+	if img.HasAlpha() {
+		a = append(a, 1)
+		b = append(b, 0)
+	}
+	return img.Linear(a, b)
 }
 
 func getColor(name string) *vips.Color {

@@ -17,7 +17,7 @@ type HTTPLoader struct {
 
 	OverrideHeaders map[string]string
 
-	AllowedOrigins []*url.URL
+	AllowedSources []*url.URL
 
 	MaxAllowedSize int
 }
@@ -43,7 +43,7 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if u.Host == "" || u.Scheme == "" {
 		return nil, imagor.ErrPass
 	}
-	if shouldRestrictOrigin(u, h.AllowedOrigins) {
+	if shouldRestrictSource(u, h.AllowedSources) {
 		return nil, imagor.ErrPass
 	}
 	client := &http.Client{Transport: h.Transport}
@@ -78,26 +78,26 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	return buf, nil
 }
 
-func shouldRestrictOrigin(url *url.URL, origins []*url.URL) bool {
-	if len(origins) == 0 {
+func shouldRestrictSource(url *url.URL, sources []*url.URL) bool {
+	if len(sources) == 0 {
 		return false
 	}
-	for _, origin := range origins {
-		if origin.Host == url.Host {
-			if strings.HasPrefix(url.Path, origin.Path) {
+	for _, source := range sources {
+		if source.Host == url.Host {
+			if strings.HasPrefix(url.Path, source.Path) {
 				return false
 			}
 		}
-		if origin.Host[0:2] == "*." {
+		if len(source.Host) > 2 && source.Host[0:2] == "*." {
 			// Testing if "*.example.org" matches "example.org"
-			if url.Host == origin.Host[2:] {
-				if strings.HasPrefix(url.Path, origin.Path) {
+			if url.Host == source.Host[2:] {
+				if strings.HasPrefix(url.Path, source.Path) {
 					return false
 				}
 			}
 			// Testing if "*.example.org" matches "foo.example.org"
-			if strings.HasSuffix(url.Host, origin.Host[1:]) {
-				if strings.HasPrefix(url.Path, origin.Path) {
+			if strings.HasSuffix(url.Host, source.Host[1:]) {
+				if strings.HasPrefix(url.Path, source.Path) {
 					return false
 				}
 			}
