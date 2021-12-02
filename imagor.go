@@ -38,6 +38,8 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
+	// Cache is meant to be a short-lived buffer and call suppression.
+	// For actual caching please place this under a reverse-proxy and CDN
 	Cache          cache.Cache
 	CacheTTL       time.Duration
 	Unsafe         bool
@@ -82,18 +84,19 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", http.DetectContentType(buf))
 	}
 	if err != nil {
-		e := WrapError(err)
-		if e == ErrPass {
-			// passed till the end means no handler
-			e = ErrMethodNotAllowed
+		if e, ok := WrapError(err).(Error); ok {
+			if e == ErrPass {
+				// passed till the end means not found
+				e = ErrNotFound
+			}
+			w.WriteHeader(e.Code)
 		}
-		w.WriteHeader(e.Code)
 		if ln > 0 {
 			w.Header().Set("Content-Length", strconv.Itoa(ln))
 			w.Write(buf)
 			return
 		}
-		resJSON(w, e)
+		resJSON(w, err)
 		return
 	}
 	w.Header().Set("Content-Length", strconv.Itoa(ln))
@@ -210,10 +213,10 @@ func (o *Imagor) save(
 	}
 }
 
-func resJSON(w http.ResponseWriter, v interface{}) []byte {
+func resJSON(w http.ResponseWriter, v interface{}) {
 	buf, _ := json.Marshal(v)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
 	w.Write(buf)
-	return buf
+	return
 }

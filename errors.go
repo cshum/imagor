@@ -35,9 +35,9 @@ func NewError(msg string, code int) Error {
 	return Error{Message: msg, Code: code}
 }
 
-func WrapError(err error) Error {
+func WrapError(err error) error {
 	if err == nil {
-		return ErrUnknown
+		return nil
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrTimeout

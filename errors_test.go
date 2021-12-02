@@ -7,18 +7,16 @@ import (
 )
 
 func TestWrapError(t *testing.T) {
-	if err := WrapError(nil); err != ErrUnknown {
-		t.Error(err)
+	if err := WrapError(nil); err != nil {
+		t.Error(err, "should error nil")
 	}
-	if err := NewError("errorrrr", 167); WrapError(err) != err {
+	if err := WrapError(ErrMethodNotAllowed); err != ErrMethodNotAllowed {
+		t.Errorf("= %v, should wrap default errors", err)
+	}
+	if err := NewError("errorrrr", 167); WrapError(errors.New(err.Error())) != err {
 		t.Errorf("= %v, should wrap error equals", err)
 	}
-	if err := WrapError(
-		errors.New(ErrMethodNotAllowed.Error()),
-	); err != ErrMethodNotAllowed {
-		t.Errorf("= %v, should wrap error", err)
-	}
-	if err := WrapError(errors.New("asdfsdfsaf")); err.Code != http.StatusInternalServerError {
+	if err := WrapError(errors.New("asdfsdfsaf")).(Error); err.Code != http.StatusInternalServerError {
 		t.Errorf("= %v, should wrap error fallback", err)
 	}
 }
