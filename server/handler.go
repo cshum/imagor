@@ -9,6 +9,14 @@ import (
 	"strconv"
 )
 
+func handleDefault(w http.ResponseWriter, r *http.Request) {
+	resJSON(w, map[string]string{
+		"message": "imagor is running",
+		"version": imagor.Version,
+	})
+	return
+}
+
 func handleFavicon(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	return

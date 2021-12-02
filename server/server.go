@@ -21,13 +21,14 @@ type Server struct {
 
 func New(app *imagor.Imagor, options ...Option) *Server {
 	s := &Server{}
+	s.Imagor = app
 	s.Addr = ":9000"
 	s.ReadTimeout = time.Second * 30
 	s.MaxHeaderBytes = 1 << 20
 	s.Logger = zap.NewNop()
-	s.Imagor = app
 
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
+		"/":            handleDefault,
 		"/favicon.ico": handleFavicon,
 		"/health":      handleHealth,
 	})(s.Imagor)
@@ -40,29 +41,35 @@ func New(app *imagor.Imagor, options ...Option) *Server {
 	return s
 }
 
-func (s *Server) Run() (err error) {
-	if err = s.Imagor.Start(context.Background()); err != nil {
-		return
+func (s *Server) listenAndServe() {
+}
+
+func (s *Server) Run() {
+	if err := s.Imagor.Start(context.Background()); err != nil {
+		s.Logger.Fatal("imagor start", zap.Error(err))
 	}
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		if err = s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.Logger.Error("listen", zap.Error(err))
+		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			s.Logger.Fatal("listen", zap.Error(err))
 		}
 	}()
 
-	s.Logger.Info("start", zap.String("addr", s.Addr))
+	s.Logger.Info("server start", zap.String("addr", s.Addr))
 	<-done
 
 	// graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err = s.Imagor.Shutdown(ctx); err != nil {
-		s.Logger.Error("shutdown", zap.Error(err))
-		return
+
+	if err := s.Shutdown(ctx); err != nil {
+		s.Logger.Error("server shutdown", zap.Error(err))
 	}
-	s.Logger.Info("shutdown")
+	if err := s.Imagor.Shutdown(ctx); err != nil {
+		s.Logger.Error("imagor shutdown", zap.Error(err))
+	}
+	s.Logger.Info("exit")
 	return
 }
