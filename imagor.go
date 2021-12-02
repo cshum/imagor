@@ -186,7 +186,7 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 			}
 			return
 		})
-	err = wrapError(err)
+	err = WrapError(err)
 	return
 }
 
