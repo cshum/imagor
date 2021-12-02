@@ -136,7 +136,7 @@ func (o *Imagor) Do(r *http.Request) (buf []byte, err error) {
 }
 
 func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
-	return cache.NewFunc(o.Cache, o.RequestTimeout, o.CacheTTL, o.CacheTTL).
+	buf, err = cache.NewFunc(o.Cache, o.RequestTimeout, o.CacheTTL, o.CacheTTL).
 		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 			dr := r.WithContext(ctx)
 			for _, loader := range o.Loaders {
@@ -172,6 +172,8 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 			}
 			return
 		})
+	err = wrapError(err)
+	return
 }
 
 func (o *Imagor) save(

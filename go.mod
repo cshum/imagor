@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/aws/aws-sdk-go v1.42.15
 	github.com/cshum/govips/v2 v2.7.2
-	github.com/cshum/hybridcache v0.2.2
+	github.com/cshum/hybridcache v0.2.3
 	go.uber.org/zap v1.19.1
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 )

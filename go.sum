@@ -9,6 +9,8 @@ github.com/cshum/govips/v2 v2.7.2 h1:4GCBSC+EaSiYKtg7bjQM1LEtANSHnh+JWFl+GCawqXk
 github.com/cshum/govips/v2 v2.7.2/go.mod h1:+xcXZ2M6OsjCIOF/6m8v8MDznGlTZHZiTuc+MtFaQyU=
 github.com/cshum/hybridcache v0.2.2 h1:ZFLlAzoqnLqEyZsDSzB21qhm8Hj2w35tJlRzkC2bHaU=
 github.com/cshum/hybridcache v0.2.2/go.mod h1:QOjdJT+huybRxHh5MHvSzh90krazPl1fG5FsKJH4xJY=
+github.com/cshum/hybridcache v0.2.3 h1:OPyw7vpIsfpkXV9ZxEYrU1Ax1sT2nTvlAyFDHJHaF2g=
+github.com/cshum/hybridcache v0.2.3/go.mod h1:QOjdJT+huybRxHh5MHvSzh90krazPl1fG5FsKJH4xJY=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
