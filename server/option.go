@@ -22,13 +22,17 @@ func WithPort(port int) Option {
 
 func WithLogger(logger *zap.Logger) Option {
 	return func(s *Server) {
-		s.Logger = logger
+		if logger != nil {
+			s.Logger = logger
+		}
 	}
 }
 
 func WithMiddleware(middleware Middleware) Option {
 	return func(s *Server) {
-		s.Handler = middleware(s.Handler)
+		if middleware != nil {
+			s.Handler = middleware(s.Handler)
+		}
 	}
 }
 

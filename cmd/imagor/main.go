@@ -12,14 +12,12 @@ func main() {
 	var (
 		logger   *zap.Logger
 		err      error
-		port     = 9000
 		loaders  []imagor.Loader
 		storages []imagor.Storage
 	)
 	if logger, err = zap.NewDevelopment(); err != nil {
 		panic(err)
 	}
-	logger.Info("start", zap.Int("port", port))
 
 	loaders = append(loaders,
 		httploader.New(

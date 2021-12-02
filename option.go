@@ -10,14 +10,20 @@ type Option func(o *Imagor)
 
 func WithLogger(logger *zap.Logger) Option {
 	return func(o *Imagor) {
-		o.Logger = logger
+		if logger != nil {
+			o.Logger = logger
+		}
 	}
 }
 
 func WithCache(c cache.Cache, ttl time.Duration) Option {
 	return func(o *Imagor) {
-		o.Cache = c
-		o.CacheTTL = ttl
+		if c != nil {
+			o.Cache = c
+			if ttl > 0 {
+				o.CacheTTL = ttl
+			}
+		}
 	}
 }
 
