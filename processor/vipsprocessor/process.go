@@ -4,8 +4,10 @@ import (
 	"context"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
+	"go.uber.org/zap"
 	"math"
 	"strings"
+	"time"
 )
 
 func (v *VipsProcessor) process(
@@ -105,6 +107,7 @@ func (v *VipsProcessor) process(
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		start := time.Now()
 		if fn := v.Filters[p.Name]; fn != nil {
 			if err := fn(img, load, strings.Split(p.Args, ",")...); err != nil {
 				return err
@@ -116,6 +119,11 @@ func (v *VipsProcessor) process(
 				return err
 			}
 			break
+		}
+		if v.Debug {
+			v.Logger.Debug("filter",
+				zap.String("name", p.Name), zap.String("args", p.Args),
+				zap.Duration("took", time.Since(start)))
 		}
 	}
 	return nil
