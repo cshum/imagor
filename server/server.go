@@ -27,8 +27,8 @@ type Server struct {
 
 func New(app *imagor.Imagor, options ...Option) *Server {
 	s := &Server{}
-	s.Port = 9000
 	s.Imagor = app
+	s.Port = 9000
 	s.ReadTimeout = time.Second * 30
 	s.MaxHeaderBytes = 1 << 20
 	s.Logger = zap.NewNop()

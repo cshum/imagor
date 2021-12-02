@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/rs/cors"
 	"go.uber.org/zap"
 )
 
@@ -34,5 +35,11 @@ func WithMiddleware(handler Middleware) Option {
 func WithPathPrefix(prefix string) Option {
 	return func(s *Server) {
 		s.PathPrefix = prefix
+	}
+}
+
+func WithCORS() Option {
+	return func(s *Server) {
+		s.Handler = cors.Default().Handler(s.Handler)
 	}
 }
