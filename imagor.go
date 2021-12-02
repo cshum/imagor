@@ -33,7 +33,9 @@ type Store interface {
 
 // Processor process image buffer
 type Processor interface {
+	Start(ctx context.Context) error
 	Process(ctx context.Context, buf []byte, params Params, load LoadFunc) ([]byte, *Meta, error)
+	Shutdown(ctx context.Context) error
 }
 
 // Imagor image resize HTTP handler
@@ -63,6 +65,24 @@ func New(options ...Option) *Imagor {
 		option(o)
 	}
 	return o
+}
+
+func (o *Imagor) Start(ctx context.Context) (err error) {
+	for _, processor := range o.Processors {
+		if err = processor.Start(ctx); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (o *Imagor) Shutdown(ctx context.Context) (err error) {
+	for _, processor := range o.Processors {
+		if err = processor.Shutdown(ctx); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {

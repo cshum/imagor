@@ -43,6 +43,16 @@ func New(options ...Option) *VipsProcessor {
 	return v
 }
 
+func (v *VipsProcessor) Start(_ context.Context) error {
+	vips.Startup(nil)
+	return nil
+}
+
+func (v *VipsProcessor) Shutdown(_ context.Context) error {
+	vips.Shutdown()
+	return nil
+}
+
 func (v *VipsProcessor) Process(
 	ctx context.Context, buf []byte, p imagor.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {

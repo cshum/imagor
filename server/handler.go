@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cshum/imagor"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -18,11 +19,6 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-type Error struct {
-	Message string `json:"message,omitempty"`
-	Code    int    `json:"status,omitempty"`
-}
-
 func (s *Server) panicHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -33,7 +29,7 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 				}
 				s.Logger.Error("panic", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
-				resJSON(w, Error{
+				resJSON(w, imagor.Error{
 					Message: err.Error(),
 					Code:    http.StatusInternalServerError,
 				})
@@ -41,14 +37,6 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 		}()
 		next.ServeHTTP(w, r)
 	})
-}
-
-func resJSON(w http.ResponseWriter, v interface{}) {
-	buf, _ := json.Marshal(v)
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-	w.Write(buf)
-	return
 }
 
 func pathHandler(method string, handleFuncs map[string]http.HandlerFunc) Middleware {
@@ -66,4 +54,12 @@ func pathHandler(method string, handleFuncs map[string]http.HandlerFunc) Middlew
 			return
 		})
 	}
+}
+
+func resJSON(w http.ResponseWriter, v interface{}) {
+	buf, _ := json.Marshal(v)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+	w.Write(buf)
+	return
 }

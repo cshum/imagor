@@ -17,7 +17,6 @@ var (
 	ErrHashMismatch      = NewError("hash mismatch", http.StatusForbidden)
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
 	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
-	ErrUnknown           = NewError("unknown", http.StatusInternalServerError)
 )
 
 var errMsgRegexp = regexp.MustCompile("^imagor: ([0-9]+) (.*)$")
