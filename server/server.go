@@ -52,7 +52,7 @@ func New(app *imagor.Imagor, options ...Option) *Server {
 func (s *Server) Run() {
 	s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
 
-	if err := s.Imagor.Start(context.Background()); err != nil {
+	if err := s.Imagor.Startup(context.Background()); err != nil {
 		s.Logger.Fatal("imagor start", zap.Error(err))
 	}
 	done := make(chan os.Signal, 1)

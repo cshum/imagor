@@ -16,9 +16,9 @@ func WithTransport(transport http.RoundTripper) Option {
 	}
 }
 
-func WithInsecureSkipVerifyTransport(insecure bool) Option {
+func WithInsecureSkipVerifyTransport(enable bool) Option {
 	return func(h *HTTPLoader) {
-		if insecure {
+		if enable {
 			transport := http.DefaultTransport.(*http.Transport).Clone()
 			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 			h.Transport = transport
@@ -53,11 +53,5 @@ func WithMaxAllowedSize(maxAllowedSize int) Option {
 		if maxAllowedSize > 0 {
 			h.MaxAllowedSize = maxAllowedSize
 		}
-	}
-}
-
-func WithAutoScheme(enable bool) Option {
-	return func(h *HTTPLoader) {
-		h.AutoScheme = enable
 	}
 }

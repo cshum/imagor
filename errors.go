@@ -38,11 +38,11 @@ func WrapError(err error) error {
 	if err == nil {
 		return nil
 	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return ErrTimeout
-	}
 	if e, ok := err.(Error); ok {
 		return e
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return ErrTimeout
 	}
 	if msg := err.Error(); errMsgRegexp.MatchString(msg) {
 		if match := errMsgRegexp.FindStringSubmatch(msg); len(match) == 3 {

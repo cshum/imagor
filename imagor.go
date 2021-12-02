@@ -33,7 +33,7 @@ type Store interface {
 
 // Processor process image buffer
 type Processor interface {
-	Start(ctx context.Context) error
+	Startup(ctx context.Context) error
 	Process(ctx context.Context, buf []byte, params Params, load LoadFunc) ([]byte, *Meta, error)
 	Shutdown(ctx context.Context) error
 }
@@ -67,9 +67,9 @@ func New(options ...Option) *Imagor {
 	return o
 }
 
-func (o *Imagor) Start(ctx context.Context) (err error) {
+func (o *Imagor) Startup(ctx context.Context) (err error) {
 	for _, processor := range o.Processors {
-		if err = processor.Start(ctx); err != nil {
+		if err = processor.Startup(ctx); err != nil {
 			return
 		}
 	}

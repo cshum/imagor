@@ -48,7 +48,7 @@ func New(options ...Option) *VipsProcessor {
 	return v
 }
 
-func (v *VipsProcessor) Start(_ context.Context) error {
+func (v *VipsProcessor) Startup(_ context.Context) error {
 	if v.Debug {
 		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
 			switch level {
