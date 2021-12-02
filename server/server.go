@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -15,14 +16,19 @@ type Middleware func(http.Handler) http.Handler
 
 type Server struct {
 	http.Server
-	Imagor *imagor.Imagor
-	Logger *zap.Logger
+	Imagor     *imagor.Imagor
+	Logger     *zap.Logger
+	Address    string
+	Port       int
+	CertFile   string
+	KeyFile    string
+	PathPrefix string
 }
 
 func New(app *imagor.Imagor, options ...Option) *Server {
 	s := &Server{}
+	s.Port = 9000
 	s.Imagor = app
-	s.Addr = ":9000"
 	s.ReadTimeout = time.Second * 30
 	s.MaxHeaderBytes = 1 << 20
 	s.Logger = zap.NewNop()
@@ -36,15 +42,16 @@ func New(app *imagor.Imagor, options ...Option) *Server {
 	for _, option := range options {
 		option(s)
 	}
-
+	if s.PathPrefix != "" {
+		s.Handler = http.StripPrefix(s.PathPrefix, s.Handler)
+	}
 	s.Handler = s.panicHandler(s.Handler)
 	return s
 }
 
-func (s *Server) listenAndServe() {
-}
-
 func (s *Server) Run() {
+	s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
+
 	if err := s.Imagor.Start(context.Background()); err != nil {
 		s.Logger.Fatal("imagor start", zap.Error(err))
 	}
@@ -52,12 +59,12 @@ func (s *Server) Run() {
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.listenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.Logger.Fatal("listen", zap.Error(err))
 		}
 	}()
 
-	s.Logger.Info("server start", zap.String("addr", s.Addr))
+	s.Logger.Info("server start", zap.String("address", s.Address), zap.Int("port", s.Port))
 	<-done
 
 	// graceful shutdown
@@ -72,4 +79,11 @@ func (s *Server) Run() {
 	}
 	s.Logger.Info("exit")
 	return
+}
+
+func (s *Server) listenAndServe() error {
+	if s.CertFile != "" && s.KeyFile != "" {
+		return s.ListenAndServeTLS(s.CertFile, s.KeyFile)
+	}
+	return s.ListenAndServe()
 }
