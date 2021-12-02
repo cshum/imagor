@@ -1,5 +1,7 @@
 package vipsprocessor
 
+import "go.uber.org/zap"
+
 type Option func(h *VipsProcessor)
 
 func WithFilter(name string, filter FilterFunc) Option {
@@ -19,5 +21,19 @@ func WithoutFilter(names ...string) Option {
 		for _, name := range names {
 			delete(h.Filters, name)
 		}
+	}
+}
+
+func WithLogger(logger *zap.Logger) Option {
+	return func(h *VipsProcessor) {
+		if logger != nil {
+			h.Logger = logger
+		}
+	}
+}
+
+func WithDebug(debug bool) Option {
+	return func(h *VipsProcessor) {
+		h.Debug = debug
 	}
 }

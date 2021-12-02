@@ -31,7 +31,10 @@ func main() {
 			imagor.WithLogger(logger),
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
-			imagor.WithProcessors(vipsprocessor.New()),
+			imagor.WithProcessors(vipsprocessor.New(
+				vipsprocessor.WithLogger(logger),
+				vipsprocessor.WithDebug(true),
+			)),
 			imagor.WithSecret(""),
 			imagor.WithUnsafe(true),
 			imagor.WithDebug(true),

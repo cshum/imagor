@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
+	"go.uber.org/zap"
+	"runtime"
 	"strconv"
 )
 
@@ -11,6 +13,8 @@ type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (
 
 type VipsProcessor struct {
 	Filters     map[string]FilterFunc
+	Logger      *zap.Logger
+	Debug       bool
 	DisableBlur bool
 }
 
@@ -33,6 +37,7 @@ func New(options ...Option) *VipsProcessor {
 			"strip_icc":        stripIcc,
 			"strip_exif":       stripExif,
 		},
+		Logger: zap.NewNop(),
 	}
 	for _, option := range options {
 		option(v)
@@ -44,7 +49,31 @@ func New(options ...Option) *VipsProcessor {
 }
 
 func (v *VipsProcessor) Start(_ context.Context) error {
-	vips.Startup(nil)
+	if v.Debug {
+		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
+			switch level {
+			case vips.LogLevelDebug:
+				v.Logger.Debug(domain, zap.String("log", msg))
+			case vips.LogLevelMessage, vips.LogLevelInfo:
+				v.Logger.Info(domain, zap.String("log", msg))
+			case vips.LogLevelWarning, vips.LogLevelCritical:
+				v.Logger.Warn(domain, zap.String("log", msg))
+			case vips.LogLevelError:
+				v.Logger.Error(domain, zap.String("log", msg))
+			}
+		}, vips.LogLevelDebug)
+		vips.Startup(&vips.Config{
+			ReportLeaks:      true,
+			ConcurrencyLevel: runtime.NumCPU(),
+		})
+	} else {
+		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
+			v.Logger.Error(domain, zap.String("log", msg))
+		}, vips.LogLevelError)
+		vips.Startup(&vips.Config{
+			ConcurrencyLevel: runtime.NumCPU(),
+		})
+	}
 	return nil
 }
 
