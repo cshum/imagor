@@ -19,13 +19,13 @@ type Server struct {
 	Logger *zap.Logger
 }
 
-func New(process *imagor.Imagor, options ...Option) *Server {
+func New(app *imagor.Imagor, options ...Option) *Server {
 	s := &Server{}
 	s.Addr = ":9000"
 	s.ReadTimeout = time.Second * 30
 	s.MaxHeaderBytes = 1 << 20
 	s.Logger = zap.NewNop()
-	s.Imagor = process
+	s.Imagor = app
 
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
 		"/favicon.ico": handleFavicon,
