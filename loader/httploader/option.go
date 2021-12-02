@@ -3,7 +3,6 @@ package httploader
 import (
 	"crypto/tls"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -47,17 +46,14 @@ func WithOverrideHeader(name, value string) Option {
 	}
 }
 
-func WithAllowedSources(urls ...string) Option {
+func WithAllowedSources(hosts ...string) Option {
 	return func(h *HTTPLoader) {
-		for _, raw := range urls {
-			rawUrls := strings.Split(raw, ",")
-			for _, rawUrl := range rawUrls {
-				rawUrl = strings.TrimSpace(rawUrl)
-				if !strings.Contains(rawUrl, "://") {
-					rawUrl = "https://" + rawUrl
-				}
-				if u, err := url.Parse(rawUrl); err == nil && len(u.Host) > 0 {
-					h.AllowedSources = append(h.AllowedSources, u)
+		for _, raw := range hosts {
+			splits := strings.Split(raw, ",")
+			for _, host := range splits {
+				host = strings.TrimSpace(host)
+				if len(host) > 0 {
+					h.AllowedSources = append(h.AllowedSources, host)
 				}
 			}
 		}

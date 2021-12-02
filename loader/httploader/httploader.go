@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"path"
 )
 
 type HTTPLoader struct {
@@ -17,7 +17,7 @@ type HTTPLoader struct {
 
 	OverrideHeaders map[string]string
 
-	AllowedSources []*url.URL
+	AllowedSources []string
 
 	MaxAllowedSize int
 }
@@ -78,29 +78,13 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	return buf, nil
 }
 
-func shouldRestrictSource(url *url.URL, sources []*url.URL) bool {
+func shouldRestrictSource(url *url.URL, sources []string) bool {
 	if len(sources) == 0 {
 		return false
 	}
 	for _, source := range sources {
-		if source.Host == url.Host {
-			if strings.HasPrefix(url.Path, source.Path) {
-				return false
-			}
-		}
-		if len(source.Host) > 2 && source.Host[0:2] == "*." {
-			// Testing if "*.example.org" matches "example.org"
-			if url.Host == source.Host[2:] {
-				if strings.HasPrefix(url.Path, source.Path) {
-					return false
-				}
-			}
-			// Testing if "*.example.org" matches "foo.example.org"
-			if strings.HasSuffix(url.Host, source.Host[1:]) {
-				if strings.HasPrefix(url.Path, source.Path) {
-					return false
-				}
-			}
+		if matched, err := path.Match(source, url.Host); matched && err == nil {
+			return false
 		}
 	}
 	return true
