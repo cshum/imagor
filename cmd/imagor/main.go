@@ -2,11 +2,15 @@ package main
 
 import (
 	"flag"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/server"
 	"github.com/cshum/imagor/store/filestore"
+	"github.com/cshum/imagor/store/s3store"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
 	"os"
@@ -27,23 +31,24 @@ func main() {
 
 		imagorSecret = fs.String("imagor-secret", "",
 			"")
+		imagorUnsafe = fs.Bool("imagor-unsafe", false,
+			"")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout", 0,
 			"")
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout", 0,
-			"")
-		imagorUnsafe = fs.Bool("imagor-unsafe", false,
-			"")
-
-		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
-			"")
-		vipsDisableFilters = fs.String("vips-disable-filters", "",
 			"")
 
 		serverAddress = fs.String("server-address", "",
 			"")
 		serverPathPrefix = fs.String("server-path-prefix", "",
 			"")
-		serverCORS = fs.Bool("server-cors", false, "")
+		serverCORS = fs.Bool("server-cors", false,
+			"")
+
+		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
+			"")
+		vipsDisableFilters = fs.String("vips-disable-filters", "",
+			"")
 
 		httpLoaderForwardHeaders = fs.String(
 			"http-loader-forward-headers", "",
@@ -62,6 +67,27 @@ func main() {
 			"")
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool(
 			"http-loader-insecure-skip-verify-transport", false,
+			"")
+
+		awsRegion = fs.String("aws-region", "",
+			"")
+		awsAccessKeyId = fs.String("aws-access-key-id", "",
+			"")
+		awsSecretAccessKey = fs.String("aws-secret-access-key", "",
+			"")
+
+		s3LoaderBucket = fs.String("s3-loader-bucket", "",
+			"")
+		s3LoaderBaseDir = fs.String("s3-loader-base-dir", "",
+			"")
+		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "",
+			"")
+
+		s3StorageBucket = fs.String("s3-storage-bucket", "",
+			"")
+		s3StorageBaseDir = fs.String("s3-storage-base-dir", "",
+			"")
+		s3StoragePathPrefix = fs.String("s3-storage-path-prefix", "",
 			"")
 
 		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
@@ -86,6 +112,33 @@ func main() {
 	} else {
 		if logger, err = zap.NewProduction(); err != nil {
 			panic(err)
+		}
+	}
+
+	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
+		sess, err := session.NewSession(&aws.Config{
+			Region: awsRegion,
+			Credentials: credentials.NewStaticCredentials(
+				*awsAccessKeyId, *awsSecretAccessKey, ""),
+		})
+		if err != nil {
+			panic(err)
+		}
+		if *s3LoaderBucket != "" {
+			loaders = append(loaders,
+				s3store.New(sess, *s3LoaderBucket,
+					s3store.WithPathPrefix(*s3LoaderPathPrefix),
+					s3store.WithBaseDir(*s3LoaderBaseDir),
+				),
+			)
+		}
+		if *s3StorageBucket != "" {
+			loaders = append(loaders,
+				s3store.New(sess, *s3StorageBucket,
+					s3store.WithPathPrefix(*s3StoragePathPrefix),
+					s3store.WithBaseDir(*s3StorageBaseDir),
+				),
+			)
 		}
 	}
 
@@ -122,12 +175,14 @@ func main() {
 		imagor.New(
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
-			imagor.WithProcessors(vipsprocessor.New(
-				vipsprocessor.WithDisableBlur(*vipsDisableBlur),
-				vipsprocessor.WithDisableFilters(*vipsDisableFilters),
-				vipsprocessor.WithLogger(logger),
-				vipsprocessor.WithDebug(*debug),
-			)),
+			imagor.WithProcessors(
+				vipsprocessor.New(
+					vipsprocessor.WithDisableBlur(*vipsDisableBlur),
+					vipsprocessor.WithDisableFilters(*vipsDisableFilters),
+					vipsprocessor.WithLogger(logger),
+					vipsprocessor.WithDebug(*debug),
+				),
+			),
 			imagor.WithSecret(*imagorSecret),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithSaveTimeout(*imagorSaveTimeout),
