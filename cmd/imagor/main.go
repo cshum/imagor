@@ -53,13 +53,13 @@ func main() {
 
 		httpLoaderForwardHeaders = fs.String(
 			"http-loader-forward-headers", "",
-			"Forward request header to http loader request by csv e.g. User-Agent,Accept")
+			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
 		httpLoaderForwardUserAgent = fs.Bool(
 			"http-loader-forward-user-agent", false,
-			"Enable forward require user agent to http loader request")
+			"Enable forward require user agent to HTTP Loader request")
 		httpLoaderForwardAllHeaders = fs.Bool(
 			"http-loader-forward-all-headers", false,
-			"Enable clone request header to http loader request")
+			"Enable clone request header to HTTP Loader request")
 		httpLoaderAllowedSources = fs.String(
 			"http-loader-allowed-sources", "",
 			"Allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com")
@@ -71,35 +71,35 @@ func main() {
 			"Use HTTP transport with InsecureSkipVerify true")
 
 		awsRegion = fs.String("aws-region", "",
-			"AWS Region. Required if using S3 loader or storage")
+			"AWS Region. Required if using S3 Loader or storage")
 		awsAccessKeyId = fs.String("aws-access-key-id", "",
-			"AWS Access Key ID. Required if using S3 loader or storage")
+			"AWS Access Key ID. Required if using S3 Loader or storage")
 		awsSecretAccessKey = fs.String("aws-secret-access-key", "",
-			"AWS Secret Access Key. Required if using S3 loader or storage")
+			"AWS Secret Access Key. Required if using S3 Loader or storage")
 
 		s3LoaderBucket = fs.String("s3-loader-bucket", "",
-			"S3 Bucket for S3 loader. Will activate S3 loader only if this value present")
+			"S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present")
 		s3LoaderBaseDir = fs.String("s3-loader-base-dir", "/",
-			"Base directory for S3 loader")
+			"Base directory for S3 Loader")
 		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "/",
-			"Base path prefix for S3 loader")
+			"Base path prefix for S3 Loader")
 
 		s3StorageBucket = fs.String("s3-storage-bucket", "",
-			"S3 Bucket for S3 storage. Will activate S3 storage only if this value present")
+			"S3 Bucket for S3 Storage. Will activate S3 Storage only if this value present")
 		s3StorageBaseDir = fs.String("s3-storage-base-dir", "",
-			"Base directory for S3 storage")
+			"Base directory for S3 Storage")
 		s3StoragePathPrefix = fs.String("s3-storage-path-prefix", "",
-			"Base path prefix for S3 storage")
+			"Base path prefix for S3 Storage")
 
 		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
-			"Base directory for file loader. Will activate file loader only if this value present")
+			"Base directory for File Loader. Will activate File Loader only if this value present")
 		fileLoaderPathPrefix = fs.String("file-loader-path-prefix", "",
-			"Base path prefix for file loader")
+			"Base path prefix for File Loader")
 
 		fileStorageBaseDir = fs.String("file-storage-base-dir", "",
-			"Base directory for file storage. Will activate file storage only if this value present")
+			"Base directory for File Storage. Will activate File Storage only if this value present")
 		fileStoragePathPrefix = fs.String("file-storage-path-prefix", "",
-			"Base path prefix for file storage")
+			"Base path prefix for File Storage")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
@@ -117,6 +117,7 @@ func main() {
 	}
 
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
+		// activate AWS Session only if credentials present
 		sess, err := session.NewSession(&aws.Config{
 			Region: awsRegion,
 			Credentials: credentials.NewStaticCredentials(
@@ -126,6 +127,7 @@ func main() {
 			panic(err)
 		}
 		if *s3LoaderBucket != "" {
+			// activate S3 Loader only if bucket config presents
 			loaders = append(loaders,
 				s3store.New(sess, *s3LoaderBucket,
 					s3store.WithPathPrefix(*s3LoaderPathPrefix),
@@ -134,6 +136,7 @@ func main() {
 			)
 		}
 		if *s3StorageBucket != "" {
+			// activate S3 Storage only if bucket config presents
 			loaders = append(loaders,
 				s3store.New(sess, *s3StorageBucket,
 					s3store.WithPathPrefix(*s3StoragePathPrefix),
@@ -144,6 +147,7 @@ func main() {
 	}
 
 	if *fileLoaderBaseDir != "" {
+		// activate File Loader only if base dir config presents
 		loaders = append(loaders,
 			filestore.New(
 				*fileLoaderBaseDir,
@@ -153,6 +157,7 @@ func main() {
 	}
 
 	if *fileStorageBaseDir != "" {
+		// activate File Storage only if base dir config presents
 		storages = append(storages,
 			filestore.New(
 				*fileLoaderBaseDir,
@@ -161,6 +166,7 @@ func main() {
 		)
 	}
 
+	// fallback with HTTP Loader
 	loaders = append(loaders,
 		httploader.New(
 			httploader.WithForwardUserAgent(*httpLoaderForwardUserAgent),
@@ -172,6 +178,7 @@ func main() {
 		),
 	)
 
+	// run server with Imagor app
 	server.New(
 		imagor.New(
 			imagor.WithLoaders(loaders...),
