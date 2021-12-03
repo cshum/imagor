@@ -49,7 +49,26 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 		return nil, imagor.ErrPass
 	}
 	client := &http.Client{Transport: h.Transport}
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
+	req, err := h.newRequest(r, http.MethodGet, image)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	buf, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		return buf, imagor.NewError(http.StatusText(resp.StatusCode), resp.StatusCode)
+	}
+	return buf, nil
+}
+
+func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(r.Context(), method, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -66,18 +85,7 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	for key, value := range h.OverrideHeaders {
 		req.Header.Set(key, value)
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	buf, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode >= 400 {
-		return buf, imagor.NewError(http.StatusText(resp.StatusCode), resp.StatusCode)
-	}
-	return buf, nil
+	return req, nil
 }
 
 func isSourceAllowed(u *url.URL, sources []string) bool {
