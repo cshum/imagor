@@ -14,14 +14,17 @@ type HTTPLoader struct {
 	// If nil, http.DefaultTransport is used.
 	Transport http.RoundTripper `json:"-"`
 
+	// ForwardHeaders copy request headers to image request headers
 	ForwardHeaders []string
 
+	// OverrideHeaders override image request headers
 	OverrideHeaders map[string]string
 
 	// AllowedSources list of host names allowed to load from,
 	// supports glob patterns such as *.google.com
 	AllowedSources []string
 
+	// MaxAllowedSize maximum bytes allowed for image
 	MaxAllowedSize int
 }
 

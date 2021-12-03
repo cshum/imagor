@@ -14,7 +14,7 @@ import (
 // Middleware for http.Handler
 type Middleware func(http.Handler) http.Handler
 
-// App is a http.Handler with graceful shutdown
+// App is a http.Handler with Startup and Shutdown lifecycle
 type App interface {
 	http.Handler
 
