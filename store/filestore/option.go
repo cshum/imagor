@@ -9,11 +9,13 @@ type Option func(h *FileStore)
 
 func WithPathPrefix(prefix string) Option {
 	return func(s *FileStore) {
-		prefix = "/" + strings.Trim(prefix, "/")
-		if prefix != "/" {
-			prefix += "/"
+		if prefix != "" {
+			prefix = "/" + strings.Trim(prefix, "/")
+			if prefix != "/" {
+				prefix += "/"
+			}
+			s.PathPrefix = prefix
 		}
-		s.PathPrefix = prefix
 	}
 }
 

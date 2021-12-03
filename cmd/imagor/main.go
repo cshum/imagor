@@ -25,17 +25,6 @@ func main() {
 		debug = fs.Bool("debug", false, "debug mode")
 		port  = fs.Int("port", 9000, "sever port")
 
-		serverAddress = fs.String("server-address", "",
-			"")
-		serverPathPrefix = fs.String("server-path-prefix", "",
-			"")
-		serverCORS = fs.Bool("server-cors", false, "")
-
-		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
-			"")
-		vipsDisableFilters = fs.String("vips-disable-filters", "",
-			"")
-
 		imagorSecret = fs.String("imagor-secret", "",
 			"")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout", 0,
@@ -44,6 +33,17 @@ func main() {
 			"")
 		imagorUnsafe = fs.Bool("imagor-unsafe", false,
 			"")
+
+		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
+			"")
+		vipsDisableFilters = fs.String("vips-disable-filters", "",
+			"")
+
+		serverAddress = fs.String("server-address", "",
+			"")
+		serverPathPrefix = fs.String("server-path-prefix", "",
+			"")
+		serverCORS = fs.Bool("server-cors", false, "")
 
 		httpLoaderForwardHeaders = fs.String(
 			"http-loader-forward-headers", "",
@@ -63,6 +63,16 @@ func main() {
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool(
 			"http-loader-insecure-skip-verify-transport", false,
 			"")
+
+		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
+			"")
+		fileLoaderPathPrefix = fs.String("file-loader-path-prefix", "",
+			"")
+
+		fileStorageBaseDir = fs.String("file-storage-base-dir", "",
+			"")
+		fileStoragePathPrefix = fs.String("file-storage-path-prefix", "",
+			"")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
@@ -79,11 +89,23 @@ func main() {
 		}
 	}
 
-	loaders = append(loaders,
-		filestore.New("./"))
+	if *fileLoaderBaseDir != "" {
+		loaders = append(loaders,
+			filestore.New(
+				*fileLoaderBaseDir,
+				filestore.WithPathPrefix(*fileLoaderPathPrefix),
+			),
+		)
+	}
 
-	storages = append(storages,
-		filestore.New("./"))
+	if *fileStorageBaseDir != "" {
+		storages = append(storages,
+			filestore.New(
+				*fileLoaderBaseDir,
+				filestore.WithPathPrefix(*fileStoragePathPrefix),
+			),
+		)
+	}
 
 	loaders = append(loaders,
 		httploader.New(
