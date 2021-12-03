@@ -1,7 +1,6 @@
 package imagor
 
 import (
-	cache "github.com/cshum/hybridcache"
 	"go.uber.org/zap"
 	"time"
 )
@@ -12,17 +11,6 @@ func WithLogger(logger *zap.Logger) Option {
 	return func(o *Imagor) {
 		if logger != nil {
 			o.Logger = logger
-		}
-	}
-}
-
-func WithCache(c cache.Cache, ttl time.Duration) Option {
-	return func(o *Imagor) {
-		if c != nil {
-			o.Cache = c
-			if ttl > 0 {
-				o.CacheTTL = ttl
-			}
 		}
 	}
 }
@@ -49,6 +37,14 @@ func WithRequestTimeout(timeout time.Duration) Option {
 	return func(o *Imagor) {
 		if timeout > 0 {
 			o.RequestTimeout = timeout
+		}
+	}
+}
+
+func WithSaveTimeout(timeout time.Duration) Option {
+	return func(o *Imagor) {
+		if timeout > 0 {
+			o.SaveTimeout = timeout
 		}
 	}
 }

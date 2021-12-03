@@ -56,6 +56,7 @@ func main() {
 			)),
 			imagor.WithSecret(""),
 			imagor.WithRequestTimeout(0),
+			imagor.WithSaveTimeout(0),
 			imagor.WithUnsafe(true),
 			imagor.WithLogger(logger),
 			imagor.WithDebug(debug),

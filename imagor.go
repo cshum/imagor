@@ -44,31 +44,32 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	// Cache is meant to be a short-lived buffer and call suppression.
-	// For actual caching please place this under a reverse-proxy and CDN
 	Unsafe         bool
 	Secret         string
 	Loaders        []Loader
 	Storages       []Storage
 	Processors     []Processor
 	RequestTimeout time.Duration
-	Cache          cache.Cache `json:"-"`
-	CacheTTL       time.Duration
-	Logger         *zap.Logger `json:"-"`
-	Debug          bool
+	SaveTimeout    time.Duration
+
+	// Cache is meant to be a short-lived buffer and call suppression.
+	// For actual caching please configure your CDN or caching proxy
+	Cache  cache.Cache `json:"-"`
+	Logger *zap.Logger `json:"-"`
+	Debug  bool
 }
 
 // New create new Imagor
 func New(options ...Option) *Imagor {
 	app := &Imagor{
 		Logger:         zap.NewNop(),
-		Cache:          cache.NewMemory(1000, 1<<28, time.Minute),
-		CacheTTL:       time.Minute,
 		RequestTimeout: time.Second * 30,
+		SaveTimeout:    time.Minute,
 	}
 	for _, option := range options {
 		option(app)
 	}
+	app.Cache = cache.NewMemory(1000, 1<<28, app.SaveTimeout)
 	if app.Debug {
 		app.Logger.Debug("config", zap.Any("imagor", app))
 	}
@@ -188,42 +189,44 @@ func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, e
 }
 
 func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
-	buf, err = cache.NewFunc(app.Cache, app.RequestTimeout, app.CacheTTL, app.CacheTTL).
-		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
-			dr := r.WithContext(ctx)
-			for _, loader := range app.Loaders {
-				b, e := loader.Load(dr, image)
-				if len(b) > 0 {
-					buf = b
-				}
-				if e == nil {
-					err = nil
-					break
-				}
-				// should not log expected error as of now, as it has not reached the end
-				if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-					app.Logger.Error("load", zap.String("image", image), zap.Error(e))
-				} else if app.Debug {
-					app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
-				}
-				err = e
+	buf, err = cache.NewFunc(
+		app.Cache, app.RequestTimeout, app.SaveTimeout, app.SaveTimeout,
+	).DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
+		dr := r.WithContext(ctx)
+		for _, loader := range app.Loaders {
+			b, e := loader.Load(dr, image)
+			if len(b) > 0 {
+				buf = b
 			}
-			if err == nil {
-				if app.Debug {
-					app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
-				}
-				if len(app.Storages) > 0 {
-					app.save(ctx, app.Storages, image, buf)
-				}
-			} else if !errors.Is(err, context.Canceled) {
-				if err == ErrPass {
-					err = ErrNotFound
-				}
-				// log non user-initiated error finally
-				app.Logger.Error("load", zap.String("image", image), zap.Error(err))
+			if e == nil {
+				err = nil
+				break
 			}
-			return
-		})
+			// should not log expected error as of now, as it has not reached the end
+			if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
+				app.Logger.Error("load", zap.String("image", image), zap.Error(e))
+			} else if app.Debug {
+				app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
+			}
+			err = e
+		}
+		if err == nil {
+			if app.Debug {
+				app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
+			}
+			if len(app.Storages) > 0 {
+				app.save(ctx, app.Storages, image, buf)
+			}
+		} else if !errors.Is(err, context.Canceled) {
+			if err == ErrPass {
+				err = ErrNotFound
+			}
+			// log non user-initiated error finally
+			app.Logger.Error("load", zap.String("image", image), zap.Error(err))
+		}
+		return
+	})
+	// wrap error to handle cache serialization
 	err = WrapError(err)
 	return
 }
@@ -234,8 +237,8 @@ func (app *Imagor) save(
 	for _, storage := range storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
-		if app.RequestTimeout > 0 {
-			sCtx, cancel = context.WithTimeout(sCtx, app.RequestTimeout)
+		if app.SaveTimeout > 0 {
+			sCtx, cancel = context.WithTimeout(sCtx, app.SaveTimeout)
 		}
 		go func(s Storage) {
 			defer cancel()
