@@ -141,7 +141,7 @@ func main() {
 		}
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
-			loaders = append(loaders,
+			storages = append(storages,
 				s3store.New(sess, *s3StorageBucket,
 					s3store.WithPathPrefix(*s3StoragePathPrefix),
 					s3store.WithBaseDir(*s3StorageBaseDir),
