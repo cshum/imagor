@@ -1,23 +1,75 @@
 package main
 
 import (
+	"flag"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/server"
 	"github.com/cshum/imagor/store/filestore"
+	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
+	"os"
 )
 
 func main() {
 	var (
-		debug    = true
+		fs       = flag.NewFlagSet("imagor", flag.ExitOnError)
 		logger   *zap.Logger
 		err      error
 		loaders  []imagor.Loader
 		storages []imagor.Storage
 	)
-	if debug {
+
+	var (
+		debug = fs.Bool("debug", false, "debug mode")
+		port  = fs.Int("port", 9000, "sever port")
+
+		serverAddress = fs.String("server-address", "",
+			"")
+		serverPathPrefix = fs.String("server-path-prefix", "",
+			"")
+		serverCORS = fs.Bool("server-cors", false, "")
+
+		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
+			"")
+		vipsDisableFilters = fs.String("vips-disable-filters", "",
+			"")
+
+		imagorSecret = fs.String("imagor-secret", "",
+			"")
+		imagorRequestTimeout = fs.Duration("imagor-request-timeout", 0,
+			"")
+		imagorSaveTimeout = fs.Duration("imagor-save-timeout", 0,
+			"")
+		imagorUnsafe = fs.Bool("imagor-unsafe", false,
+			"")
+
+		httpLoaderForwardHeaders = fs.String(
+			"http-loader-forward-headers", "",
+			"")
+		httpLoaderForwardUserAgent = fs.Bool(
+			"http-loader-forward-user-agent", false,
+			"")
+		httpLoaderForwardAllHeaders = fs.Bool(
+			"http-loader-forward-all-headers", false,
+			"")
+		httpLoaderAllowedSources = fs.String(
+			"http-loader-allowed-sources", "",
+			"")
+		httpLoaderMaxAllowedSize = fs.Int(
+			"http-loader-max-allowed-size", 0,
+			"")
+		httpLoaderInsecureSkipVerifyTransport = fs.Bool(
+			"http-loader-insecure-skip-verify-transport", false,
+			"")
+	)
+
+	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
+		panic(err)
+	}
+
+	if *debug {
 		if logger, err = zap.NewDevelopment(); err != nil {
 			panic(err)
 		}
@@ -35,12 +87,12 @@ func main() {
 
 	loaders = append(loaders,
 		httploader.New(
-			httploader.WithForwardUserAgent(true),
-			httploader.WithForwardAllHeaders(false),
-			httploader.WithForwardHeaders(""),
-			httploader.WithAllowedSources(""),
-			httploader.WithMaxAllowedSize(0),
-			httploader.WithInsecureSkipVerifyTransport(false),
+			httploader.WithForwardUserAgent(*httpLoaderForwardUserAgent),
+			httploader.WithForwardAllHeaders(*httpLoaderForwardAllHeaders),
+			httploader.WithForwardHeaders(*httpLoaderForwardHeaders),
+			httploader.WithAllowedSources(*httpLoaderAllowedSources),
+			httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
+			httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
 		),
 	)
 
@@ -49,23 +101,23 @@ func main() {
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
 			imagor.WithProcessors(vipsprocessor.New(
-				vipsprocessor.WithDisableBlur(false),
-				vipsprocessor.WithDisableFilters(""),
+				vipsprocessor.WithDisableBlur(*vipsDisableBlur),
+				vipsprocessor.WithDisableFilters(*vipsDisableFilters),
 				vipsprocessor.WithLogger(logger),
-				vipsprocessor.WithDebug(debug),
+				vipsprocessor.WithDebug(*debug),
 			)),
-			imagor.WithSecret(""),
-			imagor.WithRequestTimeout(0),
-			imagor.WithSaveTimeout(0),
-			imagor.WithUnsafe(true),
+			imagor.WithSecret(*imagorSecret),
+			imagor.WithRequestTimeout(*imagorRequestTimeout),
+			imagor.WithSaveTimeout(*imagorSaveTimeout),
+			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),
-			imagor.WithDebug(debug),
+			imagor.WithDebug(*debug),
 		),
-		server.WithAddress(""),
-		server.WithPort(9000),
-		server.WithPathPrefix(""),
-		server.WithCORS(true),
+		server.WithAddress(*serverAddress),
+		server.WithPort(*port),
+		server.WithPathPrefix(*serverPathPrefix),
+		server.WithCORS(*serverCORS),
 		server.WithLogger(logger),
-		server.WithDebug(debug),
+		server.WithDebug(*debug),
 	).Run()
 }
