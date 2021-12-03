@@ -11,6 +11,7 @@ import (
 	"github.com/cshum/imagor/server"
 	"github.com/cshum/imagor/store/filestore"
 	"github.com/cshum/imagor/store/s3store"
+	"github.com/joho/godotenv"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
 	"os"
@@ -25,6 +26,10 @@ func main() {
 		loaders  []imagor.Loader
 		storages []imagor.Storage
 	)
+
+	if err = godotenv.Load(); err != nil {
+		panic(err)
+	}
 
 	var (
 		debug = fs.Bool("debug", false, "debug mode")
@@ -51,23 +56,17 @@ func main() {
 		vipsDisableFilters = fs.String("vips-disable-filters", "",
 			"Disable filters by csv e.g. blur,watermark,rgb")
 
-		httpLoaderForwardHeaders = fs.String(
-			"http-loader-forward-headers", "",
+		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
-		httpLoaderForwardUserAgent = fs.Bool(
-			"http-loader-forward-user-agent", false,
+		httpLoaderForwardUserAgent = fs.Bool("http-loader-forward-user-agent", false,
 			"Enable forward require user agent to HTTP Loader request")
-		httpLoaderForwardAllHeaders = fs.Bool(
-			"http-loader-forward-all-headers", false,
+		httpLoaderForwardAllHeaders = fs.Bool("http-loader-forward-all-headers", false,
 			"Enable clone request header to HTTP Loader request")
-		httpLoaderAllowedSources = fs.String(
-			"http-loader-allowed-sources", "",
+		httpLoaderAllowedSources = fs.String("http-loader-allowed-sources", "",
 			"Allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com")
-		httpLoaderMaxAllowedSize = fs.Int(
-			"http-loader-max-allowed-size", 0,
+		httpLoaderMaxAllowedSize = fs.Int("http-loader-max-allowed-size", 0,
 			"Maximum allowed size in bytes for loading images if set")
-		httpLoaderInsecureSkipVerifyTransport = fs.Bool(
-			"http-loader-insecure-skip-verify-transport", false,
+		httpLoaderInsecureSkipVerifyTransport = fs.Bool("http-loader-insecure-skip-verify-transport", false,
 			"Use HTTP transport with InsecureSkipVerify true")
 
 		awsRegion = fs.String("aws-region", "",
