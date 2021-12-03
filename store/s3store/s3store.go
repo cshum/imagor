@@ -18,8 +18,8 @@ import (
 )
 
 type S3Store struct {
-	S3       *s3.S3
-	Uploader *s3manager.Uploader
+	S3       *s3.S3              `json:"-"`
+	Uploader *s3manager.Uploader `json:"-"`
 	Bucket   string
 
 	BaseDir    string

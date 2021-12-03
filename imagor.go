@@ -46,33 +46,36 @@ type Processor interface {
 type Imagor struct {
 	// Cache is meant to be a short-lived buffer and call suppression.
 	// For actual caching please place this under a reverse-proxy and CDN
-	Cache          cache.Cache
-	CacheTTL       time.Duration
 	Unsafe         bool
 	Secret         string
 	Loaders        []Loader
 	Storages       []Storage
 	Processors     []Processor
 	RequestTimeout time.Duration
-	Logger         *zap.Logger
+	Cache          cache.Cache `json:"-"`
+	CacheTTL       time.Duration
+	Logger         *zap.Logger `json:"-"`
 	Debug          bool
 }
 
 func New(options ...Option) *Imagor {
-	o := &Imagor{
+	app := &Imagor{
 		Logger:         zap.NewNop(),
 		Cache:          cache.NewMemory(1000, 1<<28, time.Minute),
 		CacheTTL:       time.Minute,
 		RequestTimeout: time.Second * 30,
 	}
 	for _, option := range options {
-		option(o)
+		option(app)
 	}
-	return o
+	if app.Debug {
+		app.Logger.Debug("imagor", zap.Any("config", app))
+	}
+	return app
 }
 
-func (o *Imagor) Startup(ctx context.Context) (err error) {
-	for _, processor := range o.Processors {
+func (app *Imagor) Startup(ctx context.Context) (err error) {
+	for _, processor := range app.Processors {
 		if err = processor.Startup(ctx); err != nil {
 			return
 		}
@@ -80,8 +83,8 @@ func (o *Imagor) Startup(ctx context.Context) (err error) {
 	return
 }
 
-func (o *Imagor) Shutdown(ctx context.Context) (err error) {
-	for _, processor := range o.Processors {
+func (app *Imagor) Shutdown(ctx context.Context) (err error) {
+	for _, processor := range app.Processors {
 		if err = processor.Shutdown(ctx); err != nil {
 			return
 		}
@@ -89,13 +92,13 @@ func (o *Imagor) Shutdown(ctx context.Context) (err error) {
 	return
 }
 
-func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	uri := r.URL.EscapedPath()
 	params := ParseParams(uri)
-	if o.Debug {
-		o.Logger.Debug("params", zap.Any("params", params), zap.String("uri", uri))
+	if app.Debug {
+		app.Logger.Debug("params", zap.Any("params", params), zap.String("uri", uri))
 	}
-	buf, meta, err := o.Do(r, params)
+	buf, meta, err := app.Do(r, params)
 	ln := len(buf)
 	if meta != nil {
 		if params.Meta {
@@ -128,34 +131,34 @@ func (o *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (o *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, err error) {
+func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, err error) {
 	var cancel func()
 	ctx := r.Context()
-	if o.RequestTimeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, o.RequestTimeout)
+	if app.RequestTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
 		defer cancel()
 	}
-	if !(o.Unsafe && params.Unsafe) && !params.Verify(o.Secret) {
+	if !(app.Unsafe && params.Unsafe) && !params.Verify(app.Secret) {
 		err = ErrHashMismatch
-		if o.Debug {
-			o.Logger.Debug("hash mismatch", zap.Any("params", params), zap.String("expected", Hash(params.Path, o.Secret)))
+		if app.Debug {
+			app.Logger.Debug("hash mismatch", zap.Any("params", params), zap.String("expected", Hash(params.Path, app.Secret)))
 		}
 		return
 	}
-	if buf, err = o.load(r, params.Image); err != nil {
-		o.Logger.Info("load", zap.Any("params", params), zap.Error(err))
+	if buf, err = app.load(r, params.Image); err != nil {
+		app.Logger.Info("load", zap.Any("params", params), zap.Error(err))
 		return
 	}
 	load := func(image string) ([]byte, error) {
-		return o.load(r, image)
+		return app.load(r, image)
 	}
-	for _, processor := range o.Processors {
+	for _, processor := range app.Processors {
 		b, m, e := processor.Process(ctx, buf, params, load)
 		if e == nil {
 			buf = b
 			meta = m
-			if o.Debug {
-				o.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta), zap.Int("size", len(buf)))
+			if app.Debug {
+				app.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta), zap.Int("size", len(buf)))
 			}
 			break
 		} else {
@@ -164,23 +167,23 @@ func (o *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, err
 					// pass to next processor
 					buf = b
 				}
-				if o.Debug {
-					o.Logger.Debug("process", zap.Any("params", params), zap.Error(e))
+				if app.Debug {
+					app.Logger.Debug("process", zap.Any("params", params), zap.Error(e))
 				}
 			} else {
 				err = e
-				o.Logger.Error("process", zap.Any("params", params), zap.Error(e))
+				app.Logger.Error("process", zap.Any("params", params), zap.Error(e))
 			}
 		}
 	}
 	return
 }
 
-func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
-	buf, err = cache.NewFunc(o.Cache, o.RequestTimeout, o.CacheTTL, o.CacheTTL).
+func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
+	buf, err = cache.NewFunc(app.Cache, app.RequestTimeout, app.CacheTTL, app.CacheTTL).
 		DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 			dr := r.WithContext(ctx)
-			for _, loader := range o.Loaders {
+			for _, loader := range app.Loaders {
 				b, e := loader.Load(dr, image)
 				if len(b) > 0 {
 					buf = b
@@ -191,25 +194,25 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 				}
 				// should not log expected error as of now, as it has not reached the end
 				if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-					o.Logger.Error("load", zap.String("image", image), zap.Error(e))
-				} else if o.Debug {
-					o.Logger.Debug("load", zap.String("image", image), zap.Error(e))
+					app.Logger.Error("load", zap.String("image", image), zap.Error(e))
+				} else if app.Debug {
+					app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
 				}
 				err = e
 			}
 			if err == nil {
-				if o.Debug {
-					o.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
+				if app.Debug {
+					app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
 				}
-				if len(o.Storages) > 0 {
-					o.save(ctx, o.Storages, image, buf)
+				if len(app.Storages) > 0 {
+					app.save(ctx, app.Storages, image, buf)
 				}
 			} else if !errors.Is(err, context.Canceled) {
 				if err == ErrPass {
 					err = ErrNotFound
 				}
 				// log non user-initiated error finally
-				o.Logger.Error("load", zap.String("image", image), zap.Error(err))
+				app.Logger.Error("load", zap.String("image", image), zap.Error(err))
 			}
 			return
 		})
@@ -217,21 +220,21 @@ func (o *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 	return
 }
 
-func (o *Imagor) save(
+func (app *Imagor) save(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
 	for _, storage := range storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
-		if o.RequestTimeout > 0 {
-			sCtx, cancel = context.WithTimeout(sCtx, o.RequestTimeout)
+		if app.RequestTimeout > 0 {
+			sCtx, cancel = context.WithTimeout(sCtx, app.RequestTimeout)
 		}
 		go func(s Storage) {
 			defer cancel()
 			if err := s.Save(sCtx, image, buf); err != nil {
-				o.Logger.Error("save", zap.String("image", image), zap.Error(err))
-			} else if o.Debug {
-				o.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
+				app.Logger.Error("save", zap.String("image", image), zap.Error(err))
+			} else if app.Debug {
+				app.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
 			}
 		}(storage)
 	}

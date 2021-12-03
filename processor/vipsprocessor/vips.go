@@ -12,8 +12,8 @@ import (
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
 type VipsProcessor struct {
-	Filters     map[string]FilterFunc
-	Logger      *zap.Logger
+	Filters     map[string]FilterFunc `json:"-"`
+	Logger      *zap.Logger           `json:"-"`
 	Debug       bool
 	DisableBlur bool
 }

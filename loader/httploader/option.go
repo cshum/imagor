@@ -16,9 +16,9 @@ func WithTransport(transport http.RoundTripper) Option {
 	}
 }
 
-func WithInsecureSkipVerifyTransport(enable bool) Option {
+func WithInsecureSkipVerifyTransport(enabled bool) Option {
 	return func(h *HTTPLoader) {
-		if enable {
+		if enabled {
 			transport := http.DefaultTransport.(*http.Transport).Clone()
 			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 			h.Transport = transport
