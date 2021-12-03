@@ -1,7 +1,7 @@
 ARG GOLANG_VERSION=1.17
 FROM golang:${GOLANG_VERSION}-buster as builder
 
-ARG LIBVIPS_VERSION=8.10.0
+ARG LIBVIPS_VERSION=8.12.1
 
 # Installs libvips + required libraries
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -38,8 +38,6 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-
-# RUN go test ./... -test.v -race -test.coverprofile=atomic .
 
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 

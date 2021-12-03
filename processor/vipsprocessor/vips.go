@@ -166,6 +166,7 @@ var imageTypeMap = map[string]vips.ImageType{
 	"heif":   vips.ImageTypeHEIF,
 	"bmp":    vips.ImageTypeBMP,
 	"avif":   vips.ImageTypeAVIF,
+	"jp2":    vips.ImageTypeJP2K,
 }
 
 var imageMimeTypeMap = map[string]string{
@@ -180,6 +181,7 @@ var imageMimeTypeMap = map[string]string{
 	"heif": "image/heif",
 	"bmp":  "image/bmp",
 	"avif": "image/avif",
+	"jp2":  "image/jp2",
 }
 
 func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
@@ -217,6 +219,12 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 			opts.Quality = quality
 		}
 		return image.ExportAvif(opts)
+	case vips.ImageTypeJP2K:
+		opts := vips.NewJp2kExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportJp2k(opts)
 	default:
 		opts := vips.NewJpegExportParams()
 		if quality > 0 {

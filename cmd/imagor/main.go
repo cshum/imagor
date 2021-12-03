@@ -30,13 +30,13 @@ func main() {
 	_ = godotenv.Load()
 
 	var (
-		debug = fs.Bool("debug", false, "debug mode")
-		port  = fs.Int("port", 9000, "sever port")
+		debug = fs.Bool("debug", false, "Debug mode")
+		port  = fs.Int("port", 9000, "Sever port")
 
 		imagorSecret = fs.String("imagor-secret", "",
-			"Hash secret for signing imagor url")
+			"Hash secret for signing Imagor URL")
 		imagorUnsafe = fs.Bool("imagor-unsafe", false,
-			"Enable unsafe imagor url that does not require hash signing")
+			"Enable unsafe Imagor URL that does not require hash signing")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
 			time.Second*30, "Timeout for performing imagor request")
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout",

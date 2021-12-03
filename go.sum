@@ -6,8 +6,8 @@ github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZx
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cshum/govips/v2 v2.7.2 h1:4GCBSC+EaSiYKtg7bjQM1LEtANSHnh+JWFl+GCawqXk=
-github.com/cshum/govips/v2 v2.7.2/go.mod h1:+xcXZ2M6OsjCIOF/6m8v8MDznGlTZHZiTuc+MtFaQyU=
+github.com/cshum/govips/v2 v2.7.3 h1:mkWUbhevrha7jNtEgP5vTe2IrM0OadffCqC+O3tZ64c=
+github.com/cshum/govips/v2 v2.7.3/go.mod h1:+xcXZ2M6OsjCIOF/6m8v8MDznGlTZHZiTuc+MtFaQyU=
 github.com/cshum/hybridcache v0.2.3 h1:OPyw7vpIsfpkXV9ZxEYrU1Ax1sT2nTvlAyFDHJHaF2g=
 github.com/cshum/hybridcache v0.2.3/go.mod h1:QOjdJT+huybRxHh5MHvSzh90krazPl1fG5FsKJH4xJY=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
