@@ -11,14 +11,21 @@ import (
 	"time"
 )
 
+// Middleware for http.Handler
 type Middleware func(http.Handler) http.Handler
 
+// App is a http.Handler with graceful shutdown
 type App interface {
 	http.Handler
+
+	// Startup controls app startup
 	Startup(ctx context.Context) error
+
+	// Shutdown controls app shutdown
 	Shutdown(ctx context.Context) error
 }
 
+// Server wraps the App with additional http and app lifecycle handling
 type Server struct {
 	http.Server `json:"-"`
 	App         App `json:"-"`
@@ -31,6 +38,7 @@ type Server struct {
 	Debug       bool
 }
 
+// New create new Server
 func New(app App, options ...Option) *Server {
 	s := &Server{}
 	s.App = app

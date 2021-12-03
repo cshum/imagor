@@ -58,6 +58,7 @@ type Imagor struct {
 	Debug          bool
 }
 
+// New create new Imagor
 func New(options ...Option) *Imagor {
 	app := &Imagor{
 		Logger:         zap.NewNop(),
