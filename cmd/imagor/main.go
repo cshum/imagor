@@ -10,42 +10,53 @@ import (
 
 func main() {
 	var (
+		debug    = true
 		logger   *zap.Logger
 		err      error
 		loaders  []imagor.Loader
 		storages []imagor.Storage
 	)
-	if logger, err = zap.NewDevelopment(); err != nil {
-		panic(err)
+	if debug {
+		if logger, err = zap.NewDevelopment(); err != nil {
+			panic(err)
+		}
+	} else {
+		if logger, err = zap.NewProduction(); err != nil {
+			panic(err)
+		}
 	}
 
 	loaders = append(loaders,
 		httploader.New(
 			httploader.WithForwardUserAgent(true),
+			httploader.WithForwardAllHeaders(false),
 			httploader.WithAllowedSources(""),
+			httploader.WithMaxAllowedSize(0),
 			httploader.WithInsecureSkipVerifyTransport(false),
 		),
 	)
 
 	server.New(
 		imagor.New(
-			imagor.WithLogger(logger),
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
 			imagor.WithProcessors(vipsprocessor.New(
 				vipsprocessor.WithLogger(logger),
-				vipsprocessor.WithDebug(true),
+				vipsprocessor.WithDebug(debug),
 			)),
 			imagor.WithSecret(""),
 			imagor.WithRequestTimeout(0),
 			imagor.WithUnsafe(true),
-			imagor.WithDebug(true),
+			imagor.WithLogger(logger),
+			imagor.WithDebug(debug),
 		),
+		server.WithAddress(""),
 		server.WithPort(9000),
-		server.WithLogger(logger),
 		server.WithPathPrefix(""),
 		server.WithReadTimeout(0),
+		server.WithWriteTimeout(0),
 		server.WithCORS(true),
-		server.WithDebug(true),
+		server.WithLogger(logger),
+		server.WithDebug(debug),
 	).Run()
 }

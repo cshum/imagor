@@ -28,7 +28,20 @@ func WithInsecureSkipVerifyTransport(enable bool) Option {
 
 func WithForwardHeaders(headers ...string) Option {
 	return func(h *HTTPLoader) {
-		h.ForwardHeaders = append(h.ForwardHeaders, headers...)
+		for _, raw := range headers {
+			splits := strings.Split(raw, ",")
+			for _, header := range splits {
+				h.ForwardHeaders = append(h.ForwardHeaders, header)
+			}
+		}
+	}
+}
+
+func WithForwardAllHeaders(enabled bool) Option {
+	return func(h *HTTPLoader) {
+		if enabled {
+			h.ForwardHeaders = []string{"*"}
+		}
 	}
 }
 

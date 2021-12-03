@@ -12,8 +12,9 @@ import (
 )
 
 const (
+	Name      = "Imagor"
 	Version   = "0.1.0"
-	UserAgent = "Imagor/" + Version
+	UserAgent = Name + "/" + Version
 )
 
 type LoadFunc func(string) ([]byte, error)

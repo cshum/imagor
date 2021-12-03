@@ -11,7 +11,7 @@ import (
 
 func handleDefault(w http.ResponseWriter, r *http.Request) {
 	resJSON(w, map[string]string{
-		"app":     "imagor",
+		"app":     imagor.Name,
 		"version": imagor.Version,
 	})
 	return
