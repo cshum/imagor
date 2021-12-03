@@ -12,10 +12,11 @@ import (
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
 type VipsProcessor struct {
-	Filters     map[string]FilterFunc `json:"-"`
-	Logger      *zap.Logger           `json:"-"`
-	Debug       bool
-	DisableBlur bool
+	Filters        map[string]FilterFunc `json:"-"`
+	DisableBlur    bool
+	DisableFilters []string
+	Logger         *zap.Logger `json:"-"`
+	Debug          bool
 }
 
 func New(options ...Option) *VipsProcessor {
@@ -43,7 +44,10 @@ func New(options ...Option) *VipsProcessor {
 		option(v)
 	}
 	if v.DisableBlur {
-		WithoutFilter("blur", "sharpen")(v)
+		v.DisableFilters = append(v.DisableFilters, "blur", "sharpen")
+	}
+	for _, name := range v.DisableFilters {
+		delete(v.Filters, name)
 	}
 	return v
 }

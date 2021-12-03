@@ -49,6 +49,8 @@ func main() {
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
 			imagor.WithProcessors(vipsprocessor.New(
+				vipsprocessor.WithDisableBlur(false),
+				vipsprocessor.WithDisableFilters(""),
 				vipsprocessor.WithLogger(logger),
 				vipsprocessor.WithDebug(debug),
 			)),
