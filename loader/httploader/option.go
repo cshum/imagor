@@ -31,7 +31,10 @@ func WithForwardHeaders(headers ...string) Option {
 		for _, raw := range headers {
 			splits := strings.Split(raw, ",")
 			for _, header := range splits {
-				h.ForwardHeaders = append(h.ForwardHeaders, header)
+				header = strings.TrimSpace(header)
+				if len(header) > 0 {
+					h.ForwardHeaders = append(h.ForwardHeaders, header)
+				}
 			}
 		}
 	}

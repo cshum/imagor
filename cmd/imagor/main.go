@@ -30,6 +30,7 @@ func main() {
 		httploader.New(
 			httploader.WithForwardUserAgent(true),
 			httploader.WithForwardAllHeaders(false),
+			httploader.WithForwardHeaders(""),
 			httploader.WithAllowedSources(""),
 			httploader.WithMaxAllowedSize(0),
 			httploader.WithInsecureSkipVerifyTransport(false),
