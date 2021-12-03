@@ -13,7 +13,7 @@ import (
 
 const (
 	Name      = "Imagor"
-	Version   = "0.1.0"
+	Version   = "0.0.1"
 	UserAgent = Name + "/" + Version
 )
 
@@ -51,12 +51,9 @@ type Imagor struct {
 	Processors     []Processor
 	RequestTimeout time.Duration
 	SaveTimeout    time.Duration
-
-	// Cache is meant to be a short-lived buffer and call suppression.
-	// For actual caching please configure your CDN or caching proxy
-	Cache  cache.Cache `json:"-"`
-	Logger *zap.Logger `json:"-"`
-	Debug  bool
+	Cache          cache.Cache `json:"-"`
+	Logger         *zap.Logger `json:"-"`
+	Debug          bool
 }
 
 // New create new Imagor
