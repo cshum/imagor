@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -30,8 +31,9 @@ func main() {
 	_ = godotenv.Load()
 
 	var (
-		debug = fs.Bool("debug", false, "Debug mode")
-		port  = fs.Int("port", 9000, "Sever port")
+		debug   = fs.Bool("debug", false, "Debug mode")
+		port    = fs.Int("port", 9000, "Sever port")
+		version = fs.Bool("version", false, "Imagor version")
 
 		imagorSecret = fs.String("imagor-secret", "",
 			"Hash secret for signing Imagor URL")
@@ -101,6 +103,11 @@ func main() {
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
 		panic(err)
+	}
+
+	if *version {
+		fmt.Println(imagor.Version)
+		return
 	}
 
 	if *debug {
