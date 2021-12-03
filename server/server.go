@@ -47,12 +47,11 @@ func New(app *imagor.Imagor, options ...Option) *Server {
 		s.Handler = http.StripPrefix(s.PathPrefix, s.Handler)
 	}
 	s.Handler = s.panicHandler(s.Handler)
+	s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
 	return s
 }
 
 func (s *Server) Run() {
-	s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
-
 	if err := s.Imagor.Startup(context.Background()); err != nil {
 		s.Logger.Fatal("imagor start", zap.Error(err))
 	}
