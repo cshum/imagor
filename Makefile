@@ -14,7 +14,7 @@ docker-build:
 	docker build --no-cache=true --build-arg IMAGOR_VERSION=$(VERSION) -t shumc/imagor:$(VERSION) .
 
 docker-push:
-	docker tag shumc/imagor:latest shumc/imagor$(VERSION)
+	docker tag shumc/imagor:$(VERSION) shumc/imagor:latest
 	docker push shumc/imagor:$(VERSION)
 	docker push shumc/imagor:latest
 
