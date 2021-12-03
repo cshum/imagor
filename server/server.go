@@ -65,7 +65,7 @@ func (s *Server) Run() {
 		}
 	}()
 
-	s.Logger.Info("server start", zap.String("address", s.Address), zap.Int("port", s.Port))
+	s.Logger.Info("server start", zap.String("addr", s.Addr))
 	<-done
 
 	// graceful shutdown

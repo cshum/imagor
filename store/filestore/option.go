@@ -7,13 +7,13 @@ import (
 
 type Option func(h *FileStore)
 
-func WithBaseURI(baseURI string) Option {
+func WithPathPrefix(prefix string) Option {
 	return func(s *FileStore) {
-		baseURI = "/" + strings.Trim(baseURI, "/")
-		if baseURI != "/" {
-			baseURI += "/"
+		prefix = "/" + strings.Trim(prefix, "/")
+		if prefix != "/" {
+			prefix += "/"
 		}
-		s.BaseURI = baseURI
+		s.PathPrefix = prefix
 	}
 }
 

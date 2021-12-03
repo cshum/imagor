@@ -22,8 +22,8 @@ type S3Store struct {
 	Uploader *s3manager.Uploader
 	Bucket   string
 
-	BaseDir string
-	BaseURI string
+	BaseDir    string
+	PathPrefix string
 }
 
 func New(sess *session.Session, bucket string, options ...Option) *S3Store {
@@ -37,8 +37,8 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 		Uploader: s3manager.NewUploader(sess),
 		Bucket:   bucket,
 
-		BaseDir: baseDir,
-		BaseURI: "/",
+		BaseDir:    baseDir,
+		PathPrefix: "/",
 	}
 	for _, option := range options {
 		option(s)
@@ -50,10 +50,10 @@ func (s *S3Store) Path(image string) (string, bool) {
 	image = "/" + strings.TrimPrefix(path.Clean(
 		strings.ReplaceAll(image, ":/", "%3A"),
 	), "/")
-	if !strings.HasPrefix(image, s.BaseURI) {
+	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.BaseURI)), true
+	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
 func (s *S3Store) Load(r *http.Request, image string) ([]byte, error) {

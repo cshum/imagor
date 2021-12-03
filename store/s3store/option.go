@@ -6,16 +6,6 @@ import (
 
 type Option func(h *S3Store)
 
-func WithBaseURI(baseURI string) Option {
-	return func(s *S3Store) {
-		baseURI = "/" + strings.Trim(baseURI, "/")
-		if baseURI != "/" {
-			baseURI += "/"
-		}
-		s.BaseURI = baseURI
-	}
-}
-
 func WithBaseDir(baseDir string) Option {
 	return func(s *S3Store) {
 		baseDir = "/" + strings.Trim(baseDir, "/")
@@ -23,5 +13,15 @@ func WithBaseDir(baseDir string) Option {
 			baseDir += "/"
 		}
 		s.BaseDir = baseDir
+	}
+}
+
+func WithPathPrefix(prefix string) Option {
+	return func(s *S3Store) {
+		prefix = "/" + strings.Trim(prefix, "/")
+		if prefix != "/" {
+			prefix += "/"
+		}
+		s.PathPrefix = prefix
 	}
 }

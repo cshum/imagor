@@ -16,14 +16,14 @@ var dotFileRegex = regexp.MustCompile("/\\.")
 
 type FileStore struct {
 	BaseDir    string
-	BaseURI    string
+	PathPrefix string
 	Blacklists []*regexp.Regexp
 }
 
 func New(baseDir string, options ...Option) *FileStore {
 	s := &FileStore{
 		BaseDir:    baseDir,
-		BaseURI:    "/",
+		PathPrefix: "/",
 		Blacklists: []*regexp.Regexp{dotFileRegex},
 	}
 	for _, option := range options {
@@ -41,10 +41,10 @@ func (s *FileStore) Path(image string) (string, bool) {
 			return "", false
 		}
 	}
-	if !strings.HasPrefix(image, s.BaseURI) {
+	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.BaseURI)), true
+	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
 func (s *FileStore) Load(_ *http.Request, image string) ([]byte, error) {

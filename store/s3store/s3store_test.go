@@ -62,7 +62,7 @@ func TestS3Store_Path(t *testing.T) {
 			}
 			var opts []Option
 			if tt.baseURI != "" {
-				opts = append(opts, WithBaseURI(tt.baseURI))
+				opts = append(opts, WithPathPrefix(tt.baseURI))
 			}
 			if tt.baseDir != "" {
 				opts = append(opts, WithBaseDir(tt.baseDir))
