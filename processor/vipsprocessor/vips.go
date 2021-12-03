@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
 	"go.uber.org/zap"
@@ -11,8 +12,18 @@ import (
 
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
+type FilterMap map[string]FilterFunc
+
+func (m FilterMap) MarshalJSON() ([]byte, error) {
+	var names []string
+	for name := range m {
+		names = append(names, name)
+	}
+	return json.Marshal(names)
+}
+
 type VipsProcessor struct {
-	Filters        map[string]FilterFunc `json:"-"`
+	Filters        FilterMap
 	DisableBlur    bool
 	DisableFilters []string
 	Logger         *zap.Logger `json:"-"`
@@ -21,7 +32,7 @@ type VipsProcessor struct {
 
 func New(options ...Option) *VipsProcessor {
 	v := &VipsProcessor{
-		Filters: map[string]FilterFunc{
+		Filters: FilterMap{
 			"watermark":        watermark,
 			"round_corner":     roundCorner,
 			"rotate":           rotate,
