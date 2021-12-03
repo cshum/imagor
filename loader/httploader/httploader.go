@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 )
 
 type HTTPLoader struct {
@@ -45,10 +46,28 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if u.Host == "" || u.Scheme == "" {
 		return nil, imagor.ErrPass
 	}
-	if !isSourceAllowed(u, h.AllowedSources) {
+	if !h.isUrlAllowed(u) {
 		return nil, imagor.ErrPass
 	}
 	client := &http.Client{Transport: h.Transport}
+	if h.MaxAllowedSize > 0 {
+		req, err := h.newRequest(r, http.MethodHead, image)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode < 200 && resp.StatusCode > 206 {
+			return nil, imagor.NewErrorFromStatusCode(resp.StatusCode)
+		}
+		contentLength, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
+		if contentLength > h.MaxAllowedSize {
+			return nil, imagor.ErrMaxSizeExceeded
+		}
+	}
 	req, err := h.newRequest(r, http.MethodGet, image)
 	if err != nil {
 		return nil, err
@@ -62,7 +81,7 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode >= 400 {
-		return buf, imagor.NewError(http.StatusText(resp.StatusCode), resp.StatusCode)
+		return buf, imagor.NewErrorFromStatusCode(resp.StatusCode)
 	}
 	return buf, nil
 }
@@ -88,11 +107,11 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 	return req, nil
 }
 
-func isSourceAllowed(u *url.URL, sources []string) bool {
-	if len(sources) == 0 {
+func (h *HTTPLoader) isUrlAllowed(u *url.URL) bool {
+	if len(h.AllowedSources) == 0 {
 		return true
 	}
-	for _, source := range sources {
+	for _, source := range h.AllowedSources {
 		if matched, e := path.Match(source, u.Host); matched && e == nil {
 			return true
 		}

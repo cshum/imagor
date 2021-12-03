@@ -35,6 +35,10 @@ func NewError(msg string, code int) Error {
 	return Error{Message: msg, Code: code}
 }
 
+func NewErrorFromStatusCode(code int) Error {
+	return NewError(http.StatusText(code), code)
+}
+
 func WrapError(err error) error {
 	if err == nil {
 		return nil
