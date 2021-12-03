@@ -27,9 +27,7 @@ func main() {
 		storages []imagor.Storage
 	)
 
-	if err = godotenv.Load(); err != nil {
-		panic(err)
-	}
+	_ = godotenv.Load()
 
 	var (
 		debug = fs.Bool("debug", false, "debug mode")
