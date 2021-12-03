@@ -2,6 +2,7 @@ vendor/
 **/*.log
 **/*.sqlite
 .idea/
+.DS_Store
 bin/
 tmp/
 .vscode/
