@@ -17,6 +17,8 @@ type HTTPLoader struct {
 
 	OverrideHeaders map[string]string
 
+	// AllowedSources list of host names allowed to load from,
+	// supports glob patterns such as *.google.com
 	AllowedSources []string
 
 	MaxAllowedSize int
@@ -43,7 +45,7 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if u.Host == "" || u.Scheme == "" {
 		return nil, imagor.ErrPass
 	}
-	if shouldRestrictSource(u, h.AllowedSources) {
+	if !isSourceAllowed(u, h.AllowedSources) {
 		return nil, imagor.ErrPass
 	}
 	client := &http.Client{Transport: h.Transport}
@@ -78,14 +80,14 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	return buf, nil
 }
 
-func shouldRestrictSource(url *url.URL, sources []string) bool {
+func isSourceAllowed(u *url.URL, sources []string) bool {
 	if len(sources) == 0 {
-		return false
+		return true
 	}
 	for _, source := range sources {
-		if matched, err := path.Match(source, url.Host); matched && err == nil {
-			return false
+		if matched, e := path.Match(source, u.Host); matched && e == nil {
+			return true
 		}
 	}
-	return true
+	return false
 }
