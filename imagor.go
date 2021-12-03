@@ -69,7 +69,7 @@ func New(options ...Option) *Imagor {
 		option(app)
 	}
 	if app.Debug {
-		app.Logger.Debug("imagor", zap.Any("config", app))
+		app.Logger.Debug("config", zap.Any("imagor", app))
 	}
 	return app
 }
@@ -94,6 +94,13 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	uri := r.URL.EscapedPath()
+	if uri == "/" {
+		resJSON(w, map[string]string{
+			"app":     Name,
+			"version": Version,
+		})
+		return
+	}
 	params := ParseParams(uri)
 	if app.Debug {
 		app.Logger.Debug("params", zap.Any("params", params), zap.String("uri", uri))

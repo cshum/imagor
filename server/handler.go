@@ -3,18 +3,14 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cshum/imagor"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
 )
 
-func handleDefault(w http.ResponseWriter, r *http.Request) {
-	resJSON(w, map[string]string{
-		"app":     imagor.Name,
-		"version": imagor.Version,
-	})
-	return
+type errResp struct {
+	Message string `json:"message,omitempty"`
+	Code    int    `json:"status,omitempty"`
 }
 
 func handleFavicon(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +33,7 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 				}
 				s.Logger.Error("panic", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
-				resJSON(w, imagor.Error{
+				resJSON(w, errResp{
 					Message: err.Error(),
 					Code:    http.StatusInternalServerError,
 				})

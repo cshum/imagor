@@ -5,6 +5,7 @@ import (
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/server"
+	"github.com/cshum/imagor/store/filestore"
 	"go.uber.org/zap"
 )
 
@@ -25,6 +26,12 @@ func main() {
 			panic(err)
 		}
 	}
+
+	loaders = append(loaders,
+		filestore.New("./"))
+
+	storages = append(storages,
+		filestore.New("./"))
 
 	loaders = append(loaders,
 		httploader.New(
@@ -54,8 +61,6 @@ func main() {
 		server.WithAddress(""),
 		server.WithPort(9000),
 		server.WithPathPrefix(""),
-		server.WithReadTimeout(0),
-		server.WithWriteTimeout(0),
 		server.WithCORS(true),
 		server.WithLogger(logger),
 		server.WithDebug(debug),

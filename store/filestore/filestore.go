@@ -17,7 +17,7 @@ var dotFileRegex = regexp.MustCompile("/\\.")
 type FileStore struct {
 	BaseDir    string
 	PathPrefix string
-	Blacklists []*regexp.Regexp
+	Blacklists []*regexp.Regexp `json:"-"`
 }
 
 func New(baseDir string, options ...Option) *FileStore {

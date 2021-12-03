@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/rs/cors"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Option func(s *Server)
@@ -46,22 +45,6 @@ func WithCORS(enabled bool) Option {
 	return func(s *Server) {
 		if enabled {
 			s.Handler = cors.Default().Handler(s.Handler)
-		}
-	}
-}
-
-func WithReadTimeout(timeout time.Duration) Option {
-	return func(s *Server) {
-		if timeout > 0 {
-			s.ReadTimeout = timeout
-		}
-	}
-}
-
-func WithWriteTimeout(timeout time.Duration) Option {
-	return func(s *Server) {
-		if timeout > 0 {
-			s.WriteTimeout = timeout
 		}
 	}
 }
