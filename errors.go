@@ -20,7 +20,9 @@ var (
 	ErrMaxSizeExceeded   = NewError("maximum size exceeded", http.StatusBadRequest)
 )
 
-var errMsgRegexp = regexp.MustCompile("^imagor: ([0-9]+) (.*)$")
+const errPrefix = "imagor:"
+
+var errMsgRegexp = regexp.MustCompile(fmt.Sprintf("^%s ([0-9]+) (.*)$", errPrefix))
 
 type Error struct {
 	Message string `json:"message,omitempty"`
@@ -28,7 +30,7 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return fmt.Sprintf("imagor: %d %s", e.Code, e.Message)
+	return fmt.Sprintf("%s %d %s", errPrefix, e.Code, e.Message)
 }
 
 func NewError(msg string, code int) Error {

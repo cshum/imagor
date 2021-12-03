@@ -91,7 +91,7 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "imagor/"+imagor.Version)
+	req.Header.Set("User-Agent", imagor.UserAgent)
 	for _, header := range h.ForwardHeaders {
 		if header == "*" {
 			req.Header = r.Header

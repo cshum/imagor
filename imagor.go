@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-const Version = "0.1.0"
+const (
+	Version   = "0.1.0"
+	UserAgent = "Imagor/" + Version
+)
 
 type LoadFunc func(string) ([]byte, error)
 
