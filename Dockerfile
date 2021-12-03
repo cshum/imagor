@@ -1,6 +1,7 @@
 ARG GOLANG_VERSION=1.17
 FROM golang:${GOLANG_VERSION}-buster as builder
 
+ARG IMAGOR_VERSION=dev
 ARG LIBVIPS_VERSION=8.12.1
 
 # Installs libvips + required libraries
@@ -39,7 +40,9 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
+RUN go build -o ${GOPATH}/bin/imagor \
+  -ldflags="-s -w -h -X main.Version=${IMAGOR_VERSION}" \
+  ./cmd/imagor/main.go
 
 FROM debian:buster-slim
 

@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+var Version = "dev"
+
 func main() {
 	var (
 		fs       = flag.NewFlagSet("imagor", flag.ExitOnError)
@@ -106,7 +108,7 @@ func main() {
 	}
 
 	if *version {
-		fmt.Println(imagor.Version)
+		fmt.Println(Version)
 		return
 	}
 
@@ -179,12 +181,14 @@ func main() {
 			httploader.WithAllowedSources(*httpLoaderAllowedSources),
 			httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
 			httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
+			httploader.WithUserAgent(fmt.Sprintf("Imagor/%s", Version)),
 		),
 	)
 
 	// run server with Imagor app
 	server.New(
 		imagor.New(
+			imagor.WithVersion(Version),
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
 			imagor.WithProcessors(

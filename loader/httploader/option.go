@@ -83,3 +83,11 @@ func WithMaxAllowedSize(maxAllowedSize int) Option {
 		}
 	}
 }
+
+func WithUserAgent(userAgent string) Option {
+	return func(h *HTTPLoader) {
+		if userAgent != "" {
+			h.UserAgent = userAgent
+		}
+	}
+}

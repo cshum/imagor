@@ -1,8 +1,4 @@
-OK_COLOR=\033[32;01m
-NO_COLOR=\033[0m
-
 build:
-	@echo "$(OK_COLOR)==> Compiling binary$(NO_COLOR)"
 	go test && go build -o bin/imagor ./cmd/imagor/main.go
 
 test:
@@ -10,6 +6,17 @@ test:
 
 run:
 	./bin/imagor
+
+dev:
+	make build && ./bin/imagor -debug
+
+docker-build:
+	docker build --no-cache=true --build-arg IMAGOR_VERSION=$(VERSION) -t shumc/imagor:$(VERSION) .
+
+docker-push:
+	docker push shumc/imagor:$(VERSION)
+
+docker: docker-build docker-push
 
 install:
 	go get -u .

@@ -66,3 +66,11 @@ func WithDebug(debug bool) Option {
 		o.Debug = debug
 	}
 }
+
+func WithVersion(version string) Option {
+	return func(o *Imagor) {
+		if version != "" {
+			o.Version = version
+		}
+	}
+}

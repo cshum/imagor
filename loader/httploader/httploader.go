@@ -26,11 +26,16 @@ type HTTPLoader struct {
 
 	// MaxAllowedSize maximum bytes allowed for image
 	MaxAllowedSize int
+
+	// UserAgent default user agent for image request.
+	// Can be overridden by ForwardHeaders and OverrideHeaders
+	UserAgent string
 }
 
 func New(options ...Option) *HTTPLoader {
 	h := &HTTPLoader{
 		OverrideHeaders: map[string]string{},
+		UserAgent:       "Imagor",
 	}
 	for _, option := range options {
 		option(h)
@@ -94,7 +99,7 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", imagor.UserAgent)
+	req.Header.Set("User-Agent", h.UserAgent)
 	for _, header := range h.ForwardHeaders {
 		if header == "*" {
 			req.Header = r.Header

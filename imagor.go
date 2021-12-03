@@ -4,17 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/cshum/hybridcache"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
 	"time"
-)
-
-const (
-	Name      = "Imagor"
-	Version   = "0.0.1"
-	UserAgent = Name + "/" + Version
 )
 
 type LoadFunc func(string) ([]byte, error)
@@ -44,6 +39,7 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
+	Version        string
 	Unsafe         bool
 	Secret         string
 	Loaders        []Loader
@@ -59,6 +55,7 @@ type Imagor struct {
 // New create new Imagor
 func New(options ...Option) *Imagor {
 	app := &Imagor{
+		Version:        "dev",
 		Logger:         zap.NewNop(),
 		RequestTimeout: time.Second * 30,
 		SaveTimeout:    time.Minute,
@@ -94,10 +91,9 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	uri := r.URL.EscapedPath()
 	if uri == "/" {
-		resJSON(w, map[string]string{
-			"app":     Name,
-			"version": Version,
-		})
+		resJSON(w, json.RawMessage(fmt.Sprintf(
+			`{"imagor":{"version":"%s"}}`, app.Version,
+		)))
 		return
 	}
 	params := ParseParams(uri)
