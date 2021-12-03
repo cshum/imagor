@@ -78,21 +78,19 @@ func (s *Server) Run() {
 			s.Logger.Fatal("listen", zap.Error(err))
 		}
 	}()
-
 	s.Logger.Info("listen", zap.String("addr", s.Addr))
 	<-done
 
 	// graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
+	s.Logger.Info("shutdown")
 	if err := s.Shutdown(ctx); err != nil {
 		s.Logger.Error("server shutdown", zap.Error(err))
 	}
 	if err := s.App.Shutdown(ctx); err != nil {
 		s.Logger.Error("app shutdown", zap.Error(err))
 	}
-	s.Logger.Info("exit")
 	return
 }
 
