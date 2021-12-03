@@ -14,6 +14,7 @@ import (
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
 	"os"
+	"time"
 )
 
 func main() {
@@ -30,75 +31,75 @@ func main() {
 		port  = fs.Int("port", 9000, "sever port")
 
 		imagorSecret = fs.String("imagor-secret", "",
-			"")
+			"Hash secret for signing imagor url")
 		imagorUnsafe = fs.Bool("imagor-unsafe", false,
-			"")
-		imagorRequestTimeout = fs.Duration("imagor-request-timeout", 0,
-			"")
-		imagorSaveTimeout = fs.Duration("imagor-save-timeout", 0,
-			"")
+			"Enable unsafe imagor url that does not require hash signing")
+		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
+			time.Second*30, "Timeout for performing imagor request")
+		imagorSaveTimeout = fs.Duration("imagor-save-timeout",
+			time.Minute, "Timeout for saving requesting image for storage")
 
 		serverAddress = fs.String("server-address", "",
-			"")
+			"Server address")
 		serverPathPrefix = fs.String("server-path-prefix", "",
-			"")
+			"Server path prefix")
 		serverCORS = fs.Bool("server-cors", false,
-			"")
+			"Enable CORS")
 
 		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
-			"")
+			"Disable blur operations for vips processor")
 		vipsDisableFilters = fs.String("vips-disable-filters", "",
-			"")
+			"Disable filters by csv e.g. blur,watermark,rgb")
 
 		httpLoaderForwardHeaders = fs.String(
 			"http-loader-forward-headers", "",
-			"")
+			"Forward request header to http loader request by csv e.g. User-Agent,Accept")
 		httpLoaderForwardUserAgent = fs.Bool(
 			"http-loader-forward-user-agent", false,
-			"")
+			"Enable forward require user agent to http loader request")
 		httpLoaderForwardAllHeaders = fs.Bool(
 			"http-loader-forward-all-headers", false,
-			"")
+			"Enable clone request header to http loader request")
 		httpLoaderAllowedSources = fs.String(
 			"http-loader-allowed-sources", "",
-			"")
+			"Allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com")
 		httpLoaderMaxAllowedSize = fs.Int(
 			"http-loader-max-allowed-size", 0,
-			"")
+			"Maximum allowed size in bytes for loading images if set")
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool(
 			"http-loader-insecure-skip-verify-transport", false,
-			"")
+			"Use HTTP transport with InsecureSkipVerify true")
 
 		awsRegion = fs.String("aws-region", "",
-			"")
+			"AWS Region. Required if using S3 loader or storage")
 		awsAccessKeyId = fs.String("aws-access-key-id", "",
-			"")
+			"AWS Access Key ID. Required if using S3 loader or storage")
 		awsSecretAccessKey = fs.String("aws-secret-access-key", "",
-			"")
+			"AWS Secret Access Key. Required if using S3 loader or storage")
 
 		s3LoaderBucket = fs.String("s3-loader-bucket", "",
-			"")
-		s3LoaderBaseDir = fs.String("s3-loader-base-dir", "",
-			"")
-		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "",
-			"")
+			"S3 Bucket for S3 loader. Will activate S3 loader only if this value present")
+		s3LoaderBaseDir = fs.String("s3-loader-base-dir", "/",
+			"Base directory for S3 loader")
+		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "/",
+			"Base path prefix for S3 loader")
 
 		s3StorageBucket = fs.String("s3-storage-bucket", "",
-			"")
+			"S3 Bucket for S3 storage. Will activate S3 storage only if this value present")
 		s3StorageBaseDir = fs.String("s3-storage-base-dir", "",
-			"")
+			"Base directory for S3 storage")
 		s3StoragePathPrefix = fs.String("s3-storage-path-prefix", "",
-			"")
+			"Base path prefix for S3 storage")
 
 		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
-			"")
+			"Base directory for file loader. Will activate file loader only if this value present")
 		fileLoaderPathPrefix = fs.String("file-loader-path-prefix", "",
-			"")
+			"Base path prefix for file loader")
 
 		fileStorageBaseDir = fs.String("file-storage-base-dir", "",
-			"")
+			"Base directory for file storage. Will activate file storage only if this value present")
 		fileStoragePathPrefix = fs.String("file-storage-path-prefix", "",
-			"")
+			"Base path prefix for file storage")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
