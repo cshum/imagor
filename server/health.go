@@ -12,15 +12,15 @@ const MB float64 = 1.0 * 1024 * 1024
 
 type HealthStats struct {
 	Uptime               int64   `json:"uptime"`
-	AllocatedMemory      float64 `json:"allocatedMemory"`
-	TotalAllocatedMemory float64 `json:"totalAllocatedMemory"`
+	AllocatedMemory      float64 `json:"allocated_memory"`
+	TotalAllocatedMemory float64 `json:"total_allocated_memory"`
 	Goroutines           int     `json:"goroutines"`
-	GCCycles             uint32  `json:"completedGCCycles"`
-	NumberOfCPUs         int     `json:"cpus"`
-	HeapSys              float64 `json:"maxHeapUsage"`
-	HeapAllocated        float64 `json:"heapInUse"`
-	ObjectsInUse         uint64  `json:"objectsInUse"`
-	OSMemoryObtained     float64 `json:"OSMemoryObtained"`
+	GCCycles             uint32  `json:"gc_cycles"`
+	NumberOfCPUs         int     `json:"number_of_cpus"`
+	HeapSys              float64 `json:"heap_sys"`
+	HeapAllocated        float64 `json:"heap_allocated"`
+	ObjectsInUse         uint64  `json:"objects_in_use"`
+	OSMemoryObtained     float64 `json:"os_memory_obtained"`
 }
 
 func GetHealthStats() *HealthStats {
