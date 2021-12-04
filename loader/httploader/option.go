@@ -91,3 +91,11 @@ func WithUserAgent(userAgent string) Option {
 		}
 	}
 }
+
+func WithDefaultScheme(scheme string) Option {
+	return func(h *HTTPLoader) {
+		if scheme != "" {
+			h.DefaultScheme = scheme
+		}
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 )
 
 type HTTPLoader struct {
@@ -27,6 +28,9 @@ type HTTPLoader struct {
 	// MaxAllowedSize maximum bytes allowed for image
 	MaxAllowedSize int
 
+	// DefaultScheme default image URL scheme
+	DefaultScheme string
+
 	// UserAgent default user agent for image request.
 	// Can be overridden by ForwardHeaders and OverrideHeaders
 	UserAgent string
@@ -35,10 +39,14 @@ type HTTPLoader struct {
 func New(options ...Option) *HTTPLoader {
 	h := &HTTPLoader{
 		OverrideHeaders: map[string]string{},
+		DefaultScheme:   "https",
 		UserAgent:       "Imagor",
 	}
 	for _, option := range options {
 		option(h)
+	}
+	if s := strings.ToLower(h.DefaultScheme); s == "nil" {
+		h.DefaultScheme = ""
 	}
 	return h
 }
@@ -52,7 +60,14 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 		return nil, imagor.ErrPass
 	}
 	if u.Host == "" || u.Scheme == "" {
-		return nil, imagor.ErrPass
+		if h.DefaultScheme != "" {
+			image = h.DefaultScheme + "://" + image
+			if u, err = url.Parse(image); err != nil {
+				return nil, imagor.ErrPass
+			}
+		} else {
+			return nil, imagor.ErrPass
+		}
 	}
 	if !h.isUrlAllowed(u) {
 		return nil, imagor.ErrPass

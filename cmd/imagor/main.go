@@ -65,11 +65,13 @@ func main() {
 		httpLoaderForwardAllHeaders = fs.Bool("http-loader-forward-all-headers", false,
 			"Enable clone request header to HTTP Loader request")
 		httpLoaderAllowedSources = fs.String("http-loader-allowed-sources", "",
-			"Allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com")
+			"HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.")
 		httpLoaderMaxAllowedSize = fs.Int("http-loader-max-allowed-size", 0,
-			"Maximum allowed size in bytes for loading images if set")
+			"HTTP Loader maximum allowed size in bytes for loading images if set")
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool("http-loader-insecure-skip-verify-transport", false,
-			"Use HTTP transport with InsecureSkipVerify true")
+			"HTTP Loader to use HTTP transport with InsecureSkipVerify true")
+		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
+			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
 		httpLoaderDisable = fs.Bool("http-loader-disable", false,
 			"Disable HTTP Loader")
 
@@ -184,6 +186,7 @@ func main() {
 				httploader.WithAllowedSources(*httpLoaderAllowedSources),
 				httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
 				httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
+				httploader.WithDefaultScheme(*httpLoaderDefaultScheme),
 				httploader.WithUserAgent(fmt.Sprintf("Imagor/%s", Version)),
 			),
 		)
