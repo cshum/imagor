@@ -69,6 +69,10 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 	if ln >= 3 {
 		if args[1] == "center" {
 			x = (img.Width() - overlay.Width()) / 2
+		} else if args[1] == "left" {
+			x = 0
+		} else if args[1] == "right" {
+			x = img.Width() - overlay.Width()
 		} else if args[1] == "repeat" {
 			x = 0
 			repeatX = img.Width()/overlay.Width() + 1
@@ -80,6 +84,10 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 		}
 		if args[2] == "center" {
 			y = (img.Height() - overlay.Height()) / 2
+		} else if args[2] == "top" {
+			y = 0
+		} else if args[2] == "bottom" {
+			y = img.Height() - overlay.Height()
 		} else if args[2] == "repeat" {
 			y = 0
 			repeatY = img.Height()/overlay.Height() + 1
