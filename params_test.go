@@ -153,7 +153,7 @@ func TestParseParams(t *testing.T) {
 				t.Errorf(" = %s, want %s", string(respJSON), string(expectedJSON))
 			}
 			if test.secret != "" && !resp.Verify(test.secret) {
-				t.Errorf("hash mismatch = %s, wabt %s", resp.Hash, Hash(resp.Path, test.secret))
+				t.Errorf("signature mismatch = %s, wabt %s", resp.Hash, Sign(resp.Path, test.secret))
 			}
 		})
 	}

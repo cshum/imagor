@@ -170,7 +170,7 @@ func ParseParams(uri string) (params Params) {
 
 // Verify if hash matches secret
 func (p *Params) Verify(secret string) bool {
-	return Hash(p.Path, secret) == p.Hash
+	return Sign(p.Path, secret) == p.Hash
 }
 
 func parseFilters(filters string) (results []Filter) {
@@ -187,7 +187,8 @@ func parseFilters(filters string) (results []Filter) {
 	return
 }
 
-func Hash(path, secret string) string {
+// Sign an Imagor path with secret key
+func Sign(path, secret string) string {
 	h := hmac.New(sha1.New, []byte(secret))
 	h.Write([]byte(strings.TrimPrefix(path, "/")))
 	hash := base64.StdEncoding.EncodeToString(h.Sum(nil))

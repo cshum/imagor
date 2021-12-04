@@ -14,7 +14,7 @@ var (
 	ErrNotFound          = NewError("not found", http.StatusNotFound)
 	ErrPass              = NewError("pass", http.StatusBadRequest)
 	ErrMethodNotAllowed  = NewError("method not allowed", http.StatusMethodNotAllowed)
-	ErrHashMismatch      = NewError("hash mismatch", http.StatusForbidden)
+	ErrSignatureMismatch = NewError("url signature mismatch", http.StatusForbidden)
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
 	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
 	ErrMaxSizeExceeded   = NewError("maximum size exceeded", http.StatusBadRequest)

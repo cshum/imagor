@@ -141,9 +141,9 @@ func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, e
 		defer cancel()
 	}
 	if !(app.Unsafe && params.Unsafe) && !params.Verify(app.Secret) {
-		err = ErrHashMismatch
+		err = ErrSignatureMismatch
 		if app.Debug {
-			app.Logger.Debug("hash mismatch", zap.Any("params", params), zap.String("expected", Hash(params.Path, app.Secret)))
+			app.Logger.Debug("sign-mismatch", zap.Any("params", params), zap.String("expected", Sign(params.Path, app.Secret)))
 		}
 		return
 	}

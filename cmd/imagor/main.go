@@ -37,9 +37,9 @@ func main() {
 		port  = fs.Int("port", 8000, "Sever port")
 
 		imagorSecret = fs.String("imagor-secret", "",
-			"Hash secret for signing Imagor URL")
+			"Secret key for signing Imagor URL")
 		imagorUnsafe = fs.Bool("imagor-unsafe", false,
-			"Enable unsafe Imagor URL that does not require hash signing")
+			"Unsafe Imagor that does not require URL signature. Prone to URL tampering")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
 			time.Second*30, "Timeout for performing imagor request")
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout",
