@@ -1,5 +1,5 @@
 build:
-	go test && go build -o bin/imagor ./cmd/imagor/main.go
+	go build -o bin/imagor ./cmd/imagor/main.go
 
 test:
 	go test
