@@ -117,7 +117,7 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 	req.Header.Set("User-Agent", h.UserAgent)
 	for _, header := range h.ForwardHeaders {
 		if header == "*" {
-			req.Header = r.Header
+			req.Header = r.Header.Clone()
 			break
 		}
 		if _, ok := r.Header[header]; ok {
