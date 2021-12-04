@@ -34,7 +34,7 @@ func main() {
 
 	var (
 		debug = fs.Bool("debug", false, "Debug mode")
-		port  = fs.Int("port", 9000, "Sever port")
+		port  = fs.Int("port", 8000, "Sever port")
 
 		imagorSecret = fs.String("imagor-secret", "",
 			"Hash secret for signing Imagor URL")

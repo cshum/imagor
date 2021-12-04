@@ -42,7 +42,7 @@ type Server struct {
 func New(app App, options ...Option) *Server {
 	s := &Server{}
 	s.App = app
-	s.Port = 9000
+	s.Port = 8000
 	s.MaxHeaderBytes = 1 << 20
 	s.Logger = zap.NewNop()
 
