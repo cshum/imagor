@@ -33,9 +33,8 @@ func main() {
 	_ = godotenv.Load()
 
 	var (
-		debug   = fs.Bool("debug", false, "Debug mode")
-		port    = fs.Int("port", 9000, "Sever port")
-		version = fs.Bool("version", false, "Imagor version")
+		debug = fs.Bool("debug", false, "Debug mode")
+		port  = fs.Int("port", 9000, "Sever port")
 
 		imagorSecret = fs.String("imagor-secret", "",
 			"Hash secret for signing Imagor URL")
@@ -45,6 +44,7 @@ func main() {
 			time.Second*30, "Timeout for performing imagor request")
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout",
 			time.Minute, "Timeout for saving requesting image for storage")
+		imagorVersion = fs.Bool("imagor-version", false, "Imagor version")
 
 		serverAddress = fs.String("server-address", "",
 			"Server address")
@@ -70,6 +70,8 @@ func main() {
 			"Maximum allowed size in bytes for loading images if set")
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool("http-loader-insecure-skip-verify-transport", false,
 			"Use HTTP transport with InsecureSkipVerify true")
+		httpLoaderDisable = fs.Bool("http-loader-disable", false,
+			"Disable HTTP Loader")
 
 		awsRegion = fs.String("aws-region", "",
 			"AWS Region. Required if using S3 Loader or storage")
@@ -107,7 +109,7 @@ func main() {
 		panic(err)
 	}
 
-	if *version {
+	if *imagorVersion {
 		fmt.Println(Version)
 		return
 	}
@@ -172,18 +174,20 @@ func main() {
 		)
 	}
 
-	// fallback with HTTP Loader
-	loaders = append(loaders,
-		httploader.New(
-			httploader.WithForwardUserAgent(*httpLoaderForwardUserAgent),
-			httploader.WithForwardAllHeaders(*httpLoaderForwardAllHeaders),
-			httploader.WithForwardHeaders(*httpLoaderForwardHeaders),
-			httploader.WithAllowedSources(*httpLoaderAllowedSources),
-			httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
-			httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
-			httploader.WithUserAgent(fmt.Sprintf("Imagor/%s", Version)),
-		),
-	)
+	if !*httpLoaderDisable {
+		// fallback with HTTP Loader unless explicitly disabled
+		loaders = append(loaders,
+			httploader.New(
+				httploader.WithForwardUserAgent(*httpLoaderForwardUserAgent),
+				httploader.WithForwardAllHeaders(*httpLoaderForwardAllHeaders),
+				httploader.WithForwardHeaders(*httpLoaderForwardHeaders),
+				httploader.WithAllowedSources(*httpLoaderAllowedSources),
+				httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
+				httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
+				httploader.WithUserAgent(fmt.Sprintf("Imagor/%s", Version)),
+			),
+		)
+	}
 
 	// run server with Imagor app
 	server.New(
