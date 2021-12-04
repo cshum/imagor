@@ -48,14 +48,6 @@ func WithForwardAllHeaders(enabled bool) Option {
 	}
 }
 
-func WithForwardUserAgent(enabled bool) Option {
-	return func(h *HTTPLoader) {
-		if enabled {
-			h.ForwardHeaders = append(h.ForwardHeaders, "User-Agent")
-		}
-	}
-}
-
 func WithOverrideHeader(name, value string) Option {
 	return func(h *HTTPLoader) {
 		h.OverrideHeaders[name] = value

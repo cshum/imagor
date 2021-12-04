@@ -64,8 +64,6 @@ func main() {
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
-		httpLoaderForwardUserAgent = fs.Bool("http-loader-forward-user-agent", false,
-			"Enable forward require user agent to HTTP Loader request")
 		httpLoaderForwardAllHeaders = fs.Bool("http-loader-forward-all-headers", false,
 			"Enable clone request header to HTTP Loader request")
 		httpLoaderAllowedSources = fs.String("http-loader-allowed-sources", "",
@@ -184,7 +182,6 @@ func main() {
 		// fallback with HTTP Loader unless explicitly disabled
 		loaders = append(loaders,
 			httploader.New(
-				httploader.WithForwardUserAgent(*httpLoaderForwardUserAgent),
 				httploader.WithForwardAllHeaders(*httpLoaderForwardAllHeaders),
 				httploader.WithForwardHeaders(*httpLoaderForwardHeaders),
 				httploader.WithAllowedSources(*httpLoaderAllowedSources),

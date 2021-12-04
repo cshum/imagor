@@ -84,18 +84,16 @@ Usage of imagor:
         HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-default-scheme string
         HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
-  -http-loader-disable
-        Disable HTTP Loader
-  -http-loader-forward-all-headers
-        Enable clone request header to HTTP Loader request
   -http-loader-forward-headers string
         Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
-  -http-loader-forward-user-agent
-        Enable forward require user agent to HTTP Loader request
+  -http-loader-forward-all-headers
+        Enable clone request header to HTTP Loader request header
   -http-loader-insecure-skip-verify-transport
         HTTP Loader to use HTTP transport with InsecureSkipVerify true
   -http-loader-max-allowed-size int
         HTTP Loader maximum allowed size in bytes for loading images if set
+  -http-loader-disable
+        Disable HTTP Loader
         
   -file-loader-base-dir string
         Base directory for File Loader. Will activate File Loader only if this value present
