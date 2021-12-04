@@ -33,6 +33,14 @@ func WithDisableFilters(filters ...string) Option {
 	}
 }
 
+func WithMaxFilterOps(num int) Option {
+	return func(v *VipsProcessor) {
+		if num != 0 {
+			v.MaxFilterOps = num
+		}
+	}
+}
+
 func WithLogger(logger *zap.Logger) Option {
 	return func(v *VipsProcessor) {
 		if logger != nil {

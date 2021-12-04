@@ -103,7 +103,10 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	}
-	for _, p := range p.Filters {
+	for i, p := range p.Filters {
+		if i >= v.MaxFilterOps {
+			break
+		}
 		if err := ctx.Err(); err != nil {
 			return err
 		}

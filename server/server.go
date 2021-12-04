@@ -68,7 +68,7 @@ func New(app App, options ...Option) *Server {
 
 func (s *Server) Run() {
 	if err := s.App.Startup(context.Background()); err != nil {
-		s.Logger.Fatal("app startup", zap.Error(err))
+		s.Logger.Fatal("app-startup", zap.Error(err))
 	}
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
@@ -86,10 +86,10 @@ func (s *Server) Run() {
 	defer cancel()
 	s.Logger.Info("shutdown")
 	if err := s.Shutdown(ctx); err != nil {
-		s.Logger.Error("server shutdown", zap.Error(err))
+		s.Logger.Error("server-shutdown", zap.Error(err))
 	}
 	if err := s.App.Shutdown(ctx); err != nil {
-		s.Logger.Error("app shutdown", zap.Error(err))
+		s.Logger.Error("app-shutdown", zap.Error(err))
 	}
 	return
 }

@@ -26,6 +26,7 @@ type VipsProcessor struct {
 	Filters        FilterMap
 	DisableBlur    bool
 	DisableFilters []string
+	MaxFilterOps   int
 	Logger         *zap.Logger `json:"-"`
 	Debug          bool
 }
@@ -49,7 +50,8 @@ func New(options ...Option) *VipsProcessor {
 			"strip_icc":        stripIcc,
 			"strip_exif":       stripExif,
 		},
-		Logger: zap.NewNop(),
+		MaxFilterOps: 10,
+		Logger:       zap.NewNop(),
 	}
 	for _, option := range options {
 		option(v)

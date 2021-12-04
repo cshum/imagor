@@ -54,9 +54,11 @@ func main() {
 			"Enable CORS")
 
 		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
-			"Disable blur operations for vips processor")
+			"VIPS disable blur operations for vips processor")
 		vipsDisableFilters = fs.String("vips-disable-filters", "",
-			"Disable filters by csv e.g. blur,watermark,rgb")
+			"VIPS disable filters by csv e.g. blur,watermark,rgb")
+		vipsMaxFilterOps = fs.Int("vips-max-filter-ops", 10,
+			"VIPS maximum number of filter operations allowed")
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
@@ -202,6 +204,7 @@ func main() {
 				vipsprocessor.New(
 					vipsprocessor.WithDisableBlur(*vipsDisableBlur),
 					vipsprocessor.WithDisableFilters(*vipsDisableFilters),
+					vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
 					vipsprocessor.WithLogger(logger),
 					vipsprocessor.WithDebug(*debug),
 				),

@@ -5,7 +5,7 @@ test:
 	go test
 
 dev: build
-	./bin/imagor -debug
+	./bin/imagor -debug -imagor-unsafe
 
 docker-build:
 	docker build --no-cache=true --build-arg IMAGOR_VERSION=$(VERSION) -t shumc/imagor:$(VERSION) .
