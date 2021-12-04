@@ -1,4 +1,4 @@
-#Imagor
+# Imagor
 
 Imagor is a fast, Docker-ready image processing server written in Go. 
 
@@ -21,7 +21,7 @@ Test out the following image URLs:
 https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 
 http://localhost:8000/unsafe/500x500/top/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/500x500/filters:hue(290):fill(blur):rotate(90)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 ```
 
