@@ -148,7 +148,7 @@ func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, e
 		return
 	}
 	if buf, err = app.load(r, params.Image); err != nil {
-		app.Logger.Info("load", zap.Any("params", params), zap.Error(err))
+		app.Logger.Debug("load", zap.Any("params", params), zap.Error(err))
 		return
 	}
 	load := func(image string) ([]byte, error) {
@@ -174,7 +174,7 @@ func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, e
 				}
 			} else {
 				err = e
-				app.Logger.Error("process", zap.Any("params", params), zap.Error(e))
+				app.Logger.Warn("process", zap.Any("params", params), zap.Error(e))
 			}
 		}
 	}
@@ -197,7 +197,7 @@ func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 			}
 			// should not log expected error as of now, as it has not reached the end
 			if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-				app.Logger.Error("load", zap.String("image", image), zap.Error(e))
+				app.Logger.Warn("load", zap.String("image", image), zap.Error(e))
 			} else if app.Debug {
 				app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
 			}
@@ -215,7 +215,7 @@ func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 				err = ErrNotFound
 			}
 			// log non user-initiated error finally
-			app.Logger.Error("load", zap.String("image", image), zap.Error(err))
+			app.Logger.Warn("load", zap.String("image", image), zap.Error(err))
 		}
 		return
 	})
@@ -236,7 +236,7 @@ func (app *Imagor) save(
 		go func(s Storage) {
 			defer cancel()
 			if err := s.Save(sCtx, image, buf); err != nil {
-				app.Logger.Error("save", zap.String("image", image), zap.Error(err))
+				app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
 			}
