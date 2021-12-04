@@ -59,6 +59,8 @@ func main() {
 			"VIPS disable filters by csv e.g. blur,watermark,rgb")
 		vipsMaxFilterOps = fs.Int("vips-max-filter-ops", 10,
 			"VIPS maximum number of filter operations allowed")
+		vipsConcurrencyLevel = fs.Int("vips-concurrency-level", 0,
+			"VIPS concurrency level. Default to the number of CPU cores.")
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
@@ -204,6 +206,7 @@ func main() {
 				vipsprocessor.New(
 					vipsprocessor.WithDisableBlur(*vipsDisableBlur),
 					vipsprocessor.WithDisableFilters(*vipsDisableFilters),
+					vipsprocessor.WithConcurrencyLevel(*vipsConcurrencyLevel),
 					vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
 					vipsprocessor.WithLogger(logger),
 					vipsprocessor.WithDebug(*debug),

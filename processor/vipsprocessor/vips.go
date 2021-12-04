@@ -23,12 +23,13 @@ func (m FilterMap) MarshalJSON() ([]byte, error) {
 }
 
 type VipsProcessor struct {
-	Filters        FilterMap
-	DisableBlur    bool
-	DisableFilters []string
-	MaxFilterOps   int
-	Logger         *zap.Logger `json:"-"`
-	Debug          bool
+	Filters          FilterMap
+	DisableBlur      bool
+	DisableFilters   []string
+	MaxFilterOps     int
+	Logger           *zap.Logger `json:"-"`
+	ConcurrencyLevel int
+	Debug            bool
 }
 
 func New(options ...Option) *VipsProcessor {
@@ -50,8 +51,9 @@ func New(options ...Option) *VipsProcessor {
 			"strip_icc":        stripIcc,
 			"strip_exif":       stripExif,
 		},
-		MaxFilterOps: 10,
-		Logger:       zap.NewNop(),
+		MaxFilterOps:     10,
+		ConcurrencyLevel: runtime.NumCPU(),
+		Logger:           zap.NewNop(),
 	}
 	for _, option := range options {
 		option(v)
@@ -81,14 +83,14 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 		}, vips.LogLevelDebug)
 		vips.Startup(&vips.Config{
 			ReportLeaks:      true,
-			ConcurrencyLevel: runtime.NumCPU(),
+			ConcurrencyLevel: v.ConcurrencyLevel,
 		})
 	} else {
 		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
 			v.Logger.Error(domain, zap.String("log", msg))
 		}, vips.LogLevelError)
 		vips.Startup(&vips.Config{
-			ConcurrencyLevel: runtime.NumCPU(),
+			ConcurrencyLevel: v.ConcurrencyLevel,
 		})
 	}
 	return nil
