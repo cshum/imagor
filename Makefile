@@ -4,11 +4,8 @@ build:
 test:
 	go test
 
-run:
-	./bin/imagor
-
-dev:
-	make build && ./bin/imagor -debug
+dev: build
+	./bin/imagor -debug
 
 docker-build:
 	docker build --no-cache=true --build-arg IMAGOR_VERSION=$(VERSION) -t shumc/imagor:$(VERSION) .
