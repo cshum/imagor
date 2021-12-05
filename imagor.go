@@ -99,7 +99,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	params := ParseParams(uri)
 	if params.Params {
-		resJSON(w, params)
+		resJSONIndent(w, params)
 		return
 	}
 	buf, meta, err := app.Do(r, params)
@@ -272,6 +272,14 @@ func (app *Imagor) debugLog() {
 
 func resJSON(w http.ResponseWriter, v interface{}) {
 	buf, _ := json.Marshal(v)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+	w.Write(buf)
+	return
+}
+
+func resJSONIndent(w http.ResponseWriter, v interface{}) {
+	buf, _ := json.MarshalIndent(v, "", "  ")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
 	w.Write(buf)

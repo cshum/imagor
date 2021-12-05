@@ -31,8 +31,8 @@ type Params struct {
 	Height         int      `json:"height,omitempty"`
 	HorizontalFlip bool     `json:"horizontal_flip,omitempty"`
 	VerticalFlip   bool     `json:"vertical_flip,omitempty"`
-	HAlign         string   `json:"h_align,omitempty"`
-	VAlign         string   `json:"v_align,omitempty"`
+	HAlign         string   `json:"halign,omitempty"`
+	VAlign         string   `json:"valign,omitempty"`
 	Smart          bool     `json:"smart,omitempty"`
 	Filters        []Filter `json:"filters,omitempty"`
 }

@@ -5,7 +5,7 @@ Imagor is a fast, Docker-ready image processing server written in Go.
 Imagor uses one of the most efficient image processing library 
 [libvips](https://github.com/libvips/libvips) (with [govips](https://github.com/davidbyttow/govips)). It's typically 4-8x faster than using the quickest ImageMagick and GraphicsMagick settings.
 
-Imagor is a Go library that is easily extensible, and ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
+Imagor is a Go library that is easily extensible, ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
 
 Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the common web image use cases, see compatibility list. If these fits your requirements, you may use Imagor as a lightweight, high performance drop-in replacement.
 
@@ -68,11 +68,41 @@ services:
 
 ### Imagor Endpoint
 
+```
+/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/upscale/-Ex-F/HALIGN/VALIGN/smart/filters:NAME(ARGS):.../IMAGE
+```
+
+* `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
+* `trim` removes surrounding space in images using top-left pixel color unless specified otherwise
+* `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`
+* `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
+* `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
+* `HALIGN` is horizontal alignment of crop
+* `VALIGN` is vertical alignment of crop
+* `smart` means using smart detection of focal points
+* `filters` a series of image filter operations to be applied
+* `IMAGE` is the image path or URL to be processed
+
+In addition, prepending `/params` to the existing endpoint returns the endpoint params in JSON form for preview:
+```
+curl http://localhost:8000/params/unsafe/500x500/top/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+
+{
+  "path": "500x500/top/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
+  "image": "raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
+  "unsafe": true,
+  "width": 500,
+  "height": 500,
+  "valign": "top"
+}
+```
 
 ### URL Signature
 
-The HMAC-SHA256 hash is created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` 
+in order to avoid DDoS attacks using multiple image operations.
 
+The HMAC-SHA256 hash is created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
 An example in Go:
 
 ```go
