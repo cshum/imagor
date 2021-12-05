@@ -97,8 +97,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params := ParseParams(uri)
-	if app.Debug {
-		app.Logger.Debug("params", zap.Any("params", params), zap.String("uri", uri))
+	if params.Params {
+		resJSON(w, params)
+		return
 	}
 	buf, meta, err := app.Do(r, params)
 	ln := len(buf)

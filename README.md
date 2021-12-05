@@ -26,6 +26,7 @@ http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw
 http://localhost:8000/unsafe/fit-in/500x500/filters:hue(290):saturation(100):fill(yellow):rotate(90):format(jpeg):quality(80)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 ```
+
 Docker Compose with mounted volume for File Loader and Storage:
 ```yaml
 version: "3"
@@ -56,9 +57,9 @@ services:
       AWS_SECRET_ACCESS_KEY: ...
       AWS_REGION: ...
       S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying loader bucket
-      S3_LOADER_BASE_DIR: images
+      S3_LOADER_BASE_DIR: images # optional
       S3_STORAGE_BUCKET: mybucket # enable S3 loader by specifying storage bucket
-      S3_STORAGE_BASE_DIR: images
+      S3_STORAGE_BASE_DIR: images # optional
     ports:
       - "8000:8000"
 ```

@@ -12,27 +12,28 @@ import (
 
 // Params image resize and hash parameters
 type Params struct {
+	Params         bool     `json:"-"`
 	Path           string   `json:"path,omitempty"`
 	Image          string   `json:"image,omitempty"`
+	Unsafe         bool     `json:"unsafe,omitempty"`
+	Hash           string   `json:"hash,omitempty"`
+	Meta           bool     `json:"meta,omitempty"`
+	TrimPosition   string   `json:"trim_position,omitempty"`
+	TrimTolerance  int      `json:"trim_tolerance,omitempty"`
 	CropLeft       int      `json:"crop_left,omitempty"`
 	CropTop        int      `json:"crop_top,omitempty"`
 	CropRight      int      `json:"crop_right,omitempty"`
 	CropBottom     int      `json:"crop_bottom,omitempty"`
+	FitIn          bool     `json:"fit_in,omitempty"`
+	Stretch        bool     `json:"stretch,omitempty"`
+	Upscale        bool     `json:"upscale,omitempty"`
 	Width          int      `json:"width,omitempty"`
 	Height         int      `json:"height,omitempty"`
-	Meta           bool     `json:"meta,omitempty"`
 	HorizontalFlip bool     `json:"horizontal_flip,omitempty"`
 	VerticalFlip   bool     `json:"vertical_flip,omitempty"`
 	HAlign         string   `json:"h_align,omitempty"`
 	VAlign         string   `json:"v_align,omitempty"`
 	Smart          bool     `json:"smart,omitempty"`
-	FitIn          bool     `json:"fit_in,omitempty"`
-	Stretch        bool     `json:"stretch,omitempty"`
-	Upscale        bool     `json:"upscale,omitempty"`
-	TrimPosition   string   `json:"trim_position,omitempty"`
-	TrimTolerance  int      `json:"trim_tolerance,omitempty"`
-	Unsafe         bool     `json:"unsafe,omitempty"`
-	Hash           string   `json:"hash,omitempty"`
 	Filters        []Filter `json:"filters,omitempty"`
 }
 
@@ -51,6 +52,8 @@ type Meta struct {
 
 var pathRegex = regexp.MustCompile(
 	"/?" +
+		// params
+		"(params/)?" +
 		// hash
 		"((unsafe/)|([A-Za-z0-9-_=]{26,30})/)?" +
 		// path
@@ -90,10 +93,14 @@ var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 // ParseParams parse params object from uri string
 func ParseParams(uri string) (params Params) {
 	match := pathRegex.FindStringSubmatch(uri)
-	if len(match) < 5 {
+	if len(match) < 6 {
 		return
 	}
 	index := 1
+	if match[index] != "" {
+		params.Params = true
+	}
+	index += 1
 	if match[index+1] == "unsafe/" {
 		params.Unsafe = true
 	} else if len(match[index+2]) <= 28 {
