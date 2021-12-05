@@ -23,7 +23,7 @@ https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-fro
 
 http://localhost:8000/unsafe/500x500/top/https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-http://localhost:8000/unsafe/fit-in/500x500/filters:hue(290):saturation(100):fill(yellow):rotate(90):format(jpeg):quality(80)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+http://localhost:8000/unsafe/fit-in/-500x500/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 ```
 
@@ -71,7 +71,7 @@ services:
 Imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
-/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/HALIGN/VALIGN/smart/filters:NAME(ARGS):.../IMAGE
+/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
 * `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
@@ -124,11 +124,59 @@ func main() {
 
 ### Filters
 
+Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations that will be sequentially applied to the image. Some examples:
+```
+/filters:fill(white):format(jpeg)/
+/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/
+/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/
+```
+Imagor supports the following filters:
+* `background_color(color)` sets the background color of a transparent image
+  * `color` the color name or hexadecimal rgb expression without the “#” character
+* `blur(sigma)` applies gaussian blur to the image
+* `contrast(amount)` increases or decreases the image contrast
+  * `amount` -100 to 100, the amount in % to increase or decrease the image contrast
+* `brightness(amount)` increases or decreases the image brightness
+  * `amount` -100 to 100, the amount in % to increase or decrease the image brightness
+* `fill(color)` fill the missing area or transparent image with the specified color
+  * `color` the color name or hexadecimal rgb expression without the “#” character, or "blur"
+* `format(format)` specifies the output format of the image
+  * `format` accepts jpeg, png, webp, gif, jp2, tiff
+* `grayscale()` changes the image to grayscale
+* `hue(angle)` increases or decreases the image hue
+  * `angle` the angle in degree to increase or decrease the hue rotation
+* `quality(amount)` changes the overall quality of the image, does nothing for png
+  * `amount` 0 to 100, the quality level in %
+* `rgb(r,g,b)` amount of color in each of the rgb channels in %. Can range from -100 to 100
+* `rotate(angle)` rotates the given image according to the angle value passed
+  * `angle` accepts 0, 90, 180, 270
+* `round_corner(rx[,ry,color])` adds rounded corners to the image with the specified color as background
+  * `rx`, `ry` amount of pixel to use as radius. ry = rx if ry is not provided
+  * `color` the color name or hexadecimal rgb expression without the “#” character
+* `saturation(amount)` increases or decreases the image saturation
+	* `amount` -100 to 100, the amount in % to increase or decrease the image saturation
+* `sharpen(sigma)` sharpens the image
+* `upscale()` upscale the image if `fit-in` is used
+* `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
+  * `image` watermark image URI, using the same image loader configured for Imagor
+  * `x` x position that the watermark will be in:
+    * Positive numbers indicate position from the left and negative numbers indicate position from the right.
+    * Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
+    * `left`,`right`,`center` positioned left, right or centered respectively 
+    * `repeat` the watermark will be repeated horizontally
+  * `y` y position that the watermark will be in:
+    * Positive numbers indicate position from the top and negative numbers indicate position from the bottom.
+    * Number followed by a `p` e.g. 20p means calculating the value from the image height as percentage
+    * `top`,`bottom`,`center` positioned top, bottom or centered respectively 
+    * `repeat` the watermark will be repeated vertically
+  * `alpha` watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent).
+  * `w_ratio` percentage of the width of the image the watermark should fit-in
+  * `h_ratio` percentage of the height of the image the watermark should fit-in
+
 ### Configurations
 
 Imagor supports command-line arguments, see available options `imagor -h`. You may check [main.go](https://github.com/cshum/imagor/blob/master/cmd/imagor/main.go) for better understanding the initialization sequences.
 
-Imagor also supports environment variables or `.env` file for the arguments equivalent in capitalized snake case. For instances `-imagor-secret` would become `IMAGOR_SECRET`:
 ```bash
 # both are equivalent
 imagor -debug -imagor-scret=1234
