@@ -55,9 +55,9 @@ services:
       AWS_ACCESS_KEY_ID: ... 
       AWS_SECRET_ACCESS_KEY: ...
       AWS_REGION: ...
-      S3_LOADER_BUCKET: mybucket # enable S3 loader by s*pecifying bucket
-      S3_LOADER_BASE_DIR: images*
-      S3_STORAGE_BUCKET: mybucket # enable S3 loader by specifying bucket
+      S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying loader bucket
+      S3_LOADER_BASE_DIR: images
+      S3_STORAGE_BUCKET: mybucket # enable S3 loader by specifying storage bucket
       S3_STORAGE_BASE_DIR: images
     ports:
       - "8000:8000"
