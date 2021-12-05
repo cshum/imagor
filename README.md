@@ -7,7 +7,7 @@ Imagor uses one of the most efficient image processing library
 
 Imagor is a Go library that is easily extensible, ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
 
-Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the common web image operations use cases. If these fits your requirements, Imagor would be a lightweight, high performance drop-in replacement.
+Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the common web image processing use cases. If these fits your requirements, Imagor would be a lightweight, high performance drop-in replacement.
 
 ### Quick Start
 
@@ -176,6 +176,8 @@ Imagor supports the following filters:
 ### Configurations
 
 Imagor supports command-line arguments, see available options `imagor -h`. You may check [main.go](https://github.com/cshum/imagor/blob/master/cmd/imagor/main.go) for better understanding the initialization sequences.
+
+Imagor also supports environment variables or `.env` file for the arguments equivalent in capitalized snake case. For instances `-imagor-secret` would become `IMAGOR_SECRET`:
 
 ```bash
 # both are equivalent
