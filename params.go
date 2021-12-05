@@ -198,8 +198,6 @@ func parseFilters(filters string) (results []Filter) {
 func Sign(path, secret string) string {
 	h := hmac.New(sha1.New, []byte(secret))
 	h.Write([]byte(strings.TrimPrefix(path, "/")))
-	hash := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	hash = strings.Replace(hash, "/", "_", -1)
-	hash = strings.Replace(hash, "+", "-", -1)
+	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
 	return hash
 }

@@ -27,7 +27,9 @@ http://localhost:8000/unsafe/fit-in/500x500/filters:hue(290):saturation(100):fil
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 ```
 
-Docker Compose with mounted volume for File Loader and Storage:
+#### Docker Compose Example
+
+Imagor with File Loader and Storage using mounted volume:
 ```yaml
 version: "3"
 services:
@@ -43,7 +45,7 @@ services:
     ports:
       - "8000:8000"
 ```
-Docker Compose with AWS S3 Loader and Storage:
+Imagor with AWS S3 Loader and Storage:
 ```yaml
 version: "3"
 services:
@@ -64,9 +66,28 @@ services:
       - "8000:8000"
 ```
 
-### URL and Signature
+### Imagor Endpoint
 
-### Image Operations
+
+### URL Signature
+
+The HMAC-SHA256 hash is created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+
+An example in Go:
+
+```go
+func SignPath(path, secret string) string {
+	h := hmac.New(sha1.New, []byte(secret))
+	h.Write([]byte(strings.TrimPrefix(path, "/")))
+	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	return hash + "/" + path
+}
+
+func main() {
+	fmt.Println(SignPath("500x500/top/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png", "mysecret"))
+	// RArq3FZw_bqxLcpKo1WI0aX_q7s=/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+}
+```
 
 ### Filters
 
