@@ -13,7 +13,7 @@ import (
 type HTTPLoader struct {
 	// The Transport used to request images.
 	// If nil, http.DefaultTransport is used.
-	Transport http.RoundTripper `json:"-"`
+	Transport http.RoundTripper
 
 	// ForwardHeaders copy request headers to image request headers
 	ForwardHeaders []string

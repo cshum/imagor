@@ -13,8 +13,8 @@ import (
 func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagor.Params, load imagor.LoadFunc,
 ) error {
-	if p.TrimPosition != "" {
-		if err := v.trim(img, p.TrimPosition, p.TrimTolerance); err != nil {
+	if p.Trim != "" {
+		if err := v.trim(img, p.Trim, p.TrimTolerance); err != nil {
 			return err
 		}
 	}

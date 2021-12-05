@@ -18,7 +18,7 @@ type Params struct {
 	Unsafe         bool     `json:"unsafe,omitempty"`
 	Hash           string   `json:"hash,omitempty"`
 	Meta           bool     `json:"meta,omitempty"`
-	TrimPosition   string   `json:"trim_position,omitempty"`
+	Trim           string   `json:"trim,omitempty"`
 	TrimTolerance  int      `json:"trim_tolerance,omitempty"`
 	CropLeft       int      `json:"crop_left,omitempty"`
 	CropTop        int      `json:"crop_top,omitempty"`
@@ -119,9 +119,9 @@ func ParseParams(uri string) (params Params) {
 	}
 	index += 1
 	if match[index] != "" {
-		params.TrimPosition = "top-left"
+		params.Trim = "top-left"
 		if s := match[index+2]; s != "" {
-			params.TrimPosition = s
+			params.Trim = s
 		}
 		params.TrimTolerance, _ = strconv.Atoi(match[index+4])
 	}

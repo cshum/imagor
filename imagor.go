@@ -47,8 +47,8 @@ type Imagor struct {
 	Processors     []Processor
 	RequestTimeout time.Duration
 	SaveTimeout    time.Duration
-	Cache          cache.Cache `json:"-"`
-	Logger         *zap.Logger `json:"-"`
+	Cache          cache.Cache
+	Logger         *zap.Logger
 	Debug          bool
 }
 
@@ -64,9 +64,6 @@ func New(options ...Option) *Imagor {
 		option(app)
 	}
 	app.Cache = cache.NewMemory(1000, 1<<28, app.SaveTimeout)
-	if app.Debug {
-		app.Logger.Debug("config", zap.Any("imagor", app))
-	}
 	return app
 }
 

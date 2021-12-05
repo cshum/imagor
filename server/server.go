@@ -27,15 +27,15 @@ type App interface {
 
 // Server wraps the App with additional http and app lifecycle handling
 type Server struct {
-	http.Server `json:"-"`
-	App         App `json:"-"`
-	Address     string
-	Port        int
-	CertFile    string
-	KeyFile     string
-	PathPrefix  string
-	Logger      *zap.Logger `json:"-"`
-	Debug       bool
+	http.Server
+	App        App
+	Address    string
+	Port       int
+	CertFile   string
+	KeyFile    string
+	PathPrefix string
+	Logger     *zap.Logger
+	Debug      bool
 }
 
 // New create new Server
@@ -60,9 +60,6 @@ func New(app App, options ...Option) *Server {
 	s.Handler = s.panicHandler(s.Handler)
 	s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
 
-	if s.Debug {
-		s.Logger.Debug("config", zap.Any("server", s))
-	}
 	return s
 }
 

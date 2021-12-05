@@ -27,7 +27,7 @@ type VipsProcessor struct {
 	DisableBlur      bool
 	DisableFilters   []string
 	MaxFilterOps     int
-	Logger           *zap.Logger `json:"-"`
+	Logger           *zap.Logger
 	ConcurrencyLevel int
 	Debug            bool
 }
