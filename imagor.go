@@ -8,6 +8,7 @@ import (
 	"github.com/cshum/hybridcache"
 	"go.uber.org/zap"
 	"net/http"
+	"reflect"
 	"strconv"
 	"time"
 )
@@ -64,6 +65,9 @@ func New(options ...Option) *Imagor {
 		option(app)
 	}
 	app.Cache = cache.NewMemory(1000, 1<<28, app.SaveTimeout)
+	if app.Debug {
+		app.debugLog()
+	}
 	return app
 }
 
@@ -242,10 +246,42 @@ func (app *Imagor) save(
 	}
 }
 
+func (app *Imagor) debugLog() {
+	if !app.Debug {
+		return
+	}
+	var loaders, storages, processors []string
+	for _, v := range app.Loaders {
+		loaders = append(loaders, getType(v))
+	}
+	for _, v := range app.Storages {
+		storages = append(storages, getType(v))
+	}
+	for _, v := range app.Processors {
+		processors = append(processors, getType(v))
+	}
+	app.Logger.Debug("imagor",
+		zap.Bool("unsafe", app.Unsafe),
+		zap.Duration("request_timeout", app.RequestTimeout),
+		zap.Duration("save_timeout", app.SaveTimeout),
+		zap.Strings("loaders", loaders),
+		zap.Strings("storages", storages),
+		zap.Strings("processors", processors),
+	)
+}
+
 func resJSON(w http.ResponseWriter, v interface{}) {
 	buf, _ := json.Marshal(v)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
 	w.Write(buf)
 	return
+}
+
+func getType(v interface{}) string {
+	if t := reflect.TypeOf(v); t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }
