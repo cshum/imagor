@@ -14,7 +14,7 @@ Imagor adopts the Thumbor URL syntax and supports its common image operations, s
 ```bash
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe
 ```
-Test out the following image URLs:
+Try out the following image URLs:
 
 ```
 # original images
@@ -23,8 +23,44 @@ https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-fro
 
 http://localhost:8000/unsafe/500x500/top/https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-http://localhost:8000/unsafe/fit-in/500x500/filters:hue(290):fill(blur):rotate(90)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+http://localhost:8000/unsafe/fit-in/500x500/filters:hue(290):saturation(100):fill(yellow):rotate(90):format(jpeg):quality(80)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+```
+Docker Compose with mounted volume for File Loader and Storage:
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    volumes:
+      - ./:/mnt/data
+    environment:
+      PORT: 8000
+      IMAGOR_UNSAFE: 1 # unsafe URL
+      FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
+      FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
+    ports:
+      - "8000:8000"
+```
+Docker Compose with AWS S3 Loader and Storage:
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    environment:
+      PORT: 8000
+      IMAGOR_SECRET: mysecret # secret key for URL signature
+      HTTP_LOADER_FORWARD_ALL_HEADERS: 1 # Forward all request headers to HTTP Loader
+      AWS_ACCESS_KEY_ID: ... 
+      AWS_SECRET_ACCESS_KEY: ...
+      AWS_REGION: ...
+      S3_LOADER_BUCKET: mybucket # enable S3 loader by s*pecifying bucket
+      S3_LOADER_BASE_DIR: images*
+      S3_STORAGE_BUCKET: mybucket # enable S3 loader by specifying bucket
+      S3_STORAGE_BASE_DIR: images
+    ports:
+      - "8000:8000"
 ```
 
 ### URL and Signature
@@ -32,7 +68,6 @@ http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.gi
 ### Image Operations
 
 ### Filters
-
 
 ### Configurations
 
@@ -89,7 +124,7 @@ Usage of imagor:
   -http-loader-forward-headers string
         Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
   -http-loader-forward-all-headers
-        Enable clone request header to HTTP Loader request header
+        Forward all request headers to HTTP Loader request
   -http-loader-insecure-skip-verify-transport
         HTTP Loader to use HTTP transport with InsecureSkipVerify true
   -http-loader-max-allowed-size int
