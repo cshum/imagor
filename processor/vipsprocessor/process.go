@@ -103,18 +103,20 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	}
-	for i, p := range p.Filters {
-		if i >= v.MaxFilterOps {
-			break
-		}
+	cnt := 0
+	for _, p := range p.Filters {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		start := time.Now()
 		if fn := v.Filters[p.Name]; fn != nil {
+			if cnt >= v.MaxFilterOps {
+				break
+			}
 			if err := fn(img, load, strings.Split(p.Args, ",")...); err != nil {
 				return err
 			}
+			cnt++
 		}
 		switch p.Name {
 		case "fill":
