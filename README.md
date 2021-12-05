@@ -3,11 +3,11 @@
 Imagor is a fast, Docker-ready image processing server written in Go. 
 
 Imagor uses one of the most efficient image processing library 
-[libvips](https://github.com/libvips/libvips) (with [govips](https://github.com/davidbyttow/govips)). It's typically 4-8x faster than using the quickest ImageMagick and GraphicsMagick settings.
+[libvips](https://github.com/libvips/libvips) (with [govips](https://github.com/davidbyttow/govips)). It is typically 4-8x faster than using the quickest ImageMagick and GraphicsMagick settings.
 
 Imagor is a Go library that is easily extensible, ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
 
-Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the common web image use cases, see compatibility list. If these fits your requirements, you may use Imagor as a lightweight, high performance drop-in replacement.
+Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the common web image operations use cases. If these fits your requirements, then Imagor would be a lightweight, high performance drop-in replacement.
 
 ### Quick Start
 
@@ -68,20 +68,23 @@ services:
 
 ### Imagor Endpoint
 
+Imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
+
 ```
-/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/upscale/-Ex-F/HALIGN/VALIGN/smart/filters:NAME(ARGS):.../IMAGE
+/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/HALIGN/VALIGN/smart/filters:NAME(ARGS):.../IMAGE
 ```
 
 * `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
 * `trim` removes surrounding space in images using top-left pixel color unless specified otherwise
 * `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`
 * `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
+* `stretch` means resize the image to `ExF` without keeping its aspect ratios
 * `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
-* `HALIGN` is horizontal alignment of crop
-* `VALIGN` is vertical alignment of crop
+* `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
+* `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 * `smart` means using smart detection of focal points
-* `filters` a series of image filter operations to be applied
-* `IMAGE` is the image path or URL to be processed
+* `filters` a series of image filter operations to be applied, see filters section
+* `IMAGE` is the image URI
 
 In addition, prepending `/params` to the existing endpoint returns the endpoint params in JSON form for preview:
 ```
@@ -215,7 +218,5 @@ Usage of imagor:
   -s3-storage-path-prefix string
         Base path prefix for S3 Storage
 ```
-
-### Thumbor Compatibility
 
 
