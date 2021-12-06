@@ -104,7 +104,7 @@ curl http://localhost:8000/params/unsafe/500x500/top/raw.githubusercontent.com/g
 
 In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks using multiple image operations.
 
-The hash is base on HMAC-SHA256, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+The hash is base on HMAC digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
 An example in Go:
 
 ```go
