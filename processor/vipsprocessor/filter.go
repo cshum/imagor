@@ -143,7 +143,7 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 	rx, _ = strconv.Atoi(args[0])
 	ry = rx
 	if len(args) > 1 {
-		rx, _ = strconv.Atoi(args[1])
+		ry, _ = strconv.Atoi(args[1])
 	}
 
 	var rounded *vips.ImageRef
