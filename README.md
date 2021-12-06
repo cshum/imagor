@@ -7,7 +7,7 @@ Imagor uses one of the most efficient image processing library
 
 Imagor is a Go library that is easily extensible, ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
 
-Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the common web image processing use cases. If these fits your requirements, Imagor would be a lightweight, high performance drop-in replacement.
+Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the web image processing use cases. If these fits your requirements, Imagor would be a lightweight, high performance drop-in replacement.
 
 ### Quick Start
 
@@ -83,7 +83,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 * `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
 * `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 * `smart` means using smart detection of focal points
-* `filters` a series of image filter operations to be applied, see filters section
+* `filters` a pipeline of image filter operations to be applied, see filters section
 * `IMAGE` is the image URI
 
 In addition, prepending `/params` to the existing endpoint returns the endpoint params in JSON form for preview:
@@ -102,10 +102,9 @@ curl http://localhost:8000/params/unsafe/500x500/top/raw.githubusercontent.com/g
 
 ### URL Signature
 
-In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` 
-in order to avoid DDoS attacks using multiple image operations.
+In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks using multiple image operations.
 
-The HMAC-SHA256 hash is created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+The hash is base on HMAC-SHA256, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
 An example in Go:
 
 ```go
