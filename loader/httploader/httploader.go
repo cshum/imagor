@@ -118,6 +118,7 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 	for _, header := range h.ForwardHeaders {
 		if header == "*" {
 			req.Header = r.Header.Clone()
+			req.Header.Del("Accept-Encoding") // fix compressions
 			break
 		}
 		if _, ok := r.Header[header]; ok {
