@@ -7,7 +7,7 @@ Imagor uses one of the most efficient image processing library
 
 Imagor is a Go library that is easily extensible, ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
 
-Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the web image processing use cases. If these fits your requirements, Imagor would be a lightweight, high performance drop-in replacement.
+Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the web image processing use cases. If these fit your requirements, Imagor would be a lightweight, high performance drop-in replacement.
 
 ### Quick Start
 
@@ -27,7 +27,7 @@ http://localhost:8000/unsafe/fit-in/-500x500/filters:hue(290):saturation(100):fi
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 ```
 
-#### Docker Compose Example
+#### Docker Compose Examples
 
 Imagor with File Loader and Storage using mounted volume:
 ```yaml
@@ -102,9 +102,9 @@ curl http://localhost:8000/params/unsafe/500x500/top/raw.githubusercontent.com/g
 
 ### URL Signature
 
-In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks using multiple image operations.
+In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks that abuse multiple image operations.
 
-The hash is base on HMAC digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+The hash is based on HMAC digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
 An example in Go:
 
 ```go
