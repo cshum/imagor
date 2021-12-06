@@ -304,6 +304,21 @@ func stripExif(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.RemoveICCProfile()
 }
 
+func trimFilter(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
+	var (
+		ln        = len(args)
+		pos       string
+		tolerance int
+	)
+	if ln > 0 {
+		tolerance, _ = strconv.Atoi(args[0])
+	}
+	if ln > 1 {
+		pos = args[1]
+	}
+	return trim(img, pos, tolerance)
+}
+
 func applyBackgroundColor(img *vips.ImageRef, c *vips.Color) (err error) {
 	// set background color if specified
 	var rect *vips.ImageRef

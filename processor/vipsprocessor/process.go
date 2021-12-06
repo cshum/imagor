@@ -14,7 +14,7 @@ func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagor.Params, load imagor.LoadFunc,
 ) error {
 	if p.Trim != "" {
-		if err := v.trim(img, p.Trim, p.TrimTolerance); err != nil {
+		if err := trim(img, p.Trim, p.TrimTolerance); err != nil {
 			return err
 		}
 	}
@@ -134,31 +134,6 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
-func (v *VipsProcessor) trim(img *vips.ImageRef, pos string, tolerance int) error {
-	var x, y int
-	if pos == "bottom-right" {
-		x = img.Width() - 1
-		y = img.Height() - 1
-	}
-	if tolerance == 0 {
-		tolerance = 1
-	}
-	p, err := img.GetPoint(x, y)
-	if err != nil {
-		return err
-	}
-	l, t, w, h, err := img.FindTrim(float64(tolerance), &vips.Color{
-		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
-	})
-	if err != nil {
-		return err
-	}
-	if err = img.ExtractArea(l, t, w, h); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale bool) (err error) {
 	color = strings.ToLower(color)
 	if img.HasAlpha() && color != "blur" {
@@ -215,4 +190,29 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale
 		}
 	}
 	return
+}
+
+func trim(img *vips.ImageRef, pos string, tolerance int) error {
+	var x, y int
+	if pos == "bottom-right" {
+		x = img.Width() - 1
+		y = img.Height() - 1
+	}
+	if tolerance == 0 {
+		tolerance = 1
+	}
+	p, err := img.GetPoint(x, y)
+	if err != nil {
+		return err
+	}
+	l, t, w, h, err := img.FindTrim(float64(tolerance), &vips.Color{
+		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
+	})
+	if err != nil {
+		return err
+	}
+	if err = img.ExtractArea(l, t, w, h); err != nil {
+		return err
+	}
+	return nil
 }

@@ -50,6 +50,7 @@ func New(options ...Option) *VipsProcessor {
 			"sharpen":          sharpen,
 			"strip_icc":        stripIcc,
 			"strip_exif":       stripExif,
+			"trim":             trimFilter,
 		},
 		MaxFilterOps:     10,
 		ConcurrencyLevel: runtime.NumCPU(),
