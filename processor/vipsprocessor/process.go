@@ -103,27 +103,22 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	}
-	cnt := 0
-	for _, p := range p.Filters {
+	for i, p := range p.Filters {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		if i >= v.MaxFilterOps {
+			break
+		}
 		start := time.Now()
 		if fn := v.Filters[p.Name]; fn != nil {
-			if cnt >= v.MaxFilterOps {
-				break
-			}
 			if err := fn(img, load, strings.Split(p.Args, ",")...); err != nil {
 				return err
 			}
-			cnt++
-		}
-		switch p.Name {
-		case "fill":
+		} else if p.Name == "fill" {
 			if err := v.fill(img, w, h, p.Args, upscale); err != nil {
 				return err
 			}
-			break
 		}
 		if v.Debug {
 			v.Logger.Debug("filter",
