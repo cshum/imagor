@@ -68,11 +68,8 @@ func New(app App, options ...Option) *Server {
 }
 
 func (s *Server) Run() {
-	ctxUp, cancelUp := context.WithTimeout(context.Background(), s.StartupTimeout)
-	defer cancelUp()
-	if err := s.App.Startup(ctxUp); err != nil {
-		s.Logger.Fatal("app-startup", zap.Error(err))
-	}
+	s.startup()
+
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
@@ -84,17 +81,27 @@ func (s *Server) Run() {
 	s.Logger.Info("listen", zap.String("addr", s.Addr))
 	<-done
 
-	// graceful shutdown
-	ctxDown, cancelDown := context.WithTimeout(context.Background(), s.ShutdownTimeout)
-	defer cancelDown()
+	s.shutdown()
+}
+
+func (s *Server) startup() {
+	ctx, cancel := context.WithTimeout(context.Background(), s.StartupTimeout)
+	defer cancel()
+	if err := s.App.Startup(ctx); err != nil {
+		s.Logger.Fatal("app-startup", zap.Error(err))
+	}
+}
+
+func (s *Server) shutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), s.ShutdownTimeout)
+	defer cancel()
 	s.Logger.Info("shutdown")
-	if err := s.Shutdown(ctxDown); err != nil {
+	if err := s.Shutdown(ctx); err != nil {
 		s.Logger.Error("server-shutdown", zap.Error(err))
 	}
-	if err := s.App.Shutdown(ctxDown); err != nil {
+	if err := s.App.Shutdown(ctx); err != nil {
 		s.Logger.Error("app-shutdown", zap.Error(err))
 	}
-	return
 }
 
 func (s *Server) listenAndServe() error {
