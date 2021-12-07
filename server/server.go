@@ -34,6 +34,7 @@ type Server struct {
 	CertFile        string
 	KeyFile         string
 	PathPrefix      string
+	StartupTimeout  time.Duration
 	ShutdownTimeout time.Duration
 	Logger          *zap.Logger
 	Debug           bool
@@ -45,7 +46,8 @@ func New(app App, options ...Option) *Server {
 	s.App = app
 	s.Port = 8000
 	s.MaxHeaderBytes = 1 << 20
-	s.ShutdownTimeout = time.Second * 5
+	s.StartupTimeout = time.Second * 10
+	s.ShutdownTimeout = time.Second * 10
 	s.Logger = zap.NewNop()
 
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
@@ -66,7 +68,9 @@ func New(app App, options ...Option) *Server {
 }
 
 func (s *Server) Run() {
-	if err := s.App.Startup(context.Background()); err != nil {
+	ctxUp, cancelUp := context.WithTimeout(context.Background(), s.StartupTimeout)
+	defer cancelUp()
+	if err := s.App.Startup(ctxUp); err != nil {
 		s.Logger.Fatal("app-startup", zap.Error(err))
 	}
 	done := make(chan os.Signal, 1)
@@ -81,13 +85,13 @@ func (s *Server) Run() {
 	<-done
 
 	// graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), s.ShutdownTimeout)
-	defer cancel()
+	ctxDown, cancelDown := context.WithTimeout(context.Background(), s.ShutdownTimeout)
+	defer cancelDown()
 	s.Logger.Info("shutdown")
-	if err := s.Shutdown(ctx); err != nil {
+	if err := s.Shutdown(ctxDown); err != nil {
 		s.Logger.Error("server-shutdown", zap.Error(err))
 	}
-	if err := s.App.Shutdown(ctx); err != nil {
+	if err := s.App.Shutdown(ctxDown); err != nil {
 		s.Logger.Error("app-shutdown", zap.Error(err))
 	}
 	return

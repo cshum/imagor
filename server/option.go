@@ -56,6 +56,14 @@ func WithDebug(debug bool) Option {
 	}
 }
 
+func WithStartupTimeout(timeout time.Duration) Option {
+	return func(s *Server) {
+		if timeout > 0 {
+			s.StartupTimeout = timeout
+		}
+	}
+}
+
 func WithShutdownTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if timeout > 0 {
