@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
-	"golang.org/x/image/colornames"
-	"image/color"
 	"math"
 	"net/url"
 	"strconv"
@@ -126,7 +124,7 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 	}
 	if len(args) == 3 {
 		// rx,ry,color
-		c = getColor(args[2])
+		c = getColor(img, args[2])
 		args = args[:2]
 	} else if len(args) >= 4 {
 		// rx|ry,r,g,b
@@ -174,7 +172,7 @@ func backgroundColor(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err
 	if len(args) == 0 {
 		return
 	}
-	return applyBackgroundColor(img, getColor(args[0]))
+	return applyBackgroundColor(img, getColor(img, args[0]))
 }
 
 func rotate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
@@ -343,48 +341,4 @@ func linearRGB(img *vips.ImageRef, a, b []float64) error {
 		b = append(b, 0)
 	}
 	return img.Linear(a, b)
-}
-
-func getColor(name string) *vips.Color {
-	vc := &vips.Color{}
-	strings.TrimPrefix(strings.ToLower(name), "#")
-	if c, ok := colornames.Map[strings.ToLower(name)]; ok {
-		vc.R = c.R
-		vc.G = c.G
-		vc.B = c.B
-	} else if c, ok := parseHexColor(name); ok {
-		vc.R = c.R
-		vc.G = c.G
-		vc.B = c.B
-	}
-	return vc
-}
-
-func parseHexColor(s string) (c color.RGBA, ok bool) {
-	c.A = 0xff
-	switch len(s) {
-	case 6:
-		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
-		c.G = hexToByte(s[2])<<4 + hexToByte(s[3])
-		c.B = hexToByte(s[4])<<4 + hexToByte(s[5])
-		ok = true
-	case 3:
-		c.R = hexToByte(s[0]) * 17
-		c.G = hexToByte(s[1]) * 17
-		c.B = hexToByte(s[2]) * 17
-		ok = true
-	}
-	return
-}
-
-func hexToByte(b byte) byte {
-	switch {
-	case b >= '0' && b <= '9':
-		return b - '0'
-	case b >= 'a' && b <= 'f':
-		return b - 'a' + 10
-	case b >= 'A' && b <= 'F':
-		return b - 'A' + 10
-	}
-	return 0
 }

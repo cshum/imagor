@@ -138,8 +138,10 @@ Imagor supports the following filters:
   * `amount` -100 to 100, the amount in % to increase or decrease the image brightness
 * `contrast(amount)` increases or decreases the image contrast
   * `amount` -100 to 100, the amount in % to increase or decrease the image contrast
-* `fill(color)` fill the missing area or transparent image with the specified color
-  * `color` the color name or hexadecimal rgb expression without the “#” character, or "blur"
+* `fill(color)` fill the missing area or transparent image with the specified color:
+  * `color` - color name or hexadecimal rgb expression without the “#” character
+    * If color is "blur" - missing parts are filled with blurred original image.
+    * If color is "auto" - the top left image pixel will be chosen as the filling color
 * `format(format)` specifies the output format of the image
   * `format` accepts jpeg, png, webp, gif, jp2, tiff
 * `grayscale()` changes the image to grayscale

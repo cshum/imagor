@@ -5,6 +5,8 @@ import (
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
 	"go.uber.org/zap"
+	"golang.org/x/image/colornames"
+	"image/color"
 	"math"
 	"strings"
 	"time"
@@ -132,7 +134,7 @@ func (v *VipsProcessor) process(
 func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale bool) (err error) {
 	color = strings.ToLower(color)
 	if img.HasAlpha() && color != "blur" {
-		if err = img.Flatten(getColor(color)); err != nil {
+		if err = img.Flatten(getColor(img, color)); err != nil {
 			return
 		}
 	}
@@ -172,7 +174,7 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale
 				return
 			}
 		} else {
-			c := getColor(color)
+			c := getColor(img, color)
 			if err = img.DrawRect(vips.ColorRGBA{
 				R: c.R, G: c.G, B: c.B, A: 255,
 			}, 0, 0, w, h, true); err != nil {
@@ -210,4 +212,55 @@ func trim(img *vips.ImageRef, pos string, tolerance int) error {
 		return err
 	}
 	return nil
+}
+
+func getColor(img *vips.ImageRef, name string) *vips.Color {
+	vc := &vips.Color{}
+	name = strings.TrimPrefix(strings.ToLower(name), "#")
+	if name == "auto" || name == "" {
+		p, _ := img.GetPoint(0, 0)
+		if len(p) >= 3 {
+			vc.R = uint8(p[0])
+			vc.G = uint8(p[1])
+			vc.B = uint8(p[2])
+		}
+	} else if c, ok := colornames.Map[name]; ok {
+		vc.R = c.R
+		vc.G = c.G
+		vc.B = c.B
+	} else if c, ok := parseHexColor(name); ok {
+		vc.R = c.R
+		vc.G = c.G
+		vc.B = c.B
+	}
+	return vc
+}
+
+func parseHexColor(s string) (c color.RGBA, ok bool) {
+	c.A = 0xff
+	switch len(s) {
+	case 6:
+		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
+		c.G = hexToByte(s[2])<<4 + hexToByte(s[3])
+		c.B = hexToByte(s[4])<<4 + hexToByte(s[5])
+		ok = true
+	case 3:
+		c.R = hexToByte(s[0]) * 17
+		c.G = hexToByte(s[1]) * 17
+		c.B = hexToByte(s[2]) * 17
+		ok = true
+	}
+	return
+}
+
+func hexToByte(b byte) byte {
+	switch {
+	case b >= '0' && b <= '9':
+		return b - '0'
+	case b >= 'a' && b <= 'f':
+		return b - 'a' + 10
+	case b >= 'A' && b <= 'F':
+		return b - 'A' + 10
+	}
+	return 0
 }
