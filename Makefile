@@ -10,11 +10,14 @@ dev: build
 test:
 	go test
 
-docker-build-dev:
+docker-dev-build:
 	docker build --build-arg IMAGOR_VERSION=dev -t shumc/imagor:dev .
 
-docker-dev: docker-build-dev
-	docker run -p 8000:8000 shumc/imagor:dev -debug -imagor-unsafe
+docker-dev-run:
+	touch .env
+	docker run -p 8000:8000 --env-file .env shumc/imagor:dev -debug -imagor-unsafe
+
+docker-dev: docker-dev-build docker-dev-run
 
 docker-build:
 	docker build --no-cache=true --build-arg IMAGOR_VERSION=$(VERSION) -t shumc/imagor:$(VERSION) .
