@@ -205,8 +205,10 @@ Usage of imagor:
         Imagor version
   -imagor-request-timeout duration
         Timeout for performing imagor request (default 30s)
+  -imagor-load-timeout duration
+        Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
   -imagor-save-timeout duration
-        Timeout for saving requesting image for storage (default 1m0s)
+        Timeout for saving image for storage (default 1m0s)
         
   -server-address string
         Server address
