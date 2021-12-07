@@ -25,6 +25,8 @@ type Params struct {
 	CropRight      int      `json:"crop_right,omitempty"`
 	CropBottom     int      `json:"crop_bottom,omitempty"`
 	FitIn          bool     `json:"fit_in,omitempty"`
+	HPadding       int      `json:"hpadding,omitempty"`
+	VPadding       int      `json:"vpadding,omitempty"`
 	Stretch        bool     `json:"stretch,omitempty"`
 	Upscale        bool     `json:"upscale,omitempty"`
 	Width          int      `json:"width,omitempty"`
@@ -69,7 +71,7 @@ var paramsRegex = regexp.MustCompile(
 		// crop
 		"((\\d+)x(\\d+):(\\d+)x(\\d+)/)?" +
 		// fit-in
-		"(fit-in/)?" +
+		"(fit-in(:(\\d+)x(\\d+)?)?/)?" +
 		// stretch
 		"(stretch/)?" +
 		// upscale
@@ -135,8 +137,10 @@ func ParseParams(uri string) (params Params) {
 	index += 5
 	if match[index] != "" {
 		params.FitIn = true
+		params.HPadding, _ = strconv.Atoi(match[index+2])
+		params.VPadding, _ = strconv.Atoi(match[index+3])
 	}
-	index += 1
+	index += 4
 	if match[index] != "" {
 		params.Stretch = true
 	}

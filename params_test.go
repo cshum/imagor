@@ -118,11 +118,11 @@ func TestParseParams(t *testing.T) {
 		},
 		{
 			name:   "non url image with hash",
-			uri:    "/BN6FhBfq7-AoATQ3on7eucpTw4Q=/meta/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
+			uri:    "/zfJEQ_IBTkGYmGE3QBi6pECXAaU=/meta/10x11:12x13/fit-in:5x6/-300x-200/left/top/smart/filters:some_filter()/img",
 			secret: "1234",
 			expected: Params{
-				Path:           "meta/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
-				Hash:           "BN6FhBfq7-AoATQ3on7eucpTw4Q=",
+				Path:           "meta/10x11:12x13/fit-in:5x6/-300x-200/left/top/smart/filters:some_filter()/img",
+				Hash:           "zfJEQ_IBTkGYmGE3QBi6pECXAaU=",
 				Image:          "img",
 				CropLeft:       10,
 				CropTop:        11,
@@ -137,6 +137,8 @@ func TestParseParams(t *testing.T) {
 				VAlign:         "top",
 				Smart:          true,
 				FitIn:          true,
+				HPadding:       5,
+				VPadding:       6,
 				Filters:        []Filter{{Name: "some_filter"}},
 			},
 		},
@@ -153,7 +155,7 @@ func TestParseParams(t *testing.T) {
 				t.Errorf(" = %s, want %s", string(respJSON), string(expectedJSON))
 			}
 			if test.secret != "" && !resp.Verify(test.secret) {
-				t.Errorf("signature mismatch = %s, wabt %s", resp.Hash, Sign(resp.Path, test.secret))
+				t.Errorf("signature mismatch = %s, want %s", resp.Hash, Sign(resp.Path, test.secret))
 			}
 		})
 	}
