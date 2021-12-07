@@ -25,12 +25,12 @@ type Params struct {
 	CropRight      int      `json:"crop_right,omitempty"`
 	CropBottom     int      `json:"crop_bottom,omitempty"`
 	FitIn          bool     `json:"fit_in,omitempty"`
-	HPadding       int      `json:"hpadding,omitempty"`
-	VPadding       int      `json:"vpadding,omitempty"`
 	Stretch        bool     `json:"stretch,omitempty"`
 	Upscale        bool     `json:"upscale,omitempty"`
 	Width          int      `json:"width,omitempty"`
 	Height         int      `json:"height,omitempty"`
+	HPadding       int      `json:"hpadding,omitempty"`
+	VPadding       int      `json:"vpadding,omitempty"`
 	HorizontalFlip bool     `json:"horizontal_flip,omitempty"`
 	VerticalFlip   bool     `json:"vertical_flip,omitempty"`
 	HAlign         string   `json:"halign,omitempty"`
