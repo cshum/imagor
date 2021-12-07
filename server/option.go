@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/rs/cors"
 	"go.uber.org/zap"
+	"time"
 )
 
 type Option func(s *Server)
@@ -52,5 +53,13 @@ func WithCORS(enabled bool) Option {
 func WithDebug(debug bool) Option {
 	return func(s *Server) {
 		s.Debug = debug
+	}
+}
+
+func WithShutdownTimeout(timeout time.Duration) Option {
+	return func(s *Server) {
+		if timeout > 0 {
+			s.ShutdownTimeout = timeout
+		}
 	}
 }

@@ -28,14 +28,15 @@ type App interface {
 // Server wraps the App with additional http and app lifecycle handling
 type Server struct {
 	http.Server
-	App        App
-	Address    string
-	Port       int
-	CertFile   string
-	KeyFile    string
-	PathPrefix string
-	Logger     *zap.Logger
-	Debug      bool
+	App             App
+	Address         string
+	Port            int
+	CertFile        string
+	KeyFile         string
+	PathPrefix      string
+	ShutdownTimeout time.Duration
+	Logger          *zap.Logger
+	Debug           bool
 }
 
 // New create new Server
@@ -44,6 +45,7 @@ func New(app App, options ...Option) *Server {
 	s.App = app
 	s.Port = 8000
 	s.MaxHeaderBytes = 1 << 20
+	s.ShutdownTimeout = time.Second * 5
 	s.Logger = zap.NewNop()
 
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
@@ -79,7 +81,7 @@ func (s *Server) Run() {
 	<-done
 
 	// graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), s.ShutdownTimeout)
 	defer cancel()
 	s.Logger.Info("shutdown")
 	if err := s.Shutdown(ctx); err != nil {
