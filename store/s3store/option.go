@@ -1,6 +1,7 @@
 package s3store
 
 import (
+	"github.com/aws/aws-sdk-go/service/s3"
 	"strings"
 )
 
@@ -26,6 +27,22 @@ func WithPathPrefix(prefix string) Option {
 				prefix += "/"
 			}
 			s.PathPrefix = prefix
+		}
+	}
+}
+
+var aclValuesMap = (func() map[string]bool {
+	m := map[string]bool{}
+	for _, acl := range s3.ObjectCannedACL_Values() {
+		m[acl] = true
+	}
+	return m
+})()
+
+func WithACL(acl string) Option {
+	return func(h *S3Store) {
+		if aclValuesMap[acl] {
+			h.ACL = acl
 		}
 	}
 }

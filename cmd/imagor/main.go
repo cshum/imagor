@@ -101,6 +101,8 @@ func main() {
 			"Base directory for S3 Storage")
 		s3StoragePathPrefix = fs.String("s3-storage-path-prefix", "",
 			"Base path prefix for S3 Storage")
+		s3StorageACL = fs.String("s3-storage-acl", "public-read",
+			"Upload ACL for S3 Storage")
 
 		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
 			"Base directory for File Loader. Will activate File Loader only if this value present")
@@ -157,6 +159,7 @@ func main() {
 				s3store.New(sess, *s3StorageBucket,
 					s3store.WithPathPrefix(*s3StoragePathPrefix),
 					s3store.WithBaseDir(*s3StorageBaseDir),
+					s3store.WithACL(*s3StorageACL),
 				),
 			)
 		}

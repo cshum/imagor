@@ -277,6 +277,7 @@ Usage of imagor:
         S3 Bucket for S3 Storage. Will activate S3 Storage only if this value present
   -s3-storage-path-prefix string
         Base path prefix for S3 Storage
+  -s3-storage-acl string
+        Upload ACL for S3 Storage (default "public-read")
+
 ```
-
-

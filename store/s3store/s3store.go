@@ -24,6 +24,7 @@ type S3Store struct {
 
 	BaseDir    string
 	PathPrefix string
+	ACL        string
 }
 
 func New(sess *session.Session, bucket string, options ...Option) *S3Store {
@@ -39,6 +40,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 
 		BaseDir:    baseDir,
 		PathPrefix: "/",
+		ACL:        s3.ObjectCannedACLPublicRead,
 	}
 	for _, option := range options {
 		option(s)
@@ -80,7 +82,7 @@ func (s *S3Store) Save(ctx context.Context, image string, buf []byte) error {
 		return imagor.ErrPass
 	}
 	input := &s3manager.UploadInput{
-		ACL:         aws.String(s3.ObjectCannedACLPublicRead),
+		ACL:         aws.String(s.ACL),
 		Body:        bytes.NewReader(buf),
 		Bucket:      aws.String(s.Bucket),
 		ContentType: aws.String(mime.TypeByExtension(filepath.Ext(image))),
