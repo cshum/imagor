@@ -47,7 +47,7 @@ func main() {
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout",
 			time.Minute, "Timeout for saving image for storage")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
-			time.Hour*24, "Imagor HTTP cache header ttl")
+			time.Hour*24, "Imagor HTTP cache header ttl for successful image request")
 		imagorVersion = fs.Bool("imagor-version", false, "Imagor version")
 
 		serverAddress = fs.String("server-address", "",
