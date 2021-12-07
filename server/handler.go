@@ -18,11 +18,6 @@ func handleFavicon(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func handleHealth(w http.ResponseWriter, r *http.Request) {
-	resJSON(w, GetHealthStats())
-	return
-}
-
 func (s *Server) panicHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {

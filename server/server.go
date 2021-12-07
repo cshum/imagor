@@ -52,7 +52,6 @@ func New(app App, options ...Option) *Server {
 
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
 		"/favicon.ico": handleFavicon,
-		"/health":      handleHealth,
 	})(s.App)
 
 	for _, option := range options {
