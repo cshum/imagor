@@ -47,8 +47,10 @@ type Imagor struct {
 	Storages       []Storage
 	Processors     []Processor
 	RequestTimeout time.Duration
+	LoadTimeout    time.Duration
 	SaveTimeout    time.Duration
 	Cache          cache.Cache
+	CacheTTL       time.Duration
 	Logger         *zap.Logger
 	Debug          bool
 }
@@ -59,12 +61,17 @@ func New(options ...Option) *Imagor {
 		Version:        "dev",
 		Logger:         zap.NewNop(),
 		RequestTimeout: time.Second * 30,
-		SaveTimeout:    time.Minute,
+		LoadTimeout:    time.Second * 20,
+		SaveTimeout:    time.Second * 20,
+		CacheTTL:       time.Minute,
 	}
 	for _, option := range options {
 		option(app)
 	}
 	app.Cache = cache.NewMemory(1000, 1<<28, app.SaveTimeout)
+	if app.LoadTimeout > app.RequestTimeout || app.LoadTimeout == 0 {
+		app.LoadTimeout = app.RequestTimeout
+	}
 	if app.Debug {
 		app.debugLog()
 	}
@@ -185,7 +192,7 @@ func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, e
 
 func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 	buf, err = cache.NewFunc(
-		app.Cache, app.RequestTimeout, app.SaveTimeout, app.SaveTimeout,
+		app.Cache, app.LoadTimeout, app.CacheTTL, app.CacheTTL,
 	).DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
 		dr := r.WithContext(ctx)
 		for _, loader := range app.Loaders {

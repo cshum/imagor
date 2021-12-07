@@ -41,6 +41,14 @@ func WithRequestTimeout(timeout time.Duration) Option {
 	}
 }
 
+func WithLoadTimeout(timeout time.Duration) Option {
+	return func(o *Imagor) {
+		if timeout > 0 {
+			o.LoadTimeout = timeout
+		}
+	}
+}
+
 func WithSaveTimeout(timeout time.Duration) Option {
 	return func(o *Imagor) {
 		if timeout > 0 {

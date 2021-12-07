@@ -41,9 +41,11 @@ func main() {
 		imagorUnsafe = fs.Bool("imagor-unsafe", false,
 			"Unsafe Imagor that does not require URL signature. Prone to URL tampering")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
-			time.Second*30, "Timeout for performing imagor request")
+			time.Second*30, "Timeout for performing Imagor request")
+		imagorLoadTimeout = fs.Duration("imagor-load-timeout",
+			time.Second*20, "Timeout for Imagor Loader request, should be smaller than imagor-request-timeout")
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout",
-			time.Minute, "Timeout for saving requesting image for storage")
+			time.Minute, "Timeout for saving image for storage")
 		imagorVersion = fs.Bool("imagor-version", false, "Imagor version")
 
 		serverAddress = fs.String("server-address", "",
@@ -211,6 +213,7 @@ func main() {
 			),
 			imagor.WithSecret(*imagorSecret),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
+			imagor.WithLoadTimeout(*imagorLoadTimeout),
 			imagor.WithSaveTimeout(*imagorSaveTimeout),
 			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),
