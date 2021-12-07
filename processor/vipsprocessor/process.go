@@ -85,7 +85,7 @@ func (v *VipsProcessor) process(
 		}
 		interest := vips.InterestingCentre
 		if p.Smart {
-			interest = vips.InterestingEntropy
+			interest = vips.InterestingAttention
 		} else if (p.VAlign == "top" && img.Height() > h) || (p.HAlign == "left" && img.Width() > w) {
 			interest = vips.InterestingLow
 		} else if (p.VAlign == "bottom" && img.Height() > h) || (p.HAlign == "right" && img.Width() > w) {
