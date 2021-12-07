@@ -62,8 +62,8 @@ func (v *VipsProcessor) process(
 		}
 	}
 	if p.FitIn {
-		if upscale || w < img.Width() || h < img.Height() {
-			if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
+		if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
+			if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone); err != nil {
 				return err
 			}
 		}
