@@ -109,7 +109,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	params := ParseParams(uri)
 	if params.Params {
-		setCacheHeaders(w, 0)
 		resJSONIndent(w, params)
 		return
 	}
@@ -117,7 +116,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ln := len(buf)
 	if meta != nil {
 		if params.Meta {
-			setCacheHeaders(w, 0)
 			resJSON(w, meta)
 			return
 		} else {
