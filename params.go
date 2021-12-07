@@ -71,13 +71,15 @@ var paramsRegex = regexp.MustCompile(
 		// crop
 		"((\\d+)x(\\d+):(\\d+)x(\\d+)/)?" +
 		// fit-in
-		"(fit-in(:(\\d+)x(\\d+)?)?/)?" +
+		"(fit-in/)?" +
 		// stretch
 		"(stretch/)?" +
 		// upscale
 		"(upscale/)?" +
 		// dimensions
 		"((\\-?)(\\d*)x(\\-?)(\\d*)/)?" +
+		// paddings
+		"((\\d+)x(\\d+)/)?" +
 		// halign
 		"((left|right|center)/)?" +
 		// valign
@@ -137,10 +139,8 @@ func ParseParams(uri string) (params Params) {
 	index += 5
 	if match[index] != "" {
 		params.FitIn = true
-		params.HPadding, _ = strconv.Atoi(match[index+2])
-		params.VPadding, _ = strconv.Atoi(match[index+3])
 	}
-	index += 4
+	index += 1
 	if match[index] != "" {
 		params.Stretch = true
 	}
@@ -156,6 +156,11 @@ func ParseParams(uri string) (params Params) {
 		params.Height, _ = strconv.Atoi(match[index+4])
 	}
 	index += 5
+	if match[index] != "" {
+		params.HPadding, _ = strconv.Atoi(match[index+1])
+		params.VPadding, _ = strconv.Atoi(match[index+2])
+	}
+	index += 3
 	if match[index] != "" {
 		params.HAlign = match[index+1]
 	}

@@ -118,11 +118,11 @@ func TestParseParams(t *testing.T) {
 		},
 		{
 			name:   "non url image with hash",
-			uri:    "/zfJEQ_IBTkGYmGE3QBi6pECXAaU=/meta/10x11:12x13/fit-in:5x6/-300x-200/left/top/smart/filters:some_filter()/img",
+			uri:    "/VTAq7YIRbEXgtwAcsTMhAjvBuT8=/meta/10x11:12x13/fit-in/-300x-200/5x6/left/top/smart/filters:some_filter()/img",
 			secret: "1234",
 			expected: Params{
-				Path:           "meta/10x11:12x13/fit-in:5x6/-300x-200/left/top/smart/filters:some_filter()/img",
-				Hash:           "zfJEQ_IBTkGYmGE3QBi6pECXAaU=",
+				Path:           "meta/10x11:12x13/fit-in/-300x-200/5x6/left/top/smart/filters:some_filter()/img",
+				Hash:           "VTAq7YIRbEXgtwAcsTMhAjvBuT8=",
 				Image:          "img",
 				CropLeft:       10,
 				CropTop:        11,

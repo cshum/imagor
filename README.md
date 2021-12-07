@@ -23,7 +23,7 @@ https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-fro
 
 http://localhost:8000/unsafe/500x500/top/https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-http://localhost:8000/unsafe/fit-in/-500x500/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+http://localhost:8000/unsafe/fit-in/-500x500/10x10/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 ```
 
@@ -71,15 +71,16 @@ services:
 Imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
-/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
+/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
 * `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
-* `trim` removes surrounding space in images using top-left pixel color unless specified otherwise
+* `trim` removes surrounding space in images using top-left pixel color
 * `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`
 * `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
 * `stretch` means resize the image to `ExF` without keeping its aspect ratios
 * `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
+* `GxH` add horizontal padding `G` and vertical padding `H` under `fit-in`
 * `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
 * `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 * `smart` means using smart detection of focal points
