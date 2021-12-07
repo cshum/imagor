@@ -41,6 +41,14 @@ func WithRequestTimeout(timeout time.Duration) Option {
 	}
 }
 
+func WithCacheHeaderTTL(ttl time.Duration) Option {
+	return func(o *Imagor) {
+		if ttl > 0 {
+			o.CacheHeaderTTL = ttl
+		}
+	}
+}
+
 func WithLoadTimeout(timeout time.Duration) Option {
 	return func(o *Imagor) {
 		if timeout > 0 {

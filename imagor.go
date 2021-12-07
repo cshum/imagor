@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -50,6 +51,7 @@ type Imagor struct {
 	LoadTimeout    time.Duration
 	SaveTimeout    time.Duration
 	Cache          cache.Cache
+	CacheHeaderTTL time.Duration
 	CacheTTL       time.Duration
 	Logger         *zap.Logger
 	Debug          bool
@@ -63,12 +65,13 @@ func New(options ...Option) *Imagor {
 		RequestTimeout: time.Second * 30,
 		LoadTimeout:    time.Second * 20,
 		SaveTimeout:    time.Second * 20,
+		CacheHeaderTTL: time.Hour * 24,
 		CacheTTL:       time.Minute,
 	}
 	for _, option := range options {
 		option(app)
 	}
-	app.Cache = cache.NewMemory(1000, 1<<28, app.SaveTimeout)
+	app.Cache = cache.NewMemory(1000, 1<<28, app.CacheTTL)
 	if app.LoadTimeout > app.RequestTimeout || app.LoadTimeout == 0 {
 		app.LoadTimeout = app.RequestTimeout
 	}
@@ -106,6 +109,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	params := ParseParams(uri)
 	if params.Params {
+		setCacheHeaders(w, 0)
 		resJSONIndent(w, params)
 		return
 	}
@@ -113,6 +117,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ln := len(buf)
 	if meta != nil {
 		if params.Meta {
+			setCacheHeaders(w, 0)
 			resJSON(w, meta)
 			return
 		} else {
@@ -122,6 +127,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", http.DetectContentType(buf))
 	}
 	if err != nil {
+		setCacheHeaders(w, 0)
 		if e, ok := WrapError(err).(Error); ok {
 			if e == ErrPass {
 				// passed till the end means not found
@@ -137,6 +143,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		resJSON(w, err)
 		return
 	}
+	setCacheHeaders(w, app.CacheHeaderTTL)
 	w.Header().Set("Content-Length", strconv.Itoa(ln))
 	w.Write(buf)
 	return
@@ -270,11 +277,28 @@ func (app *Imagor) debugLog() {
 	app.Logger.Debug("imagor",
 		zap.Bool("unsafe", app.Unsafe),
 		zap.Duration("request_timeout", app.RequestTimeout),
+		zap.Duration("load_timeout", app.LoadTimeout),
 		zap.Duration("save_timeout", app.SaveTimeout),
+		zap.Duration("cache_header_ttl", app.CacheHeaderTTL),
 		zap.Strings("loaders", loaders),
 		zap.Strings("storages", storages),
 		zap.Strings("processors", processors),
 	)
+}
+
+func setCacheHeaders(w http.ResponseWriter, ttl time.Duration) {
+	expires := time.Now().Add(ttl)
+
+	w.Header().Add("Expires", strings.Replace(expires.Format(time.RFC1123), "UTC", "GMT", -1))
+	w.Header().Add("Cache-Control", getCacheControl(ttl))
+}
+
+func getCacheControl(ttl time.Duration) string {
+	if ttl == 0 {
+		return "private, no-cache, no-store, must-revalidate"
+	}
+	ttlSec := int(ttl.Seconds())
+	return fmt.Sprintf("public, s-maxage=%d, max-age=%d, no-transform", ttlSec, ttlSec)
 }
 
 func resJSON(w http.ResponseWriter, v interface{}) {
