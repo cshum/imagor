@@ -127,7 +127,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", http.DetectContentType(buf))
 	}
 	if err != nil {
-		setCacheHeaders(w, 0)
 		if e, ok := WrapError(err).(Error); ok {
 			if e == ErrPass {
 				// passed till the end means not found
