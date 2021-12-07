@@ -204,7 +204,7 @@ Usage of imagor:
   -imagor-version
         Imagor version
   -imagor-cache-header-ttl duration
-        Imagor HTTP cache header ttl for successful image request (default 24h0m0s)
+        Imagor HTTP cache header ttl for successful image response (default 24h0m0s)
   -imagor-request-timeout duration
         Timeout for performing imagor request (default 30s)
   -imagor-load-timeout duration
