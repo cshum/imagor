@@ -87,11 +87,11 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 * `filters` a pipeline of image filter operations to be applied, see filters section
 * `IMAGE` is the image URI
 
-Imagor also provides some handy utilities to preview and generate endpoint at ease:
+Imagor also provides utilities for previewing and generating Imagor endpoint URI:
 
-#### GET `/params/...`
+#### GET `/params`
 
-Prepending `/params/` to the existing endpoint returns the endpoint attributes in JSON form for preview:
+Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form for preview:
 ```
 curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 
@@ -112,9 +112,9 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 }
 ```
 
-#### `params.Generate`
+#### `func Generate(p Params, secret string) string`
 
-The Imagor `params` package provides `params.Generate` function to generate endpoint URI:
+Generate Imagor endpoint with signature using the `params` Go package:
 
 ```go
 import "github.com/cshum/imagor/params"

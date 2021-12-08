@@ -18,7 +18,7 @@ const (
 
 type Filters []Filter
 
-// Params image resize and hash parameters
+// Params image endpoint parameters
 type Params struct {
 	Params        bool    `json:"-"`
 	Path          string  `json:"path,omitempty"`
@@ -53,7 +53,7 @@ type Filter struct {
 	Args string `json:"args,omitempty"`
 }
 
-// Sign an Imagor path with secret key
+// Sign an Imagor endpoint with secret key
 func Sign(path, secret string) string {
 	h := hmac.New(sha1.New, []byte(secret))
 	h.Write([]byte(strings.TrimPrefix(path, "/")))

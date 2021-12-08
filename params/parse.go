@@ -49,7 +49,7 @@ var paramsRegex = regexp.MustCompile(
 
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
-// Parse params object from uri string
+// Parse Params struct from Imagor endpoint URI
 func Parse(uri string) (p Params) {
 	match := pathRegex.FindStringSubmatch(uri)
 	if len(match) < 6 {

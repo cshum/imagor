@@ -81,10 +81,12 @@ func generate(p Params) string {
 	return strings.Join(parts, "/")
 }
 
+// GenerateUnsafe generate unsafe Imagor endpoint by Params struct
 func GenerateUnsafe(p Params) string {
 	return "unsafe/" + generate(p)
 }
 
+// Generate Imagor endpoint with signature by Params struct with secret
 func Generate(p Params, secret string) string {
 	path := generate(p)
 	return Sign(path, secret) + "/" + path
