@@ -1,4 +1,4 @@
-package imagoruri
+package imagorurl
 
 import (
 	"encoding/json"

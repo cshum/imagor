@@ -1,4 +1,4 @@
-package imagoruri
+package imagorurl
 
 import (
 	"net/url"
@@ -50,91 +50,91 @@ var paramsRegex = regexp.MustCompile(
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
 // Parse params object from uri string
-func Parse(uri string) (params Params) {
+func Parse(uri string) (p Params) {
 	match := pathRegex.FindStringSubmatch(uri)
 	if len(match) < 6 {
 		return
 	}
 	index := 1
 	if match[index] != "" {
-		params.Params = true
+		p.Params = true
 	}
 	index += 1
 	if match[index+1] == "unsafe/" {
-		params.Unsafe = true
+		p.Unsafe = true
 	} else if len(match[index+2]) <= 28 {
-		params.Hash = match[index+2]
+		p.Hash = match[index+2]
 	}
 	index += 3
-	params.Path = match[index]
+	p.Path = match[index]
 
-	match = paramsRegex.FindStringSubmatch(params.Path)
+	match = paramsRegex.FindStringSubmatch(p.Path)
 	if len(match) == 0 {
 		return
 	}
 	index = 1
 	if match[index] != "" {
-		params.Meta = true
+		p.Meta = true
 	}
 	index += 1
 	if match[index] != "" {
-		params.Trim = "top-left"
+		p.Trim = "top-left"
 		if s := match[index+2]; s != "" {
-			params.Trim = s
+			p.Trim = s
 		}
-		params.TrimTolerance, _ = strconv.Atoi(match[index+4])
+		p.TrimTolerance, _ = strconv.Atoi(match[index+4])
 	}
 	index += 5
 	if match[index] != "" {
-		params.CropLeft, _ = strconv.Atoi(match[index+1])
-		params.CropTop, _ = strconv.Atoi(match[index+2])
-		params.CropRight, _ = strconv.Atoi(match[index+3])
-		params.CropBottom, _ = strconv.Atoi(match[index+4])
+		p.CropLeft, _ = strconv.Atoi(match[index+1])
+		p.CropTop, _ = strconv.Atoi(match[index+2])
+		p.CropRight, _ = strconv.Atoi(match[index+3])
+		p.CropBottom, _ = strconv.Atoi(match[index+4])
 	}
 	index += 5
 	if match[index] != "" {
-		params.FitIn = true
+		p.FitIn = true
 	}
 	index += 1
 	if match[index] != "" {
-		params.Stretch = true
+		p.Stretch = true
 	}
 	index += 1
 	if match[index] != "" {
-		params.Upscale = true
+		p.Upscale = true
 	}
 	index += 1
 	if match[index] != "" {
-		params.HorizontalFlip = match[index+1] != ""
-		params.Width, _ = strconv.Atoi(match[index+2])
-		params.VerticalFlip = match[index+3] != ""
-		params.Height, _ = strconv.Atoi(match[index+4])
+		p.HorizontalFlip = match[index+1] != ""
+		p.Width, _ = strconv.Atoi(match[index+2])
+		p.VerticalFlip = match[index+3] != ""
+		p.Height, _ = strconv.Atoi(match[index+4])
 	}
 	index += 5
 	if match[index] != "" {
-		params.HPadding, _ = strconv.Atoi(match[index+1])
-		params.VPadding, _ = strconv.Atoi(match[index+2])
+		p.HPadding, _ = strconv.Atoi(match[index+1])
+		p.VPadding, _ = strconv.Atoi(match[index+2])
 	}
 	index += 3
 	if match[index] != "" {
-		params.HAlign = match[index+1]
+		p.HAlign = match[index+1]
 	}
 	index += 2
 	if match[index] != "" {
-		params.VAlign = match[index+1]
+		p.VAlign = match[index+1]
 	}
 	index += 2
 	if match[index] != "" {
-		params.Smart = true
+		p.Smart = true
 	}
 	index += 1
 	if match[index] != "" {
-		params.Filters = parseFilters(match[index+1])
+		p.Filters = parseFilters(match[index+1])
 	}
 	index += 2
-	params.Image = match[index]
+	p.Image = match[index]
 	if u, err := url.QueryUnescape(match[index]); err == nil {
-		params.Image = u
+		p.Image = u
 	}
 	return
 }

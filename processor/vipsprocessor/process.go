@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagoruri"
+	"github.com/cshum/imagor/imagorurl"
 	"go.uber.org/zap"
 	"golang.org/x/image/colornames"
 	"image/color"
@@ -14,7 +14,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagoruri.Params, load imagor.LoadFunc,
+	ctx context.Context, img *vips.ImageRef, p imagorurl.Params, load imagor.LoadFunc,
 ) error {
 	if p.Trim != "" {
 		if err := trim(img, p.Trim, p.TrimTolerance); err != nil {
