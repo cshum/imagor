@@ -104,6 +104,18 @@ func TestParseGenerate(t *testing.T) {
 			},
 		},
 		{
+			name: "padding without dimensions",
+			uri:  "unsafe/fit-in/0x0/5x6/https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
+			params: Params{
+				Path:     "fit-in/0x0/5x6/https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
+				Image:    "https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
+				Unsafe:   true,
+				FitIn:    true,
+				HPadding: 5,
+				VPadding: 6,
+			},
+		},
+		{
 			name: "url in filters",
 			uri:  "unsafe/stretch/500x350/filters:watermark(http://thumborize.me/static/img/beach.jpg,100,100,50)/http://thumborize.me/static/img/beach.jpg",
 			params: Params{

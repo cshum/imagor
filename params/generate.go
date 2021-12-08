@@ -35,7 +35,8 @@ func generate(p Params) string {
 	if p.Upscale {
 		parts = append(parts, "upscale")
 	}
-	if p.HFlip || p.Width != 0 || p.VFlip || p.Height != 0 {
+	if p.HFlip || p.Width != 0 || p.VFlip || p.Height != 0 ||
+		p.HPadding > 0 || p.VPadding > 0 {
 		if p.Width < 0 {
 			p.HFlip = !p.HFlip
 			p.Width = -p.Width
