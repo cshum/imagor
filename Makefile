@@ -1,6 +1,3 @@
-install:
-	go get -u .
-
 build:
 	go build -o bin/imagor ./cmd/imagor/main.go
 

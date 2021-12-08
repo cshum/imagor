@@ -60,7 +60,7 @@ services:
       AWS_REGION: ...
       S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying loader bucket
       S3_LOADER_BASE_DIR: images # optional
-      S3_STORAGE_BUCKET: mybucket # enable S3 loader by specifying storage bucket
+      S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying storage bucket
       S3_STORAGE_BASE_DIR: images # optional
     ports:
       - "8000:8000"
