@@ -1,4 +1,4 @@
-package imagor
+package params
 
 import (
 	"encoding/json"
@@ -148,7 +148,7 @@ func TestParseParams(t *testing.T) {
 			test.name = test.uri
 		}
 		t.Run(strings.TrimPrefix(test.name, "/"), func(t *testing.T) {
-			resp := ParseParams(test.uri)
+			resp := Parse(test.uri)
 			respJSON, _ := json.MarshalIndent(resp, "", "  ")
 			expectedJSON, _ := json.MarshalIndent(test.expected, "", "  ")
 			if !reflect.DeepEqual(resp, test.expected) {

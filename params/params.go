@@ -1,4 +1,4 @@
-package imagor
+package params
 
 import (
 	"crypto/hmac"
@@ -44,14 +44,6 @@ type Filter struct {
 	Args string `json:"args,omitempty"`
 }
 
-type Meta struct {
-	Format      string `json:"format"`
-	ContentType string `json:"content_type"`
-	Width       int    `json:"width"`
-	Height      int    `json:"height"`
-	Orientation int    `json:"orientation"`
-}
-
 var pathRegex = regexp.MustCompile(
 	"/?" +
 		// params
@@ -94,8 +86,8 @@ var paramsRegex = regexp.MustCompile(
 
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
-// ParseParams parse params object from uri string
-func ParseParams(uri string) (params Params) {
+// Parse params object from uri string
+func Parse(uri string) (params Params) {
 	match := pathRegex.FindStringSubmatch(uri)
 	if len(match) < 6 {
 		return

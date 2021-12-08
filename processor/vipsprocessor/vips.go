@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/params"
 	"go.uber.org/zap"
 	"runtime"
 	"strconv"
@@ -103,7 +104,7 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 }
 
 func (v *VipsProcessor) Process(
-	ctx context.Context, buf []byte, p imagor.Params, load imagor.LoadFunc,
+	ctx context.Context, buf []byte, p params.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {
 	img, err := vips.NewImageFromBuffer(buf)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cshum/hybridcache"
+	"github.com/cshum/imagor/params"
 	"go.uber.org/zap"
 	"net/http"
 	"reflect"
@@ -15,6 +16,14 @@ import (
 )
 
 type LoadFunc func(string) ([]byte, error)
+
+type Meta struct {
+	Format      string `json:"format"`
+	ContentType string `json:"content_type"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	Orientation int    `json:"orientation"`
+}
 
 // Loader Load image from image source
 type Loader interface {
@@ -35,7 +44,7 @@ type Store interface {
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, buf []byte, params Params, load LoadFunc) ([]byte, *Meta, error)
+	Process(ctx context.Context, buf []byte, p params.Params, load LoadFunc) ([]byte, *Meta, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -107,15 +116,15 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)))
 		return
 	}
-	params := ParseParams(uri)
-	if params.Params {
-		resJSONIndent(w, params)
+	p := params.Parse(uri)
+	if p.Params {
+		resJSONIndent(w, p)
 		return
 	}
-	buf, meta, err := app.Do(r, params)
+	buf, meta, err := app.Do(r, p)
 	ln := len(buf)
 	if meta != nil {
-		if params.Meta {
+		if p.Meta {
 			resJSON(w, meta)
 			return
 		} else {
@@ -146,34 +155,34 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, err error) {
+func (app *Imagor) Do(r *http.Request, p params.Params) (buf []byte, meta *Meta, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if app.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
 		defer cancel()
 	}
-	if !(app.Unsafe && params.Unsafe) && !params.Verify(app.Secret) {
+	if !(app.Unsafe && p.Unsafe) && !p.Verify(app.Secret) {
 		err = ErrSignatureMismatch
 		if app.Debug {
-			app.Logger.Debug("sign-mismatch", zap.Any("params", params), zap.String("expected", Sign(params.Path, app.Secret)))
+			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", params.Sign(p.Path, app.Secret)))
 		}
 		return
 	}
-	if buf, err = app.load(r, params.Image); err != nil {
-		app.Logger.Debug("load", zap.Any("params", params), zap.Error(err))
+	if buf, err = app.load(r, p.Image); err != nil {
+		app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 		return
 	}
 	load := func(image string) ([]byte, error) {
 		return app.load(r, image)
 	}
 	for _, processor := range app.Processors {
-		b, m, e := processor.Process(ctx, buf, params, load)
+		b, m, e := processor.Process(ctx, buf, p, load)
 		if e == nil {
 			buf = b
 			meta = m
 			if app.Debug {
-				app.Logger.Debug("processed", zap.Any("params", params), zap.Any("meta", meta), zap.Int("size", len(buf)))
+				app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", meta), zap.Int("size", len(buf)))
 			}
 			break
 		} else {
@@ -183,11 +192,11 @@ func (app *Imagor) Do(r *http.Request, params Params) (buf []byte, meta *Meta, e
 					buf = b
 				}
 				if app.Debug {
-					app.Logger.Debug("process", zap.Any("params", params), zap.Error(e))
+					app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
 				}
 			} else {
 				err = e
-				app.Logger.Warn("process", zap.Any("params", params), zap.Error(e))
+				app.Logger.Warn("process", zap.Any("params", p), zap.Error(e))
 			}
 		}
 	}
