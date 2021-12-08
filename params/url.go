@@ -1,4 +1,4 @@
-package imagorurl
+package params
 
 import "strings"
 
@@ -8,14 +8,14 @@ type URL struct {
 	Unsafe  bool
 }
 
-func New(baseURL, secret string) URL {
+func NewURL(baseURL, secret string) URL {
 	return URL{
 		BaseURL: strings.TrimSuffix(baseURL, "/") + "/",
 		Secret:  secret,
 	}
 }
 
-func NewUnsafe(baseURL string) URL {
+func NewURLUnsafe(baseURL string) URL {
 	return URL{
 		BaseURL: strings.TrimSuffix(baseURL, "/") + "/",
 		Unsafe:  true,

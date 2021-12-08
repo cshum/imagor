@@ -1,4 +1,4 @@
-package imagorurl
+package params
 
 import (
 	"reflect"
@@ -14,7 +14,7 @@ func TestURL_ParseGenerate(t *testing.T) {
 	}{
 		{
 			name: "unsafe",
-			u:    NewUnsafe("http://localhost:8000"),
+			u:    NewURLUnsafe("http://localhost:8000"),
 			url:  "http://localhost:8000/unsafe/-0x0/https://foo.com/bar.png",
 			params: Params{
 				HFlip: true,
@@ -23,7 +23,7 @@ func TestURL_ParseGenerate(t *testing.T) {
 		},
 		{
 			name: "unsafe with query",
-			u:    NewUnsafe("http://localhost:8000"),
+			u:    NewURLUnsafe("http://localhost:8000"),
 			url:  "http://localhost:8000/unsafe/fit-in/https%3A%2F%2Ffoo.com%2Fbar.png%3Fv%3D1234",
 			params: Params{
 				FitIn: true,
@@ -31,7 +31,7 @@ func TestURL_ParseGenerate(t *testing.T) {
 			},
 		},
 		{
-			u:    New("https://localhost:8000", "1234"),
+			u:    NewURL("https://localhost:8000", "1234"),
 			name: "unsafe",
 			url:  "https://localhost:8000/3De8zlPL3Dty08swVLGEcdpI1tc=/-0x0/https://foo.com/bar.png",
 			params: Params{

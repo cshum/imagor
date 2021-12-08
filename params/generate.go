@@ -1,4 +1,4 @@
-package imagorurl
+package params
 
 import (
 	"fmt"
