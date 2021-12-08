@@ -41,11 +41,6 @@ type Filter struct {
 	Args string `json:"args,omitempty"`
 }
 
-// Verify if hash matches secret
-func (p *Params) Verify(secret string) bool {
-	return Sign(p.Path, secret) == p.Hash
-}
-
 // Sign an Imagor path with secret key
 func Sign(path, secret string) string {
 	h := hmac.New(sha1.New, []byte(secret))

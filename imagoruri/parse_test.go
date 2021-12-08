@@ -154,7 +154,7 @@ func TestParse(t *testing.T) {
 			if !reflect.DeepEqual(resp, test.expected) {
 				t.Errorf(" = %s, want %s", string(respJSON), string(expectedJSON))
 			}
-			if test.secret != "" && !resp.Verify(test.secret) {
+			if test.secret != "" && Sign(resp.Path, test.secret) != resp.Hash {
 				t.Errorf("signature mismatch = %s, want %s", resp.Hash, Sign(resp.Path, test.secret))
 			}
 		})

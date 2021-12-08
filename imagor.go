@@ -143,7 +143,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if ln > 0 {
 			w.Header().Set("Content-Length", strconv.Itoa(ln))
-			w.Write(buf)
+			_, _ = w.Write(buf)
 			return
 		}
 		resJSON(w, err)
@@ -151,7 +151,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	setCacheHeaders(w, app.CacheHeaderTTL)
 	w.Header().Set("Content-Length", strconv.Itoa(ln))
-	w.Write(buf)
+	_, _ = w.Write(buf)
 	return
 }
 
@@ -162,7 +162,7 @@ func (app *Imagor) Do(r *http.Request, p imagoruri.Params) (buf []byte, meta *Me
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
 		defer cancel()
 	}
-	if !(app.Unsafe && p.Unsafe) && !p.Verify(app.Secret) {
+	if !(app.Unsafe && p.Unsafe) && imagoruri.Sign(p.Path, app.Secret) != p.Hash {
 		err = ErrSignatureMismatch
 		if app.Debug {
 			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", imagoruri.Sign(p.Path, app.Secret)))
