@@ -89,7 +89,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 
 Imagor also provides utilities for previewing and generating Imagor endpoint URI:
 
-#### GET `/params`
+#### `GET /params`
 
 Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form for preview:
 ```
@@ -114,7 +114,7 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 
 #### `func Generate(p Params, secret string) string`
 
-Generate Imagor endpoint with signature using the `params` Go package:
+Generate Imagor endpoint with signature using the `params` package:
 
 ```go
 import "github.com/cshum/imagor/params"
