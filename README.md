@@ -87,17 +87,53 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 * `filters` a pipeline of image filter operations to be applied, see filters section
 * `IMAGE` is the image URI
 
-In addition, prepending `/params` to the existing endpoint returns the endpoint params in JSON form for preview:
+Imagor also provides a few handy utilities to preview and generate endpoint URI at ease:
+
+#### GET `/params/...`
+
+Prepending `/params/` to the existing endpoint returns the endpoint attributes in JSON form for preview:
 ```
-curl http://localhost:8000/params/unsafe/500x500/top/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 
 {
-  "path": "500x500/top/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
+  "path": "fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
   "image": "raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
-  "unsafe": true,
+  "hash": "g5bMqZvxaQK65qFPaP1qlJOTuLM=",
+  "fit_in": true,
   "width": 500,
-  "height": 500,
-  "v_align": "top"
+  "height": 400,
+  "v_padding": 20,
+  "filters": [
+    {
+      "type": "fill",
+      "args": "white"
+    }
+  ]
+}
+```
+
+#### `params.Generate`
+
+The Imagor `params` package provides `params.Generate` function to generate endpoint URI at ease:
+
+```go
+import "github.com/cshum/imagor/params"
+
+func main() {
+	fmt.Println(params.Generate(params.Params{
+		Image:		"raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
+		FitIn:		true,
+		Width:		500,
+		Height:		400,
+		VPadding:	20,
+		Filters: params.Filters{
+			{
+				Name: "fill",
+				Args: "white",
+			},
+		},
+	}, "mysecret"))
+	// g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 }
 ```
 
