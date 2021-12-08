@@ -105,9 +105,9 @@ func Parse(uri string) (p Params) {
 	}
 	index += 1
 	if match[index] != "" {
-		p.HorizontalFlip = match[index+1] != ""
+		p.HFlip = match[index+1] != ""
 		p.Width, _ = strconv.Atoi(match[index+2])
-		p.VerticalFlip = match[index+3] != ""
+		p.VFlip = match[index+3] != ""
 		p.Height, _ = strconv.Atoi(match[index+4])
 	}
 	index += 5

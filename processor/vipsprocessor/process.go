@@ -96,12 +96,12 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	}
-	if p.HorizontalFlip {
+	if p.HFlip {
 		if err := img.Flip(vips.DirectionHorizontal); err != nil {
 			return err
 		}
 	}
-	if p.VerticalFlip {
+	if p.VFlip {
 		if err := img.Flip(vips.DirectionVertical); err != nil {
 			return err
 		}

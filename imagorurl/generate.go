@@ -42,20 +42,20 @@ func generate(p Params) string {
 	if p.Upscale {
 		parts = append(parts, "upscale")
 	}
-	if p.HorizontalFlip || p.Width != 0 || p.VerticalFlip || p.Height != 0 {
+	if p.HFlip || p.Width != 0 || p.VFlip || p.Height != 0 {
 		if p.Width < 0 {
-			p.HorizontalFlip = !p.HorizontalFlip
+			p.HFlip = !p.HFlip
 			p.Width = -p.Width
 		}
 		if p.Height < 0 {
-			p.VerticalFlip = !p.VerticalFlip
+			p.VFlip = !p.VFlip
 			p.Height = -p.Height
 		}
 		var hFlipStr, vFlipStr string
-		if p.HorizontalFlip {
+		if p.HFlip {
 			hFlipStr = "-"
 		}
-		if p.VerticalFlip {
+		if p.VFlip {
 			vFlipStr = "-"
 		}
 		parts = append(parts, fmt.Sprintf(
