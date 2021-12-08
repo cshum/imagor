@@ -7,6 +7,15 @@ import (
 	"strings"
 )
 
+const (
+	TrimByTopLeft     = "top-left"
+	TrimByBottomRight = "bottom-right"
+	HAlignLeft        = "left"
+	HAlignRight       = "right"
+	VAlignTop         = "top"
+	VAlignBottom      = "bottom"
+)
+
 // Params image resize and hash parameters
 type Params struct {
 	Params        bool     `json:"-"`
@@ -15,7 +24,8 @@ type Params struct {
 	Unsafe        bool     `json:"unsafe,omitempty"`
 	Hash          string   `json:"hash,omitempty"`
 	Meta          bool     `json:"meta,omitempty"`
-	Trim          string   `json:"trim,omitempty"`
+	Trim          bool     `json:"trim,omitempty"`
+	TrimBy        string   `json:"trim_by,omitempty"`
 	TrimTolerance int      `json:"trim_tolerance,omitempty"`
 	CropLeft      int      `json:"crop_left,omitempty"`
 	CropTop       int      `json:"crop_top,omitempty"`

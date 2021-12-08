@@ -16,8 +16,8 @@ import (
 func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagorurl.Params, load imagor.LoadFunc,
 ) error {
-	if p.Trim != "" {
-		if err := trim(img, p.Trim, p.TrimTolerance); err != nil {
+	if p.Trim {
+		if err := trim(img, p.TrimBy, p.TrimTolerance); err != nil {
 			return err
 		}
 	}
@@ -192,7 +192,7 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale
 
 func trim(img *vips.ImageRef, pos string, tolerance int) error {
 	var x, y int
-	if pos == "bottom-right" {
+	if pos == imagorurl.TrimByBottomRight {
 		x = img.Width() - 1
 		y = img.Height() - 1
 	}

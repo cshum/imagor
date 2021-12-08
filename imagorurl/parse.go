@@ -78,9 +78,10 @@ func Parse(uri string) (p Params) {
 	}
 	index += 1
 	if match[index] != "" {
-		p.Trim = "top-left"
+		p.Trim = true
+		p.TrimBy = TrimByTopLeft
 		if s := match[index+2]; s != "" {
-			p.Trim = s
+			p.TrimBy = s
 		}
 		p.TrimTolerance, _ = strconv.Atoi(match[index+4])
 	}

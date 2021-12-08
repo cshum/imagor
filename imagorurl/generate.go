@@ -7,22 +7,15 @@ import (
 	"strings"
 )
 
-const (
-	HAlignLeft   = "left"
-	HAlignRight  = "right"
-	VAlignTop    = "top"
-	VAlignBottom = "bottom"
-)
-
 func generate(p Params) string {
 	var parts []string
 	if p.Meta {
 		parts = append(parts, "meta")
 	}
-	if p.Trim != "" {
+	if p.Trim || p.TrimBy != "" {
 		trims := []string{"trim"}
-		if br := "bottom-right"; p.Trim == br {
-			trims = append(trims, br)
+		if p.TrimBy == TrimByBottomRight {
+			trims = append(trims, TrimByBottomRight)
 		}
 		if p.TrimTolerance > 0 {
 			trims = append(trims, strconv.Itoa(p.TrimTolerance))

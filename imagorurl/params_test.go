@@ -16,10 +16,12 @@ func TestParseGenerate(t *testing.T) {
 	}{
 		{
 			name: "non url image",
-			uri:  "meta/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
+			uri:  "meta/trim/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
 			params: Params{
-				Path:       "meta/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
+				Path:       "meta/trim/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
 				Image:      "img",
+				Trim:       true,
+				TrimBy:     "top-left",
 				CropLeft:   10,
 				CropTop:    11,
 				CropRight:  12,
