@@ -2,8 +2,6 @@ package imagor
 
 import (
 	"context"
-	"fmt"
-	"github.com/cshum/imagor/params"
 	"testing"
 	"time"
 )
@@ -27,20 +25,4 @@ func TestDetachContext(t *testing.T) {
 	if err := ctx.Err(); err != context.DeadlineExceeded {
 		t.Error("should new timeout")
 	}
-}
-
-func TestParams(t *testing.T) {
-	fmt.Println(params.Generate(params.Params{
-		Image:    "raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
-		FitIn:    true,
-		Width:    500,
-		Height:   400,
-		VPadding: 20,
-		Filters: params.Filters{
-			{
-				Name: "fill",
-				Args: "white",
-			},
-		},
-	}, "mysecret"))
 }
