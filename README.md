@@ -87,7 +87,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 * `filters` a pipeline of image filter operations to be applied, see filters section
 * `IMAGE` is the image URI
 
-Imagor also provides a few handy utilities to preview and generate endpoint URI at ease:
+Imagor also provides some handy utilities to preview and generate endpoint at ease:
 
 #### GET `/params/...`
 
@@ -114,7 +114,7 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 
 #### `params.Generate`
 
-The Imagor `params` package provides `params.Generate` function to generate endpoint URI at ease:
+The Imagor `params` package provides `params.Generate` function to generate endpoint URI:
 
 ```go
 import "github.com/cshum/imagor/params"
