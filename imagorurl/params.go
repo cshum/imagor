@@ -26,12 +26,12 @@ type Params struct {
 	Upscale       bool     `json:"upscale,omitempty"`
 	Width         int      `json:"width,omitempty"`
 	Height        int      `json:"height,omitempty"`
-	HPadding      int      `json:"hpadding,omitempty"`
-	VPadding      int      `json:"vpadding,omitempty"`
-	HFlip         bool     `json:"hflip,omitempty"`
-	VFlip         bool     `json:"vflip,omitempty"`
-	HAlign        string   `json:"halign,omitempty"`
-	VAlign        string   `json:"valign,omitempty"`
+	HPadding      int      `json:"h_padding,omitempty"`
+	VPadding      int      `json:"v_padding,omitempty"`
+	HFlip         bool     `json:"h_flip,omitempty"`
+	VFlip         bool     `json:"v_flip,omitempty"`
+	HAlign        string   `json:"h_align,omitempty"`
+	VAlign        string   `json:"v_align,omitempty"`
 	Smart         bool     `json:"smart,omitempty"`
 	Filters       []Filter `json:"filters,omitempty"`
 }

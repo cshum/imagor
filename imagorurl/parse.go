@@ -35,9 +35,9 @@ var paramsRegex = regexp.MustCompile(
 		"((\\-?)(\\d*)x(\\-?)(\\d*)/)?" +
 		// paddings
 		"((\\d+)x(\\d+)/)?" +
-		// halign
+		// h_align
 		"((left|right|center)/)?" +
-		// valign
+		// v_align
 		"((top|bottom|middle)/)?" +
 		// smart
 		"(smart/)?" +

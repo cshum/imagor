@@ -97,7 +97,7 @@ curl http://localhost:8000/params/unsafe/500x500/top/raw.githubusercontent.com/g
   "unsafe": true,
   "width": 500,
   "height": 500,
-  "valign": "top"
+  "v_align": "top"
 }
 ```
 
