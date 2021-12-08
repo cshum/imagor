@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cshum/hybridcache"
-	"github.com/cshum/imagor/params"
+	"github.com/cshum/imagor/imagoruri"
 	"go.uber.org/zap"
 	"net/http"
 	"reflect"
@@ -44,7 +44,7 @@ type Store interface {
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, buf []byte, p params.Params, load LoadFunc) ([]byte, *Meta, error)
+	Process(ctx context.Context, buf []byte, params imagoruri.Params, load LoadFunc) ([]byte, *Meta, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -116,7 +116,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)))
 		return
 	}
-	p := params.Parse(uri)
+	p := imagoruri.Parse(uri)
 	if p.Params {
 		resJSONIndent(w, p)
 		return
@@ -155,7 +155,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (app *Imagor) Do(r *http.Request, p params.Params) (buf []byte, meta *Meta, err error) {
+func (app *Imagor) Do(r *http.Request, p imagoruri.Params) (buf []byte, meta *Meta, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if app.RequestTimeout > 0 {
@@ -165,7 +165,7 @@ func (app *Imagor) Do(r *http.Request, p params.Params) (buf []byte, meta *Meta,
 	if !(app.Unsafe && p.Unsafe) && !p.Verify(app.Secret) {
 		err = ErrSignatureMismatch
 		if app.Debug {
-			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", params.Sign(p.Path, app.Secret)))
+			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", imagoruri.Sign(p.Path, app.Secret)))
 		}
 		return
 	}
@@ -311,7 +311,7 @@ func resJSON(w http.ResponseWriter, v interface{}) {
 	buf, _ := json.Marshal(v)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-	w.Write(buf)
+	_, _ = w.Write(buf)
 	return
 }
 
@@ -319,7 +319,7 @@ func resJSONIndent(w http.ResponseWriter, v interface{}) {
 	buf, _ := json.MarshalIndent(v, "", "  ")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-	w.Write(buf)
+	_, _ = w.Write(buf)
 	return
 }
 

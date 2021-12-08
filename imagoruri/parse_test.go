@@ -1,4 +1,4 @@
-package params
+package imagoruri
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestParseParams(t *testing.T) {
+func TestParse(t *testing.T) {
 	tests := []struct {
 		name     string
 		uri      string
