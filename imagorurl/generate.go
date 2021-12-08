@@ -12,10 +12,10 @@ func generate(p Params) string {
 	if p.Meta {
 		parts = append(parts, "meta")
 	}
-	if p.Trim || p.TrimBy != "" {
+	if p.Trim || (p.TrimBy == TrimByTopLeft || p.TrimBy == TrimByBottomRight) {
 		trims := []string{"trim"}
 		if p.TrimBy == TrimByBottomRight {
-			trims = append(trims, TrimByBottomRight)
+			trims = append(trims, "bottom-right")
 		}
 		if p.TrimTolerance > 0 {
 			trims = append(trims, strconv.Itoa(p.TrimTolerance))
