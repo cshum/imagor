@@ -27,7 +27,7 @@ http://localhost:8000/unsafe/fit-in/-500x500/10x10/filters:hue(290):saturation(1
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 ```
 
-#### Docker Compose Examples
+#### Docker Compose Example
 
 Imagor with File Loader and Storage using mounted volume:
 ```yaml
@@ -91,7 +91,7 @@ Imagor also provides utilities for previewing and generating Imagor endpoint URI
 
 #### `GET /params`
 
-Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form for preview:
+Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for preview:
 ```
 curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 
@@ -112,10 +112,14 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 }
 ```
 
-#### `func Generate(p Params, secret string) string`
+#### `params` package
 
-Generate Imagor endpoint with signature using the `params` package:
-
+Imagor Go library provides a `params` package that
+lets you generate Imagor endpoint using Go struct:
+```bash
+go get -u github.com/cshum/imagor/params
+```
+Example:
 ```go
 import "github.com/cshum/imagor/params"
 
