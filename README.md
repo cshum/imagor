@@ -112,19 +112,19 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 }
 ```
 
-#### `params` package
+#### `imagorpath` package
 
-Imagor Go library provides a `params` package that
-lets you generate Imagor endpoint using Go struct:
+Imagor Go library provides a `imagorpath` package that
+lets you generate Imagor endpoint using the `Params` Go struct:
 ```bash
-go get -u github.com/cshum/imagor/params
+go get -u github.com/cshum/imagor/imagorpath
 ```
 Example:
 ```go
-import "github.com/cshum/imagor/params"
+import "github.com/cshum/imagor/imagorpath"
 
 func main() {
-	fmt.Println(params.Generate(params.Params{
+	fmt.Println(imagorpath.Generate(imagorpath.Params{
 		Image:		"raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
 		FitIn:		true,
 		Width:		500,

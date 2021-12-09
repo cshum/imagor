@@ -1,4 +1,4 @@
-package params
+package imagorpath
 
 import (
 	"encoding/json"

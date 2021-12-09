@@ -1,4 +1,4 @@
-package params
+package imagorpath
 
 import (
 	"net/url"
@@ -50,8 +50,8 @@ var paramsRegex = regexp.MustCompile(
 var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
 
 // Parse Params struct from Imagor endpoint URI
-func Parse(uri string) (p Params) {
-	match := pathRegex.FindStringSubmatch(uri)
+func Parse(path string) (p Params) {
+	match := pathRegex.FindStringSubmatch(path)
 	if len(match) < 6 {
 		return
 	}

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cshum/hybridcache"
-	"github.com/cshum/imagor/params"
+	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
 	"net/http"
 	"reflect"
@@ -44,7 +44,7 @@ type Store interface {
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, buf []byte, p params.Params, load LoadFunc) ([]byte, *Meta, error)
+	Process(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -109,14 +109,14 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 }
 
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	uri := r.URL.EscapedPath()
-	if uri == "/" {
+	path := r.URL.EscapedPath()
+	if path == "/" {
 		resJSON(w, json.RawMessage(fmt.Sprintf(
 			`{"imagor":{"version":"%s"}}`, app.Version,
 		)))
 		return
 	}
-	p := params.Parse(uri)
+	p := imagorpath.Parse(path)
 	if p.Params {
 		resJSONIndent(w, p)
 		return
@@ -155,17 +155,17 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (app *Imagor) Do(r *http.Request, p params.Params) (buf []byte, meta *Meta, err error) {
+func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (buf []byte, meta *Meta, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if app.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
 		defer cancel()
 	}
-	if !(app.Unsafe && p.Unsafe) && params.Sign(p.Path, app.Secret) != p.Hash {
+	if !(app.Unsafe && p.Unsafe) && imagorpath.Sign(p.Path, app.Secret) != p.Hash {
 		err = ErrSignatureMismatch
 		if app.Debug {
-			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", params.Sign(p.Path, app.Secret)))
+			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", imagorpath.Sign(p.Path, app.Secret)))
 		}
 		return
 	}

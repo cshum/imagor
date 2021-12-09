@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/params"
+	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
 	"golang.org/x/image/colornames"
 	"image/color"
@@ -14,7 +14,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p params.Params, load imagor.LoadFunc,
+	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc,
 ) error {
 	if p.Trim {
 		if err := trim(img, p.TrimBy, p.TrimTolerance); err != nil {
@@ -192,7 +192,7 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale
 
 func trim(img *vips.ImageRef, pos string, tolerance int) error {
 	var x, y int
-	if pos == params.TrimByBottomRight {
+	if pos == imagorpath.TrimByBottomRight {
 		x = img.Width() - 1
 		y = img.Height() - 1
 	}
