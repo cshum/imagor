@@ -122,14 +122,9 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 Imagor Go library provides a `imagorpath` package which
 allows you to parse and generate Imagor endpoint using the `imagorpath.Params` Go struct:
 
-```bash
-go get -u github.com/cshum/imagor/imagorpath
-```
-
-Example:
-
 ```go
 import "github.com/cshum/imagor/imagorpath"
+
 
 func main() {
 	params := imagorpath.Params{
