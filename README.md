@@ -120,7 +120,7 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 #### `imagorpath` package
 
 Imagor Go library provides a `imagorpath` package which
-allows you to parse and generate Imagor endpoint using the `imagorpath.Params` Go struct:
+allows you to parse and generate Imagor endpoint using the `Params` struct:
 
 ```go
 import "github.com/cshum/imagor/imagorpath"
@@ -142,11 +142,13 @@ func main() {
 	}
 	// generate Imagor path from Params struct
 	path := imagorpath.Generate(params, "mysecret")
+	
 	fmt.Println(path)
 	// g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 
-    // parse Params struct from Imagor path
+	// parse Params struct from Imagor path
 	buf, _ := json.Marshal(imagorpath.Parse(path))
+	
 	fmt.Println(string(buf))
 	// {
 	//    "path": "fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
