@@ -110,7 +110,7 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
   "v_padding": 20,
   "filters": [
     {
-      "type": "fill",
+      "name": "fill",
       "args": "white"
     }
   ]
@@ -160,7 +160,7 @@ func main() {
 	//    "v_padding": 20,
 	//    "filters": [
 	//      {
-	//        "type": "fill",
+	//        "name": "fill",
 	//        "args": "white"
 	//      }
 	//    ]
