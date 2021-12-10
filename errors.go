@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,6 +19,7 @@ var (
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
 	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
 	ErrMaxSizeExceeded   = NewError("maximum size exceeded", http.StatusBadRequest)
+	ErrInternal          = NewError("internal error", http.StatusInternalServerError)
 )
 
 const errPrefix = "imagor:"
@@ -47,6 +49,12 @@ func WrapError(err error) error {
 	}
 	if e, ok := err.(Error); ok {
 		return e
+	}
+	if e, ok := err.(*url.Error); ok {
+		if e.Timeout() {
+			return ErrTimeout
+		}
+		return NewError(e.Error(), http.StatusBadRequest)
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrTimeout

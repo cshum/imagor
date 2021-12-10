@@ -135,13 +135,15 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				e = ErrNotFound
 			}
 			w.WriteHeader(e.Code)
+			if ln > 0 {
+				w.Header().Set("Content-Length", strconv.Itoa(ln))
+				_, _ = w.Write(buf)
+				return
+			}
+			resJSON(w, e)
+		} else {
+			resJSON(w, ErrInternal)
 		}
-		if ln > 0 {
-			w.Header().Set("Content-Length", strconv.Itoa(ln))
-			_, _ = w.Write(buf)
-			return
-		}
-		resJSON(w, err)
 		return
 	}
 	setCacheHeaders(w, app.CacheHeaderTTL)
