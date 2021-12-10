@@ -202,7 +202,7 @@ func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 	ctx := r.Context()
 	var cancel func()
 	if app.LoadTimeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
+		ctx, cancel = context.WithTimeout(ctx, app.LoadTimeout)
 		defer cancel()
 		r = r.WithContext(ctx)
 	}
