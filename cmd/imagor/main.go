@@ -181,7 +181,7 @@ func main() {
 		// activate File Storage only if base dir config presents
 		storages = append(storages,
 			filestore.New(
-				*fileLoaderBaseDir,
+				*fileStorageBaseDir,
 				filestore.WithPathPrefix(*fileStoragePathPrefix),
 			),
 		)
