@@ -11,11 +11,8 @@ import (
 	"time"
 )
 
-// Middleware for http.Handler
-type Middleware func(http.Handler) http.Handler
-
-// App is a http.Handler with Startup and Shutdown lifecycle
-type App interface {
+// Service is a http.Handler with Startup and Shutdown lifecycle
+type Service interface {
 	http.Handler
 
 	// Startup controls app startup
@@ -25,10 +22,10 @@ type App interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Server wraps the App with additional http and app lifecycle handling
+// Server wraps the Service with additional http and app lifecycle handling
 type Server struct {
 	http.Server
-	App             App
+	App             Service
 	Address         string
 	Port            int
 	CertFile        string
@@ -41,7 +38,7 @@ type Server struct {
 }
 
 // New create new Server
-func New(app App, options ...Option) *Server {
+func New(app Service, options ...Option) *Server {
 	s := &Server{}
 	s.App = app
 	s.Port = 8000

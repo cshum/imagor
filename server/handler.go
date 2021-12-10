@@ -38,7 +38,9 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 	})
 }
 
-func pathHandler(method string, handleFuncs map[string]http.HandlerFunc) Middleware {
+func pathHandler(
+	method string, handleFuncs map[string]http.HandlerFunc,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != method {
@@ -53,6 +55,17 @@ func pathHandler(method string, handleFuncs map[string]http.HandlerFunc) Middlew
 			return
 		})
 	}
+}
+
+func stripQueryStringHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "" {
+			r.URL.RawQuery = ""
+			http.Redirect(w, r, r.URL.String(), http.StatusPermanentRedirect)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func resJSON(w http.ResponseWriter, v interface{}) {

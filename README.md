@@ -295,6 +295,8 @@ Usage of imagor:
         Server address
   -server-cors
         Enable CORS
+  -server-strip-query-string
+        Enable strip query string redirection
   -server-path-prefix string
         Server path prefix
 

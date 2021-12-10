@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/rs/cors"
 	"go.uber.org/zap"
+	"net/http"
 	"time"
 )
 
@@ -28,7 +29,7 @@ func WithLogger(logger *zap.Logger) Option {
 	}
 }
 
-func WithMiddleware(middleware Middleware) Option {
+func WithMiddleware(middleware func(http.Handler) http.Handler) Option {
 	return func(s *Server) {
 		if middleware != nil {
 			s.Handler = middleware(s.Handler)
@@ -68,6 +69,14 @@ func WithShutdownTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if timeout > 0 {
 			s.ShutdownTimeout = timeout
+		}
+	}
+}
+
+func WithStripQueryString(enabled bool) Option {
+	return func(s *Server) {
+		if enabled {
+			s.Handler = stripQueryStringHandler(s.Handler)
 		}
 	}
 }

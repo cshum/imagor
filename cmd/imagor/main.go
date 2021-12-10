@@ -56,6 +56,8 @@ func main() {
 			"Server path prefix")
 		serverCORS = fs.Bool("server-cors", false,
 			"Enable CORS")
+		serverStripQueryString = fs.Bool("server-strip-query-string", false,
+			"Enable strip query string redirection")
 
 		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
 			"VIPS disable blur operations for vips processor")
@@ -229,6 +231,7 @@ func main() {
 		server.WithPort(*port),
 		server.WithPathPrefix(*serverPathPrefix),
 		server.WithCORS(*serverCORS),
+		server.WithStripQueryString(*serverStripQueryString),
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
 	).Run()
