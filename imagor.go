@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cshum/hybridcache"
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
 	"net/http"
@@ -59,9 +58,7 @@ type Imagor struct {
 	RequestTimeout time.Duration
 	LoadTimeout    time.Duration
 	SaveTimeout    time.Duration
-	Cache          cache.Cache
 	CacheHeaderTTL time.Duration
-	CacheTTL       time.Duration
 	Logger         *zap.Logger
 	Debug          bool
 }
@@ -75,12 +72,10 @@ func New(options ...Option) *Imagor {
 		LoadTimeout:    time.Second * 20,
 		SaveTimeout:    time.Second * 20,
 		CacheHeaderTTL: time.Hour * 24,
-		CacheTTL:       time.Minute,
 	}
 	for _, option := range options {
 		option(app)
 	}
-	app.Cache = cache.NewMemory(1000, 1<<28, app.CacheTTL)
 	if app.LoadTimeout > app.RequestTimeout || app.LoadTimeout == 0 {
 		app.LoadTimeout = app.RequestTimeout
 	}
@@ -204,45 +199,44 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (buf []byte, meta *M
 }
 
 func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
-	buf, err = cache.NewFunc(
-		app.Cache, app.LoadTimeout, app.CacheTTL, app.CacheTTL,
-	).DoBytes(r.Context(), image, func(ctx context.Context) (buf []byte, err error) {
-		dr := r.WithContext(ctx)
-		for _, loader := range app.Loaders {
-			b, e := loader.Load(dr, image)
-			if len(b) > 0 {
-				buf = b
-			}
-			if e == nil {
-				err = nil
-				break
-			}
-			// should not log expected error as of now, as it has not reached the end
-			if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-				app.Logger.Warn("load", zap.String("image", image), zap.Error(e))
-			} else if app.Debug {
-				app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
-			}
-			err = e
+	ctx := r.Context()
+	var cancel func()
+	if app.LoadTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
+		defer cancel()
+		r = r.WithContext(ctx)
+	}
+	for _, loader := range app.Loaders {
+		b, e := loader.Load(r, image)
+		if len(b) > 0 {
+			buf = b
 		}
-		if err == nil {
-			if app.Debug {
-				app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
-			}
-			if len(app.Storages) > 0 {
-				app.save(ctx, app.Storages, image, buf)
-			}
-		} else if !errors.Is(err, context.Canceled) {
-			if err == ErrPass {
-				err = ErrNotFound
-			}
-			// log non user-initiated error finally
-			app.Logger.Warn("load", zap.String("image", image), zap.Error(err))
+		if e == nil {
+			err = nil
+			break
 		}
-		return
-	})
-	// wrap error to handle cache serialization
-	err = WrapError(err)
+		// should not log expected error as of now, as it has not reached the end
+		if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
+			app.Logger.Warn("load", zap.String("image", image), zap.Error(e))
+		} else if app.Debug {
+			app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
+		}
+		err = e
+	}
+	if err == nil {
+		if app.Debug {
+			app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
+		}
+		if len(app.Storages) > 0 {
+			app.save(ctx, app.Storages, image, buf)
+		}
+	} else if !errors.Is(err, context.Canceled) {
+		if err == ErrPass {
+			err = ErrNotFound
+		}
+		// log non user-initiated error finally
+		app.Logger.Warn("load", zap.String("image", image), zap.Error(err))
+	}
 	return
 }
 
