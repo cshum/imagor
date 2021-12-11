@@ -44,8 +44,6 @@ services:
       IMAGOR_UNSAFE: 1 # unsafe URL for testing
       FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
       FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
-      FILE_STORAGE_MKDIR_PERMISSION: 0755 # optional, default 0755
-      FILE_STORAGE_WRITE_PERMISSION: 0666 # optional, default 0666
     ports:
       - "8000:8000"
 ```
@@ -312,6 +310,10 @@ Usage of imagor:
         Base directory for File Storage. Will activate File Storage only if this value present
   -file-storage-path-prefix string
         Base path prefix for File Storage
+  -file-storage-mkdir-permission string
+        File Storage mkdir permission (default "0755")
+  -file-storage-write-permission string
+        File Storage write permission (default "0666")
 
   -aws-access-key-id string
         AWS Access Key ID. Required if using S3 Loader or S3 Storage
