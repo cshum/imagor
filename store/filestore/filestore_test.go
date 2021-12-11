@@ -105,16 +105,16 @@ func TestFileStore_Load_Store(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := New(dir)
-	b, err := s.Load(&http.Request{}, "/foo")
+	s := New(dir, WithMkdirPermission("0755"), WithWritePermission("0444"))
+	b, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
 	if err != imagor.ErrNotFound {
 		t.Errorf("= %v, want ErrNotFound", err)
 	}
 	ctx := context.Background()
-	if err := s.Save(ctx, "/foo", []byte("bar")); err != nil {
+	if err := s.Save(ctx, "/foo/fooo/asdf", []byte("bar")); err != nil {
 		t.Error(err)
 	}
-	b, err = s.Load(&http.Request{}, "/foo")
+	b, err = s.Load(&http.Request{}, "/foo/fooo/asdf")
 	if err != nil {
 		t.Error(err)
 	}

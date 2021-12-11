@@ -115,6 +115,10 @@ func main() {
 			"Base directory for File Storage. Will activate File Storage only if this value present")
 		fileStoragePathPrefix = fs.String("file-storage-path-prefix", "",
 			"Base path prefix for File Storage")
+		fileStorageMkdirPermission = fs.String("file-storage-mkdir-permission", "0755",
+			"File Storage mkdir permission")
+		fileStorageWritePermission = fs.String("file-storage-write-permission", "0666",
+			"File Storage write permission")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
@@ -183,6 +187,8 @@ func main() {
 			filestore.New(
 				*fileStorageBaseDir,
 				filestore.WithPathPrefix(*fileStoragePathPrefix),
+				filestore.WithMkdirPermission(*fileStorageMkdirPermission),
+				filestore.WithWritePermission(*fileStorageWritePermission),
 			),
 		)
 	}

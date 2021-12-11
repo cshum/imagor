@@ -15,16 +15,20 @@ import (
 var dotFileRegex = regexp.MustCompile("/\\.")
 
 type FileStore struct {
-	BaseDir    string
-	PathPrefix string
-	Blacklists []*regexp.Regexp
+	BaseDir         string
+	PathPrefix      string
+	Blacklists      []*regexp.Regexp
+	MkdirPermission os.FileMode
+	WritePermission os.FileMode
 }
 
 func New(baseDir string, options ...Option) *FileStore {
 	s := &FileStore{
-		BaseDir:    baseDir,
-		PathPrefix: "/",
-		Blacklists: []*regexp.Regexp{dotFileRegex},
+		BaseDir:         baseDir,
+		PathPrefix:      "/",
+		Blacklists:      []*regexp.Regexp{dotFileRegex},
+		MkdirPermission: 0755,
+		WritePermission: 0666,
 	}
 	for _, option := range options {
 		option(s)
@@ -67,10 +71,10 @@ func (s *FileStore) Save(_ context.Context, image string, buf []byte) (err error
 	if !ok {
 		return imagor.ErrPass
 	}
-	if err = os.MkdirAll(filepath.Dir(image), 0755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
 	}
-	w, err := os.Create(image)
+	w, err := os.OpenFile(image, os.O_RDWR|os.O_CREATE|os.O_TRUNC, s.WritePermission)
 	if err != nil {
 		return
 	}
