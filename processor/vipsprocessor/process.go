@@ -114,12 +114,13 @@ func (v *VipsProcessor) process(
 			break
 		}
 		start := time.Now()
+		args := strings.Split(p.Args, ",")
 		if fn := v.Filters[p.Name]; fn != nil {
-			if err := fn(img, load, strings.Split(p.Args, ",")...); err != nil {
+			if err := fn(img, load, args...); err != nil {
 				return err
 			}
 		} else if p.Name == "fill" {
-			if err := v.fill(img, w, h, p.Args, upscale); err != nil {
+			if err := v.fill(img, w, h, upscale, args...); err != nil {
 				return err
 			}
 		}
@@ -132,21 +133,25 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
-func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale bool) (err error) {
-	color = strings.ToLower(color)
-	if img.HasAlpha() && color != "blur" {
-		if err = img.Flatten(getColor(img, color)); err != nil {
+func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, upscale bool, args ...string) (err error) {
+	var colour string
+	var ln = len(args)
+	if ln > 0 {
+		colour = strings.ToLower(args[0])
+	}
+	if img.HasAlpha() && colour != "blur" {
+		if err = img.Flatten(getColor(img, colour)); err != nil {
 			return
 		}
 	}
-	if color == "black" || (color == "blur" && v.DisableBlur) {
+	if colour == "black" || (colour == "blur" && v.DisableBlur) {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendBlack,
 		); err != nil {
 			return
 		}
-	} else if color == "white" {
+	} else if colour == "white" {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendWhite,
@@ -170,12 +175,12 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, color string, upscale
 		); err != nil {
 			return
 		}
-		if color == "blur" && !v.DisableBlur {
+		if colour == "blur" && !v.DisableBlur {
 			if err = img.GaussianBlur(50); err != nil {
 				return
 			}
 		} else {
-			c := getColor(img, color)
+			c := getColor(img, colour)
 			if err = img.DrawRect(vips.ColorRGBA{
 				R: c.R, G: c.G, B: c.B, A: 255,
 			}, 0, 0, w, h, true); err != nil {
