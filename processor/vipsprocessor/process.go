@@ -139,19 +139,20 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, upscale bool, args ..
 	if ln > 0 {
 		colour = strings.ToLower(args[0])
 	}
+	c := getColor(img, colour)
 	if img.HasAlpha() && colour != "blur" {
 		if err = img.Flatten(getColor(img, colour)); err != nil {
 			return
 		}
 	}
-	if colour == "black" || (colour == "blur" && v.DisableBlur) {
+	if isBlack(c) || (colour == "blur" && v.DisableBlur) {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendBlack,
 		); err != nil {
 			return
 		}
-	} else if colour == "white" {
+	} else if isWhite(c) {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendWhite,
@@ -180,7 +181,6 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, upscale bool, args ..
 				return
 			}
 		} else {
-			c := getColor(img, colour)
 			if err = img.DrawRect(vips.ColorRGBA{
 				R: c.R, G: c.G, B: c.B, A: 255,
 			}, 0, 0, w, h, true); err != nil {
@@ -218,6 +218,14 @@ func trim(img *vips.ImageRef, pos string, tolerance int) error {
 		return err
 	}
 	return nil
+}
+
+func isBlack(c *vips.Color) bool {
+	return c.R == 0x00 && c.G == 0x00 && c.B == 0x00
+}
+
+func isWhite(c *vips.Color) bool {
+	return c.R == 0xff && c.G == 0xff && c.B == 0xff
 }
 
 func getColor(img *vips.ImageRef, name string) *vips.Color {
