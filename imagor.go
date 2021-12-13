@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -262,17 +261,14 @@ func (app *Imagor) suppress(key string, fn func() ([]byte, error)) (buf []byte, 
 func (app *Imagor) save(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
-	var wg sync.WaitGroup
 	for _, storage := range storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
 		if app.SaveTimeout > 0 {
 			sCtx, cancel = context.WithTimeout(sCtx, app.SaveTimeout)
 		}
-		wg.Add(1)
 		go func(s Storage) {
 			defer cancel()
-			defer wg.Done()
 			if err := s.Save(sCtx, image, buf); err != nil {
 				app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
 			} else if app.Debug {
@@ -280,10 +276,6 @@ func (app *Imagor) save(
 			}
 		}(storage)
 	}
-	go func(key string) {
-		wg.Wait()
-		app.g.Forget(key)
-	}(image)
 }
 
 func (app *Imagor) debugLog() {
