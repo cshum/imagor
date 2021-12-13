@@ -323,11 +323,11 @@ Usage of imagor:
         AWS Secret Access Key. Required if using S3 Loader or S3 Storage
 
   -s3-loader-base-dir string
-        Base directory for S3 Loader (default "/")
+        Base directory for S3 Loader
   -s3-loader-bucket string
         S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present
   -s3-loader-path-prefix string
-        Base path prefix for S3 Loader (default "/")
+        Base path prefix for S3 Loader
 
   -s3-storage-base-dir string
         Base directory for S3 Storage
