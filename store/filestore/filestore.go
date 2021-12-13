@@ -64,9 +64,6 @@ func (s *FileStore) Load(_ *http.Request, image string) ([]byte, error) {
 }
 
 func (s *FileStore) Save(_ context.Context, image string, buf []byte) (err error) {
-	if _, err = os.Stat(s.BaseDir); err != nil {
-		return
-	}
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass
