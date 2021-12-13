@@ -206,16 +206,18 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (buf []byte, meta *M
 }
 
 func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
-	ctx := r.Context()
-	loadCtx := ctx
+	var ctx = r.Context()
+	var loadCtx = ctx
+	var loadReq = r
 	var cancel func()
 	if app.LoadTimeout > 0 {
 		loadCtx, cancel = context.WithTimeout(loadCtx, app.LoadTimeout)
 		defer cancel()
+		loadReq = r.WithContext(loadCtx)
 	}
 	return app.suppress(image, func() (buf []byte, err error) {
 		for _, loader := range app.Loaders {
-			b, e := loader.Load(r.WithContext(loadCtx), image)
+			b, e := loader.Load(loadReq, image)
 			if len(b) > 0 {
 				buf = b
 			}
