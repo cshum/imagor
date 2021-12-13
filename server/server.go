@@ -48,7 +48,8 @@ func New(app Service, options ...Option) *Server {
 	s.Logger = zap.NewNop()
 
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
-		"/favicon.ico": handleFavicon,
+		"/favicon.ico": handleOk,
+		"/healthcheck": handleOk,
 	})(s.App)
 
 	for _, option := range options {

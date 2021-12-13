@@ -13,7 +13,7 @@ type errResp struct {
 	Code    int    `json:"status,omitempty"`
 }
 
-func handleFavicon(w http.ResponseWriter, r *http.Request) {
+func handleOk(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	return
 }
