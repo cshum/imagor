@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -61,6 +63,8 @@ type Imagor struct {
 	CacheHeaderTTL time.Duration
 	Logger         *zap.Logger
 	Debug          bool
+
+	g singleflight.Group
 }
 
 // New create new Imagor
@@ -201,7 +205,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (buf []byte, meta *M
 	return
 }
 
-func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
+func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 	ctx := r.Context()
 	var cancel func()
 	if app.LoadTimeout > 0 {
@@ -209,51 +213,66 @@ func (app *Imagor) load(r *http.Request, image string) (buf []byte, err error) {
 		defer cancel()
 		r = r.WithContext(ctx)
 	}
-	for _, loader := range app.Loaders {
-		b, e := loader.Load(r, image)
-		if len(b) > 0 {
-			buf = b
+	return app.suppress(image, func() (buf []byte, err error) {
+		for _, loader := range app.Loaders {
+			b, e := loader.Load(r, image)
+			if len(b) > 0 {
+				buf = b
+			}
+			if e == nil {
+				err = nil
+				break
+			}
+			// should not log expected error as of now, as it has not reached the end
+			if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
+				app.Logger.Warn("load", zap.String("image", image), zap.Error(e))
+			} else if app.Debug {
+				app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
+			}
+			err = e
 		}
-		if e == nil {
-			err = nil
-			break
+		if err == nil {
+			if app.Debug {
+				app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
+			}
+			if len(app.Storages) > 0 {
+				app.save(ctx, app.Storages, image, buf)
+			}
+		} else if !errors.Is(err, context.Canceled) {
+			if err == ErrPass {
+				err = ErrNotFound
+			}
+			// log non user-initiated error finally
+			app.Logger.Warn("load", zap.String("image", image), zap.Error(err))
 		}
-		// should not log expected error as of now, as it has not reached the end
-		if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-			app.Logger.Warn("load", zap.String("image", image), zap.Error(e))
-		} else if app.Debug {
-			app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
-		}
-		err = e
+		return
+	})
+}
+
+func (app *Imagor) suppress(key string, fn func() ([]byte, error)) (buf []byte, err error) {
+	v, err, _ := app.g.Do(key, func() (interface{}, error) {
+		return fn()
+	})
+	if v != nil {
+		return v.([]byte), err
 	}
-	if err == nil {
-		if app.Debug {
-			app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
-		}
-		if len(app.Storages) > 0 {
-			app.save(ctx, app.Storages, image, buf)
-		}
-	} else if !errors.Is(err, context.Canceled) {
-		if err == ErrPass {
-			err = ErrNotFound
-		}
-		// log non user-initiated error finally
-		app.Logger.Warn("load", zap.String("image", image), zap.Error(err))
-	}
-	return
+	return nil, err
 }
 
 func (app *Imagor) save(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
+	var wg sync.WaitGroup
 	for _, storage := range storages {
 		var cancel func()
 		sCtx := DetachContext(ctx)
 		if app.SaveTimeout > 0 {
 			sCtx, cancel = context.WithTimeout(sCtx, app.SaveTimeout)
 		}
+		wg.Add(1)
 		go func(s Storage) {
 			defer cancel()
+			defer wg.Done()
 			if err := s.Save(sCtx, image, buf); err != nil {
 				app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
 			} else if app.Debug {
@@ -261,6 +280,10 @@ func (app *Imagor) save(
 			}
 		}(storage)
 	}
+	go func(key string) {
+		wg.Wait()
+		app.g.Forget(key)
+	}(image)
 }
 
 func (app *Imagor) debugLog() {
