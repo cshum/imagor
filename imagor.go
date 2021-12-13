@@ -275,7 +275,9 @@ func (app *Imagor) save(
 	for _, storage := range storages {
 		if storage == from {
 			// loaded from the same store, no need save again
-			app.Logger.Debug("skip-save", zap.String("image", image))
+			if app.Debug {
+				app.Logger.Debug("skip-save", zap.String("image", image))
+			}
 			continue
 		}
 		wg.Add(1)
