@@ -224,7 +224,7 @@ func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 			}
 			if e == nil {
 				err = nil
-				fromStore = loader.(Store)
+				fromStore, _ = loader.(Store)
 				break
 			}
 			// should not log expected error as of now, as it has not reached the end
