@@ -92,9 +92,9 @@ func main() {
 
 		s3LoaderBucket = fs.String("s3-loader-bucket", "",
 			"S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present")
-		s3LoaderBaseDir = fs.String("s3-loader-base-dir", "/",
+		s3LoaderBaseDir = fs.String("s3-loader-base-dir", "",
 			"Base directory for S3 Loader")
-		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "/",
+		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "",
 			"Base path prefix for S3 Loader")
 
 		s3StorageBucket = fs.String("s3-storage-bucket", "",
@@ -164,7 +164,8 @@ func main() {
 			// activate S3 Loader only if bucket config presents
 			if store != nil &&
 				*s3LoaderPathPrefix == *s3StoragePathPrefix &&
-				*s3LoaderBucket == *s3StorageBucket {
+				*s3LoaderBucket == *s3StorageBucket &&
+				*s3LoaderBaseDir == *s3StorageBaseDir {
 				// reuse store if loader and storage are the same
 				loaders = append(loaders, store)
 			} else {
