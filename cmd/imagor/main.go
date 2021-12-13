@@ -150,47 +150,62 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		if *s3LoaderBucket != "" {
-			// activate S3 Loader only if bucket config presents
-			loaders = append(loaders,
-				s3store.New(sess, *s3LoaderBucket,
-					s3store.WithPathPrefix(*s3LoaderPathPrefix),
-					s3store.WithBaseDir(*s3LoaderBaseDir),
-				),
-			)
-		}
+		var store *s3store.S3Store
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
-			storages = append(storages,
-				s3store.New(sess, *s3StorageBucket,
-					s3store.WithPathPrefix(*s3StoragePathPrefix),
-					s3store.WithBaseDir(*s3StorageBaseDir),
-					s3store.WithACL(*s3StorageACL),
-				),
+			store = s3store.New(sess, *s3StorageBucket,
+				s3store.WithPathPrefix(*s3StoragePathPrefix),
+				s3store.WithBaseDir(*s3StorageBaseDir),
+				s3store.WithACL(*s3StorageACL),
 			)
+			storages = append(storages, store)
+		}
+		if *s3LoaderBucket != "" {
+			// activate S3 Loader only if bucket config presents
+			if store != nil &&
+				*s3LoaderPathPrefix == *s3StoragePathPrefix &&
+				*s3LoaderBucket == *s3StorageBucket {
+				// reuse store if loader and storage are the same
+				loaders = append(loaders, store)
+			} else {
+				// otherwise, create another loader
+				loaders = append(loaders,
+					s3store.New(sess, *s3LoaderBucket,
+						s3store.WithPathPrefix(*s3LoaderPathPrefix),
+						s3store.WithBaseDir(*s3LoaderBaseDir),
+					),
+				)
+			}
 		}
 	}
 
-	if *fileLoaderBaseDir != "" {
-		// activate File Loader only if base dir config presents
-		loaders = append(loaders,
-			filestore.New(
-				*fileLoaderBaseDir,
-				filestore.WithPathPrefix(*fileLoaderPathPrefix),
-			),
-		)
-	}
-
+	var store *filestore.FileStore
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
-		storages = append(storages,
-			filestore.New(
-				*fileStorageBaseDir,
-				filestore.WithPathPrefix(*fileStoragePathPrefix),
-				filestore.WithMkdirPermission(*fileStorageMkdirPermission),
-				filestore.WithWritePermission(*fileStorageWritePermission),
-			),
+		store = filestore.New(
+			*fileStorageBaseDir,
+			filestore.WithPathPrefix(*fileStoragePathPrefix),
+			filestore.WithMkdirPermission(*fileStorageMkdirPermission),
+			filestore.WithWritePermission(*fileStorageWritePermission),
 		)
+		storages = append(storages, store)
+	}
+	if *fileLoaderBaseDir != "" {
+		// activate File Loader only if base dir config presents
+		if store != nil &&
+			*fileStorageBaseDir == *fileLoaderBaseDir &&
+			*fileStoragePathPrefix == *fileLoaderPathPrefix {
+			// reuse store if loader and storage are the same
+			loaders = append(loaders, store)
+		} else {
+			// otherwise, create another loader
+			loaders = append(loaders,
+				filestore.New(
+					*fileLoaderBaseDir,
+					filestore.WithPathPrefix(*fileLoaderPathPrefix),
+				),
+			)
+		}
 	}
 
 	if !*httpLoaderDisable {

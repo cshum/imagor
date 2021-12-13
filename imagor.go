@@ -216,6 +216,7 @@ func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 		loadReq = r.WithContext(loadCtx)
 	}
 	return app.suppress(image, func() (buf []byte, err error) {
+		var fromStore Store
 		for _, loader := range app.Loaders {
 			b, e := loader.Load(loadReq, image)
 			if len(b) > 0 {
@@ -223,6 +224,7 @@ func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 			}
 			if e == nil {
 				err = nil
+				fromStore = loader.(Store)
 				break
 			}
 			// should not log expected error as of now, as it has not reached the end
@@ -238,7 +240,7 @@ func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 				app.Logger.Debug("loaded", zap.String("image", image), zap.Int("size", len(buf)))
 			}
 			if len(app.Storages) > 0 {
-				app.save(ctx, app.Storages, image, buf)
+				app.save(ctx, fromStore, app.Storages, image, buf)
 			}
 		} else if !errors.Is(err, context.Canceled) {
 			if err == ErrPass {
@@ -262,7 +264,7 @@ func (app *Imagor) suppress(key string, fn func() ([]byte, error)) (buf []byte, 
 }
 
 func (app *Imagor) save(
-	ctx context.Context, storages []Storage, image string, buf []byte,
+	ctx context.Context, from Storage, storages []Storage, image string, buf []byte,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -270,16 +272,21 @@ func (app *Imagor) save(
 	}
 	defer cancel()
 	var wg sync.WaitGroup
-	for _, s := range storages {
+	for _, storage := range storages {
+		if storage == from {
+			// loaded from the same store, no need save again
+			app.Logger.Debug("skip-save", zap.String("image", image))
+			continue
+		}
 		wg.Add(1)
-		go func(s Storage) {
+		go func(storage Storage) {
 			defer wg.Done()
-			if err := s.Save(ctx, image, buf); err != nil {
+			if err := storage.Save(ctx, image, buf); err != nil {
 				app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
 			}
-		}(s)
+		}(storage)
 	}
 	wg.Wait()
 	return
