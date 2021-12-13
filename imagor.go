@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -63,8 +64,7 @@ type Imagor struct {
 	Logger         *zap.Logger
 	Debug          bool
 
-	loadGroup singleflight.Group
-	saveGroup singleflight.Group
+	g singleflight.Group
 }
 
 // New create new Imagor
@@ -207,15 +207,15 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (buf []byte, meta *M
 
 func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 	ctx := r.Context()
+	loadCtx := ctx
 	var cancel func()
 	if app.LoadTimeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, app.LoadTimeout)
+		loadCtx, cancel = context.WithTimeout(loadCtx, app.LoadTimeout)
 		defer cancel()
-		r = r.WithContext(ctx)
 	}
 	return app.suppress(image, func() (buf []byte, err error) {
 		for _, loader := range app.Loaders {
-			b, e := loader.Load(r, image)
+			b, e := loader.Load(r.WithContext(loadCtx), image)
 			if len(b) > 0 {
 				buf = b
 			}
@@ -250,7 +250,7 @@ func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 }
 
 func (app *Imagor) suppress(key string, fn func() ([]byte, error)) (buf []byte, err error) {
-	v, err, _ := app.loadGroup.Do(key, func() (interface{}, error) {
+	v, err, _ := app.g.Do(key, func() (interface{}, error) {
 		return fn()
 	})
 	if v != nil {
@@ -262,23 +262,25 @@ func (app *Imagor) suppress(key string, fn func() ([]byte, error)) (buf []byte, 
 func (app *Imagor) save(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
-	go func(ctx context.Context) {
-		var cancel func()
-		if app.SaveTimeout > 0 {
-			ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
-		}
-		defer cancel()
-		_, _, _ = app.saveGroup.Do(image, func() (_ interface{}, _ error) {
-			for _, s := range storages {
-				if err := s.Save(ctx, image, buf); err != nil {
-					app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
-				} else if app.Debug {
-					app.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
-				}
+	var cancel func()
+	if app.SaveTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
+	}
+	defer cancel()
+	var wg sync.WaitGroup
+	for _, s := range storages {
+		wg.Add(1)
+		go func(s Storage) {
+			defer wg.Done()
+			if err := s.Save(ctx, image, buf); err != nil {
+				app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
+			} else if app.Debug {
+				app.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
 			}
-			return
-		})
-	}(DetachContext(ctx))
+		}(s)
+	}
+	wg.Wait()
+	return
 }
 
 func (app *Imagor) debugLog() {
