@@ -63,7 +63,8 @@ type Imagor struct {
 	Logger         *zap.Logger
 	Debug          bool
 
-	g singleflight.Group
+	loadGroup singleflight.Group
+	saveGroup singleflight.Group
 }
 
 // New create new Imagor
@@ -249,7 +250,7 @@ func (app *Imagor) load(r *http.Request, image string) ([]byte, error) {
 }
 
 func (app *Imagor) suppress(key string, fn func() ([]byte, error)) (buf []byte, err error) {
-	v, err, _ := app.g.Do(key, func() (interface{}, error) {
+	v, err, _ := app.loadGroup.Do(key, func() (interface{}, error) {
 		return fn()
 	})
 	if v != nil {
@@ -261,21 +262,23 @@ func (app *Imagor) suppress(key string, fn func() ([]byte, error)) (buf []byte, 
 func (app *Imagor) save(
 	ctx context.Context, storages []Storage, image string, buf []byte,
 ) {
-	for _, storage := range storages {
+	go func(ctx context.Context) {
 		var cancel func()
-		sCtx := DetachContext(ctx)
 		if app.SaveTimeout > 0 {
-			sCtx, cancel = context.WithTimeout(sCtx, app.SaveTimeout)
+			ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
 		}
-		go func(s Storage) {
-			defer cancel()
-			if err := s.Save(sCtx, image, buf); err != nil {
-				app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
-			} else if app.Debug {
-				app.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
+		defer cancel()
+		_, _, _ = app.saveGroup.Do(image, func() (_ interface{}, _ error) {
+			for _, s := range storages {
+				if err := s.Save(ctx, image, buf); err != nil {
+					app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
+				} else if app.Debug {
+					app.Logger.Debug("saved", zap.String("image", image), zap.Int("size", len(buf)))
+				}
 			}
-		}(storage)
-	}
+			return
+		})
+	}(DetachContext(ctx))
 }
 
 func (app *Imagor) debugLog() {
