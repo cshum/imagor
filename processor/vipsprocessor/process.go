@@ -145,14 +145,14 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, upscale bool, args ..
 			return
 		}
 	}
-	if isBlack(c) || (colour == "blur" && v.DisableBlur) {
+	if (colour != "blur" && isBlack(c)) || (colour == "blur" && v.DisableBlur) {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendBlack,
 		); err != nil {
 			return
 		}
-	} else if isWhite(c) {
+	} else if colour != "blur" && isWhite(c) {
 		if err = img.Embed(
 			(w-img.Width())/2, (h-img.Height())/2,
 			w, h, vips.ExtendWhite,
