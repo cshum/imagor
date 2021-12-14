@@ -106,27 +106,31 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	}
-	for i, p := range p.Filters {
+	for i, filter := range p.Filters {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		if i >= v.MaxFilterOps {
+			if v.Debug {
+				v.Logger.Debug("max-filter-ops-exceeded",
+					zap.String("name", filter.Name), zap.String("args", filter.Args))
+			}
 			break
 		}
 		start := time.Now()
-		args := strings.Split(p.Args, ",")
-		if fn := v.Filters[p.Name]; fn != nil {
+		args := strings.Split(filter.Args, ",")
+		if fn := v.Filters[filter.Name]; fn != nil {
 			if err := fn(img, load, args...); err != nil {
 				return err
 			}
-		} else if p.Name == "fill" {
+		} else if filter.Name == "fill" {
 			if err := v.fill(img, w, h, upscale, args...); err != nil {
 				return err
 			}
 		}
 		if v.Debug {
 			v.Logger.Debug("filter",
-				zap.String("name", p.Name), zap.String("args", p.Args),
+				zap.String("name", filter.Name), zap.String("args", filter.Args),
 				zap.Duration("took", time.Since(start)))
 		}
 	}

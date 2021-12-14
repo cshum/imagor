@@ -49,6 +49,30 @@ func WithConcurrencyLevel(num int) Option {
 	}
 }
 
+func WithMaxCacheFiles(num int) Option {
+	return func(v *VipsProcessor) {
+		if num > 0 {
+			v.MaxCacheFiles = num
+		}
+	}
+}
+
+func WithMaxCacheSize(num int) Option {
+	return func(v *VipsProcessor) {
+		if num > 0 {
+			v.MaxCacheSize = num
+		}
+	}
+}
+
+func WithMaxCacheMem(num int) Option {
+	return func(v *VipsProcessor) {
+		if num > 0 {
+			v.MaxCacheMem = num
+		}
+	}
+}
+
 func WithLogger(logger *zap.Logger) Option {
 	return func(v *VipsProcessor) {
 		if logger != nil {

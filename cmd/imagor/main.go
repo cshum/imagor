@@ -67,6 +67,12 @@ func main() {
 			"VIPS maximum number of filter operations allowed")
 		vipsConcurrencyLevel = fs.Int("vips-concurrency-level", 0,
 			"VIPS concurrency level. Default to the number of CPU cores.")
+		vipsMaxCacheFiles = fs.Int("vips-max-cache-files", 0,
+			"VIPS max cache files")
+		vipsMaxCacheSize = fs.Int("vips-max-cache-size", 0,
+			"VIPS max cache size")
+		vipsMaxCacheMem = fs.Int("vips-max-cache-mem", 0,
+			"VIPS max cache mem")
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
@@ -235,6 +241,9 @@ func main() {
 					vipsprocessor.WithDisableBlur(*vipsDisableBlur),
 					vipsprocessor.WithDisableFilters(*vipsDisableFilters),
 					vipsprocessor.WithConcurrencyLevel(*vipsConcurrencyLevel),
+					vipsprocessor.WithMaxCacheFiles(*vipsMaxCacheFiles),
+					vipsprocessor.WithMaxCacheMem(*vipsMaxCacheMem),
+					vipsprocessor.WithMaxCacheSize(*vipsMaxCacheSize),
 					vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
 					vipsprocessor.WithLogger(logger),
 					vipsprocessor.WithDebug(*debug),

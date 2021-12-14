@@ -30,6 +30,9 @@ type VipsProcessor struct {
 	MaxFilterOps     int
 	Logger           *zap.Logger
 	ConcurrencyLevel int
+	MaxCacheFiles    int
+	MaxCacheMem      int
+	MaxCacheSize     int
 	Debug            bool
 }
 
@@ -85,6 +88,9 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 		}, vips.LogLevelDebug)
 		vips.Startup(&vips.Config{
 			ReportLeaks:      true,
+			MaxCacheFiles:    v.MaxCacheFiles,
+			MaxCacheMem:      v.MaxCacheMem,
+			MaxCacheSize:     v.MaxCacheSize,
 			ConcurrencyLevel: v.ConcurrencyLevel,
 		})
 	} else {
@@ -92,6 +98,9 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 			v.Logger.Error(domain, zap.String("log", msg))
 		}, vips.LogLevelError)
 		vips.Startup(&vips.Config{
+			MaxCacheFiles:    v.MaxCacheFiles,
+			MaxCacheMem:      v.MaxCacheMem,
+			MaxCacheSize:     v.MaxCacheSize,
 			ConcurrencyLevel: v.ConcurrencyLevel,
 		})
 	}
