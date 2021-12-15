@@ -16,6 +16,7 @@ import (
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -33,8 +34,9 @@ func main() {
 	_ = godotenv.Load()
 
 	var (
-		debug = fs.Bool("debug", false, "Debug mode")
-		port  = fs.Int("port", 8000, "Sever port")
+		debug        = fs.Bool("debug", false, "Debug mode")
+		port         = fs.Int("port", 8000, "Sever port")
+		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
 		imagorSecret = fs.String("imagor-secret", "",
 			"Secret key for signing Imagor URL")
@@ -144,6 +146,11 @@ func main() {
 		if logger, err = zap.NewProduction(); err != nil {
 			panic(err)
 		}
+	}
+
+	if *goMaxProcess > 0 {
+		logger.Debug("GOMAXPROCS", zap.Int("count", *goMaxProcess))
+		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
