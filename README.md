@@ -277,15 +277,6 @@ Usage of imagor:
   -server-path-prefix string
         Server path prefix
 
-  -vips-concurrency-level int
-        VIPS concurrency level
-  -vips-disable-blur
-        VIPS disable blur operations for vips processor
-  -vips-disable-filters string
-        VIPS disable filters by csv e.g. blur,watermark,rgb
-  -vips-max-filter-ops int
-        VIPS maximum number of filter operations allowed (default 10)
-
   -http-loader-allowed-sources string
         HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-default-scheme string
@@ -338,4 +329,18 @@ Usage of imagor:
   -s3-storage-acl string
         Upload ACL for S3 Storage (default "public-read")
 
+  -vips-concurrency-level int
+        VIPS concurrency level
+  -vips-disable-blur
+        VIPS disable blur operations for vips processor
+  -vips-disable-filters string
+        VIPS disable filters by csv e.g. blur,watermark,rgb
+  -vips-max-cache-files int
+        VIPS max cache files
+  -vips-max-cache-mem int
+        VIPS max cache mem
+  -vips-max-cache-size int
+        VIPS max cache size
+  -vips-max-filter-ops int
+        VIPS maximum number of filter operations allowed (default 10)
 ```
