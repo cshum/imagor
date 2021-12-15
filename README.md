@@ -330,7 +330,7 @@ Usage of imagor:
         Upload ACL for S3 Storage (default "public-read")
 
   -vips-concurrency-level int
-        VIPS concurrency level
+        VIPS concurrency level (deafult 1)
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string

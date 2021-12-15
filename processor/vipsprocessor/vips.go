@@ -55,8 +55,9 @@ func New(options ...Option) *VipsProcessor {
 			"strip_exif":       stripExif,
 			"trim":             trimFilter,
 		},
-		MaxFilterOps: 10,
-		Logger:       zap.NewNop(),
+		MaxFilterOps:     10,
+		ConcurrencyLevel: 1,
+		Logger:           zap.NewNop(),
 	}
 	for _, option := range options {
 		option(v)
