@@ -278,7 +278,7 @@ Usage of imagor:
         Server path prefix
 
   -vips-concurrency-level int
-        VIPS concurrency level. Default to the number of CPU cores.
+        VIPS concurrency level
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string

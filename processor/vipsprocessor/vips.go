@@ -7,7 +7,6 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
-	"runtime"
 	"strconv"
 )
 
@@ -56,9 +55,8 @@ func New(options ...Option) *VipsProcessor {
 			"strip_exif":       stripExif,
 			"trim":             trimFilter,
 		},
-		MaxFilterOps:     10,
-		ConcurrencyLevel: runtime.NumCPU(),
-		Logger:           zap.NewNop(),
+		MaxFilterOps: 10,
+		Logger:       zap.NewNop(),
 	}
 	for _, option := range options {
 		option(v)

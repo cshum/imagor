@@ -68,7 +68,7 @@ func main() {
 		vipsMaxFilterOps = fs.Int("vips-max-filter-ops", 10,
 			"VIPS maximum number of filter operations allowed")
 		vipsConcurrencyLevel = fs.Int("vips-concurrency-level", 0,
-			"VIPS concurrency level. Default to the number of CPU cores.")
+			"VIPS concurrency level")
 		vipsMaxCacheFiles = fs.Int("vips-max-cache-files", 0,
 			"VIPS max cache files")
 		vipsMaxCacheSize = fs.Int("vips-max-cache-size", 0,
