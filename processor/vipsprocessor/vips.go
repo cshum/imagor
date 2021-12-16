@@ -7,6 +7,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
+	"runtime"
 	"strconv"
 )
 
@@ -67,6 +68,9 @@ func New(options ...Option) *VipsProcessor {
 	}
 	for _, name := range v.DisableFilters {
 		delete(v.Filters, name)
+	}
+	if v.ConcurrencyLevel == -1 {
+		v.ConcurrencyLevel = runtime.NumCPU()
 	}
 	return v
 }
