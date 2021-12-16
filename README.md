@@ -312,6 +312,8 @@ Usage of imagor:
         AWS Region. Required if using S3 Loader or S3 Storage
   -aws-secret-access-key string
         AWS Secret Access Key. Required if using S3 Loader or S3 Storage
+  -s3-endpoint string
+        Optional S3 Endpoint to override default
 
   -s3-loader-base-dir string
         Base directory for S3 Loader
