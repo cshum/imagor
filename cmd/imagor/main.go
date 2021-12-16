@@ -97,6 +97,8 @@ func main() {
 			"AWS Access Key ID. Required if using S3 Loader or storage")
 		awsSecretAccessKey = fs.String("aws-secret-access-key", "",
 			"AWS Secret Access Key. Required if using S3 Loader or storage")
+		s3Endpoint = fs.String("s3-endpoint", "",
+			"Optional S3 Endpoint to override default")
 
 		s3LoaderBucket = fs.String("s3-loader-bucket", "",
 			"S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present")
@@ -156,7 +158,8 @@ func main() {
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
 		// activate AWS Session only if credentials present
 		sess, err := session.NewSession(&aws.Config{
-			Region: awsRegion,
+			Endpoint: s3Endpoint,
+			Region:   awsRegion,
 			Credentials: credentials.NewStaticCredentials(
 				*awsAccessKeyId, *awsSecretAccessKey, ""),
 		})
