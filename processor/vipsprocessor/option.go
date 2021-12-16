@@ -43,7 +43,7 @@ func WithMaxFilterOps(num int) Option {
 
 func WithConcurrencyLevel(num int) Option {
 	return func(v *VipsProcessor) {
-		if num > 0 {
+		if num != 0 {
 			v.ConcurrencyLevel = num
 		}
 	}
