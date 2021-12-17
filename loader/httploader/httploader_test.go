@@ -27,6 +27,12 @@ func (t testTransport) RoundTrip(r *http.Request) (w *http.Response, err error) 
 	return
 }
 
+type roundTripFunc func(r *http.Request) (w *http.Response, err error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
 type test struct {
 	name   string
 	target string
@@ -38,6 +44,9 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
+			r.Header.Set("User-Agent", "Test")
+			r.Header.Set("X-Imagor-Foo", "Bar")
+			r.Header.Set("X-Imagor-Ping", "Pong")
 			b, err := loader.Load(r, tt.target)
 			assert.Equal(t, string(b), tt.result)
 			if tt.err == "" {
@@ -152,6 +161,139 @@ func TestWithDefaultScheme(t *testing.T) {
 			name:   "default scheme set nil found",
 			target: "https://foo.bar/baz",
 			result: "baz",
+		},
+	})
+}
+
+func TestWithUserAgent(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			assert.Equal(t, r.Header.Get("User-Agent"), "foobar")
+			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "")
+			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "")
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+			}, nil
+		})),
+		WithUserAgent("foobar"),
+	), []test{
+		{
+			name:   "user agent",
+			target: "https://foo.bar/baz",
+			result: "ok",
+		},
+	})
+}
+
+func TestWithForwardHeaders(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			assert.Equal(t, r.Header.Get("User-Agent"), "foobar")
+			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Bar")
+			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "")
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+			}, nil
+		})),
+		WithUserAgent("foobar"),
+		WithForwardHeaders("X-Imagor-Foo"),
+	), []test{
+		{
+			name:   "user agent",
+			target: "https://foo.bar/baz",
+			result: "ok",
+		},
+	})
+}
+
+func TestWithForwardHeadersOverrideUserAgent(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			assert.Equal(t, r.Header.Get("User-Agent"), "Test")
+			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "")
+			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "Pong")
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+			}, nil
+		})),
+		WithUserAgent("foobar"),
+		WithForwardHeaders("User-Agent, X-Imagor-Ping"),
+	), []test{
+		{
+			name:   "user agent",
+			target: "https://foo.bar/baz",
+			result: "ok",
+		},
+	})
+}
+
+func TestWithForwardAllHeaders(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			assert.Equal(t, r.Header.Get("User-Agent"), "Test")
+			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Bar")
+			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "Pong")
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+			}, nil
+		})),
+		WithUserAgent("foobar"),
+		WithForwardAllHeaders(true),
+	), []test{
+		{
+			name:   "user agent",
+			target: "https://foo.bar/baz",
+			result: "ok",
+		},
+	})
+}
+
+func TestWithOverrideHeaders(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			assert.Equal(t, r.Header.Get("User-Agent"), "foobar")
+			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Boom")
+			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "")
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+			}, nil
+		})),
+		WithUserAgent("foobar"),
+		WithOverrideHeader("x-Imagor-Foo", "Boom"),
+	), []test{
+		{
+			name:   "user agent",
+			target: "https://foo.bar/baz",
+			result: "ok",
+		},
+	})
+}
+
+func TestWithOverrideForwardHeaders(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			assert.Equal(t, r.Header.Get("User-Agent"), "Ha")
+			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Boom")
+			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "Pong")
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+			}, nil
+		})),
+		WithUserAgent("foobar"),
+		WithForwardAllHeaders(true),
+		WithOverrideHeader("x-Imagor-Foo", "Boom"),
+		WithOverrideHeader("User-Agent", "Ha"),
+	), []test{
+		{
+			name:   "user agent",
+			target: "https://foo.bar/baz",
+			result: "ok",
 		},
 	})
 }
