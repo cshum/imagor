@@ -1,6 +1,7 @@
 package httploader
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,11 @@ import (
 	"testing"
 	"time"
 )
+
+func jsonStr(v interface{}) string {
+	buf, _ := json.Marshal(v)
+	return string(buf)
+}
 
 func TestWithLoadTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -65,12 +71,14 @@ func TestWithLoadTimeout(t *testing.T) {
 			tt.app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%s", ts.URL), nil))
 			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, w.Body.String(), "ok")
 		})
 		t.Run("timeout", func(t *testing.T) {
 			w := httptest.NewRecorder()
 			tt.app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%s/sleep", ts.URL), nil))
 			assert.Equal(t, http.StatusRequestTimeout, w.Code)
+			assert.Equal(t, w.Body.String(), jsonStr(imagor.ErrTimeout))
 		})
 	}
 }
