@@ -100,7 +100,7 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var buf []byte
+	body := resp.Body
 	if resp.Header.Get("Content-Encoding") == "gzip" {
 		gzipBody, err := gzip.NewReader(resp.Body)
 		if gzipBody != nil {
@@ -109,10 +109,9 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		buf, err = io.ReadAll(gzipBody)
-	} else {
-		buf, err = io.ReadAll(resp.Body)
+		body = gzipBody
 	}
+	buf, err := io.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
