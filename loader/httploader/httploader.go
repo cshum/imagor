@@ -1,6 +1,8 @@
 package httploader
 
 import (
+	"context"
+	"errors"
 	"github.com/cshum/imagor"
 	"io"
 	"net/http"
@@ -80,6 +82,9 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 		}
 		resp, err := client.Do(req)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, imagor.ErrTimeout
+			}
 			return nil, imagor.ErrPass
 		}
 		_ = resp.Body.Close()
@@ -97,6 +102,9 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, imagor.ErrTimeout
+		}
 		return nil, imagor.ErrPass
 	}
 	buf, err := io.ReadAll(resp.Body)
