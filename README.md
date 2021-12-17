@@ -276,6 +276,8 @@ Usage of imagor:
         Enable strip query string redirection
   -server-path-prefix string
         Server path prefix
+  -server-access-log
+        Enable server access log
 
   -http-loader-allowed-sources string
         HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
