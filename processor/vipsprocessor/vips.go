@@ -24,16 +24,16 @@ func (m FilterMap) MarshalJSON() ([]byte, error) {
 }
 
 type VipsProcessor struct {
-	Filters          FilterMap
-	DisableBlur      bool
-	DisableFilters   []string
-	MaxFilterOps     int
-	Logger           *zap.Logger
-	ConcurrencyLevel int
-	MaxCacheFiles    int
-	MaxCacheMem      int
-	MaxCacheSize     int
-	Debug            bool
+	Filters        FilterMap
+	DisableBlur    bool
+	DisableFilters []string
+	MaxFilterOps   int
+	Logger         *zap.Logger
+	Concurrency    int
+	MaxCacheFiles  int
+	MaxCacheMem    int
+	MaxCacheSize   int
+	Debug          bool
 }
 
 func New(options ...Option) *VipsProcessor {
@@ -56,9 +56,9 @@ func New(options ...Option) *VipsProcessor {
 			"strip_exif":       stripExif,
 			"trim":             trimFilter,
 		},
-		MaxFilterOps:     10,
-		ConcurrencyLevel: 1,
-		Logger:           zap.NewNop(),
+		MaxFilterOps: 10,
+		Concurrency:  1,
+		Logger:       zap.NewNop(),
 	}
 	for _, option := range options {
 		option(v)
@@ -69,8 +69,8 @@ func New(options ...Option) *VipsProcessor {
 	for _, name := range v.DisableFilters {
 		delete(v.Filters, name)
 	}
-	if v.ConcurrencyLevel == -1 {
-		v.ConcurrencyLevel = runtime.NumCPU()
+	if v.Concurrency == -1 {
+		v.Concurrency = runtime.NumCPU()
 	}
 	return v
 }
@@ -94,7 +94,7 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 			MaxCacheFiles:    v.MaxCacheFiles,
 			MaxCacheMem:      v.MaxCacheMem,
 			MaxCacheSize:     v.MaxCacheSize,
-			ConcurrencyLevel: v.ConcurrencyLevel,
+			ConcurrencyLevel: v.Concurrency,
 		})
 	} else {
 		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
@@ -104,7 +104,7 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 			MaxCacheFiles:    v.MaxCacheFiles,
 			MaxCacheMem:      v.MaxCacheMem,
 			MaxCacheSize:     v.MaxCacheSize,
-			ConcurrencyLevel: v.ConcurrencyLevel,
+			ConcurrencyLevel: v.Concurrency,
 		})
 	}
 	return nil

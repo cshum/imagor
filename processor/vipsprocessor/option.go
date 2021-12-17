@@ -41,10 +41,10 @@ func WithMaxFilterOps(num int) Option {
 	}
 }
 
-func WithConcurrencyLevel(num int) Option {
+func WithConcurrency(num int) Option {
 	return func(v *VipsProcessor) {
 		if num != 0 {
-			v.ConcurrencyLevel = num
+			v.Concurrency = num
 		}
 	}
 }

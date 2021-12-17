@@ -67,8 +67,8 @@ func main() {
 			"VIPS disable filters by csv e.g. blur,watermark,rgb")
 		vipsMaxFilterOps = fs.Int("vips-max-filter-ops", 10,
 			"VIPS maximum number of filter operations allowed")
-		vipsConcurrencyLevel = fs.Int("vips-concurrency-level", 1,
-			"VIPS concurrency level. Set -1 to be the number of CPU cores")
+		vipsConcurrency = fs.Int("vips-concurrency", 1,
+			"VIPS concurrency. Set -1 to be the number of CPU cores")
 		vipsMaxCacheFiles = fs.Int("vips-max-cache-files", 0,
 			"VIPS max cache files")
 		vipsMaxCacheSize = fs.Int("vips-max-cache-size", 0,
@@ -250,7 +250,7 @@ func main() {
 				vipsprocessor.New(
 					vipsprocessor.WithDisableBlur(*vipsDisableBlur),
 					vipsprocessor.WithDisableFilters(*vipsDisableFilters),
-					vipsprocessor.WithConcurrencyLevel(*vipsConcurrencyLevel),
+					vipsprocessor.WithConcurrency(*vipsConcurrency),
 					vipsprocessor.WithMaxCacheFiles(*vipsMaxCacheFiles),
 					vipsprocessor.WithMaxCacheMem(*vipsMaxCacheMem),
 					vipsprocessor.WithMaxCacheSize(*vipsMaxCacheSize),
