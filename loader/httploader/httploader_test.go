@@ -37,7 +37,7 @@ type test struct {
 func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest(http.MethodGet, tt.target, nil)
+			r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
 			b, err := loader.Load(r, tt.target)
 			assert.Equal(t, string(b), tt.result)
 			if tt.err == "" {
@@ -94,6 +94,64 @@ func TestWithAllowedSources(t *testing.T) {
 			name:   "glob allowed source",
 			target: "https://foo.abc/bar",
 			result: "foobar",
+		},
+	})
+}
+
+func TestWithDefaultScheme(t *testing.T) {
+	trans := testTransport{
+		"https://foo.bar/baz": "baz",
+		"http://foo.boo/boo":  "boom",
+	}
+	doTests(t, New(
+		WithTransport(trans),
+	), []test{
+		{
+			name:   "default scheme found",
+			target: "foo.bar/baz",
+			result: "baz",
+		},
+		{
+			name:   "default scheme not found http",
+			target: "foo.boo/boo",
+			result: "not found",
+			err:    "imagor: 404 Not Found",
+		},
+	})
+	doTests(t, New(
+		WithTransport(trans),
+		WithDefaultScheme("http"),
+	), []test{
+		{
+			name:   "default scheme set http not found",
+			target: "foo.bar/baz",
+			result: "not found",
+			err:    "imagor: 404 Not Found",
+		},
+		{
+			name:   "default scheme set http found",
+			target: "foo.boo/boo",
+			result: "boom",
+		},
+	})
+	doTests(t, New(
+		WithTransport(trans),
+		WithDefaultScheme("nil"),
+	), []test{
+		{
+			name:   "default scheme set nil not found",
+			target: "foo.bar/baz",
+			err:    "imagor: 400 pass",
+		},
+		{
+			name:   "default scheme set nil not found",
+			target: "foo.boo/boo",
+			err:    "imagor: 400 pass",
+		},
+		{
+			name:   "default scheme set nil found",
+			target: "https://foo.bar/baz",
+			result: "baz",
 		},
 	})
 }
