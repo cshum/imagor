@@ -4,6 +4,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -294,6 +295,37 @@ func TestWithOverrideForwardHeaders(t *testing.T) {
 			name:   "user agent",
 			target: "https://foo.bar/baz",
 			result: "ok",
+		},
+	})
+}
+
+func TestWithMaxAllowedSize(t *testing.T) {
+	test1024Bytes := make([]byte, 1024)
+	rand.Read(test1024Bytes)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "1024")
+		_, _ = w.Write(test1024Bytes)
+	}))
+	defer ts.Close()
+
+	doTests(t, New(
+		WithMaxAllowedSize(1025),
+	), []test{
+		{
+			name:   "max allowed size ok",
+			target: ts.URL,
+			result: string(test1024Bytes),
+		},
+	})
+
+	doTests(t, New(
+		WithMaxAllowedSize(1023),
+	), []test{
+		{
+			name:   "max allowed size exceeded",
+			target: ts.URL,
+			err:    "imagor: 400 maximum size exceeded",
 		},
 	})
 }
