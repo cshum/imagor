@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type errResp struct {
@@ -74,4 +75,32 @@ func resJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
 	w.Write(buf)
 	return
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	Status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.Status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (s *Server) accessLogHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		wr := &statusRecorder{
+			ResponseWriter: w,
+		}
+		next.ServeHTTP(wr, r)
+		s.Logger.Info("access",
+			zap.Int("status", wr.Status),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path),
+			zap.String("ip", RealIP(r)),
+			zap.String("user-agent", r.UserAgent()),
+			zap.Duration("elapsed", time.Since(start)),
+		)
+	})
 }

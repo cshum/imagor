@@ -80,3 +80,11 @@ func WithStripQueryString(enabled bool) Option {
 		}
 	}
 }
+
+func WithAccessLog(enabled bool) Option {
+	return func(s *Server) {
+		if enabled {
+			s.Handler = s.accessLogHandler(s.Handler)
+		}
+	}
+}

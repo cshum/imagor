@@ -152,6 +152,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	setCacheHeaders(w, app.CacheHeaderTTL)
 	w.Header().Set("Content-Length", strconv.Itoa(ln))
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(buf)
 	return
 }
