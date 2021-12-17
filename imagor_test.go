@@ -16,6 +16,12 @@ func jsonStr(v interface{}) string {
 	return string(buf)
 }
 
+type loaderFunc func(r *http.Request, image string) (buf []byte, err error)
+
+func (f loaderFunc) Load(r *http.Request, image string) ([]byte, error) {
+	return f(r, image)
+}
+
 func TestWithUnsafe(t *testing.T) {
 	app := New(WithUnsafe(true))
 
@@ -73,19 +79,19 @@ func TestWithLoadersStorages(t *testing.T) {
 	app := New(
 		WithLoaders(
 			store,
-			LoaderFunc(func(r *http.Request, image string) ([]byte, error) {
+			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
 				if image == "foo" {
 					return []byte("bar"), nil
 				}
 				return nil, ErrPass
 			}),
-			LoaderFunc(func(r *http.Request, image string) ([]byte, error) {
+			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
 				if image == "ping" {
 					return []byte("pong"), nil
 				}
 				return nil, ErrPass
 			}),
-			LoaderFunc(func(r *http.Request, image string) ([]byte, error) {
+			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
 				if image == "beep" {
 					return []byte("boop"), nil
 				}
@@ -131,7 +137,7 @@ func TestWithLoadersStorages(t *testing.T) {
 func TestSuppression(t *testing.T) {
 	app := New(
 		WithLoaders(
-			LoaderFunc(func(r *http.Request, image string) (buf []byte, err error) {
+			loaderFunc(func(r *http.Request, image string) (buf []byte, err error) {
 				randBytes := make([]byte, 100)
 				rand.Read(randBytes)
 				time.Sleep(time.Millisecond * 100)
