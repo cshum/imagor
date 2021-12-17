@@ -1,6 +1,7 @@
 package httploader
 
 import (
+	"compress/gzip"
 	"github.com/cshum/imagor"
 	"io"
 	"net/http"
@@ -99,7 +100,19 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buf, err := io.ReadAll(resp.Body)
+	var buf []byte
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		gzipBody, err := gzip.NewReader(resp.Body)
+		if gzipBody != nil {
+			defer gzipBody.Close()
+		}
+		if err != nil {
+			return nil, err
+		}
+		buf, err = io.ReadAll(gzipBody)
+	} else {
+		buf, err = io.ReadAll(resp.Body)
+	}
 	if err != nil {
 		return nil, err
 	}
