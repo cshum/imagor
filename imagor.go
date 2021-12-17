@@ -18,6 +18,12 @@ import (
 
 type LoadFunc func(string) ([]byte, error)
 
+type LoaderFunc func(r *http.Request, image string) (buf []byte, err error)
+
+func (f LoaderFunc) Load(r *http.Request, image string) ([]byte, error) {
+	return f(r, image)
+}
+
 type Meta struct {
 	Format      string `json:"format"`
 	ContentType string `json:"content_type"`
