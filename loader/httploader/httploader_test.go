@@ -76,6 +76,16 @@ func TestWithAllowedSources(t *testing.T) {
 			err:    "imagor: 400 pass",
 		},
 		{
+			name:   "not allowed source",
+			target: "https://foo.barr/baz",
+			err:    "imagor: 400 pass",
+		},
+		{
+			name:   "not allowed source",
+			target: "https://boo.bar/baz",
+			err:    "imagor: 400 pass",
+		},
+		{
 			name:   "csv allowed source",
 			target: "https://def.def/boo",
 			result: "boo",
