@@ -101,7 +101,7 @@ func (s *Server) accessLogHandler(next http.Handler) http.Handler {
 			zap.String("uri", r.URL.RequestURI()),
 			zap.String("ip", RealIP(r)),
 			zap.String("user-agent", r.UserAgent()),
-			zap.Duration("elapsed", time.Since(start)),
+			zap.Duration("took", time.Since(start)),
 		)
 	})
 }
