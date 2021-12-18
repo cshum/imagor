@@ -3,6 +3,7 @@ package imagor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
@@ -24,7 +25,7 @@ func (f loaderFunc) Load(r *http.Request, image string) ([]byte, error) {
 }
 
 func TestWithUnsafe(t *testing.T) {
-	app := New(WithUnsafe(true))
+	app := New(WithUnsafe(true), WithDebug(true))
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -39,7 +40,7 @@ func TestWithUnsafe(t *testing.T) {
 }
 
 func TestWithSecret(t *testing.T) {
-	app := New(WithSecret("1234"))
+	app := New(WithSecret("1234"), WithDebug(true))
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -136,9 +137,6 @@ func TestWithLoadersStorages(t *testing.T) {
 				if image == "foo" {
 					return []byte("bar"), nil
 				}
-				return nil, ErrPass
-			}),
-			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
 				if image == "ping" {
 					return []byte("pong"), nil
 				}
@@ -147,6 +145,9 @@ func TestWithLoadersStorages(t *testing.T) {
 			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
 				if image == "beep" {
 					return []byte("boop"), nil
+				}
+				if image == "boom" {
+					return nil, errors.New("unexpected error")
 				}
 				return nil, ErrPass
 			}),
@@ -173,6 +174,13 @@ func TestWithLoadersStorages(t *testing.T) {
 			http.MethodGet, "https://example.com/unsafe/boooo", nil))
 		assert.Equal(t, 404, w.Code)
 		assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+	})
+	t.Run("unexpected error", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/boom", nil))
+		assert.Equal(t, 500, w.Code)
+		assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
 	})
 	t.Run("should not save from same store", func(t *testing.T) {
 		n := 5
