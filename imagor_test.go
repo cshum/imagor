@@ -3,6 +3,7 @@ package imagor
 import (
 	"context"
 	"encoding/json"
+	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"net/http"
@@ -50,6 +51,58 @@ func TestWithSecret(t *testing.T) {
 		http.MethodGet, "https://example.com/foo.jpg", nil))
 	assert.Equal(t, 403, w.Code)
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
+}
+
+func TestWithCacheHeaderTTL(t *testing.T) {
+	t.Run("default", func(t *testing.T) {
+		app := New(WithUnsafe(true))
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.NotEmpty(t, w.Header().Get("Expires"))
+		assert.Contains(t, w.Header().Get("Cache-Control"), "public, s-maxage=")
+	})
+	t.Run("no cache", func(t *testing.T) {
+		app := New(WithCacheHeaderTTL(-1), WithUnsafe(true))
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.NotEmpty(t, w.Header().Get("Expires"))
+		assert.Equal(t, "private, no-cache, no-store, must-revalidate", w.Header().Get("Cache-Control"))
+	})
+}
+
+func TestVersion(t *testing.T) {
+	app := New(WithVersion("test"))
+
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, `{"imagor":{"version":"test"}}`, w.Body.String())
+}
+
+func TestParams(t *testing.T) {
+	app := New(WithSecret("1234"))
+
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/params/_-19cQt1szHeUV0WyWFntvTImDI=/foo.jpg", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	buf, _ := json.MarshalIndent(imagorpath.Parse(r.URL.EscapedPath()), "", "  ")
+	assert.Equal(t, string(buf), w.Body.String())
+
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/params/foo.jpg", nil)
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	buf, _ = json.MarshalIndent(imagorpath.Parse(r.URL.EscapedPath()), "", "  ")
+	assert.Equal(t, string(buf), w.Body.String())
 }
 
 type mapStore struct {

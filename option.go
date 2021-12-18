@@ -45,6 +45,8 @@ func WithCacheHeaderTTL(ttl time.Duration) Option {
 	return func(o *Imagor) {
 		if ttl > 0 {
 			o.CacheHeaderTTL = ttl
+		} else if ttl == -1 {
+			o.CacheHeaderTTL = 0
 		}
 	}
 }
