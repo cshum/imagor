@@ -25,6 +25,12 @@ func (f loaderFunc) Load(r *http.Request, image string) ([]byte, error) {
 	return f(r, image)
 }
 
+type storageFunc func(ctx context.Context, image string, buf []byte) error
+
+func (f storageFunc) Save(ctx context.Context, image string, buf []byte) error {
+	return f(ctx, image, buf)
+}
+
 type processorFunc func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error)
 
 func (f processorFunc) Process(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
@@ -173,7 +179,14 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return nil, ErrPass
 			}),
 		),
-		WithStorages(store),
+		WithStorages(
+			store,
+			storageFunc(func(ctx context.Context, image string, buf []byte) error {
+				time.Sleep(time.Millisecond * 2)
+				assert.Error(t, context.DeadlineExceeded, ctx.Err())
+				return ctx.Err()
+			}),
+		),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
 				if string(buf) == "bar" {
@@ -182,6 +195,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return buf, nil, nil
 			}),
 		),
+		WithSaveTimeout(time.Millisecond),
 		WithUnsafe(true),
 	)
 	t.Run("ok", func(t *testing.T) {
@@ -230,6 +244,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		assert.Equal(t, 1, store.SaveCnt["beep"])
 	})
 }
+
 func TestSuppression(t *testing.T) {
 	app := New(
 		WithDebug(true),
