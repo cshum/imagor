@@ -5,7 +5,7 @@ dev: build
 	./bin/imagor -debug -imagor-unsafe
 
 test:
-	go test
+	go test -cover ./...
 
 docker-dev-build:
 	docker build --build-arg IMAGOR_VERSION=dev -t shumc/imagor:dev .

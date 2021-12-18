@@ -40,6 +40,7 @@ RUN go mod download
 
 COPY . .
 
+RUN go test ./...
 RUN go build -o ${GOPATH}/bin/imagor \
   -ldflags="-s -w -h -X main.Version=${IMAGOR_VERSION}" \
   ./cmd/imagor/main.go
