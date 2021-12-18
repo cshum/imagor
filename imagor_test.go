@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -24,8 +25,23 @@ func (f loaderFunc) Load(r *http.Request, image string) ([]byte, error) {
 	return f(r, image)
 }
 
+type processorFunc func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error)
+
+func (f processorFunc) Process(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
+	return f(ctx, buf, p, load)
+}
+func (f processorFunc) Startup(_ context.Context) error {
+	return nil
+}
+func (f processorFunc) Shutdown(_ context.Context) error {
+	return nil
+}
+
 func TestWithUnsafe(t *testing.T) {
-	app := New(WithUnsafe(true), WithDebug(true))
+	logger := zap.NewNop()
+	app := New(WithUnsafe(true), WithLogger(logger))
+	assert.Equal(t, false, app.Debug)
+	assert.Equal(t, logger, app.Logger)
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -40,7 +56,8 @@ func TestWithUnsafe(t *testing.T) {
 }
 
 func TestWithSecret(t *testing.T) {
-	app := New(WithSecret("1234"), WithDebug(true))
+	app := New(WithDebug(true), WithSecret("1234"))
+	assert.Equal(t, true, app.Debug)
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -56,7 +73,7 @@ func TestWithSecret(t *testing.T) {
 
 func TestWithCacheHeaderTTL(t *testing.T) {
 	t.Run("default", func(t *testing.T) {
-		app := New(WithUnsafe(true))
+		app := New(WithDebug(true), WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
@@ -65,7 +82,7 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 		assert.Contains(t, w.Header().Get("Cache-Control"), "public, s-maxage=")
 	})
 	t.Run("no cache", func(t *testing.T) {
-		app := New(WithCacheHeaderTTL(-1), WithUnsafe(true))
+		app := New(WithDebug(true), WithCacheHeaderTTL(-1), WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
@@ -76,7 +93,7 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	app := New(WithVersion("test"))
+	app := New(WithDebug(true), WithVersion("test"))
 
 	r := httptest.NewRequest(
 		http.MethodGet, "https://example.com/", nil)
@@ -87,7 +104,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestParams(t *testing.T) {
-	app := New(WithSecret("1234"))
+	app := New(WithDebug(true), WithSecret("1234"))
 
 	r := httptest.NewRequest(
 		http.MethodGet, "https://example.com/params/_-19cQt1szHeUV0WyWFntvTImDI=/foo.jpg", nil)
@@ -126,11 +143,15 @@ func (s *mapStore) Save(ctx context.Context, image string, buf []byte) error {
 	return nil
 }
 
-func TestWithLoadersStorages(t *testing.T) {
+func TestWithLoadersStoragesProcessors(t *testing.T) {
 	store := &mapStore{
 		Map: map[string][]byte{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
 	}
+	fakeMeta := &Meta{Format: "a", ContentType: "b", Width: 167, Height: 167}
+	fakeMetaBuf, _ := json.Marshal(fakeMeta)
+	fakeMetaStr := string(fakeMetaBuf)
 	app := New(
+		WithDebug(true),
 		WithLoaders(
 			store,
 			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
@@ -153,6 +174,14 @@ func TestWithLoadersStorages(t *testing.T) {
 			}),
 		),
 		WithStorages(store),
+		WithProcessors(
+			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
+				if string(buf) == "bar" {
+					return []byte("bark"), fakeMeta, nil
+				}
+				return buf, nil, nil
+			}),
+		),
 		WithUnsafe(true),
 	)
 	t.Run("ok", func(t *testing.T) {
@@ -160,7 +189,13 @@ func TestWithLoadersStorages(t *testing.T) {
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo", nil))
 		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, "bar", w.Body.String())
+		assert.Equal(t, "bark", w.Body.String())
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/meta/foo", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, fakeMetaStr, w.Body.String())
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
@@ -197,6 +232,7 @@ func TestWithLoadersStorages(t *testing.T) {
 }
 func TestSuppression(t *testing.T) {
 	app := New(
+		WithDebug(true),
 		WithLoaders(
 			loaderFunc(func(r *http.Request, image string) (buf []byte, err error) {
 				randBytes := make([]byte, 100)
