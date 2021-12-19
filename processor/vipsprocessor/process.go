@@ -218,11 +218,13 @@ func getColor(img *vips.ImageRef, name string) *vips.Color {
 	vc := &vips.Color{}
 	name = strings.TrimPrefix(strings.ToLower(name), "#")
 	if name == "auto" || name == "" {
-		p, _ := img.GetPoint(0, 0)
-		if len(p) >= 3 {
-			vc.R = uint8(p[0])
-			vc.G = uint8(p[1])
-			vc.B = uint8(p[2])
+		if img != nil {
+			p, _ := img.GetPoint(0, 0)
+			if len(p) >= 3 {
+				vc.R = uint8(p[0])
+				vc.G = uint8(p[1])
+				vc.B = uint8(p[2])
+			}
 		}
 	} else if c, ok := colornames.Map[name]; ok {
 		vc.R = c.R

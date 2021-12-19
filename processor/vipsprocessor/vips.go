@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
@@ -119,13 +120,14 @@ func (v *VipsProcessor) Process(
 	ctx context.Context, buf []byte, p imagorpath.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {
 	var (
-		isThumbnail bool
-		stretch     = p.Stretch
-		upscale     = true
-		img         *vips.ImageRef
-		err         error
-		w           = p.Width
-		h           = p.Height
+		isThumbnail    bool
+		hasSpecialFill bool
+		stretch        = p.Stretch
+		upscale        = true
+		img            *vips.ImageRef
+		err            error
+		w              = p.Width
+		h              = p.Height
 	)
 	for _, p := range p.Filters {
 		switch p.Name {
@@ -138,6 +140,12 @@ func (v *VipsProcessor) Process(
 		case "no_upscale":
 			upscale = false
 			break
+		case "fill":
+			color := getColor(nil, strings.Split(p.Args, ",")[0])
+			if !isBlack(color) && !isWhite(color) {
+				hasSpecialFill = true
+			}
+			break
 		}
 	}
 	if w == 0 {
@@ -146,7 +154,7 @@ func (v *VipsProcessor) Process(
 	if h == 0 {
 		h = 99999
 	}
-	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
+	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecialFill {
 		if p.FitIn {
 			if upscale || p.Width > 0 || p.Height > 0 {
 				isThumbnail = true
