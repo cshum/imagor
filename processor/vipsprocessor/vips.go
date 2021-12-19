@@ -156,7 +156,7 @@ func (v *VipsProcessor) Process(
 	}
 	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecialFill {
 		if p.FitIn {
-			if upscale {
+			if upscale && (p.Width > 0 || p.Height > 0) {
 				isThumbnail = true
 				if img, err = vips.NewThumbnailFromBuffer(
 					buf, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone,
