@@ -106,7 +106,7 @@ func (v *VipsProcessor) process(
 				return err
 			}
 		} else if filter.Name == "fill" {
-			if err := v.fill(img, w, h, upscale, args...); err != nil {
+			if err := v.fill(img, w, h, p.HPadding, p.VPadding, upscale, args...); err != nil {
 				return err
 			}
 		}
@@ -119,7 +119,7 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
-func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, upscale bool, args ...string) (err error) {
+func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, args ...string) (err error) {
 	var colour string
 	var ln = len(args)
 	if ln > 0 {
@@ -151,8 +151,8 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h int, upscale bool, args ..
 			return
 		}
 		defer cp.Close()
-		if upscale || w < cp.Width() || h < cp.Height() {
-			if err = cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
+		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.Height() {
+			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
 				return
 			}
 		}
