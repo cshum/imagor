@@ -29,8 +29,6 @@ var paramsRegex = regexp.MustCompile(
 		"(fit-in/)?" +
 		// stretch
 		"(stretch/)?" +
-		// upscale
-		"(upscale/)?" +
 		// dimensions
 		"((\\-?)(\\d*)x(\\-?)(\\d*)/)?" +
 		// paddings
@@ -99,10 +97,6 @@ func Parse(path string) (p Params) {
 	index += 1
 	if match[index] != "" {
 		p.Stretch = true
-	}
-	index += 1
-	if match[index] != "" {
-		p.Upscale = true
 	}
 	index += 1
 	if match[index] != "" {

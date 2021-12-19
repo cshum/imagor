@@ -118,12 +118,81 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 func (v *VipsProcessor) Process(
 	ctx context.Context, buf []byte, p imagorpath.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {
-	img, err := vips.NewImageFromBuffer(buf)
-	if err != nil {
-		if err == vips.ErrUnsupportedImageFormat {
-			err = imagor.ErrUnsupportedFormat
+	var (
+		isThumbnail bool
+		stretch     = p.Stretch
+		upscale     = true
+		img         *vips.ImageRef
+		err         error
+		w           = p.Width
+		h           = p.Height
+	)
+	for _, p := range p.Filters {
+		switch p.Name {
+		case "stretch":
+			stretch = true
+			break
+		case "upscale":
+			upscale = true
+			break
+		case "no_upscale":
+			upscale = false
+			break
 		}
-		return nil, nil, err
+	}
+	if w == 0 {
+		w = 99999
+	}
+	if h == 0 {
+		h = 99999
+	}
+	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
+		if p.FitIn {
+			if upscale || p.Width > 0 || p.Height > 0 {
+				isThumbnail = true
+				if img, err = vips.NewThumbnailFromBuffer(
+					buf, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone,
+				); err != nil {
+					if err == vips.ErrUnsupportedImageFormat {
+						err = imagor.ErrUnsupportedFormat
+					}
+					return nil, nil, err
+				}
+			}
+		} else if !stretch {
+			interest := vips.InterestingCentre
+			if p.Smart {
+				interest = vips.InterestingAttention
+				isThumbnail = true
+			} else if (p.VAlign == "top" && p.HAlign == "") || (p.HAlign == "left" && p.VAlign == "") {
+				interest = vips.InterestingLow
+				isThumbnail = true
+			} else if (p.VAlign == "bottom" && p.HAlign == "") || (p.HAlign == "right" && p.VAlign == "") {
+				interest = vips.InterestingHigh
+				isThumbnail = true
+			} else if (p.VAlign == "" || p.VAlign == "middle") && (p.HAlign == "" || p.HAlign == "center") {
+				interest = vips.InterestingCentre
+				isThumbnail = true
+			}
+			if isThumbnail {
+				if img, err = vips.NewThumbnailFromBuffer(
+					buf, w, h, interest,
+				); err != nil {
+					if err == vips.ErrUnsupportedImageFormat {
+						err = imagor.ErrUnsupportedFormat
+					}
+					return nil, nil, err
+				}
+			}
+		}
+	}
+	if !isThumbnail {
+		if img, err = vips.NewImageFromBuffer(buf); err != nil {
+			if err == vips.ErrUnsupportedImageFormat {
+				err = imagor.ErrUnsupportedFormat
+			}
+			return nil, nil, err
+		}
 	}
 	defer img.Close()
 	var (
@@ -145,7 +214,7 @@ func (v *VipsProcessor) Process(
 			break
 		}
 	}
-	if err := v.process(ctx, img, p, load); err != nil {
+	if err := v.process(ctx, img, p, load, isThumbnail, stretch, upscale); err != nil {
 		return nil, nil, err
 	}
 	buf, meta, err := export(img, format, quality)

@@ -13,7 +13,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc,
+	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, isThumbnail, stretch, upscale bool,
 ) error {
 	if p.Trim {
 		if err := trim(img, p.TrimBy, p.TrimTolerance); err != nil {
@@ -37,10 +37,8 @@ func (v *VipsProcessor) process(
 		}
 	}
 	var (
-		stretch = p.Stretch
-		upscale = p.Upscale
-		w       = p.Width
-		h       = p.Height
+		w = p.Width
+		h = p.Height
 	)
 	if w == 0 && h == 0 {
 		w = img.Width()
@@ -50,23 +48,12 @@ func (v *VipsProcessor) process(
 	} else if h == 0 {
 		h = img.Height() * w / img.Width()
 	}
-	for _, p := range p.Filters {
-		switch p.Name {
-		case "stretch":
-			stretch = true
-			break
-		case "upscale":
-			upscale = true
-			break
-		case "no_upscale":
-			upscale = false
-			break
-		}
-	}
 	if p.FitIn {
-		if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
-			if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone); err != nil {
-				return err
+		if !isThumbnail {
+			if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
+				if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone); err != nil {
+					return err
+				}
 			}
 		}
 	} else if stretch {
@@ -77,16 +64,18 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	} else if w < img.Width() || h < img.Height() {
-		interest := vips.InterestingCentre
-		if p.Smart {
-			interest = vips.InterestingAttention
-		} else if (p.VAlign == "top" && img.Height() > h) || (p.HAlign == "left" && img.Width() > w) {
-			interest = vips.InterestingLow
-		} else if (p.VAlign == "bottom" && img.Height() > h) || (p.HAlign == "right" && img.Width() > w) {
-			interest = vips.InterestingHigh
-		}
-		if err := img.Thumbnail(w, h, interest); err != nil {
-			return err
+		if !isThumbnail {
+			interest := vips.InterestingCentre
+			if p.Smart {
+				interest = vips.InterestingAttention
+			} else if (p.VAlign == "top" && img.Height() > h) || (p.HAlign == "left" && img.Width() > w) {
+				interest = vips.InterestingLow
+			} else if (p.VAlign == "bottom" && img.Height() > h) || (p.HAlign == "right" && img.Width() > w) {
+				interest = vips.InterestingHigh
+			}
+			if err := img.Thumbnail(w, h, interest); err != nil {
+				return err
+			}
 		}
 	}
 	if p.HFlip {

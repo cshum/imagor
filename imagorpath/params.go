@@ -35,7 +35,6 @@ type Params struct {
 	CropBottom    int     `json:"crop_bottom,omitempty"`
 	FitIn         bool    `json:"fit_in,omitempty"`
 	Stretch       bool    `json:"stretch,omitempty"`
-	Upscale       bool    `json:"upscale,omitempty"`
 	Width         int     `json:"width,omitempty"`
 	Height        int     `json:"height,omitempty"`
 	HPadding      int     `json:"h_padding,omitempty"`

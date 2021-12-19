@@ -40,9 +40,9 @@ func TestParseGenerate(t *testing.T) {
 		},
 		{
 			name: "url image",
-			uri:  "meta/trim:100/10x11:12x13/fit-in/upscale/-300x-200/left/top/smart/filters:some_filter()/s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg",
+			uri:  "meta/trim:100/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg",
 			params: Params{
-				Path:          "meta/trim:100/10x11:12x13/fit-in/upscale/-300x-200/left/top/smart/filters:some_filter()/s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg",
+				Path:          "meta/trim:100/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg",
 				Image:         "s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg",
 				Trim:          true,
 				TrimBy:        TrimByTopLeft,
@@ -54,7 +54,6 @@ func TestParseGenerate(t *testing.T) {
 				Width:         300,
 				Height:        200,
 				Meta:          true,
-				Upscale:       true,
 				HFlip:         true,
 				VFlip:         true,
 				HAlign:        "left",
