@@ -167,6 +167,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if image == "foo" {
 					return []byte("bar"), nil
 				}
+				if image == "bar" {
+					return []byte("foo"), nil
+				}
 				if image == "ping" {
 					return []byte("pong"), nil
 				}
@@ -201,6 +204,10 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if string(buf) == "poop" {
 					return nil, nil, ErrPass
 				}
+				if string(buf) == "foo" {
+					buf, err := load("foo")
+					return buf, nil, err
+				}
 				return buf, nil, nil
 			}),
 			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
@@ -224,6 +231,12 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			http.MethodGet, "https://example.com/unsafe/foo", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "bark", w.Body.String())
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/bar", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "bar", w.Body.String())
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
