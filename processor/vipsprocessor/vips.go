@@ -120,14 +120,14 @@ func (v *VipsProcessor) Process(
 	ctx context.Context, buf []byte, p imagorpath.Params, load imagor.LoadFunc,
 ) ([]byte, *imagor.Meta, error) {
 	var (
-		isThumbnail    bool
-		hasSpecialFill bool
+		upscale        = false
+		isThumbnail    = false
+		hasSpecialFill = false
 		stretch        = p.Stretch
-		upscale        = true
-		img            *vips.ImageRef
-		err            error
 		w              = p.Width
 		h              = p.Height
+		img            *vips.ImageRef
+		err            error
 	)
 	for _, p := range p.Filters {
 		switch p.Name {
@@ -156,7 +156,7 @@ func (v *VipsProcessor) Process(
 	}
 	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecialFill {
 		if p.FitIn {
-			if upscale || p.Width > 0 || p.Height > 0 {
+			if upscale {
 				isThumbnail = true
 				if img, err = vips.NewThumbnailFromBuffer(
 					buf, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone,
