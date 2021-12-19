@@ -184,6 +184,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (buf []byte, meta *M
 		if e == nil {
 			buf = b
 			meta = m
+			err = nil
 			if app.Debug {
 				app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", meta), zap.Int("size", len(buf)))
 			}

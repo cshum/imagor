@@ -196,6 +196,15 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithProcessors(
 			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
 				if string(buf) == "bar" {
+					return []byte("tar"), nil, ErrPass
+				}
+				if string(buf) == "poop" {
+					return nil, nil, ErrPass
+				}
+				return buf, nil, nil
+			}),
+			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
+				if string(buf) == "tar" {
 					return []byte("bark"), fakeMeta, nil
 				}
 				if string(buf) == "poop" {
