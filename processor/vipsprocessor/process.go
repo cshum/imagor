@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/image/colornames"
 	"image/color"
-	"math"
 	"strings"
 	"time"
 )
@@ -78,12 +77,6 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	} else if w < img.Width() || h < img.Height() {
-		if err := img.Resize(math.Max(
-			float64(w)/float64(img.Width()),
-			float64(h)/float64(img.Height()),
-		), vips.KernelAuto); err != nil {
-			return err
-		}
 		interest := vips.InterestingCentre
 		if p.Smart {
 			interest = vips.InterestingAttention
@@ -92,7 +85,7 @@ func (v *VipsProcessor) process(
 		} else if (p.VAlign == "bottom" && img.Height() > h) || (p.HAlign == "right" && img.Width() > w) {
 			interest = vips.InterestingHigh
 		}
-		if err := img.SmartCrop(w, h, interest); err != nil {
+		if err := img.Thumbnail(w, h, interest); err != nil {
 			return err
 		}
 	}
