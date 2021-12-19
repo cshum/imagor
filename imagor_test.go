@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -176,6 +179,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if image == "boom" {
 					return nil, errors.New("unexpected error")
 				}
+				if image == "poop" {
+					return []byte("poop"), nil
+				}
 				return nil, ErrPass
 			}),
 		),
@@ -191,6 +197,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
 				if string(buf) == "bar" {
 					return []byte("bark"), fakeMeta, nil
+				}
+				if string(buf) == "poop" {
+					return nil, nil, ErrUnsupportedFormat
 				}
 				return buf, nil, nil
 			}),
@@ -233,6 +242,13 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		assert.Equal(t, 500, w.Code)
 		assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
 	})
+	t.Run("processor error return original", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/poop", nil))
+		assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
+		assert.Equal(t, "poop", w.Body.String())
+	})
 	t.Run("should not save from same store", func(t *testing.T) {
 		n := 5
 		for i := 0; i < n; i++ {
@@ -245,6 +261,84 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		assert.Equal(t, n-1, store.LoadCnt["beep"])
 		assert.Equal(t, 1, store.SaveCnt["beep"])
 	})
+}
+
+func TestWithLoadTimeout(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.String(), "sleep") {
+			time.Sleep(time.Millisecond * 50)
+		}
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	loader := loaderFunc(func(r *http.Request, image string) (buf []byte, err error) {
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		return io.ReadAll(resp.Body)
+	})
+
+	tests := []struct {
+		name string
+		app  *Imagor
+	}{
+		{
+			name: "load timeout",
+			app: New(
+				WithUnsafe(true),
+				WithLoadTimeout(time.Millisecond*10),
+				WithLoaders(loader),
+			),
+		},
+		{
+			name: "request timeout",
+			app: New(
+				WithUnsafe(true),
+				WithRequestTimeout(time.Millisecond*10),
+				WithLoaders(loader),
+			),
+		},
+		{
+			name: "load timeout > request timeout",
+			app: New(
+				WithUnsafe(true),
+				WithLoadTimeout(time.Millisecond*10),
+				WithRequestTimeout(time.Millisecond*100),
+				WithLoaders(loader),
+			),
+		},
+		{
+			name: "load timeout < request timeout",
+			app: New(
+				WithUnsafe(true),
+				WithLoadTimeout(time.Millisecond*100),
+				WithRequestTimeout(time.Millisecond*10),
+				WithLoaders(loader),
+			),
+		},
+	}
+	for _, tt := range tests {
+		t.Run("ok", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			tt.app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%s", ts.URL), nil))
+			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, w.Body.String(), "ok")
+		})
+		t.Run("timeout", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			tt.app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%s/sleep", ts.URL), nil))
+			assert.Equal(t, http.StatusRequestTimeout, w.Code)
+			assert.Equal(t, w.Body.String(), jsonStr(ErrTimeout))
+		})
+	}
 }
 
 func TestSuppression(t *testing.T) {
