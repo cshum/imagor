@@ -198,6 +198,8 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithSaveTimeout(time.Millisecond),
 		WithUnsafe(true),
 	)
+	assert.NoError(t, app.Startup(context.Background()))
+	defer assert.NoError(t, app.Shutdown(context.Background()))
 	t.Run("ok", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(

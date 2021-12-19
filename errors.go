@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,8 +30,16 @@ type Error struct {
 	Code    int    `json:"status,omitempty"`
 }
 
+type timeoutErr interface {
+	Timeout() bool
+}
+
 func (e Error) Error() string {
 	return fmt.Sprintf("%s %d %s", errPrefix, e.Code, e.Message)
+}
+
+func (e Error) Timeout() bool {
+	return e.Code == http.StatusRequestTimeout || e.Code == http.StatusGatewayTimeout
 }
 
 func NewError(msg string, code int) Error {
@@ -50,11 +57,10 @@ func WrapError(err error) error {
 	if e, ok := err.(Error); ok {
 		return e
 	}
-	if e, ok := err.(*url.Error); ok {
+	if e, ok := err.(timeoutErr); ok {
 		if e.Timeout() {
 			return ErrTimeout
 		}
-		return NewError(e.Error(), http.StatusBadRequest)
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrTimeout
