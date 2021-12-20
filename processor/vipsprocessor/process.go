@@ -48,23 +48,20 @@ func (v *VipsProcessor) process(
 	} else if h == 0 {
 		h = img.Height() * w / img.Width()
 	}
-	if p.FitIn {
-		if !isThumbnail {
+	if !isThumbnail {
+		if p.FitIn {
 			if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
 				if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone); err != nil {
 					return err
 				}
 			}
-		}
-	} else if stretch {
-		if err := img.ResizeWithVScale(
-			float64(w)/float64(img.Width()),
-			float64(h)/float64(img.Height()),
-			vips.KernelAuto); err != nil {
-			return err
-		}
-	} else if w < img.Width() || h < img.Height() {
-		if !isThumbnail {
+		} else if stretch {
+			if err := img.ThumbnailWithSize(
+				w, h, vips.InterestingNone, vips.SizeForce,
+			); err != nil {
+				return err
+			}
+		} else if w < img.Width() || h < img.Height() {
 			interest := vips.InterestingCentre
 			if p.Smart {
 				interest = vips.InterestingAttention
@@ -156,9 +153,8 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale b
 				return
 			}
 		}
-		if err = img.ResizeWithVScale(
-			float64(w)/float64(img.Width()), float64(h)/float64(img.Height()),
-			vips.KernelLinear,
+		if err = img.ThumbnailWithSize(
+			w, h, vips.InterestingNone, vips.SizeForce,
 		); err != nil {
 			return
 		}

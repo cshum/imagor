@@ -124,8 +124,6 @@ func (v *VipsProcessor) Process(
 		isThumbnail    = false
 		hasSpecialFill = false
 		stretch        = p.Stretch
-		w              = p.Width
-		h              = p.Height
 		img            *vips.ImageRef
 		err            error
 	)
@@ -148,48 +146,68 @@ func (v *VipsProcessor) Process(
 			break
 		}
 	}
-	if w == 0 {
-		w = 99999
-	}
-	if h == 0 {
-		h = 99999
-	}
 	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecialFill {
 		if p.FitIn {
-			if upscale && (p.Width > 0 || p.Height > 0) {
-				isThumbnail = true
-				if img, err = vips.NewThumbnailFromBuffer(
-					buf, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone,
+			if p.Width > 0 || p.Height > 0 {
+				w := p.Width
+				h := p.Height
+				if w == 0 {
+					w = 99999
+				}
+				if h == 0 {
+					h = 99999
+				}
+				size := vips.SizeDown
+				if upscale {
+					size = vips.SizeBoth
+				}
+				if img, err = vips.NewThumbnailWithSizeFromBuffer(
+					buf, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size,
 				); err != nil {
 					if err == vips.ErrUnsupportedImageFormat {
 						err = imagor.ErrUnsupportedFormat
 					}
 					return nil, nil, err
 				}
-			}
-		} else if !stretch {
-			interest := vips.InterestingCentre
-			if p.Smart {
-				interest = vips.InterestingAttention
-				isThumbnail = true
-			} else if (p.VAlign == "top" && p.HAlign == "") || (p.HAlign == "left" && p.VAlign == "") {
-				interest = vips.InterestingLow
-				isThumbnail = true
-			} else if (p.VAlign == "bottom" && p.HAlign == "") || (p.HAlign == "right" && p.VAlign == "") {
-				interest = vips.InterestingHigh
-				isThumbnail = true
-			} else if (p.VAlign == "" || p.VAlign == "middle") && (p.HAlign == "" || p.HAlign == "center") {
-				interest = vips.InterestingCentre
 				isThumbnail = true
 			}
-			if isThumbnail {
-				if img, err = vips.NewThumbnailFromBuffer(
-					buf, w, h, interest,
+		} else if stretch {
+			if p.Width > 0 && p.Height > 0 {
+				if img, err = vips.NewThumbnailWithSizeFromBuffer(
+					buf, p.Width, p.Height, vips.InterestingNone, vips.SizeForce,
 				); err != nil {
 					if err == vips.ErrUnsupportedImageFormat {
 						err = imagor.ErrUnsupportedFormat
 					}
 					return nil, nil, err
+				}
+				isThumbnail = true
+			}
+		} else {
+			if p.Width > 0 && p.Height > 0 {
+				interest := vips.InterestingCentre
+				if p.Smart {
+					interest = vips.InterestingAttention
+					isThumbnail = true
+				} else if (p.VAlign == "top" && p.HAlign == "") || (p.HAlign == "left" && p.VAlign == "") {
+					interest = vips.InterestingLow
+					isThumbnail = true
+				} else if (p.VAlign == "bottom" && p.HAlign == "") || (p.HAlign == "right" && p.VAlign == "") {
+					interest = vips.InterestingHigh
+					isThumbnail = true
+				} else if (p.VAlign == "" || p.VAlign == "middle") && (p.HAlign == "" || p.HAlign == "center") {
+					interest = vips.InterestingCentre
+					isThumbnail = true
+				}
+				if isThumbnail {
+					if img, err = vips.NewThumbnailFromBuffer(
+						buf, p.Width, p.Height, interest,
+					); err != nil {
+						if err == vips.ErrUnsupportedImageFormat {
+							err = imagor.ErrUnsupportedFormat
+						}
+						return nil, nil, err
+					}
 				}
 			}
 		}
