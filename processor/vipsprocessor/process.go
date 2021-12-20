@@ -123,12 +123,12 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale b
 		colour = strings.ToLower(args[0])
 	}
 	c := getColor(img, colour)
-	if img.HasAlpha() && colour != "blur" {
-		if err = img.Flatten(getColor(img, colour)); err != nil {
-			return
-		}
-	}
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
+		if img.HasAlpha() {
+			if err = img.Flatten(getColor(img, colour)); err != nil {
+				return
+			}
+		}
 		left := (w - img.Width()) / 2
 		top := (h - img.Height()) / 2
 		if isBlack(c) {
