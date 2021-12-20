@@ -161,7 +161,7 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 		return
 	}
 	if c != nil {
-		if err = applyBackgroundColor(img, c); err != nil {
+		if err = img.Flatten(c); err != nil {
 			return
 		}
 	}
@@ -172,7 +172,7 @@ func backgroundColor(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err
 	if len(args) == 0 {
 		return
 	}
-	return applyBackgroundColor(img, getColor(img, args[0]))
+	return img.Flatten(getColor(img, args[0]))
 }
 
 func rotate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
@@ -315,24 +315,6 @@ func trimFilter(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
 		pos = args[1]
 	}
 	return trim(img, pos, tolerance)
-}
-
-func applyBackgroundColor(img *vips.ImageRef, c *vips.Color) (err error) {
-	// set background color if specified
-	var rect *vips.ImageRef
-	if rect, err = vips.Black(img.Width(), img.Height()); err != nil {
-		return
-	}
-	defer rect.Close()
-	if err = rect.Linear([]float64{1, 1, 1}, []float64{
-		float64(c.R), float64(c.G), float64(c.B),
-	}); err != nil {
-		return
-	}
-	if err = img.Composite(rect, vips.BlendModeDestOver, 0, 0); err != nil {
-		return
-	}
-	return
 }
 
 func linearRGB(img *vips.ImageRef, a, b []float64) error {
