@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/aws-sdk-go v1.42.15
-	github.com/cshum/govips/v2 v2.7.7
+	github.com/cshum/govips/v2 v2.7.9
 	github.com/joho/godotenv v1.4.0
 	github.com/peterbourgon/ff/v3 v3.1.2
 	github.com/rs/cors v1.8.0

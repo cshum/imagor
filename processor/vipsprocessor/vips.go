@@ -139,14 +139,15 @@ func (v *VipsProcessor) Process(
 			upscale = false
 			break
 		case "fill":
-			color := getColor(nil, strings.Split(p.Args, ",")[0])
-			if !isBlack(color) && !isWhite(color) {
+			colour := strings.ToLower(strings.Split(p.Args, ",")[0])
+			if colour == "blur" && !v.DisableBlur {
 				hasSpecialFill = true
 			}
 			break
 		}
 	}
 	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecialFill {
+		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
 				w := p.Width
