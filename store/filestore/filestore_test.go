@@ -111,14 +111,18 @@ func TestFileStore_Load_Store(t *testing.T) {
 		t.Errorf("= %v, want ErrNotFound", err)
 	}
 	ctx := context.Background()
-	if err := s.Save(ctx, "/foo/fooo/asdf", []byte("bar")); err != nil {
+	if err := s.Save(ctx, "/foo/fooo/asdf", imagor.NewFileBytes([]byte("bar"))); err != nil {
 		t.Error(err)
 	}
 	b, err = s.Load(&http.Request{}, "/foo/fooo/asdf")
 	if err != nil {
 		t.Error(err)
 	}
-	if string(b) != "bar" {
-		t.Errorf(" = %s want %s", string(b), "bar")
+	buf, err := b.Bytes()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(buf) != "bar" {
+		t.Errorf(" = %s want %s", string(buf), "bar")
 	}
 }

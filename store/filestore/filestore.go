@@ -3,7 +3,6 @@ package filestore
 import (
 	"context"
 	"github.com/cshum/imagor"
-	"io"
 	"net/http"
 	"os"
 	"path"
@@ -51,25 +50,35 @@ func (s *FileStore) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *FileStore) Load(_ *http.Request, image string) ([]byte, error) {
+func (s *FileStore) Load(_ *http.Request, image string) (*imagor.File, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	r, err := os.Open(image)
-	if os.IsNotExist(err) {
-		return nil, imagor.ErrNotFound
+	_, err := os.Stat(image)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, imagor.ErrNotFound
+		}
+		return nil, err
 	}
-	return io.ReadAll(r)
+	return imagor.NewFilePath(image), nil
 }
 
-func (s *FileStore) Save(_ context.Context, image string, buf []byte) (err error) {
+func (s *FileStore) Save(_ context.Context, image string, file *imagor.File) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass
 	}
+	if imagor.IsFileEmpty(file) {
+		return imagor.ErrNotFound
+	}
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
+	}
+	buf, err := file.Bytes()
+	if err != nil {
+		return err
 	}
 	w, err := os.OpenFile(image, os.O_RDWR|os.O_CREATE|os.O_TRUNC, s.WritePermission)
 	if err != nil {

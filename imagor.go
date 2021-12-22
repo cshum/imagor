@@ -134,7 +134,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Header().Set("Content-Type", meta.ContentType)
 		}
-	} else if !IsFileEmpty(file) {
+	} else if ln > 0 {
 		w.Header().Set("Content-Type", http.DetectContentType(buf))
 	}
 	if err != nil {

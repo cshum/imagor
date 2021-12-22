@@ -52,7 +52,7 @@ func New(options ...Option) *HTTPLoader {
 	return h
 }
 
-func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
+func (h *HTTPLoader) Load(r *http.Request, image string) (*imagor.File, error) {
 	if r.Method != http.MethodGet || image == "" {
 		return nil, imagor.ErrPass
 	}
@@ -116,9 +116,9 @@ func (h *HTTPLoader) Load(r *http.Request, image string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode >= 400 {
-		return buf, imagor.NewErrorFromStatusCode(resp.StatusCode)
+		return imagor.NewFileBytes(buf), imagor.NewErrorFromStatusCode(resp.StatusCode)
 	}
-	return buf, nil
+	return imagor.NewFileBytes(buf), nil
 }
 
 func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Request, error) {

@@ -58,7 +58,7 @@ func (s *S3Store) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *S3Store) Load(r *http.Request, image string) ([]byte, error) {
+func (s *S3Store) Load(r *http.Request, image string) (*imagor.File, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -73,13 +73,21 @@ func (s *S3Store) Load(r *http.Request, image string) ([]byte, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	return io.ReadAll(out.Body)
+	buf, err := io.ReadAll(out.Body)
+	if err != nil {
+		return nil, err
+	}
+	return imagor.NewFileBytes(buf), err
 }
 
-func (s *S3Store) Save(ctx context.Context, image string, buf []byte) error {
+func (s *S3Store) Save(ctx context.Context, image string, file *imagor.File) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass
+	}
+	buf, err := file.Bytes()
+	if err != nil {
+		return err
 	}
 	input := &s3manager.UploadInput{
 		ACL:         aws.String(s.ACL),
@@ -88,6 +96,6 @@ func (s *S3Store) Save(ctx context.Context, image string, buf []byte) error {
 		ContentType: aws.String(mime.TypeByExtension(filepath.Ext(image))),
 		Key:         aws.String(image),
 	}
-	_, err := s.Uploader.UploadWithContext(ctx, input)
+	_, err = s.Uploader.UploadWithContext(ctx, input)
 	return err
 }

@@ -49,9 +49,11 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 			r.Header.Set("X-Imagor-Foo", "Bar")
 			r.Header.Set("X-Imagor-Ping", "Pong")
 			b, err := loader.Load(r, tt.target)
-			assert.Equal(t, string(b), tt.result)
 			if tt.err == "" {
 				assert.NoError(t, err)
+				buf, err := b.Bytes()
+				assert.NoError(t, err, tt.result)
+				assert.Equal(t, string(buf), tt.result)
 			} else {
 				assert.EqualError(t, err, tt.err)
 			}
