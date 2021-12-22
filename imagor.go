@@ -184,6 +184,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, meta *M
 	load := func(image string) (*File, error) {
 		return app.load(r, image)
 	}
+	if IsFileEmpty(file) {
+		return
+	}
 	for _, processor := range app.Processors {
 		f, m, e := processor.Process(ctx, file, p, load)
 		if e == nil {
@@ -245,6 +248,9 @@ func (app *Imagor) load(r *http.Request, image string) (*File, error) {
 		if err == nil {
 			if app.Debug {
 				app.Logger.Debug("loaded", zap.String("image", image))
+			}
+			if IsFileEmpty(file) {
+				return
 			}
 			if len(app.Storages) > 0 {
 				app.save(ctx, fromStore, app.Storages, image, file)

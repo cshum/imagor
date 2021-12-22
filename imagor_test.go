@@ -173,6 +173,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if image == "ping" {
 					return NewFileBytes([]byte("pong")), nil
 				}
+				if image == "empty" {
+					return nil, nil
+				}
 				return nil, ErrPass
 			}),
 			loaderFunc(func(r *http.Request, image string) (*File, error) {
@@ -254,6 +257,13 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			http.MethodGet, "https://example.com/unsafe/ping", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "pong", w.Body.String())
+	})
+	t.Run("empty", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/empty", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "", w.Body.String())
 	})
 	t.Run("not found on pass", func(t *testing.T) {
 		w := httptest.NewRecorder()
