@@ -1,6 +1,8 @@
 package imagor
 
-import "io/ioutil"
+import (
+	"io/ioutil"
+)
 
 type File struct {
 	path string

@@ -161,6 +161,35 @@ func main() {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
+	var store *filestore.FileStore
+	if *fileStorageBaseDir != "" {
+		// activate File Storage only if base dir config presents
+		store = filestore.New(
+			*fileStorageBaseDir,
+			filestore.WithPathPrefix(*fileStoragePathPrefix),
+			filestore.WithMkdirPermission(*fileStorageMkdirPermission),
+			filestore.WithWritePermission(*fileStorageWritePermission),
+		)
+		storages = append(storages, store)
+	}
+	if *fileLoaderBaseDir != "" {
+		// activate File Loader only if base dir config presents
+		if store != nil &&
+			*fileStorageBaseDir == *fileLoaderBaseDir &&
+			*fileStoragePathPrefix == *fileLoaderPathPrefix {
+			// reuse store if loader and storage are the same
+			loaders = append(loaders, store)
+		} else {
+			// otherwise, create another loader
+			loaders = append(loaders,
+				filestore.New(
+					*fileLoaderBaseDir,
+					filestore.WithPathPrefix(*fileLoaderPathPrefix),
+				),
+			)
+		}
+	}
+
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
 		// activate AWS Session only if credentials present
 		sess, err := session.NewSession(&aws.Config{
@@ -199,35 +228,6 @@ func main() {
 					),
 				)
 			}
-		}
-	}
-
-	var store *filestore.FileStore
-	if *fileStorageBaseDir != "" {
-		// activate File Storage only if base dir config presents
-		store = filestore.New(
-			*fileStorageBaseDir,
-			filestore.WithPathPrefix(*fileStoragePathPrefix),
-			filestore.WithMkdirPermission(*fileStorageMkdirPermission),
-			filestore.WithWritePermission(*fileStorageWritePermission),
-		)
-		storages = append(storages, store)
-	}
-	if *fileLoaderBaseDir != "" {
-		// activate File Loader only if base dir config presents
-		if store != nil &&
-			*fileStorageBaseDir == *fileLoaderBaseDir &&
-			*fileStoragePathPrefix == *fileLoaderPathPrefix {
-			// reuse store if loader and storage are the same
-			loaders = append(loaders, store)
-		} else {
-			// otherwise, create another loader
-			loaders = append(loaders,
-				filestore.New(
-					*fileLoaderBaseDir,
-					filestore.WithPathPrefix(*fileLoaderPathPrefix),
-				),
-			)
 		}
 	}
 

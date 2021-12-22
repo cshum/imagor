@@ -81,9 +81,7 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 		return
 	}
 	var overlay *vips.ImageRef
-	if overlay, err = v.newThumbnail(
-		file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
-	); err != nil {
+	if overlay, err = v.newImage(file); err != nil {
 		return
 	}
 	defer overlay.Close()
