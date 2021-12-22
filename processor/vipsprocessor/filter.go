@@ -80,16 +80,10 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 	if file, err = load(image); err != nil {
 		return
 	}
-	var overlay *vips.ImageRef
-	if overlay, err = v.newThumbnail(
-		file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
-	); err != nil {
-		return
-	}
-	defer overlay.Close()
 	var x, y, w, h int
 	var repeatX = 1
 	var repeatY = 1
+	var overlay *vips.ImageRef
 
 	// w_ratio h_ratio
 	if ln >= 6 {
@@ -103,12 +97,19 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 			h, _ = strconv.Atoi(args[5])
 			h = img.Height() * h / 100
 		}
-		if w < overlay.Width() || h < overlay.Height() {
-			if err = overlay.Thumbnail(w, h, vips.InterestingNone); err != nil {
-				return
-			}
+		if overlay, err = v.newThumbnail(
+			file, w, h, vips.InterestingNone, vips.SizeDown,
+		); err != nil {
+			return
+		}
+	} else {
+		if overlay, err = v.newThumbnail(
+			file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+		); err != nil {
+			return
 		}
 	}
+	defer overlay.Close()
 	w = overlay.Width()
 	h = overlay.Height()
 	// alpha
