@@ -22,22 +22,22 @@ func jsonStr(v interface{}) string {
 	return string(buf)
 }
 
-type loaderFunc func(r *http.Request, image string) (buf []byte, err error)
+type loaderFunc func(r *http.Request, image string) (file *File, err error)
 
-func (f loaderFunc) Load(r *http.Request, image string) ([]byte, error) {
+func (f loaderFunc) Load(r *http.Request, image string) (*File, error) {
 	return f(r, image)
 }
 
-type storageFunc func(ctx context.Context, image string, buf []byte) error
+type storageFunc func(ctx context.Context, image string, file *File) error
 
-func (f storageFunc) Save(ctx context.Context, image string, buf []byte) error {
-	return f(ctx, image, buf)
+func (f storageFunc) Save(ctx context.Context, image string, file *File) error {
+	return f(ctx, image, file)
 }
 
-type processorFunc func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error)
+type processorFunc func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error)
 
-func (f processorFunc) Process(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
-	return f(ctx, buf, p, load)
+func (f processorFunc) Process(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error) {
+	return f(ctx, file, p, load)
 }
 func (f processorFunc) Startup(_ context.Context) error {
 	return nil
@@ -133,12 +133,12 @@ func TestParams(t *testing.T) {
 }
 
 type mapStore struct {
-	Map     map[string][]byte
+	Map     map[string]*File
 	LoadCnt map[string]int
 	SaveCnt map[string]int
 }
 
-func (s *mapStore) Load(r *http.Request, image string) ([]byte, error) {
+func (s *mapStore) Load(r *http.Request, image string) (*File, error) {
 	buf, ok := s.Map[image]
 	if !ok {
 		return nil, ErrNotFound
@@ -146,15 +146,15 @@ func (s *mapStore) Load(r *http.Request, image string) ([]byte, error) {
 	s.LoadCnt[image] = s.LoadCnt[image] + 1
 	return buf, nil
 }
-func (s *mapStore) Save(ctx context.Context, image string, buf []byte) error {
-	s.Map[image] = buf
+func (s *mapStore) Save(ctx context.Context, image string, file *File) error {
+	s.Map[image] = file
 	s.SaveCnt[image] = s.SaveCnt[image] + 1
 	return nil
 }
 
 func TestWithLoadersStoragesProcessors(t *testing.T) {
 	store := &mapStore{
-		Map: map[string][]byte{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
+		Map: map[string]*File{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
 	}
 	fakeMeta := &Meta{Format: "a", ContentType: "b", Width: 167, Height: 167}
 	fakeMetaBuf, _ := json.Marshal(fakeMeta)
@@ -163,61 +163,66 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithDebug(true),
 		WithLoaders(
 			store,
-			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
+			loaderFunc(func(r *http.Request, image string) (*File, error) {
 				if image == "foo" {
-					return []byte("bar"), nil
+					return NewFileBytes([]byte("bar")), nil
 				}
 				if image == "bar" {
-					return []byte("foo"), nil
+					return NewFileBytes([]byte("foo")), nil
 				}
 				if image == "ping" {
-					return []byte("pong"), nil
+					return NewFileBytes([]byte("pong")), nil
 				}
 				return nil, ErrPass
 			}),
-			loaderFunc(func(r *http.Request, image string) ([]byte, error) {
+			loaderFunc(func(r *http.Request, image string) (*File, error) {
 				if image == "beep" {
-					return []byte("boop"), nil
+					return NewFileBytes([]byte("boop")), nil
 				}
 				if image == "boom" {
 					return nil, errors.New("unexpected error")
 				}
 				if image == "poop" {
-					return []byte("poop"), nil
+					return NewFileBytes([]byte("poop")), nil
 				}
 				return nil, ErrPass
 			}),
 		),
 		WithStorages(
 			store,
-			storageFunc(func(ctx context.Context, image string, buf []byte) error {
+			storageFunc(func(ctx context.Context, image string, buf *File) error {
 				time.Sleep(time.Millisecond * 2)
 				assert.Error(t, context.DeadlineExceeded, ctx.Err())
 				return ctx.Err()
 			}),
 		),
 		WithProcessors(
-			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
+			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error) {
+				buf, _ := file.Bytes()
 				if string(buf) == "bar" {
-					return []byte("tar"), nil, ErrPass
+					return NewFileBytes([]byte("tar")), nil, ErrPass
 				}
 				if string(buf) == "poop" {
 					return nil, nil, ErrPass
 				}
 				if string(buf) == "foo" {
-					buf, err := load("foo")
-					return buf, nil, err
+					file, err := load("foo")
+					if err != nil {
+						return nil, nil, err
+					}
+					return file, nil, err
 				}
-				return buf, nil, nil
+				return file, nil, nil
 			}),
-			processorFunc(func(ctx context.Context, buf []byte, p imagorpath.Params, load LoadFunc) ([]byte, *Meta, error) {
+			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error) {
+				buf, _ := file.Bytes()
 				if string(buf) == "tar" {
-					return []byte("bark"), fakeMeta, nil
+					return NewFileBytes([]byte("bark")), fakeMeta, nil
 				}
 				if string(buf) == "poop" {
 					return nil, nil, ErrUnsupportedFormat
 				}
-				return buf, nil, nil
+				return file, nil, nil
 			}),
 		),
 		WithSaveTimeout(time.Millisecond),
@@ -294,7 +299,7 @@ func TestWithLoadTimeout(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	loader := loaderFunc(func(r *http.Request, image string) (buf []byte, err error) {
+	loader := loaderFunc(func(r *http.Request, image string) (file *File, err error) {
 		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
 		if err != nil {
 			return nil, err
@@ -303,7 +308,11 @@ func TestWithLoadTimeout(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return io.ReadAll(resp.Body)
+		buf, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		return NewFileBytes(buf), err
 	})
 
 	tests := []struct {
@@ -367,11 +376,11 @@ func TestSuppression(t *testing.T) {
 	app := New(
 		WithDebug(true),
 		WithLoaders(
-			loaderFunc(func(r *http.Request, image string) (buf []byte, err error) {
+			loaderFunc(func(r *http.Request, image string) (*File, error) {
 				randBytes := make([]byte, 100)
 				rand.Read(randBytes)
 				time.Sleep(time.Millisecond * 100)
-				return randBytes, nil
+				return NewFileBytes(randBytes), nil
 			}),
 		),
 		WithUnsafe(true),
