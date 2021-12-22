@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 	"runtime"
 	"strconv"
-	"strings"
 )
 
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
@@ -154,12 +153,12 @@ func (v *VipsProcessor) Process(
 	ctx context.Context, file *imagor.File, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.File, *imagor.Meta, error) {
 	var (
-		upscale        = false
-		isThumbnail    = false
-		hasSpecialFill = false
-		stretch        = p.Stretch
-		img            *vips.ImageRef
-		err            error
+		upscale     = false
+		isThumbnail = false
+		hasSpecial  = false
+		stretch     = p.Stretch
+		img         *vips.ImageRef
+		err         error
 	)
 	for _, p := range p.Filters {
 		switch p.Name {
@@ -172,15 +171,14 @@ func (v *VipsProcessor) Process(
 		case "no_upscale":
 			upscale = false
 			break
-		case "fill":
-			colour := strings.ToLower(strings.Split(p.Args, ",")[0])
-			if colour == "blur" && !v.DisableBlur {
-				hasSpecialFill = true
-			}
+		case "trim":
+			// todo fix trim with shrink on load
+			hasSpecial = true
 			break
 		}
+
 	}
-	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecialFill {
+	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecial {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
