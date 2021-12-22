@@ -77,6 +77,10 @@ func main() {
 			"VIPS max cache size")
 		vipsMaxCacheMem = fs.Int("vips-max-cache-mem", 0,
 			"VIPS max cache mem")
+		vipsMaxWidth = fs.Int("vips-max-width", 0,
+			"VIPS max image width")
+		vipsMaxHeight = fs.Int("vips-max-height", 0,
+			"VIPS max image height")
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
@@ -257,6 +261,8 @@ func main() {
 					vipsprocessor.WithMaxCacheMem(*vipsMaxCacheMem),
 					vipsprocessor.WithMaxCacheSize(*vipsMaxCacheSize),
 					vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
+					vipsprocessor.WithMaxWidth(*vipsMaxWidth),
+					vipsprocessor.WithMaxHeight(*vipsMaxHeight),
 					vipsprocessor.WithLogger(logger),
 					vipsprocessor.WithDebug(*debug),
 				),

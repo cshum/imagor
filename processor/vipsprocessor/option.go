@@ -86,3 +86,19 @@ func WithDebug(debug bool) Option {
 		v.Debug = debug
 	}
 }
+
+func WithMaxWidth(width int) Option {
+	return func(v *VipsProcessor) {
+		if width > 0 {
+			v.MaxWidth = width
+		}
+	}
+}
+
+func WithMaxHeight(height int) Option {
+	return func(v *VipsProcessor) {
+		if height > 0 {
+			v.MaxHeight = height
+		}
+	}
+}

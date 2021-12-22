@@ -1,11 +1,11 @@
 build:
-	go build -o bin/imagor ./cmd/imagor/main.go
+	CGO_CFLAGS_ALLOW=.* CGO_LDFLAGS_ALLOW=.* go build -o bin/imagor ./cmd/imagor/main.go
 
 dev: build
 	./bin/imagor -debug -imagor-unsafe
 
 test:
-	go test -cover ./...
+	CGO_CFLAGS_ALLOW=.* CGO_LDFLAGS_ALLOW=.* go test -cover ./...
 
 docker-dev-build:
 	docker build --build-arg IMAGOR_VERSION=dev -t shumc/imagor:dev .

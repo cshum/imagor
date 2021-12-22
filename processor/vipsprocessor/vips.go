@@ -34,32 +34,36 @@ type VipsProcessor struct {
 	MaxCacheFiles  int
 	MaxCacheMem    int
 	MaxCacheSize   int
+	MaxWidth       int
+	MaxHeight      int
 	Debug          bool
 }
 
 func New(options ...Option) *VipsProcessor {
 	v := &VipsProcessor{
-		Filters: FilterMap{
-			"watermark":        watermark,
-			"round_corner":     roundCorner,
-			"rotate":           rotate,
-			"grayscale":        grayscale,
-			"brightness":       brightness,
-			"background_color": backgroundColor,
-			"contrast":         contrast,
-			"modulate":         modulate,
-			"hue":              hue,
-			"saturation":       saturation,
-			"rgb":              rgb,
-			"blur":             blur,
-			"sharpen":          sharpen,
-			"strip_icc":        stripIcc,
-			"strip_exif":       stripExif,
-			"trim":             trimFilter,
-		},
+		MaxWidth:     9999,
+		MaxHeight:    9999,
 		MaxFilterOps: 10,
 		Concurrency:  1,
 		Logger:       zap.NewNop(),
+	}
+	v.Filters = FilterMap{
+		"watermark":        v.watermark,
+		"round_corner":     roundCorner,
+		"rotate":           rotate,
+		"grayscale":        grayscale,
+		"brightness":       brightness,
+		"background_color": backgroundColor,
+		"contrast":         contrast,
+		"modulate":         modulate,
+		"hue":              hue,
+		"saturation":       saturation,
+		"rgb":              rgb,
+		"blur":             blur,
+		"sharpen":          sharpen,
+		"strip_icc":        stripIcc,
+		"strip_exif":       stripExif,
+		"trim":             trimFilter,
 	}
 	for _, option := range options {
 		option(v)
@@ -116,9 +120,25 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 	return nil
 }
 
+func (v *VipsProcessor) newThumbnail(
+	file *imagor.File, width, height int, crop vips.Interesting, size vips.Size,
+) (*vips.ImageRef, error) {
+	if imagor.IsFileEmpty(file) {
+		return nil, imagor.ErrNotFound
+	}
+	if file.IsPath() {
+		return vips.NewThumbnailWithSizeFromFile(file.Path(), width, height, crop, size)
+	}
+	buf, err := file.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size)
+}
+
 func (v *VipsProcessor) Process(
-	ctx context.Context, buf []byte, p imagorpath.Params, load imagor.LoadFunc,
-) ([]byte, *imagor.Meta, error) {
+	ctx context.Context, file *imagor.File, p imagorpath.Params, load imagor.LoadFunc,
+) (*imagor.File, *imagor.Meta, error) {
 	var (
 		upscale        = false
 		isThumbnail    = false
@@ -162,8 +182,8 @@ func (v *VipsProcessor) Process(
 				if upscale {
 					size = vips.SizeBoth
 				}
-				if img, err = vips.NewThumbnailWithSizeFromBuffer(
-					buf, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size,
+				if img, err = v.newThumbnail(
+					file, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size,
 				); err != nil {
 					if err == vips.ErrUnsupportedImageFormat {
 						err = imagor.ErrUnsupportedFormat
@@ -174,8 +194,8 @@ func (v *VipsProcessor) Process(
 			}
 		} else if stretch {
 			if p.Width > 0 && p.Height > 0 {
-				if img, err = vips.NewThumbnailWithSizeFromBuffer(
-					buf, p.Width, p.Height, vips.InterestingNone, vips.SizeForce,
+				if img, err = v.newThumbnail(
+					file, p.Width, p.Height, vips.InterestingNone, vips.SizeForce,
 				); err != nil {
 					if err == vips.ErrUnsupportedImageFormat {
 						err = imagor.ErrUnsupportedFormat
@@ -201,8 +221,8 @@ func (v *VipsProcessor) Process(
 					isThumbnail = true
 				}
 				if isThumbnail {
-					if img, err = vips.NewThumbnailFromBuffer(
-						buf, p.Width, p.Height, interest,
+					if img, err = v.newThumbnail(
+						file, p.Width, p.Height, interest, vips.SizeBoth,
 					); err != nil {
 						if err == vips.ErrUnsupportedImageFormat {
 							err = imagor.ErrUnsupportedFormat
@@ -214,7 +234,9 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if !isThumbnail {
-		if img, err = vips.NewImageFromBuffer(buf); err != nil {
+		if img, err = v.newThumbnail(
+			file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+		); err != nil {
 			if err == vips.ErrUnsupportedImageFormat {
 				err = imagor.ErrUnsupportedFormat
 			}
@@ -248,7 +270,7 @@ func (v *VipsProcessor) Process(
 	if err != nil {
 		return nil, nil, err
 	}
-	return buf, getMeta(meta), nil
+	return imagor.NewFileBytes(buf), getMeta(meta), nil
 }
 
 func getMeta(meta *vips.ImageMetadata) *imagor.Meta {

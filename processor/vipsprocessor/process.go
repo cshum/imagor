@@ -116,69 +116,6 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
-func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, args ...string) (err error) {
-	var colour string
-	var ln = len(args)
-	if ln > 0 {
-		colour = strings.ToLower(args[0])
-	}
-	c := getColor(img, colour)
-	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
-		if img.HasAlpha() {
-			if err = img.Flatten(getColor(img, colour)); err != nil {
-				return
-			}
-		}
-		left := (w - img.Width()) / 2
-		top := (h - img.Height()) / 2
-		if isBlack(c) {
-			if err = img.Embed(left, top, w, h, vips.ExtendBlack); err != nil {
-				return
-			}
-		} else if isWhite(c) {
-			if err = img.Embed(left, top, w, h, vips.ExtendWhite); err != nil {
-				return
-			}
-		} else {
-			if err = img.EmbedBackground(left, top, w, h, c); err != nil {
-				return
-			}
-		}
-	} else {
-		var cp *vips.ImageRef
-		if cp, err = img.Copy(); err != nil {
-			return
-		}
-		defer cp.Close()
-		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.Height() {
-			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
-				return
-			}
-		}
-		if err = img.ThumbnailWithSize(
-			w, h, vips.InterestingNone, vips.SizeForce,
-		); err != nil {
-			return
-		}
-		if colour == "blur" && !v.DisableBlur {
-			if err = img.GaussianBlur(50); err != nil {
-				return
-			}
-		} else {
-			if err = img.DrawRect(vips.ColorRGBA{
-				R: c.R, G: c.G, B: c.B, A: 255,
-			}, 0, 0, w, h, true); err != nil {
-				return
-			}
-		}
-		if err = img.Composite(
-			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.Height())/2); err != nil {
-			return
-		}
-	}
-	return
-}
-
 func trim(img *vips.ImageRef, pos string, tolerance int) error {
 	var x, y int
 	if pos == imagorpath.TrimByBottomRight {

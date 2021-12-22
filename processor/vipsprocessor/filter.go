@@ -10,7 +10,64 @@ import (
 	"strings"
 )
 
-func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
+func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, args ...string) (err error) {
+	var colour string
+	var ln = len(args)
+	if ln > 0 {
+		colour = strings.ToLower(args[0])
+	}
+	c := getColor(img, colour)
+	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
+		// fill color
+		if img.HasAlpha() {
+			if err = img.Flatten(getColor(img, colour)); err != nil {
+				return
+			}
+		}
+		left := (w - img.Width()) / 2
+		top := (h - img.Height()) / 2
+		if isBlack(c) {
+			if err = img.Embed(left, top, w, h, vips.ExtendBlack); err != nil {
+				return
+			}
+		} else if isWhite(c) {
+			if err = img.Embed(left, top, w, h, vips.ExtendWhite); err != nil {
+				return
+			}
+		} else {
+			if err = img.EmbedBackground(left, top, w, h, c); err != nil {
+				return
+			}
+		}
+	} else {
+		// fill blur
+		var cp *vips.ImageRef
+		if cp, err = img.Copy(); err != nil {
+			return
+		}
+		defer cp.Close()
+		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.Height() {
+			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
+				return
+			}
+		}
+		if err = img.ThumbnailWithSize(
+			w, h, vips.InterestingNone, vips.SizeForce,
+		); err != nil {
+			return
+		}
+		if err = img.GaussianBlur(50); err != nil {
+			return
+		}
+		if err = img.Composite(
+			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.Height())/2); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -19,12 +76,14 @@ func watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err er
 	if unescape, e := url.QueryUnescape(args[0]); e == nil {
 		image = unescape
 	}
-	var buf []byte
-	if buf, err = load(image); err != nil {
+	var file *imagor.File
+	if file, err = load(image); err != nil {
 		return
 	}
 	var overlay *vips.ImageRef
-	if overlay, err = vips.NewImageFromBuffer(buf); err != nil {
+	if overlay, err = v.newThumbnail(
+		file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+	); err != nil {
 		return
 	}
 	defer overlay.Close()
@@ -147,13 +206,13 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 	var rounded *vips.ImageRef
 	var w = img.Width()
 	var h = img.Height()
-	if rounded, err = vips.NewImageFromBuffer([]byte(fmt.Sprintf(`
+	if rounded, err = vips.NewThumbnailFromBuffer([]byte(fmt.Sprintf(`
 		<svg viewBox="0 0 %d %d">
 			<rect rx="%d" ry="%d" 
 			 x="0" y="0" width="%d" height="%d" 
 			 fill="#fff"/>
 		</svg>
-	`, w, h, rx, ry, w, h))); err != nil {
+	`, w, h, rx, ry, w, h)), w, h, vips.InterestingNone); err != nil {
 		return
 	}
 	defer rounded.Close()
