@@ -47,7 +47,9 @@ func main() {
 		imagorLoadTimeout = fs.Duration("imagor-load-timeout",
 			time.Second*20, "Timeout for Imagor Loader request, should be smaller than imagor-request-timeout")
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout",
-			time.Minute, "Timeout for saving image for storage")
+			time.Second*20, "Timeout for saving image to Imagor Storage")
+		imagorProcessTimeout = fs.Duration("imagor-process-timeout",
+			time.Second*20, "Timeout for image processing")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
 			time.Hour*24, "Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache")
 		imagorVersion = fs.Bool("imagor-version", false, "Imagor version")
@@ -274,6 +276,7 @@ func main() {
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithLoadTimeout(*imagorLoadTimeout),
 			imagor.WithSaveTimeout(*imagorSaveTimeout),
+			imagor.WithProcessTimeout(*imagorProcessTimeout),
 			imagor.WithCacheHeaderTTL(*imagorCacheHeaderTTL),
 			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),

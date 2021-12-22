@@ -261,12 +261,15 @@ Usage of imagor:
         Imagor version
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
-  -imagor-request-timeout duration
-        Timeout for performing imagor request (default 30s)
   -imagor-load-timeout duration
         Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
+  -imagor-process-timeout duration
+        Timeout for image processing (default 20s)
+  -imagor-request-timeout duration
+        Timeout for performing Imagor request (default 30s)
   -imagor-save-timeout duration
-        Timeout for saving image for storage (default 1m0s)
+        Timeout for saving image to Imagor Storage (default 20s)
+
 
   -server-address string
         Server address

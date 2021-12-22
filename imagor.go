@@ -18,14 +18,6 @@ import (
 
 type LoadFunc func(string) (*File, error)
 
-type Meta struct {
-	Format      string `json:"format"`
-	ContentType string `json:"content_type"`
-	Width       int    `json:"width"`
-	Height      int    `json:"height"`
-	Orientation int    `json:"orientation"`
-}
-
 // Loader Load image from image source
 type Loader interface {
 	Load(r *http.Request, image string) (*File, error)
@@ -45,7 +37,7 @@ type Store interface {
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error)
+	Process(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -60,6 +52,7 @@ type Imagor struct {
 	RequestTimeout time.Duration
 	LoadTimeout    time.Duration
 	SaveTimeout    time.Duration
+	ProcessTimeout time.Duration
 	CacheHeaderTTL time.Duration
 	Logger         *zap.Logger
 	Debug          bool
@@ -75,6 +68,7 @@ func New(options ...Option) *Imagor {
 		RequestTimeout: time.Second * 30,
 		LoadTimeout:    time.Second * 20,
 		SaveTimeout:    time.Second * 20,
+		ProcessTimeout: time.Second * 20,
 		CacheHeaderTTL: time.Hour * 24,
 	}
 	for _, option := range options {
@@ -120,22 +114,22 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		resJSONIndent(w, p)
 		return
 	}
-	file, meta, err := app.Do(r, p)
+	file, err := app.Do(r, p)
 	var buf []byte
 	var ln int
 	if !IsFileEmpty(file) {
 		buf, _ = file.Bytes()
 		ln = len(buf)
-	}
-	if meta != nil {
-		if p.Meta {
-			resJSON(w, meta)
-			return
-		} else {
-			w.Header().Set("Content-Type", meta.ContentType)
+		if file.Meta != nil {
+			if p.Meta {
+				resJSON(w, file.Meta)
+				return
+			} else {
+				w.Header().Set("Content-Type", file.Meta.ContentType)
+			}
+		} else if ln > 0 {
+			w.Header().Set("Content-Type", http.DetectContentType(buf))
 		}
-	} else if ln > 0 {
-		w.Header().Set("Content-Type", http.DetectContentType(buf))
 	}
 	if err != nil {
 		if e, ok := WrapError(err).(Error); ok {
@@ -162,7 +156,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, meta *Meta, err error) {
+func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if app.RequestTimeout > 0 {
@@ -187,32 +181,39 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, meta *M
 	if IsFileEmpty(file) {
 		return
 	}
-	for _, processor := range app.Processors {
-		f, m, e := processor.Process(ctx, file, p, load)
-		if e == nil {
-			file = f
-			meta = m
-			err = nil
-			if app.Debug {
-				app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", meta))
-			}
-			break
-		} else {
-			if e == ErrPass {
-				if !IsFileEmpty(f) {
-					// pass to next processor
-					file = f
-				}
+	return app.suppress(p.Path, func() (*File, error) {
+		var cancel func()
+		ctx := context.Background()
+		if app.ProcessTimeout > 0 {
+			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
+			defer cancel()
+		}
+		for _, processor := range app.Processors {
+			f, e := processor.Process(ctx, file, p, load)
+			if e == nil {
+				file = f
+				err = nil
 				if app.Debug {
-					app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
+					app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", f.Meta))
 				}
+				break
 			} else {
-				err = e
-				app.Logger.Warn("process", zap.Any("params", p), zap.Error(e))
+				if e == ErrPass {
+					if !IsFileEmpty(f) {
+						// pass to next processor
+						file = f
+					}
+					if app.Debug {
+						app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
+					}
+				} else {
+					err = e
+					app.Logger.Warn("process", zap.Any("params", p), zap.Error(e))
+				}
 			}
 		}
-	}
-	return
+		return file, err
+	})
 }
 
 func (app *Imagor) load(r *http.Request, image string) (*File, error) {
@@ -266,16 +267,6 @@ func (app *Imagor) load(r *http.Request, image string) (*File, error) {
 	})
 }
 
-func (app *Imagor) suppress(key string, fn func() (*File, error)) (file *File, err error) {
-	v, err, _ := app.g.Do(key, func() (interface{}, error) {
-		return fn()
-	})
-	if v != nil {
-		return v.(*File), err
-	}
-	return nil, err
-}
-
 func (app *Imagor) save(
 	ctx context.Context, from Storage, storages []Storage, image string, file *File,
 ) {
@@ -305,6 +296,16 @@ func (app *Imagor) save(
 	}
 	wg.Wait()
 	return
+}
+
+func (app *Imagor) suppress(key string, fn func() (*File, error)) (file *File, err error) {
+	v, err, _ := app.g.Do(key, func() (interface{}, error) {
+		return fn()
+	})
+	if v != nil {
+		return v.(*File), err
+	}
+	return nil, err
 }
 
 func (app *Imagor) debugLog() {

@@ -67,6 +67,14 @@ func WithSaveTimeout(timeout time.Duration) Option {
 	}
 }
 
+func WithProcessTimeout(timeout time.Duration) Option {
+	return func(o *Imagor) {
+		if timeout > 0 {
+			o.ProcessTimeout = timeout
+		}
+	}
+}
+
 func WithUnsafe(unsafe bool) Option {
 	return func(o *Imagor) {
 		o.Unsafe = unsafe

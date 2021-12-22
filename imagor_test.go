@@ -34,9 +34,9 @@ func (f storageFunc) Save(ctx context.Context, image string, file *File) error {
 	return f(ctx, image, file)
 }
 
-type processorFunc func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error)
+type processorFunc func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error)
 
-func (f processorFunc) Process(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error) {
+func (f processorFunc) Process(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
 	return f(ctx, file, p, load)
 }
 func (f processorFunc) Startup(_ context.Context) error {
@@ -200,32 +200,32 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 		),
 		WithProcessors(
-			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error) {
+			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
 				buf, _ := file.Bytes()
 				if string(buf) == "bar" {
-					return NewFileBytes([]byte("tar")), nil, ErrPass
+					return NewFileBytes([]byte("tar")), ErrPass
 				}
 				if string(buf) == "poop" {
-					return nil, nil, ErrPass
+					return nil, ErrPass
 				}
 				if string(buf) == "foo" {
 					file, err := load("foo")
 					if err != nil {
-						return nil, nil, err
+						return nil, err
 					}
-					return file, nil, err
+					return file, err
 				}
-				return file, nil, nil
+				return file, nil
 			}),
-			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, *Meta, error) {
+			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
 				buf, _ := file.Bytes()
 				if string(buf) == "tar" {
-					return NewFileBytes([]byte("bark")), fakeMeta, nil
+					return NewFileBytesWithMeta([]byte("bark"), fakeMeta), nil
 				}
 				if string(buf) == "poop" {
-					return nil, nil, ErrUnsupportedFormat
+					return nil, ErrUnsupportedFormat
 				}
-				return file, nil, nil
+				return file, nil
 			}),
 		),
 		WithSaveTimeout(time.Millisecond),
