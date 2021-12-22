@@ -132,7 +132,11 @@ func (v *VipsProcessor) newThumbnail(
 	if err != nil {
 		return nil, err
 	}
-	return vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size)
+	img, err := vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size)
+	if err == vips.ErrUnsupportedImageFormat {
+		err = imagor.ErrUnsupportedFormat
+	}
+	return img, err
 }
 
 func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
@@ -146,7 +150,11 @@ func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
 	if err != nil {
 		return nil, err
 	}
-	return vips.NewImageFromBuffer(buf)
+	img, err := vips.NewImageFromBuffer(buf)
+	if err == vips.ErrUnsupportedImageFormat {
+		err = imagor.ErrUnsupportedFormat
+	}
+	return img, err
 }
 
 func (v *VipsProcessor) Process(
@@ -160,6 +168,9 @@ func (v *VipsProcessor) Process(
 		img         *vips.ImageRef
 		err         error
 	)
+	if p.Trim {
+		hasSpecial = true
+	}
 	for _, p := range p.Filters {
 		switch p.Name {
 		case "stretch":
@@ -178,7 +189,6 @@ func (v *VipsProcessor) Process(
 			hasSpecial = true
 			break
 		}
-
 	}
 	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecial {
 		// apply shrink-on-load where possible
@@ -199,9 +209,6 @@ func (v *VipsProcessor) Process(
 				if img, err = v.newThumbnail(
 					file, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size,
 				); err != nil {
-					if err == vips.ErrUnsupportedImageFormat {
-						err = imagor.ErrUnsupportedFormat
-					}
 					return nil, nil, err
 				}
 				isThumbnail = true
@@ -211,9 +218,6 @@ func (v *VipsProcessor) Process(
 				if img, err = v.newThumbnail(
 					file, p.Width, p.Height, vips.InterestingNone, vips.SizeForce,
 				); err != nil {
-					if err == vips.ErrUnsupportedImageFormat {
-						err = imagor.ErrUnsupportedFormat
-					}
 					return nil, nil, err
 				}
 				isThumbnail = true
@@ -238,9 +242,6 @@ func (v *VipsProcessor) Process(
 					if img, err = v.newThumbnail(
 						file, p.Width, p.Height, interest, vips.SizeBoth,
 					); err != nil {
-						if err == vips.ErrUnsupportedImageFormat {
-							err = imagor.ErrUnsupportedFormat
-						}
 						return nil, nil, err
 					}
 				}
@@ -248,11 +249,17 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if !isThumbnail {
-		if img, err = v.newImage(file); err != nil {
-			if err == vips.ErrUnsupportedImageFormat {
-				err = imagor.ErrUnsupportedFormat
+		if hasSpecial {
+			// special ops does not support create by thumbnail
+			if img, err = v.newImage(file); err != nil {
+				return nil, nil, err
 			}
-			return nil, nil, err
+		} else {
+			if img, err = v.newThumbnail(
+				file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+			); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 	defer img.Close()
