@@ -171,8 +171,10 @@ func (v *VipsProcessor) Process(
 		case "no_upscale":
 			upscale = false
 			break
+		case "rotate":
+			hasSpecial = true
+			break
 		case "trim":
-			// todo fix trim with shrink on load
 			hasSpecial = true
 			break
 		}
