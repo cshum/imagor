@@ -333,12 +333,14 @@ Usage of imagor:
   -s3-storage-acl string
         Upload ACL for S3 Storage (default "public-read")
 
-  -vips-concurrency-level int
-        VIPS concurrency level. Set -1 to be the number of CPU cores (default 1)
+  -vips-concurrency int
+        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string
         VIPS disable filters by csv e.g. blur,watermark,rgb
+  -vips-load-from-file
+        VIPS to load from file when file loader is used. By default load from buffer, which is faster but consumes more memory
   -vips-max-cache-files int
         VIPS max cache files
   -vips-max-cache-mem int
@@ -351,6 +353,4 @@ Usage of imagor:
         VIPS max image height
   -vips-max-width int
         VIPS max image width
-  -vips-use-buffer
-        VIPS always create images from buffer
 ```

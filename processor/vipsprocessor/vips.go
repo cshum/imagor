@@ -25,7 +25,7 @@ func (m FilterMap) MarshalJSON() ([]byte, error) {
 
 type VipsProcessor struct {
 	Filters        FilterMap
-	UseBuffer      bool
+	LoadFromFile   bool
 	DisableBlur    bool
 	DisableFilters []string
 	MaxFilterOps   int
@@ -126,7 +126,7 @@ func (v *VipsProcessor) newThumbnail(
 	if imagor.IsFileEmpty(file) {
 		return nil, imagor.ErrNotFound
 	}
-	if file.HasPath() && !v.UseBuffer {
+	if file.HasPath() && v.LoadFromFile {
 		return vips.NewThumbnailWithSizeFromFile(file.Path(), width, height, crop, size)
 	}
 	buf, err := file.Bytes()
@@ -144,7 +144,7 @@ func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
 	if imagor.IsFileEmpty(file) {
 		return nil, imagor.ErrNotFound
 	}
-	if file.HasPath() && !v.UseBuffer {
+	if file.HasPath() && v.LoadFromFile {
 		return vips.NewImageFromFile(file.Path())
 	}
 	buf, err := file.Bytes()

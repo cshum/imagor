@@ -13,9 +13,9 @@ func WithFilter(name string, filter FilterFunc) Option {
 	}
 }
 
-func WithUseBuffer(enabled bool) Option {
+func WithLoadFromFile(enabled bool) Option {
 	return func(v *VipsProcessor) {
-		v.UseBuffer = enabled
+		v.LoadFromFile = enabled
 	}
 }
 
