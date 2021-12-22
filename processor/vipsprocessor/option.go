@@ -13,6 +13,12 @@ func WithFilter(name string, filter FilterFunc) Option {
 	}
 }
 
+func WithUseBuffer(enabled bool) Option {
+	return func(v *VipsProcessor) {
+		v.UseBuffer = enabled
+	}
+}
+
 func WithDisableBlur(disabled bool) Option {
 	return func(v *VipsProcessor) {
 		v.DisableBlur = disabled

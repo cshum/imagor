@@ -21,7 +21,7 @@ func (f *File) IsEmpty() bool {
 	return f.path == "" && len(f.buf) == 0
 }
 
-func (f *File) IsPath() bool {
+func (f *File) HasPath() bool {
 	return f.path != ""
 }
 

@@ -347,4 +347,10 @@ Usage of imagor:
         VIPS max cache size
   -vips-max-filter-ops int
         VIPS maximum number of filter operations allowed (default 10)
+  -vips-max-height int
+        VIPS max image height
+  -vips-max-width int
+        VIPS max image width
+  -vips-use-buffer
+        VIPS always create images from buffer
 ```

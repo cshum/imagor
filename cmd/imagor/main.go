@@ -77,6 +77,8 @@ func main() {
 			"VIPS max cache size")
 		vipsMaxCacheMem = fs.Int("vips-max-cache-mem", 0,
 			"VIPS max cache mem")
+		vipsUseBuffer = fs.Bool("vips-use-buffer", false,
+			"VIPS always create images from buffer")
 		vipsMaxWidth = fs.Int("vips-max-width", 0,
 			"VIPS max image width")
 		vipsMaxHeight = fs.Int("vips-max-height", 0,
@@ -256,6 +258,7 @@ func main() {
 				vipsprocessor.New(
 					vipsprocessor.WithDisableBlur(*vipsDisableBlur),
 					vipsprocessor.WithDisableFilters(*vipsDisableFilters),
+					vipsprocessor.WithUseBuffer(*vipsUseBuffer),
 					vipsprocessor.WithConcurrency(*vipsConcurrency),
 					vipsprocessor.WithMaxCacheFiles(*vipsMaxCacheFiles),
 					vipsprocessor.WithMaxCacheMem(*vipsMaxCacheMem),
