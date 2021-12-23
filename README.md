@@ -42,8 +42,12 @@ services:
     environment:
       PORT: 8000
       IMAGOR_UNSAFE: 1 # unsafe URL for testing
+      
       FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
       FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
+      
+      FILE_RESULT_LOADER_BASE_DIR: /mnt/data/result # enable file result loader by specifying base dir
+      FILE_RESULT_STORAGE_BASE_DIR: /mnt/data/result # enable file result storage by specifying base dir
     ports:
       - "8000:8000"
 ```
@@ -61,10 +65,16 @@ services:
       AWS_ACCESS_KEY_ID: ...
       AWS_SECRET_ACCESS_KEY: ...
       AWS_REGION: ...
+      
       S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying loader bucket
       S3_LOADER_BASE_DIR: images # optional
       S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying storage bucket
       S3_STORAGE_BASE_DIR: images # optional
+      
+      S3_RESULT_LOADER_BUCKET: mybucket # enable S3 result loader by specifying loader bucket
+      S3_RESULT_LOADER_BASE_DIR: images/result # optional
+      S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result loader by specifying loader bucket
+      S3_RESULT_STORAGE_BASE_DIR: images/result # optional
     ports:
       - "8000:8000"
 ```
