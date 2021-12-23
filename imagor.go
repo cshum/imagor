@@ -174,12 +174,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 		return
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
-	if file, err = app.load(r, p.Image); err != nil {
+	if file, err = app.loadStore(r, p.Image); err != nil {
 		app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 		return
 	}
 	load := func(image string) (*File, error) {
-		return app.load(r, image)
+		return app.loadStore(r, image)
 	}
 	if IsFileEmpty(file) {
 		return
@@ -222,7 +222,21 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 	})
 }
 
-func (app *Imagor) load(r *http.Request, key string) (*File, error) {
+func (app *Imagor) loadStore(r *http.Request, key string) (*File, error) {
+	return app.suppress(key, func() (file *File, err error) {
+		var origin Store
+		file, origin, err = app.load(r, app.Loaders, key)
+		if IsFileEmpty(file) {
+			return
+		}
+		if len(app.Storages) > 0 {
+			app.save(r.Context(), origin, app.Storages, key, file)
+		}
+		return
+	})
+}
+
+func (app *Imagor) load(r *http.Request, loaders []Loader, key string) (file *File, origin Store, err error) {
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
@@ -232,45 +246,36 @@ func (app *Imagor) load(r *http.Request, key string) (*File, error) {
 		defer cancel()
 		loadReq = r.WithContext(loadCtx)
 	}
-	return app.suppress(key, func() (file *File, err error) {
-		var origin Store
-		for _, loader := range app.Loaders {
-			f, e := loader.Load(loadReq, key)
-			if !IsFileEmpty(f) {
-				file = f
-			}
-			if e == nil {
-				err = nil
-				origin, _ = loader.(Store)
-				break
-			}
-			// should not log expected error as of now, as it has not reached the end
-			if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-				app.Logger.Warn("load", zap.String("key", key), zap.Error(e))
-			} else if app.Debug {
-				app.Logger.Debug("load", zap.String("key", key), zap.Error(e))
-			}
-			err = e
+	for _, loader := range loaders {
+		f, e := loader.Load(loadReq, key)
+		if !IsFileEmpty(f) {
+			file = f
 		}
-		if err == nil {
-			if app.Debug {
-				app.Logger.Debug("loaded", zap.String("key", key))
-			}
-			if IsFileEmpty(file) {
-				return
-			}
-			if len(app.Storages) > 0 {
-				app.save(ctx, origin, app.Storages, key, file)
-			}
-		} else if !errors.Is(err, context.Canceled) {
-			if err == ErrPass {
-				err = ErrNotFound
-			}
-			// log non user-initiated error finally
-			app.Logger.Warn("load", zap.String("key", key), zap.Error(err))
+		if e == nil {
+			err = nil
+			origin, _ = loader.(Store)
+			break
 		}
-		return
-	})
+		// should not log expected error as of now, as it has not reached the end
+		if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
+			app.Logger.Warn("load", zap.String("key", key), zap.Error(e))
+		} else if app.Debug {
+			app.Logger.Debug("load", zap.String("key", key), zap.Error(e))
+		}
+		err = e
+	}
+	if err == nil {
+		if app.Debug {
+			app.Logger.Debug("loaded", zap.String("key", key))
+		}
+	} else if !errors.Is(err, context.Canceled) {
+		if err == ErrPass {
+			err = ErrNotFound
+		}
+		// log non user-initiated error finally
+		app.Logger.Warn("load", zap.String("key", key), zap.Error(err))
+	}
+	return
 }
 
 func (app *Imagor) save(
