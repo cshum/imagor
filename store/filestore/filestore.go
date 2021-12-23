@@ -19,6 +19,7 @@ type FileStore struct {
 	Blacklists      []*regexp.Regexp
 	MkdirPermission os.FileMode
 	WritePermission os.FileMode
+	SaveErrIfExists bool
 }
 
 func New(baseDir string, options ...Option) *FileStore {
@@ -55,8 +56,7 @@ func (s *FileStore) Load(_ *http.Request, image string) (*imagor.File, error) {
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	_, err := os.Stat(image)
-	if err != nil {
+	if _, err := os.Stat(image); err != nil {
 		if os.IsNotExist(err) {
 			return nil, imagor.ErrNotFound
 		}
@@ -77,7 +77,11 @@ func (s *FileStore) Save(_ context.Context, image string, file *imagor.File) (er
 	if err != nil {
 		return err
 	}
-	w, err := os.OpenFile(image, os.O_RDWR|os.O_CREATE|os.O_TRUNC, s.WritePermission)
+	flag := os.O_RDWR | os.O_CREATE | os.O_TRUNC
+	if s.SaveErrIfExists {
+		flag = os.O_RDWR | os.O_CREATE | os.O_EXCL
+	}
+	w, err := os.OpenFile(image, flag, s.WritePermission)
 	if err != nil {
 		return
 	}

@@ -48,3 +48,9 @@ func WithWritePermission(perm string) Option {
 		}
 	}
 }
+
+func WithSaveErrIfExists(saveErrIfExists bool) Option {
+	return func(h *FileStore) {
+		h.SaveErrIfExists = saveErrIfExists
+	}
+}

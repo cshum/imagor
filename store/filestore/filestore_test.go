@@ -3,6 +3,7 @@ package filestore
 import (
 	"context"
 	"github.com/cshum/imagor"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -105,7 +106,7 @@ func TestFileStore_Load_Store(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := New(dir, WithMkdirPermission("0755"), WithWritePermission("0444"))
+	s := New(dir)
 	b, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
 	if err != imagor.ErrNotFound {
 		t.Errorf("= %v, want ErrNotFound", err)
@@ -125,4 +126,6 @@ func TestFileStore_Load_Store(t *testing.T) {
 	if string(buf) != "bar" {
 		t.Errorf(" = %s want %s", string(buf), "bar")
 	}
+	s = New(dir, WithSaveErrIfExists(true))
+	assert.Error(t, s.Save(ctx, "/foo/fooo/asdf", imagor.NewFileBytes([]byte("boo"))))
 }
