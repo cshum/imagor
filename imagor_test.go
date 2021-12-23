@@ -47,7 +47,7 @@ func (f processorFunc) Shutdown(_ context.Context) error {
 }
 
 func TestWithUnsafe(t *testing.T) {
-	logger := zap.NewNop()
+	logger := zap.NewExample()
 	app := New(WithUnsafe(true), WithLogger(logger))
 	assert.Equal(t, false, app.Debug)
 	assert.Equal(t, logger, app.Logger)
@@ -65,7 +65,10 @@ func TestWithUnsafe(t *testing.T) {
 }
 
 func TestWithSecret(t *testing.T) {
-	app := New(WithDebug(true), WithSecret("1234"))
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithSecret("1234"))
 	assert.Equal(t, true, app.Debug)
 
 	w := httptest.NewRecorder()
@@ -82,7 +85,10 @@ func TestWithSecret(t *testing.T) {
 
 func TestWithCacheHeaderTTL(t *testing.T) {
 	t.Run("default", func(t *testing.T) {
-		app := New(WithDebug(true), WithUnsafe(true))
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
@@ -102,7 +108,10 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	app := New(WithDebug(true), WithVersion("test"))
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithVersion("test"))
 
 	r := httptest.NewRequest(
 		http.MethodGet, "https://example.com/", nil)
@@ -113,7 +122,10 @@ func TestVersion(t *testing.T) {
 }
 
 func TestParams(t *testing.T) {
-	app := New(WithDebug(true), WithSecret("1234"))
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithSecret("1234"))
 
 	r := httptest.NewRequest(
 		http.MethodGet, "https://example.com/params/_-19cQt1szHeUV0WyWFntvTImDI=/foo.jpg", nil)
@@ -163,7 +175,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 	fakeMetaBuf, _ := json.Marshal(fakeMeta)
 	fakeMetaStr := string(fakeMetaBuf)
 	app := New(
-		WithDebug(true),
+		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
 			store,
 			loaderFunc(func(r *http.Request, image string) (*File, error) {
@@ -319,7 +331,7 @@ func TestWithSameStore(t *testing.T) {
 		Map: map[string]*File{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
 	}
 	app := New(
-		WithDebug(true),
+		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
 			store,
 			loaderFunc(func(r *http.Request, image string) (*File, error) {
@@ -432,7 +444,7 @@ func TestWithLoadTimeout(t *testing.T) {
 
 func TestSuppression(t *testing.T) {
 	app := New(
-		WithDebug(true),
+		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
 			loaderFunc(func(r *http.Request, image string) (*File, error) {
 				randBytes := make([]byte, 100)
