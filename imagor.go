@@ -174,6 +174,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 		return
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
+	if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
+		return
+	}
 	if file, err = app.loadStore(r, p.Image); err != nil {
 		app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 		return
@@ -218,6 +221,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 				}
 			}
 		}
+		if len(app.ResultStorages) > 0 {
+			app.save(ctx, nil, app.ResultStorages, resultKey, file)
+		}
 		return file, err
 	})
 }
@@ -236,7 +242,17 @@ func (app *Imagor) loadStore(r *http.Request, key string) (*File, error) {
 	})
 }
 
-func (app *Imagor) load(r *http.Request, loaders []Loader, key string) (file *File, origin Store, err error) {
+func (app *Imagor) loadResult(r *http.Request, key string) (file *File, err error) {
+	if len(app.ResultLoaders) == 0 {
+		return
+	}
+	file, _, err = app.load(r, app.ResultLoaders, key)
+	return
+}
+
+func (app *Imagor) load(
+	r *http.Request, loaders []Loader, key string,
+) (file *File, origin Store, err error) {
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
