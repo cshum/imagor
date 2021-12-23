@@ -24,11 +24,13 @@ var Version = "dev"
 
 func main() {
 	var (
-		fs       = flag.NewFlagSet("imagor", flag.ExitOnError)
-		logger   *zap.Logger
-		err      error
-		loaders  []imagor.Loader
-		storages []imagor.Storage
+		fs             = flag.NewFlagSet("imagor", flag.ExitOnError)
+		logger         *zap.Logger
+		err            error
+		loaders        []imagor.Loader
+		storages       []imagor.Storage
+		resultLoaders  []imagor.Loader
+		resultStorages []imagor.Storage
 	)
 
 	_ = godotenv.Load()
@@ -139,6 +141,36 @@ func main() {
 			"File Storage mkdir permission")
 		fileStorageWritePermission = fs.String("file-storage-write-permission", "0666",
 			"File Storage write permission")
+
+		s3ResultLoaderBucket = fs.String("s3-result-loader-bucket", "",
+			"S3 Bucket for S3 Result Loader. Will activate S3 Result Loader only if this value present")
+		s3ResultLoaderBaseDir = fs.String("s3-result-loader-base-dir", "",
+			"Base directory for S3 Result Loader")
+		s3ResultLoaderPathPrefix = fs.String("s3-result-loader-path-prefix", "",
+			"Base path prefix for S3 Result Loader")
+
+		s3ResultStorageBucket = fs.String("s3-result-storage-bucket", "",
+			"S3 Bucket for S3 ResultStorage. Will activate S3 ResultStorage only if this value present")
+		s3ResultStorageBaseDir = fs.String("s3-result-storage-base-dir", "",
+			"Base directory for S3 ResultStorage")
+		s3ResultStoragePathPrefix = fs.String("s3-result-storage-path-prefix", "",
+			"Base path prefix for S3 ResultStorage")
+		s3ResultStorageACL = fs.String("s3-result-storage-acl", "public-read",
+			"Upload ACL for S3 ResultStorage")
+
+		fileResultLoaderBaseDir = fs.String("file-result-loader-base-dir", "",
+			"Base directory for File Result Loader. Will activate File Result Loader only if this value present")
+		fileResultLoaderPathPrefix = fs.String("file-result-loader-path-prefix", "",
+			"Base path prefix for File Result Loader")
+
+		fileResultStorageBaseDir = fs.String("file-result-storage-base-dir", "",
+			"Base directory for File ResultStorage. Will activate File ResultStorage only if this value present")
+		fileResultStoragePathPrefix = fs.String("file-result-storage-path-prefix", "",
+			"Base path prefix for File ResultStorage")
+		fileResultStorageMkdirPermission = fs.String("file-result-storage-mkdir-permission", "0755",
+			"File ResultStorage mkdir permission")
+		fileResultStorageWritePermission = fs.String("file-result-storage-write-permission", "0666",
+			"File Storage write permission")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
@@ -165,7 +197,7 @@ func main() {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
-	var store *filestore.FileStore
+	var store, resultStore *filestore.FileStore
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
 		store = filestore.New(
@@ -193,6 +225,33 @@ func main() {
 			)
 		}
 	}
+	if *fileResultStorageBaseDir != "" {
+		// activate File Result Storage only if base dir config presents
+		resultStore = filestore.New(
+			*fileResultStorageBaseDir,
+			filestore.WithPathPrefix(*fileResultStoragePathPrefix),
+			filestore.WithMkdirPermission(*fileResultStorageMkdirPermission),
+			filestore.WithWritePermission(*fileResultStorageWritePermission),
+		)
+		resultStorages = append(resultStorages, resultStore)
+	}
+	if *fileResultLoaderBaseDir != "" {
+		// activate File Result Loader only if base dir config presents
+		if resultStore != nil &&
+			*fileResultStorageBaseDir == *fileResultLoaderBaseDir &&
+			*fileResultStoragePathPrefix == *fileResultLoaderPathPrefix {
+			// reuse store if loader and storage are the same
+			resultLoaders = append(resultLoaders, resultStore)
+		} else {
+			// otherwise, create another result loader
+			resultLoaders = append(resultLoaders,
+				filestore.New(
+					*fileResultLoaderBaseDir,
+					filestore.WithPathPrefix(*fileResultLoaderPathPrefix),
+				),
+			)
+		}
+	}
 
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
 		// activate AWS Session only if credentials present
@@ -205,7 +264,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		var store *s3store.S3Store
+		var store, resultStore *s3store.S3Store
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
 			store = s3store.New(sess, *s3StorageBucket,
@@ -229,6 +288,34 @@ func main() {
 					s3store.New(sess, *s3LoaderBucket,
 						s3store.WithPathPrefix(*s3LoaderPathPrefix),
 						s3store.WithBaseDir(*s3LoaderBaseDir),
+					),
+				)
+			}
+		}
+
+		if *s3ResultStorageBucket != "" {
+			// activate S3 ResultStorage only if bucket config presents
+			resultStore = s3store.New(sess, *s3ResultStorageBucket,
+				s3store.WithPathPrefix(*s3ResultStoragePathPrefix),
+				s3store.WithBaseDir(*s3ResultStorageBaseDir),
+				s3store.WithACL(*s3ResultStorageACL),
+			)
+			resultStorages = append(resultStorages, resultStore)
+		}
+		if *s3ResultLoaderBucket != "" {
+			// activate S3 ResultLoader only if bucket config presents
+			if store != nil &&
+				*s3ResultLoaderPathPrefix == *s3ResultStoragePathPrefix &&
+				*s3ResultLoaderBucket == *s3ResultStorageBucket &&
+				*s3ResultLoaderBaseDir == *s3ResultStorageBaseDir {
+				// reuse store if loader and storage are the same
+				resultLoaders = append(resultLoaders, resultStore)
+			} else {
+				// otherwise, create another loader
+				resultLoaders = append(resultLoaders,
+					s3store.New(sess, *s3ResultLoaderBucket,
+						s3store.WithPathPrefix(*s3ResultLoaderPathPrefix),
+						s3store.WithBaseDir(*s3ResultLoaderBaseDir),
 					),
 				)
 			}
@@ -272,6 +359,8 @@ func main() {
 					vipsprocessor.WithDebug(*debug),
 				),
 			),
+			imagor.WithResultLoaders(resultLoaders...),
+			imagor.WithResultStorages(resultStorages...),
 			imagor.WithSecret(*imagorSecret),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithLoadTimeout(*imagorLoadTimeout),

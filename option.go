@@ -21,15 +21,27 @@ func WithLoaders(loaders ...Loader) Option {
 	}
 }
 
-func WithProcessors(processors ...Processor) Option {
-	return func(o *Imagor) {
-		o.Processors = append(o.Processors, processors...)
-	}
-}
-
 func WithStorages(storages ...Storage) Option {
 	return func(o *Imagor) {
 		o.Storages = append(o.Storages, storages...)
+	}
+}
+
+func WithResultLoaders(loaders ...Loader) Option {
+	return func(o *Imagor) {
+		o.ResultLoaders = append(o.ResultLoaders, loaders...)
+	}
+}
+
+func WithResultStorages(storages ...Storage) Option {
+	return func(o *Imagor) {
+		o.ResultStorages = append(o.ResultStorages, storages...)
+	}
+}
+
+func WithProcessors(processors ...Processor) Option {
+	return func(o *Imagor) {
+		o.Processors = append(o.Processors, processors...)
 	}
 }
 

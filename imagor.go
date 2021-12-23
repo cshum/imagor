@@ -246,8 +246,13 @@ func (app *Imagor) loadResult(r *http.Request, key string) (file *File, err erro
 	if len(app.ResultLoaders) == 0 {
 		return
 	}
-	file, _, err = app.load(r, app.ResultLoaders, key)
-	return
+	return app.suppress(key, func() (*File, error) {
+		file, _, err := app.load(r, app.ResultLoaders, key)
+		if err != nil || IsFileEmpty(file) {
+			app.forget(key)
+		}
+		return file, err
+	})
 }
 
 func (app *Imagor) load(
@@ -333,6 +338,10 @@ func (app *Imagor) suppress(key string, fn func() (*File, error)) (file *File, e
 		return v.(*File), err
 	}
 	return nil, err
+}
+
+func (app *Imagor) forget(key string) {
+	app.g.Forget(key)
 }
 
 func (app *Imagor) debugLog() {
