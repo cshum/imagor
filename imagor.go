@@ -340,7 +340,7 @@ func (app *Imagor) debugLog() {
 	if !app.Debug {
 		return
 	}
-	var loaders, storages, processors []string
+	var loaders, storages, resultLoaders, resultStorages, processors []string
 	for _, v := range app.Loaders {
 		loaders = append(loaders, getType(v))
 	}
@@ -350,6 +350,12 @@ func (app *Imagor) debugLog() {
 	for _, v := range app.Processors {
 		processors = append(processors, getType(v))
 	}
+	for _, v := range app.ResultLoaders {
+		resultLoaders = append(resultLoaders, getType(v))
+	}
+	for _, v := range app.ResultStorages {
+		resultStorages = append(resultStorages, getType(v))
+	}
 	app.Logger.Debug("imagor",
 		zap.Bool("unsafe", app.Unsafe),
 		zap.Duration("request_timeout", app.RequestTimeout),
@@ -358,6 +364,8 @@ func (app *Imagor) debugLog() {
 		zap.Duration("cache_header_ttl", app.CacheHeaderTTL),
 		zap.Strings("loaders", loaders),
 		zap.Strings("storages", storages),
+		zap.Strings("result_loaders", resultLoaders),
+		zap.Strings("result_storages", resultStorages),
 		zap.Strings("processors", processors),
 	)
 }
