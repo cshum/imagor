@@ -174,20 +174,22 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 		return
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
-	if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
-		return
-	}
-	if file, err = app.loadStore(r, p.Image); err != nil {
-		app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
-		return
-	}
+	resultLockKey := "/" + resultKey // distinct key to avoid deadlock
 	load := func(image string) (*File, error) {
 		return app.loadStore(r, image)
 	}
-	if IsFileEmpty(file) {
-		return
-	}
-	return app.suppress(resultKey, func() (*File, error) {
+	return app.suppress(resultLockKey, func() (*File, error) {
+		if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
+			return file, err
+		}
+		if file, err = app.loadStore(r, p.Image); err != nil {
+			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+			app.forget(resultLockKey)
+			return file, err
+		}
+		if IsFileEmpty(file) {
+			return file, err
+		}
 		var cancel func()
 		ctx := context.Background()
 		if app.ProcessTimeout > 0 {
@@ -250,13 +252,8 @@ func (app *Imagor) loadResult(r *http.Request, key string) (file *File, err erro
 	if len(app.ResultLoaders) == 0 {
 		return
 	}
-	return app.suppress(key, func() (*File, error) {
-		file, _, err := app.load(r, app.ResultLoaders, key)
-		if err != nil || IsFileEmpty(file) {
-			app.forget(key)
-		}
-		return file, err
-	})
+	file, _, err = app.load(r, app.ResultLoaders, key)
+	return
 }
 
 func (app *Imagor) load(
