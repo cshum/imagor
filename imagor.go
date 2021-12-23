@@ -184,7 +184,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 		}
 		if file, err = app.loadStore(r, p.Image); err != nil {
 			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
-			app.forget(resultLockKey)
 			return file, err
 		}
 		if IsFileEmpty(file) {
@@ -223,12 +222,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 				}
 			}
 		}
-		if err == nil {
-			if len(app.ResultStorages) > 0 {
-				app.save(ctx, nil, app.ResultStorages, resultKey, file)
-			}
-		} else {
-			app.forget(resultKey)
+		if err == nil && len(app.ResultStorages) > 0 {
+			app.save(ctx, nil, app.ResultStorages, resultKey, file)
 		}
 		return file, err
 	})
@@ -339,10 +334,6 @@ func (app *Imagor) suppress(key string, fn func() (*File, error)) (file *File, e
 		return v.(*File), err
 	}
 	return nil, err
-}
-
-func (app *Imagor) forget(key string) {
-	app.g.Forget(key)
 }
 
 func (app *Imagor) debugLog() {
