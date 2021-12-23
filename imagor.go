@@ -209,6 +209,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 				} else {
 					err = e
 					app.Logger.Warn("process", zap.Any("params", p), zap.Error(e))
+					if errors.Is(err, context.DeadlineExceeded) {
+						break
+					}
 				}
 			}
 		}
