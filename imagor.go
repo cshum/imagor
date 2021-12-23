@@ -171,6 +171,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 		}
 		return
 	}
+	resultKey := strings.TrimPrefix(p.Path, "meta/")
 	if file, err = app.load(r, p.Image); err != nil {
 		app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 		return
@@ -181,7 +182,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 	if IsFileEmpty(file) {
 		return
 	}
-	return app.suppress(strings.TrimPrefix(p.Path, "meta/"), func() (*File, error) {
+	return app.suppress(resultKey, func() (*File, error) {
 		var cancel func()
 		ctx := context.Background()
 		if app.ProcessTimeout > 0 {
