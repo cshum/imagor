@@ -2,7 +2,6 @@ package vipsprocessor
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -14,14 +13,6 @@ import (
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
 type FilterMap map[string]FilterFunc
-
-func (m FilterMap) MarshalJSON() ([]byte, error) {
-	var names []string
-	for name := range m {
-		names = append(names, name)
-	}
-	return json.Marshal(names)
-}
 
 type VipsProcessor struct {
 	Filters        FilterMap

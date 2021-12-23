@@ -181,7 +181,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 	if IsFileEmpty(file) {
 		return
 	}
-	return app.suppress(p.Path, func() (*File, error) {
+	return app.suppress(strings.TrimPrefix(p.Path, "meta/"), func() (*File, error) {
 		var cancel func()
 		ctx := context.Background()
 		if app.ProcessTimeout > 0 {
