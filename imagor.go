@@ -48,6 +48,8 @@ type Imagor struct {
 	Secret         string
 	Loaders        []Loader
 	Storages       []Storage
+	ResultLoaders  []Loader
+	ResultStorages []Storage
 	Processors     []Processor
 	RequestTimeout time.Duration
 	LoadTimeout    time.Duration
@@ -220,7 +222,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 	})
 }
 
-func (app *Imagor) load(r *http.Request, image string) (*File, error) {
+func (app *Imagor) load(r *http.Request, key string) (*File, error) {
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
@@ -230,49 +232,49 @@ func (app *Imagor) load(r *http.Request, image string) (*File, error) {
 		defer cancel()
 		loadReq = r.WithContext(loadCtx)
 	}
-	return app.suppress(image, func() (file *File, err error) {
-		var fromStore Store
+	return app.suppress(key, func() (file *File, err error) {
+		var origin Store
 		for _, loader := range app.Loaders {
-			f, e := loader.Load(loadReq, image)
+			f, e := loader.Load(loadReq, key)
 			if !IsFileEmpty(f) {
 				file = f
 			}
 			if e == nil {
 				err = nil
-				fromStore, _ = loader.(Store)
+				origin, _ = loader.(Store)
 				break
 			}
 			// should not log expected error as of now, as it has not reached the end
 			if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-				app.Logger.Warn("load", zap.String("image", image), zap.Error(e))
+				app.Logger.Warn("load", zap.String("key", key), zap.Error(e))
 			} else if app.Debug {
-				app.Logger.Debug("load", zap.String("image", image), zap.Error(e))
+				app.Logger.Debug("load", zap.String("key", key), zap.Error(e))
 			}
 			err = e
 		}
 		if err == nil {
 			if app.Debug {
-				app.Logger.Debug("loaded", zap.String("image", image))
+				app.Logger.Debug("loaded", zap.String("key", key))
 			}
 			if IsFileEmpty(file) {
 				return
 			}
 			if len(app.Storages) > 0 {
-				app.save(ctx, fromStore, app.Storages, image, file)
+				app.save(ctx, origin, app.Storages, key, file)
 			}
 		} else if !errors.Is(err, context.Canceled) {
 			if err == ErrPass {
 				err = ErrNotFound
 			}
 			// log non user-initiated error finally
-			app.Logger.Warn("load", zap.String("image", image), zap.Error(err))
+			app.Logger.Warn("load", zap.String("key", key), zap.Error(err))
 		}
 		return
 	})
 }
 
 func (app *Imagor) save(
-	ctx context.Context, from Storage, storages []Storage, image string, file *File,
+	ctx context.Context, origin Storage, storages []Storage, key string, file *File,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -281,20 +283,20 @@ func (app *Imagor) save(
 	defer cancel()
 	var wg sync.WaitGroup
 	for _, storage := range storages {
-		if storage == from {
+		if storage == origin {
 			// loaded from the same store, no need save again
 			if app.Debug {
-				app.Logger.Debug("skip-save", zap.String("image", image))
+				app.Logger.Debug("skip-save", zap.String("key", key))
 			}
 			continue
 		}
 		wg.Add(1)
 		go func(storage Storage) {
 			defer wg.Done()
-			if err := storage.Save(ctx, image, file); err != nil {
-				app.Logger.Warn("save", zap.String("image", image), zap.Error(err))
+			if err := storage.Save(ctx, key, file); err != nil {
+				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
 			} else if app.Debug {
-				app.Logger.Debug("saved", zap.String("image", image))
+				app.Logger.Debug("saved", zap.String("key", key))
 			}
 		}(storage)
 	}

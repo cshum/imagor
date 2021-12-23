@@ -70,9 +70,6 @@ func (s *FileStore) Save(_ context.Context, image string, file *imagor.File) (er
 	if !ok {
 		return imagor.ErrPass
 	}
-	if imagor.IsFileEmpty(file) {
-		return imagor.ErrNotFound
-	}
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
 	}
