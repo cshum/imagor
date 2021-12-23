@@ -335,6 +335,37 @@ Usage of imagor:
         Base path prefix for S3 Storage
   -s3-storage-acl string
         Upload ACL for S3 Storage (default "public-read")
+  
+  -file-result-loader-base-dir string
+        Base directory for File Result Loader. Will activate File Result Loader only if this value present
+  -file-result-loader-path-prefix string
+        Base path prefix for File Result Loader
+        
+  -file-result-storage-base-dir string
+        Base directory for File Result Storage. Will activate File Result Storage only if this value present
+  -file-result-storage-mkdir-permission string
+        File Result Storage mkdir permission (default "0755")
+  -file-result-storage-path-prefix string
+        Base path prefix for File Result Storage
+  -file-result-storage-write-permission string
+        File Storage write permission (default "0666")
+  
+  -s3-result-loader-base-dir string
+        Base directory for S3 Result Loader
+  -s3-result-loader-bucket string
+        S3 Bucket for S3 Result Loader. Will activate S3 Result Loader only if this value present
+  -s3-result-loader-path-prefix string
+        Base path prefix for S3 Result Loader
+        
+  -s3-result-storage-acl string
+        Upload ACL for S3 Result Storage (default "public-read")
+  -s3-result-storage-base-dir string
+        Base directory for S3 Result Storage
+  -s3-result-storage-bucket string
+        S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present
+  -s3-result-storage-path-prefix string
+        Base path prefix for S3 Result Storage
+
 
   -vips-concurrency int
         VIPS concurrency. Set -1 to be the number of CPU cores (default 1)

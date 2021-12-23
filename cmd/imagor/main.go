@@ -150,13 +150,13 @@ func main() {
 			"Base path prefix for S3 Result Loader")
 
 		s3ResultStorageBucket = fs.String("s3-result-storage-bucket", "",
-			"S3 Bucket for S3 ResultStorage. Will activate S3 ResultStorage only if this value present")
+			"S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present")
 		s3ResultStorageBaseDir = fs.String("s3-result-storage-base-dir", "",
-			"Base directory for S3 ResultStorage")
+			"Base directory for S3 Result Storage")
 		s3ResultStoragePathPrefix = fs.String("s3-result-storage-path-prefix", "",
-			"Base path prefix for S3 ResultStorage")
+			"Base path prefix for S3 Result Storage")
 		s3ResultStorageACL = fs.String("s3-result-storage-acl", "public-read",
-			"Upload ACL for S3 ResultStorage")
+			"Upload ACL for S3 Result Storage")
 
 		fileResultLoaderBaseDir = fs.String("file-result-loader-base-dir", "",
 			"Base directory for File Result Loader. Will activate File Result Loader only if this value present")
@@ -164,11 +164,11 @@ func main() {
 			"Base path prefix for File Result Loader")
 
 		fileResultStorageBaseDir = fs.String("file-result-storage-base-dir", "",
-			"Base directory for File ResultStorage. Will activate File ResultStorage only if this value present")
+			"Base directory for File Result Storage. Will activate File Result Storage only if this value present")
 		fileResultStoragePathPrefix = fs.String("file-result-storage-path-prefix", "",
-			"Base path prefix for File ResultStorage")
+			"Base path prefix for File Result Storage")
 		fileResultStorageMkdirPermission = fs.String("file-result-storage-mkdir-permission", "0755",
-			"File ResultStorage mkdir permission")
+			"File Result Storage mkdir permission")
 		fileResultStorageWritePermission = fs.String("file-result-storage-write-permission", "0666",
 			"File Storage write permission")
 	)
