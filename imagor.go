@@ -221,8 +221,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 				}
 			}
 		}
-		if len(app.ResultStorages) > 0 {
-			app.save(ctx, nil, app.ResultStorages, resultKey, file)
+		if err == nil {
+			if len(app.ResultStorages) > 0 {
+				app.save(ctx, nil, app.ResultStorages, resultKey, file)
+			}
+		} else {
+			app.forget(resultKey)
 		}
 		return file, err
 	})
