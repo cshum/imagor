@@ -174,11 +174,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 		return
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
-	resultLockKey := "/" + resultKey // distinct key to avoid deadlock
 	load := func(image string) (*File, error) {
 		return app.loadStore(r, image)
 	}
-	return app.suppress(resultLockKey, func() (*File, error) {
+	return app.acquire("res:"+resultKey, func() (*File, error) {
 		if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
 			return file, err
 		}
@@ -230,7 +229,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 }
 
 func (app *Imagor) loadStore(r *http.Request, key string) (*File, error) {
-	return app.suppress(key, func() (file *File, err error) {
+	return app.acquire("img:"+key, func() (file *File, err error) {
 		var origin Store
 		file, origin, err = app.load(r, app.Loaders, key)
 		if IsFileEmpty(file) {
@@ -326,7 +325,10 @@ func (app *Imagor) save(
 	return
 }
 
-func (app *Imagor) suppress(key string, fn func() (*File, error)) (file *File, err error) {
+func (app *Imagor) acquire(key string, fn func() (*File, error)) (file *File, err error) {
+	if app.Debug {
+		app.Logger.Debug("acquire", zap.String("key", key))
+	}
 	v, err, _ := app.g.Do(key, func() (interface{}, error) {
 		return fn()
 	})

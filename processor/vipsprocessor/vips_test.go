@@ -41,6 +41,7 @@ func TestVipsProcessor(t *testing.T) {
 	t.Cleanup(func() {
 		assert.NoError(t, app.Shutdown(context.Background()))
 	})
+	t.Parallel()
 	tests := []struct {
 		name string
 		path string

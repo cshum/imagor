@@ -470,7 +470,7 @@ func TestSuppression(t *testing.T) {
 		resChan <- res{image, w.Body.String()}
 	}
 	for i := 0; i < n; i++ {
-		// should suppress calls so every call of same image must be same value
+		// should acquire calls so every call of same image must be same value
 		// though a and b must be different value
 		go do("a")
 		go do("b")
