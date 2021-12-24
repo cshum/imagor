@@ -85,6 +85,6 @@ func GenerateUnsafe(p Params) string {
 
 // Generate Imagor endpoint with signature by Params struct with secret
 func Generate(p Params, secret string) string {
-	path := generate(p)
-	return Sign(path, secret) + "/" + path
+	imgPath := generate(p)
+	return Sign(imgPath, secret) + "/" + imgPath
 }

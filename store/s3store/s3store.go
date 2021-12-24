@@ -3,16 +3,17 @@ package s3store
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
 	"io"
 	"mime"
 	"net/http"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -49,8 +50,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 }
 
 func (s *S3Store) Path(image string) (string, bool) {
-	image = strings.ReplaceAll(image, ":/", "%3A")
-	image = "/" + strings.TrimPrefix(path.Clean(image), "/")
+	image = "/" + imagorpath.Clean(image)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
@@ -84,6 +84,7 @@ func (s *S3Store) Save(ctx context.Context, image string, file *imagor.File) err
 	if !ok {
 		return imagor.ErrPass
 	}
+	fmt.Println(image)
 	buf, err := file.Bytes()
 	if err != nil {
 		return err

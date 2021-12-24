@@ -4,6 +4,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"net/url"
+	"path"
 	"strings"
 )
 
@@ -58,4 +60,16 @@ func Sign(path, secret string) string {
 	h.Write([]byte(strings.TrimPrefix(path, "/")))
 	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
 	return hash
+}
+
+// Clean image url path to be file friendly
+func Clean(image string) string {
+	var escaped []string
+	image = path.Clean(image)
+	image = strings.Trim(image, "/")
+	parts := strings.Split(image, "/")
+	for _, part := range parts {
+		escaped = append(escaped, url.QueryEscape(part))
+	}
+	return strings.Join(escaped, "/")
 }

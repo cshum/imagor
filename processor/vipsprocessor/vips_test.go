@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/store/filestore"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -65,7 +66,7 @@ func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func()))
 				app.ServeHTTP(w, httptest.NewRequest(
 					http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 				assert.Equal(t, 200, w.Code)
-				path := filepath.Join(testDataDir, "result", tt.path)
+				path := filepath.Join(testDataDir, "result", imagorpath.Clean(tt.path))
 				buf, err := ioutil.ReadFile(path)
 				assert.NoError(t, err)
 				if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {

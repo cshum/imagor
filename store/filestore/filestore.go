@@ -3,9 +3,9 @@ package filestore
 import (
 	"context"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -37,8 +37,7 @@ func New(baseDir string, options ...Option) *FileStore {
 }
 
 func (s *FileStore) Path(image string) (string, bool) {
-	image = strings.ReplaceAll(image, ":/", "%3A")
-	image = "/" + strings.TrimPrefix(path.Clean(image), "/")
+	image = "/" + imagorpath.Clean(image)
 	for _, blacklist := range s.Blacklists {
 		if blacklist.MatchString(image) {
 			return "", false
