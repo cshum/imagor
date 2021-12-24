@@ -109,13 +109,11 @@ func TestFileStore_Load_Store(t *testing.T) {
 	t.Run("blacklisted path", func(t *testing.T) {
 		s := New(dir)
 		_, err = s.Load(&http.Request{}, "/abc/.git")
-		assert.Equal(t, imagor.ErrNotFound, err)
-		assert.Equal(t, imagor.ErrNotFound, s.Save(ctx, "/abc/.git", imagor.NewFileBytes([]byte("boo"))))
+		assert.Equal(t, imagor.ErrPass, err)
+		assert.Equal(t, imagor.ErrPass, s.Save(ctx, "/abc/.git", imagor.NewFileBytes([]byte("boo"))))
 	})
 	t.Run("insufficient permission", func(t *testing.T) {
 		s := New(dir, WithMkdirPermission("0444"), WithWritePermission("0444"))
-		_, err = s.Load(&http.Request{}, "/abc/.git")
-		assert.Equal(t, imagor.ErrNotFound, err)
 		assert.Error(t, s.Save(ctx, "/abc/fooo/asdf", imagor.NewFileBytes([]byte("boo"))))
 	})
 	t.Run("save and load", func(t *testing.T) {
