@@ -187,17 +187,6 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 		// rx,ry,color
 		c = getColor(img, args[2])
 		args = args[:2]
-	} else if len(args) >= 4 {
-		// rx|ry,r,g,b
-		r, _ := strconv.Atoi(args[1])
-		g, _ := strconv.Atoi(args[2])
-		b, _ := strconv.Atoi(args[3])
-		c = &vips.Color{R: uint8(r), G: uint8(g), B: uint8(b)}
-		args = args[:1]
-	}
-	// rx|ry
-	if strings.Contains(args[0], "|") {
-		args = append(strings.Split(args[0], "|"), args[1:]...)
 	}
 	rx, _ = strconv.Atoi(args[0])
 	ry = rx
