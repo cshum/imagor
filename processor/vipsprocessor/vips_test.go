@@ -81,11 +81,9 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithLoaders(filestore.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
-		//imagor.WithLogger(zap.NewExample()),
 		imagor.WithRequestTimeout(time.Second*3),
 		imagor.WithProcessors(New(
 			WithDebug(true),
-			//WithLogger(zap.NewExample()),
 		)),
 		imagor.WithResultStorages(filestore.New(
 			filepath.Join(testDataDir, "result"),
@@ -96,12 +94,10 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithLoaders(filestore.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
-		//imagor.WithLogger(zap.NewExample()),
 		imagor.WithRequestTimeout(time.Second*3),
 		imagor.WithProcessors(New(
-			WithDebug(true),
+			WithDebug(false),
 			WithLoadFromFile(true),
-			//WithLogger(zap.NewExample()),
 		)),
 		imagor.WithResultStorages(filestore.New(
 			filepath.Join(testDataDir, "result"),
