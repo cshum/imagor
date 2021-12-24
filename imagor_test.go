@@ -64,6 +64,20 @@ func TestWithUnsafe(t *testing.T) {
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 }
 
+func TestAcquireDeadlock(t *testing.T) {
+	ctx := context.Background()
+	app := New()
+	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+		return app.acquire(ctx, "b", func(ctx context.Context) (*File, error) {
+			return app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+				return &File{}, nil
+			})
+		})
+	})
+	assert.Nil(t, f)
+	assert.Equal(t, ErrDeadlock, err)
+}
+
 func TestWithSecret(t *testing.T) {
 	app := New(
 		WithDebug(true),

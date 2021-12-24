@@ -52,6 +52,10 @@ func TestVipsProcessor(t *testing.T) {
 		{"fit-in padding bottom flip grayscale fill blur", "/fit-in/-200x-210/30x30/filters:rotate(90):fill(blur):grayscale()/gopher.png"},
 		{"fill round_corner", "fit-in/200x210/filters:fill(yellow):round_corner(40,60)/gopher.png"},
 		{"watermark", "filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher.png,repeat,repeat,70,10,10):watermark(gopher-front.png,center,-10p)/gopher.png"},
+		{"trim", "trim/find_trim.png"},
+		{"trim bottom", "trim:bottom-right/find_trim.png"},
+		{"trim tolerance", "trim:10/find_trim.png"},
+		{"trim filter", "/fit-in/50x50/filters:trim(10)/find_trim.png"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

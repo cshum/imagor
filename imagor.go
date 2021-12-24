@@ -177,7 +177,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 	load := func(image string) (*File, error) {
 		return app.loadStore(r, image)
 	}
-	return app.acquire("res:"+resultKey, func() (*File, error) {
+	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*File, error) {
 		if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
 			return file, err
 		}
@@ -189,7 +189,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 			return file, err
 		}
 		var cancel func()
-		ctx := context.Background()
 		if app.ProcessTimeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
 			defer cancel()
@@ -229,14 +228,15 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 }
 
 func (app *Imagor) loadStore(r *http.Request, key string) (*File, error) {
-	return app.acquire("img:"+key, func() (file *File, err error) {
+	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (file *File, err error) {
 		var origin Store
+		r = r.WithContext(ctx)
 		file, origin, err = app.load(r, app.Loaders, key)
 		if IsFileEmpty(file) {
 			return
 		}
 		if len(app.Storages) > 0 {
-			app.save(r.Context(), origin, app.Storages, key, file)
+			app.save(ctx, origin, app.Storages, key, file)
 		}
 		return
 	})
@@ -325,12 +325,23 @@ func (app *Imagor) save(
 	return
 }
 
-func (app *Imagor) acquire(key string, fn func() (*File, error)) (file *File, err error) {
+type acquireKey struct {
+	Key string
+}
+
+func (app *Imagor) acquire(
+	ctx context.Context,
+	key string, fn func(ctx context.Context) (*File, error),
+) (file *File, err error) {
 	if app.Debug {
 		app.Logger.Debug("acquire", zap.String("key", key))
 	}
+	if isAcquired, ok := ctx.Value(acquireKey{key}).(bool); ok && isAcquired {
+		return nil, ErrDeadlock
+	}
 	v, err, _ := app.g.Do(key, func() (interface{}, error) {
-		return fn()
+		ctx = context.WithValue(ctx, acquireKey{key}, true)
+		return fn(ctx)
 	})
 	if v != nil {
 		return v.(*File), err

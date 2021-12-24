@@ -18,6 +18,7 @@ var (
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
 	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
 	ErrMaxSizeExceeded   = NewError("maximum size exceeded", http.StatusBadRequest)
+	ErrDeadlock          = NewError("deadlock", http.StatusInternalServerError)
 	ErrInternal          = NewError("internal error", http.StatusInternalServerError)
 )
 
