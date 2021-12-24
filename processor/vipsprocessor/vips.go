@@ -182,7 +182,7 @@ func (v *VipsProcessor) Process(
 			break
 		}
 	}
-	if !p.Trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecial {
+	if p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecial {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
@@ -221,12 +221,10 @@ func (v *VipsProcessor) Process(
 				if p.Smart {
 					interest = vips.InterestingAttention
 				}
-				if isThumbnail {
-					if img, err = v.newThumbnail(
-						file, p.Width, p.Height, interest, vips.SizeBoth,
-					); err != nil {
-						return nil, err
-					}
+				if img, err = v.newThumbnail(
+					file, p.Width, p.Height, interest, vips.SizeBoth,
+				); err != nil {
+					return nil, err
 				}
 			}
 		}
