@@ -6,6 +6,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/store/filestore"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -35,9 +36,9 @@ func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func()))
 			path string
 		}{
 			{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
-			{"resize smart", "100x100/smart/filters:quality(70):format(gif)/gopher.png"},
+			{"resize smart", "100x100/smart/gopher.png"},
 			{"resize top", "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
-			{"resize top", "200x100/right/top/filters:quality(70):format(webp)/gopher.png"},
+			{"resize top", "200x100/right/top/gopher.png"},
 			{"resize bottom", "200x100/bottom/gopher.png"},
 			{"resize bottom", "200x100/left/bottom/gopher.png"},
 			{"resize left", "100x200/left/gopher.png"},
@@ -62,13 +63,14 @@ func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func()))
 				app.ServeHTTP(w, httptest.NewRequest(
 					http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 				assert.Equal(t, 200, w.Code)
-				buf, err := ioutil.ReadFile(filepath.Join(testDataDir, "result", tt.path))
+				path := filepath.Join(testDataDir, "result", tt.path)
+				buf, err := ioutil.ReadFile(path)
 				assert.NoError(t, err)
 				if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
 					if len(b) < 512 {
 						t.Error(string(b))
 					} else {
-						t.Error("result not equal")
+						t.Errorf("%s: not equal", path)
 					}
 				}
 			})
@@ -81,6 +83,7 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithLoaders(filestore.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
+		imagor.WithLogger(zap.NewExample()),
 		imagor.WithRequestTimeout(time.Second*3),
 		imagor.WithProcessors(New(
 			WithDebug(true),
@@ -94,9 +97,11 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithLoaders(filestore.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
+		imagor.WithLogger(zap.NewExample()),
 		imagor.WithRequestTimeout(time.Second*3),
 		imagor.WithProcessors(New(
 			WithDebug(false),
+			WithLogger(zap.NewExample()),
 			WithLoadFromFile(true),
 		)),
 		imagor.WithResultStorages(filestore.New(
