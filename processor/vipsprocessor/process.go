@@ -65,10 +65,18 @@ func (v *VipsProcessor) process(
 			interest := vips.InterestingCentre
 			if p.Smart {
 				interest = vips.InterestingAttention
-			} else if (p.VAlign == "top" && img.Height() > h) || (p.HAlign == "left" && img.Width() > w) {
-				interest = vips.InterestingLow
-			} else if (p.VAlign == "bottom" && img.Height() > h) || (p.HAlign == "right" && img.Width() > w) {
-				interest = vips.InterestingHigh
+			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.Height()) {
+				if p.VAlign == "top" {
+					interest = vips.InterestingLow
+				} else if p.VAlign == "bottom" {
+					interest = vips.InterestingHigh
+				}
+			} else {
+				if p.HAlign == "left" {
+					interest = vips.InterestingLow
+				} else if p.HAlign == "right" {
+					interest = vips.InterestingHigh
+				}
 			}
 			if err := img.Thumbnail(w, h, interest); err != nil {
 				return err

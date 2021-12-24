@@ -215,20 +215,11 @@ func (v *VipsProcessor) Process(
 				isThumbnail = true
 			}
 		} else {
-			if p.Width > 0 && p.Height > 0 {
+			if p.Width > 0 && p.Height > 0 && (p.VAlign == "" || p.VAlign == "middle") && (p.HAlign == "" || p.HAlign == "center") {
+				isThumbnail = true
 				interest := vips.InterestingCentre
 				if p.Smart {
 					interest = vips.InterestingAttention
-					isThumbnail = true
-				} else if (p.VAlign == "top" && p.HAlign == "") || (p.HAlign == "left" && p.VAlign == "") {
-					interest = vips.InterestingLow
-					isThumbnail = true
-				} else if (p.VAlign == "bottom" && p.HAlign == "") || (p.HAlign == "right" && p.VAlign == "") {
-					interest = vips.InterestingHigh
-					isThumbnail = true
-				} else if (p.VAlign == "" || p.VAlign == "middle") && (p.HAlign == "" || p.HAlign == "center") {
-					interest = vips.InterestingCentre
-					isThumbnail = true
 				}
 				if isThumbnail {
 					if img, err = v.newThumbnail(
