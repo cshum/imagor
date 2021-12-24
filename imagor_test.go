@@ -67,9 +67,9 @@ func TestWithUnsafe(t *testing.T) {
 func TestAcquireDeadlockResolve(t *testing.T) {
 	ctx := context.Background()
 	app := New()
-	f, err := app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
-		return app.Acquire(ctx, "b", func(ctx context.Context) (*File, error) {
-			return app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+		return app.acquire(ctx, "b", func(ctx context.Context) (*File, error) {
+			return app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
 				return &File{Path: "abc"}, nil
 			})
 		})
@@ -82,7 +82,7 @@ func TestAcquireTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
 	defer cancel()
 	app := New()
-	f, err := app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
 		time.Sleep(time.Second)
 		return &File{}, nil
 	})
@@ -261,10 +261,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 					}
 					return file, err
 				}
-				if string(buf) == "timeout" {
-					time.Sleep(time.Millisecond * 10)
-					return file, ctx.Err()
-				}
 				return file, nil
 			}),
 			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
@@ -320,13 +316,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 					http.MethodGet, "https://example.com/unsafe/empty", nil))
 				assert.Equal(t, 200, w.Code)
 				assert.Equal(t, "", w.Body.String())
-			})
-			t.Run(fmt.Sprintf("process timeout %d", i), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/timeout", nil))
-				assert.Equal(t, http.StatusRequestTimeout, w.Code)
-				assert.Equal(t, "timeout", w.Body.String())
 			})
 			t.Run(fmt.Sprintf("not found on pass %d", i), func(t *testing.T) {
 				w := httptest.NewRecorder()
@@ -496,7 +485,7 @@ func TestSuppression(t *testing.T) {
 		resChan <- res{image, w.Body.String()}
 	}
 	for i := 0; i < n; i++ {
-		// should Acquire calls so every call of same image must be same value
+		// should acquire calls so every call of same image must be same value
 		// though a and b must be different value
 		go do("a")
 		go do("b")

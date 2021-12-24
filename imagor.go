@@ -76,9 +76,6 @@ func New(options ...Option) *Imagor {
 	for _, option := range options {
 		option(app)
 	}
-	if app.LoadTimeout > app.RequestTimeout || app.LoadTimeout == 0 {
-		app.LoadTimeout = app.RequestTimeout
-	}
 	if app.Debug {
 		app.debugLog()
 	}
@@ -177,7 +174,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 	load := func(image string) (*File, error) {
 		return app.loadStore(r, image)
 	}
-	return app.Acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*File, error) {
+	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*File, error) {
 		if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
 			return file, err
 		}
@@ -228,7 +225,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 }
 
 func (app *Imagor) loadStore(r *http.Request, key string) (*File, error) {
-	return app.Acquire(r.Context(), "img:"+key, func(ctx context.Context) (file *File, err error) {
+	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (file *File, err error) {
 		var origin Store
 		r = r.WithContext(ctx)
 		file, origin, err = app.load(r, app.Loaders, key)
@@ -329,7 +326,7 @@ type acquireKey struct {
 	Key string
 }
 
-func (app *Imagor) Acquire(
+func (app *Imagor) acquire(
 	ctx context.Context,
 	key string, fn func(ctx context.Context) (*File, error),
 ) (file *File, err error) {
