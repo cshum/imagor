@@ -51,9 +51,13 @@ func TestVipsProcessor(t *testing.T) {
 	}{
 		{"resize center", "100x100/gopher.png"},
 		{"resize smart", "100x100/smart/gopher.png"},
+		{"resize top", "200x100/top/gopher.png"},
 		{"resize top", "200x100/right/top/gopher.png"},
+		{"resize bottom", "200x100/bottom/gopher.png"},
 		{"resize bottom", "200x100/left/bottom/gopher.png"},
+		{"resize left", "100x200/left/gopher.png"},
 		{"resize left", "100x200/left/bottom/gopher.png"},
+		{"resize right", "100x200/right/gopher.png"},
 		{"resize right", "100x200/right/top/gopher.png"},
 		{"stretch", "stretch/100x100/gopher.png"},
 		{"fit-in flip hue", "fit-in/-200x210/filters:hue(290):saturation(100):fill(FFO)/gopher.png"},

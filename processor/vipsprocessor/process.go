@@ -66,15 +66,15 @@ func (v *VipsProcessor) process(
 			if p.Smart {
 				interest = vips.InterestingAttention
 			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.Height()) {
-				if p.VAlign == "top" {
+				if p.VAlign == imagorpath.VAlignTop {
 					interest = vips.InterestingLow
-				} else if p.VAlign == "bottom" {
+				} else if p.VAlign == imagorpath.VAlignBottom {
 					interest = vips.InterestingHigh
 				}
 			} else {
-				if p.HAlign == "left" {
+				if p.HAlign == imagorpath.HAlignLeft {
 					interest = vips.InterestingLow
-				} else if p.HAlign == "right" {
+				} else if p.HAlign == imagorpath.HAlignRight {
 					interest = vips.InterestingHigh
 				}
 			}

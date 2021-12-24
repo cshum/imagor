@@ -215,16 +215,30 @@ func (v *VipsProcessor) Process(
 				isThumbnail = true
 			}
 		} else {
-			if p.Width > 0 && p.Height > 0 && (p.VAlign == "" || p.VAlign == "middle") && (p.HAlign == "" || p.HAlign == "center") {
-				isThumbnail = true
-				interest := vips.InterestingCentre
+			if p.Width > 0 && p.Height > 0 {
+				interest := vips.InterestingNone
 				if p.Smart {
 					interest = vips.InterestingAttention
+					isThumbnail = true
+				} else if (p.VAlign == imagorpath.VAlignTop && p.HAlign == "") ||
+					(p.HAlign == imagorpath.HAlignLeft && p.VAlign == "") {
+					interest = vips.InterestingLow
+					isThumbnail = true
+				} else if (p.VAlign == imagorpath.VAlignBottom && p.HAlign == "") ||
+					(p.HAlign == imagorpath.HAlignRight && p.VAlign == "") {
+					interest = vips.InterestingHigh
+					isThumbnail = true
+				} else if (p.VAlign == "" || p.VAlign == "middle") &&
+					(p.HAlign == "" || p.HAlign == "center") {
+					interest = vips.InterestingCentre
+					isThumbnail = true
 				}
-				if img, err = v.newThumbnail(
-					file, p.Width, p.Height, interest, vips.SizeBoth,
-				); err != nil {
-					return nil, err
+				if isThumbnail {
+					if img, err = v.newThumbnail(
+						file, p.Width, p.Height, interest, vips.SizeBoth,
+					); err != nil {
+						return nil, err
+					}
 				}
 			}
 		}

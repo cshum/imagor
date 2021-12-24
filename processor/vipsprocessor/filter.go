@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
 	"math"
 	"net/url"
 	"strconv"
@@ -127,9 +128,9 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 	if ln >= 3 {
 		if args[1] == "center" {
 			x = (img.Width() - overlay.Width()) / 2
-		} else if args[1] == "left" {
+		} else if args[1] == imagorpath.HAlignLeft {
 			x = 0
-		} else if args[1] == "right" {
+		} else if args[1] == imagorpath.HAlignRight {
 			x = img.Width() - overlay.Width()
 		} else if args[1] == "repeat" {
 			x = 0
@@ -142,9 +143,9 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 		}
 		if args[2] == "center" {
 			y = (img.Height() - overlay.Height()) / 2
-		} else if args[2] == "top" {
+		} else if args[2] == imagorpath.VAlignTop {
 			y = 0
-		} else if args[2] == "bottom" {
+		} else if args[2] == imagorpath.VAlignBottom {
 			y = img.Height() - overlay.Height()
 		} else if args[2] == "repeat" {
 			y = 0
