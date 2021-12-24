@@ -337,7 +337,8 @@ func (app *Imagor) Acquire(
 		app.Logger.Debug("Acquire", zap.String("key", key))
 	}
 	if isAcquired, ok := ctx.Value(acquireKey{key}).(bool); ok && isAcquired {
-		return nil, ErrDeadlock
+		// resolve deadlock
+		return fn(ctx)
 	}
 	ch := app.g.DoChan(key, func() (interface{}, error) {
 		ctx = context.WithValue(ctx, acquireKey{key}, true)

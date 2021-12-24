@@ -64,18 +64,18 @@ func TestWithUnsafe(t *testing.T) {
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 }
 
-func TestAcquireDeadlock(t *testing.T) {
+func TestAcquireDeadlockResolve(t *testing.T) {
 	ctx := context.Background()
 	app := New()
 	f, err := app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
 		return app.Acquire(ctx, "b", func(ctx context.Context) (*File, error) {
 			return app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
-				return &File{}, nil
+				return &File{Path: "abc"}, nil
 			})
 		})
 	})
-	assert.Nil(t, f)
-	assert.Equal(t, ErrDeadlock, err)
+	assert.Equal(t, &File{Path: "abc"}, f)
+	assert.NoError(t, err)
 }
 
 func TestAcquireTimeout(t *testing.T) {
