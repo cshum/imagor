@@ -6,7 +6,6 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/store/filestore"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -27,9 +26,6 @@ func init() {
 func doTest(t *testing.T, name string, app *imagor.Imagor) {
 	t.Run(name, func(t *testing.T) {
 		assert.NoError(t, app.Startup(context.Background()))
-		t.Cleanup(func() {
-			assert.NoError(t, app.Shutdown(context.Background()))
-		})
 		t.Parallel()
 		tests := []struct {
 			name string
@@ -82,11 +78,11 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithLoaders(filestore.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
-		imagor.WithLogger(zap.NewExample()),
+		//imagor.WithLogger(zap.NewExample()),
 		imagor.WithRequestTimeout(time.Second*3),
 		imagor.WithProcessors(New(
 			WithDebug(true),
-			WithLogger(zap.NewExample()),
+			//WithLogger(zap.NewExample()),
 		)),
 		imagor.WithResultStorages(filestore.New(
 			filepath.Join(testDataDir, "result"),
@@ -97,12 +93,12 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithLoaders(filestore.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
-		imagor.WithLogger(zap.NewExample()),
+		//imagor.WithLogger(zap.NewExample()),
 		imagor.WithRequestTimeout(time.Second*3),
 		imagor.WithProcessors(New(
 			WithDebug(true),
 			WithLoadFromFile(true),
-			WithLogger(zap.NewExample()),
+			//WithLogger(zap.NewExample()),
 		)),
 		imagor.WithResultStorages(filestore.New(
 			filepath.Join(testDataDir, "result"),
