@@ -84,7 +84,6 @@ func (s *S3Store) Save(ctx context.Context, image string, file *imagor.File) err
 	if !ok {
 		return imagor.ErrPass
 	}
-	fmt.Println(image)
 	buf, err := file.Bytes()
 	if err != nil {
 		return err
