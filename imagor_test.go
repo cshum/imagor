@@ -67,15 +67,27 @@ func TestWithUnsafe(t *testing.T) {
 func TestAcquireDeadlock(t *testing.T) {
 	ctx := context.Background()
 	app := New()
-	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
-		return app.acquire(ctx, "b", func(ctx context.Context) (*File, error) {
-			return app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+	f, err := app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+		return app.Acquire(ctx, "b", func(ctx context.Context) (*File, error) {
+			return app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
 				return &File{}, nil
 			})
 		})
 	})
 	assert.Nil(t, f)
 	assert.Equal(t, ErrDeadlock, err)
+}
+
+func TestAcquireTimeout(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
+	defer cancel()
+	app := New()
+	f, err := app.Acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+		time.Sleep(time.Second)
+		return &File{}, nil
+	})
+	assert.Nil(t, f)
+	assert.Equal(t, context.DeadlineExceeded, err)
 }
 
 func TestWithSecret(t *testing.T) {
@@ -484,7 +496,7 @@ func TestSuppression(t *testing.T) {
 		resChan <- res{image, w.Body.String()}
 	}
 	for i := 0; i < n; i++ {
-		// should acquire calls so every call of same image must be same value
+		// should Acquire calls so every call of same image must be same value
 		// though a and b must be different value
 		go do("a")
 		go do("b")

@@ -177,7 +177,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 	load := func(image string) (*File, error) {
 		return app.loadStore(r, image)
 	}
-	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*File, error) {
+	return app.Acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*File, error) {
 		if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
 			return file, err
 		}
@@ -228,7 +228,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 }
 
 func (app *Imagor) loadStore(r *http.Request, key string) (*File, error) {
-	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (file *File, err error) {
+	return app.Acquire(r.Context(), "img:"+key, func(ctx context.Context) (file *File, err error) {
 		var origin Store
 		r = r.WithContext(ctx)
 		file, origin, err = app.load(r, app.Loaders, key)
@@ -329,24 +329,29 @@ type acquireKey struct {
 	Key string
 }
 
-func (app *Imagor) acquire(
+func (app *Imagor) Acquire(
 	ctx context.Context,
 	key string, fn func(ctx context.Context) (*File, error),
 ) (file *File, err error) {
 	if app.Debug {
-		app.Logger.Debug("acquire", zap.String("key", key))
+		app.Logger.Debug("Acquire", zap.String("key", key))
 	}
 	if isAcquired, ok := ctx.Value(acquireKey{key}).(bool); ok && isAcquired {
 		return nil, ErrDeadlock
 	}
-	v, err, _ := app.g.Do(key, func() (interface{}, error) {
+	ch := app.g.DoChan(key, func() (interface{}, error) {
 		ctx = context.WithValue(ctx, acquireKey{key}, true)
 		return fn(ctx)
 	})
-	if v != nil {
-		return v.(*File), err
+	select {
+	case res := <-ch:
+		if res.Val != nil {
+			return res.Val.(*File), res.Err
+		}
+		return nil, res.Err
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	return nil, err
 }
 
 func (app *Imagor) debugLog() {

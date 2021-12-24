@@ -11,8 +11,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"testing"
+	"time"
 )
 
 var testDataDir string
@@ -28,6 +30,7 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
+		imagor.WithRequestTimeout(time.Second),
 		imagor.WithProcessors(New(
 			WithDebug(true),
 			WithLogger(zap.NewExample()),
@@ -54,8 +57,8 @@ func TestVipsProcessor(t *testing.T) {
 		{"watermark", "filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher.png,repeat,repeat,70,10,10):watermark(gopher-front.png,center,-10p)/gopher.png"},
 		{"trim", "trim/find_trim.png"},
 		{"trim bottom", "trim:bottom-right/find_trim.png"},
-		{"trim tolerance", "trim:10/find_trim.png"},
-		{"trim filter", "/fit-in/50x50/filters:trim(10)/find_trim.png"},
+		{"trim tolerance", "trim:50/find_trim.png"},
+		{"trim filter", "/fit-in/50x50/filters:trim(50)/find_trim.png"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -65,7 +68,13 @@ func TestVipsProcessor(t *testing.T) {
 			assert.Equal(t, 200, w.Code)
 			buf, err := ioutil.ReadFile(filepath.Join(testDataDir, "result", tt.path))
 			assert.NoError(t, err)
-			assert.Equal(t, buf, w.Body.Bytes())
+			if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
+				if len(b) < 512 {
+					t.Error(string(b))
+				} else {
+					t.Error("result not equal")
+				}
+			}
 		})
 	}
 }
