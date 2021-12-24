@@ -23,10 +23,13 @@ func init() {
 	testDataDir = filepath.Join(filepath.Dir(b), "../../testdata")
 }
 
-func doTest(t *testing.T, name string, app *imagor.Imagor) {
+func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func())) {
 	t.Run(name, func(t *testing.T) {
 		assert.NoError(t, app.Startup(context.Background()))
 		t.Parallel()
+		cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
 		tests := []struct {
 			name string
 			path string
@@ -88,7 +91,7 @@ func TestVipsProcessor(t *testing.T) {
 			filepath.Join(testDataDir, "result"),
 			filestore.WithSaveErrIfExists(true),
 		)),
-	))
+	), t.Cleanup)
 	doTest(t, "from file", imagor.New(
 		imagor.WithLoaders(filestore.New(testDataDir)),
 		imagor.WithUnsafe(true),
@@ -104,5 +107,5 @@ func TestVipsProcessor(t *testing.T) {
 			filepath.Join(testDataDir, "result"),
 			filestore.WithSaveErrIfExists(true),
 		)),
-	))
+	), t.Cleanup)
 }
