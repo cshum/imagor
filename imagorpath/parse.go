@@ -8,7 +8,7 @@ import (
 )
 
 var pathRegex = regexp.MustCompile(
-	"/?" +
+	"/*" +
 		// params
 		"(params/)?" +
 		// hash
@@ -18,7 +18,7 @@ var pathRegex = regexp.MustCompile(
 )
 
 var paramsRegex = regexp.MustCompile(
-	"/?" +
+	"/*" +
 		// meta
 		"(meta/)?" +
 		// trim

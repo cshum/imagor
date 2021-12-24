@@ -50,9 +50,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 
 func (s *S3Store) Path(image string) (string, bool) {
 	image = "/" + strings.TrimPrefix(path.Clean(
-		strings.ReplaceAll(
-			strings.ReplaceAll(image, ":/", "%3A"),
-			"//", "/"),
+		strings.ReplaceAll(image, ":/", "%3A"),
 	), "/")
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
