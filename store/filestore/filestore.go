@@ -54,7 +54,7 @@ func (s *FileStore) Path(image string) (string, bool) {
 func (s *FileStore) Load(_ *http.Request, image string) (*imagor.File, error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrNotFound
 	}
 	if _, err := os.Stat(image); err != nil {
 		if os.IsNotExist(err) {
@@ -68,7 +68,7 @@ func (s *FileStore) Load(_ *http.Request, image string) (*imagor.File, error) {
 func (s *FileStore) Save(_ context.Context, image string, file *imagor.File) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return imagor.ErrPass
+		return imagor.ErrNotFound
 	}
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return

@@ -102,30 +102,42 @@ func TestFileStore_Path(t *testing.T) {
 }
 
 func TestFileStore_Load_Store(t *testing.T) {
-	dir, err := ioutil.TempDir("", "imagor-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s := New(dir)
-	b, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
-	if err != imagor.ErrNotFound {
-		t.Errorf("= %v, want ErrNotFound", err)
-	}
 	ctx := context.Background()
-	if err := s.Save(ctx, "/foo/fooo/asdf", imagor.NewFileBytes([]byte("bar"))); err != nil {
-		t.Error(err)
-	}
-	b, err = s.Load(&http.Request{}, "/foo/fooo/asdf")
-	if err != nil {
-		t.Error(err)
-	}
-	buf, err := b.Bytes()
-	if err != nil {
-		t.Error(err)
-	}
-	if string(buf) != "bar" {
-		t.Errorf(" = %s want %s", string(buf), "bar")
-	}
-	s = New(dir, WithSaveErrIfExists(true))
-	assert.Error(t, s.Save(ctx, "/foo/fooo/asdf", imagor.NewFileBytes([]byte("boo"))))
+	dir, err := ioutil.TempDir("", "imagor-test")
+	assert.NoError(t, err)
+
+	t.Run("blacklisted path", func(t *testing.T) {
+		s := New(dir)
+		_, err = s.Load(&http.Request{}, "/abc/.git")
+		assert.Equal(t, imagor.ErrNotFound, err)
+		assert.Equal(t, imagor.ErrNotFound, s.Save(ctx, "/abc/.git", imagor.NewFileBytes([]byte("boo"))))
+	})
+	t.Run("insufficient permission", func(t *testing.T) {
+		s := New(dir, WithMkdirPermission("0444"), WithWritePermission("0444"))
+		_, err = s.Load(&http.Request{}, "/abc/.git")
+		assert.Equal(t, imagor.ErrNotFound, err)
+		assert.Error(t, s.Save(ctx, "/abc/fooo/asdf", imagor.NewFileBytes([]byte("boo"))))
+	})
+	t.Run("save and load", func(t *testing.T) {
+		s := New(dir, WithMkdirPermission("0755"), WithWritePermission("0666"))
+		_, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
+		assert.Equal(t, imagor.ErrNotFound, err)
+		assert.NoError(t, s.Save(ctx, "/foo/fooo/asdf", imagor.NewFileBytes([]byte("bar"))))
+		b, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
+		assert.NoError(t, err)
+		buf, err := b.Bytes()
+		assert.NoError(t, err)
+		assert.Equal(t, "bar", string(buf))
+	})
+
+	t.Run("save err if exists", func(t *testing.T) {
+		s := New(dir, WithSaveErrIfExists(true))
+		assert.NoError(t, s.Save(ctx, "/foo/bar/asdf", imagor.NewFileBytes([]byte("bar"))))
+		assert.Error(t, s.Save(ctx, "/foo/bar/asdf", imagor.NewFileBytes([]byte("boo"))))
+		b, err := s.Load(&http.Request{}, "/foo/bar/asdf")
+		assert.NoError(t, err)
+		buf, err := b.Bytes()
+		assert.NoError(t, err)
+		assert.Equal(t, "bar", string(buf))
+	})
 }
