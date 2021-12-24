@@ -62,8 +62,8 @@ func Sign(path, secret string) string {
 	return hash
 }
 
-// Clean image url path to be file friendly
-func Clean(image string) string {
+// Escape imagor path to be file path friendly
+func Escape(image string) string {
 	var escaped []string
 	image = path.Clean(image)
 	image = strings.Trim(image, "/")
