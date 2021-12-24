@@ -334,7 +334,7 @@ func (app *Imagor) Acquire(
 	key string, fn func(ctx context.Context) (*File, error),
 ) (file *File, err error) {
 	if app.Debug {
-		app.Logger.Debug("Acquire", zap.String("key", key))
+		app.Logger.Debug("acquire", zap.String("key", key))
 	}
 	if isAcquired, ok := ctx.Value(acquireKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock

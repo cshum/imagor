@@ -59,7 +59,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"trim tolerance", "trim:50/find_trim.png"},
 		{"trim filter", "/fit-in/50x50/filters:trim(50)/find_trim.png"},
 
-		{"watermark", "filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher.png,repeat,repeat,70,10,10):watermark(gopher-front.png,center,-10p)/gopher.png"},
+		{"watermark", "filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
