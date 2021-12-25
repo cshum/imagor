@@ -4,7 +4,6 @@ import (
 	"context"
 	"go.uber.org/zap"
 	"net/http"
-	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -59,16 +58,21 @@ func New(app Service, options ...Option) *Server {
 		s.Handler = http.StripPrefix(s.PathPrefix, s.Handler)
 	}
 	s.Handler = s.panicHandler(s.Handler)
-	s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
-
+	if s.Addr == "" {
+		s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
+	}
 	return s
 }
 
 func (s *Server) Run() {
-	s.startup()
+	ctx, cancel := signal.NotifyContext(
+		context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+	s.RunContext(ctx)
+}
 
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+func (s *Server) RunContext(ctx context.Context) {
+	s.startup(ctx)
 
 	go func() {
 		if err := s.listenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -76,21 +80,21 @@ func (s *Server) Run() {
 		}
 	}()
 	s.Logger.Info("listen", zap.String("addr", s.Addr))
-	<-done
+	<-ctx.Done()
 
-	s.shutdown()
+	s.shutdown(context.Background())
 }
 
-func (s *Server) startup() {
-	ctx, cancel := context.WithTimeout(context.Background(), s.StartupTimeout)
+func (s *Server) startup(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, s.StartupTimeout)
 	defer cancel()
 	if err := s.App.Startup(ctx); err != nil {
 		s.Logger.Fatal("app-startup", zap.Error(err))
 	}
 }
 
-func (s *Server) shutdown() {
-	ctx, cancel := context.WithTimeout(context.Background(), s.ShutdownTimeout)
+func (s *Server) shutdown(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(ctx, s.ShutdownTimeout)
 	defer cancel()
 	s.Logger.Info("shutdown")
 	if err := s.Shutdown(ctx); err != nil {
