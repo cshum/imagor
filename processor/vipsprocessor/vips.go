@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
@@ -118,16 +119,13 @@ func (v *VipsProcessor) newThumbnail(
 		return nil, imagor.ErrNotFound
 	}
 	if file.HasPath() && v.LoadFromFile {
-		return vips.NewThumbnailWithSizeFromFile(file.Path, width, height, crop, size)
+		return wrapErr(vips.NewThumbnailWithSizeFromFile(file.Path, width, height, crop, size))
 	}
 	buf, err := file.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	img, err := vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size)
-	if err == vips.ErrUnsupportedImageFormat {
-		err = imagor.ErrUnsupportedFormat
-	}
+	img, err := wrapErr(vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size))
 	return img, err
 }
 
@@ -136,16 +134,13 @@ func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
 		return nil, imagor.ErrNotFound
 	}
 	if file.HasPath() && v.LoadFromFile {
-		return vips.NewImageFromFile(file.Path)
+		return wrapErr(vips.NewImageFromFile(file.Path))
 	}
 	buf, err := file.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	img, err := vips.NewImageFromBuffer(buf)
-	if err == vips.ErrUnsupportedImageFormat {
-		err = imagor.ErrUnsupportedFormat
-	}
+	img, err := wrapErr(vips.NewImageFromBuffer(buf))
 	return img, err
 }
 
@@ -382,4 +377,20 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 		}
 		return image.ExportJpeg(opts)
 	}
+}
+
+func wrapErr(img *vips.ImageRef, err error) (*vips.ImageRef, error) {
+	if err == nil {
+		return img, nil
+	}
+	if err == vips.ErrUnsupportedImageFormat {
+		return img, imagor.ErrUnsupportedFormat
+	}
+	if strings.HasPrefix(err.Error(), "VipsForeignLoad: buffer is not in a known format") {
+		return img, imagor.ErrUnsupportedFormat
+	}
+	if idx := strings.Index(err.Error(), "\n\nStack"); idx > -1 {
+		return img, imagor.NewError(err.Error()[:idx], 400)
+	}
+	return img, err
 }

@@ -210,7 +210,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 					}
 				} else {
 					err = e
-					app.Logger.Warn("process", zap.Any("params", p), zap.Error(e))
+					app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
 					if errors.Is(err, context.DeadlineExceeded) {
 						break
 					}
@@ -270,10 +270,10 @@ func (app *Imagor) load(
 			break
 		}
 		// should not log expected error as of now, as it has not reached the end
-		if e != nil && e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled) {
-			app.Logger.Warn("load", zap.String("key", key), zap.Error(e))
-		} else if app.Debug {
-			app.Logger.Debug("load", zap.String("key", key), zap.Error(e))
+		if e != nil {
+			if app.Debug || (e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled)) {
+				app.Logger.Warn("load", zap.String("key", key), zap.Error(e))
+			}
 		}
 		err = e
 	}
