@@ -102,7 +102,7 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
-	if path == "/" {
+	if path == "/" || path == "" {
 		resJSON(w, json.RawMessage(fmt.Sprintf(
 			`{"imagor":{"version":"%s"}}`, app.Version,
 		)))

@@ -9,6 +9,12 @@ import (
 
 type Option func(s *Server)
 
+func WithAddr(addr string) Option {
+	return func(s *Server) {
+		s.Addr = addr
+	}
+}
+
 func WithAddress(address string) Option {
 	return func(s *Server) {
 		s.Address = address
