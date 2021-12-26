@@ -389,8 +389,8 @@ func wrapErr(img *vips.ImageRef, err error) (*vips.ImageRef, error) {
 	if strings.HasPrefix(err.Error(), "VipsForeignLoad: buffer is not in a known format") {
 		return img, imagor.ErrUnsupportedFormat
 	}
-	if idx := strings.Index(err.Error(), "\n\nStack"); idx > -1 {
-		return img, imagor.NewError(err.Error()[:idx], 400)
+	if idx := strings.Index(err.Error(), "Stack:"); idx > -1 {
+		return img, imagor.NewError(strings.TrimSpace(err.Error()[:idx]), 406)
 	}
 	return img, err
 }
