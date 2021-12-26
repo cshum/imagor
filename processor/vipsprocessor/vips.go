@@ -119,14 +119,15 @@ func (v *VipsProcessor) newThumbnail(
 		return nil, imagor.ErrNotFound
 	}
 	if file.HasPath() && v.LoadFromFile {
-		return wrapErr(vips.NewThumbnailWithSizeFromFile(file.Path, width, height, crop, size))
+		img, err := vips.NewThumbnailWithSizeFromFile(file.Path, width, height, crop, size)
+		return img, wrapErr(err)
 	}
 	buf, err := file.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	img, err := wrapErr(vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size))
-	return img, err
+	img, err := vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size)
+	return img, wrapErr(err)
 }
 
 func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
@@ -134,14 +135,15 @@ func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
 		return nil, imagor.ErrNotFound
 	}
 	if file.HasPath() && v.LoadFromFile {
-		return wrapErr(vips.NewImageFromFile(file.Path))
+		img, err := vips.NewImageFromFile(file.Path)
+		return img, wrapErr(err)
 	}
 	buf, err := file.Bytes()
 	if err != nil {
 		return nil, err
 	}
-	img, err := wrapErr(vips.NewImageFromBuffer(buf))
-	return img, err
+	img, err := vips.NewImageFromBuffer(buf)
+	return img, wrapErr(err)
 }
 
 func (v *VipsProcessor) Process(
@@ -273,11 +275,11 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if err := v.process(ctx, img, p, load, isThumbnail, stretch, upscale); err != nil {
-		return nil, err
+		return nil, wrapErr(err)
 	}
 	buf, meta, err := export(img, format, quality)
 	if err != nil {
-		return nil, err
+		return nil, wrapErr(err)
 	}
 	return imagor.NewFileBytesWithMeta(buf, getMeta(meta)), nil
 }
@@ -379,18 +381,19 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 	}
 }
 
-func wrapErr(img *vips.ImageRef, err error) (*vips.ImageRef, error) {
+func wrapErr(err error) error {
 	if err == nil {
-		return img, nil
+		return nil
 	}
 	if err == vips.ErrUnsupportedImageFormat {
-		return img, imagor.ErrUnsupportedFormat
+		return imagor.ErrUnsupportedFormat
 	}
-	if strings.HasPrefix(err.Error(), "VipsForeignLoad: buffer is not in a known format") {
-		return img, imagor.ErrUnsupportedFormat
+	msg := err.Error()
+	if strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
+		return imagor.ErrUnsupportedFormat
 	}
-	if idx := strings.Index(err.Error(), "Stack:"); idx > -1 {
-		return img, imagor.NewError(strings.TrimSpace(err.Error()[:idx]), 406)
+	if idx := strings.Index(msg, "Stack:"); idx > -1 {
+		return imagor.NewError(strings.TrimSpace(msg[:idx]), 406)
 	}
-	return img, err
+	return err
 }
