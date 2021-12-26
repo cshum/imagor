@@ -152,13 +152,13 @@ func (v *VipsProcessor) Process(
 	var (
 		upscale     = false
 		isThumbnail = false
-		hasSpecial  = false
+		hasTrim     = false
 		stretch     = p.Stretch
 		img         *vips.ImageRef
 		err         error
 	)
 	if p.Trim {
-		hasSpecial = true
+		hasTrim = true
 	}
 	for _, p := range p.Filters {
 		switch p.Name {
@@ -171,15 +171,12 @@ func (v *VipsProcessor) Process(
 		case "no_upscale":
 			upscale = false
 			break
-		case "rotate":
-			hasSpecial = true
-			break
 		case "trim":
-			hasSpecial = true
+			hasTrim = true
 			break
 		}
 	}
-	if p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasSpecial {
+	if p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasTrim {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
@@ -241,7 +238,7 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if !isThumbnail {
-		if hasSpecial {
+		if hasTrim {
 			// special ops does not support create by thumbnail
 			if img, err = v.newImage(file); err != nil {
 				return nil, err
