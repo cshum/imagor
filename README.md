@@ -22,8 +22,8 @@ Try out the following image URLs:
 
 ```
 # original images
-https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png
+https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png
 
 http://localhost:8000/unsafe/500x500/top/https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
 http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
