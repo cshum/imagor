@@ -25,10 +25,10 @@ Try out the following image URLs:
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png
 
-http://localhost:8000/unsafe/500x500/top/https://raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-http://localhost:8000/unsafe/fit-in/-500x500/10x10/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
-http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+http://localhost:8000/unsafe/500x500/top/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+http://localhost:8000/unsafe/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+http://localhost:8000/unsafe/fit-in/-500x500/10x10/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
 #### Docker Compose Example
@@ -110,11 +110,11 @@ Imagor provides utilities for previewing and generating Imagor endpoint URI:
 Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for preview:
 
 ```
-curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 
 {
-  "path": "fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
-  "image": "raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
+  "path": "fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
+  "image": "raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
   "hash": "g5bMqZvxaQK65qFPaP1qlJOTuLM=",
   "fit_in": true,
   "width": 500,
@@ -141,7 +141,7 @@ import "github.com/cshum/imagor/imagorpath"
 
 func Test(t *testing.T) {
 	params := imagorpath.Params{
-		Image:    "raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png",
+		Image:    "raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
 		FitIn:    true,
 		Width:    500,
 		Height:   400,
@@ -157,7 +157,7 @@ func Test(t *testing.T) {
 	// generate signed Imagor endpoint from Params struct with secret
 	path := imagorpath.Generate(params, "mysecret")
 
-	assert.Equal(t, path, "g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png")
+	assert.Equal(t, path, "g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 }
 
 ```
@@ -178,8 +178,8 @@ func SignPath(path, secret string) string {
 }
 
 func main() {
-	fmt.Println(SignPath("500x500/top/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png", "mysecret"))
-	// RArq3FZw_bqxLcpKo1WI0aX_q7s=/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher.png
+	fmt.Println(SignPath("500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png", "mysecret"))
+	// RArq3FZw_bqxLcpKo1WI0aX_q7s=/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 }
 ```
 
@@ -190,7 +190,7 @@ Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations 
 ```
 /filters:fill(white):format(jpeg)/
 /filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/
-/filters:fill(white):watermark(raw.githubusercontent.com/golang-samples/gopher-vector/master/gopher-front.png,repeat,bottom,10):format(jpeg)/
+/filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/
 ```
 
 Imagor supports the following filters:
