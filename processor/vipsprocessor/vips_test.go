@@ -29,6 +29,7 @@ var tests = []struct {
 	name string
 	path string
 }{
+	{"original", "gopher-front.png"},
 	{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
 	{"resize smart", "100x100/smart/filters:autojpg()/gopher.png"},
 	{"resize top", "200x100/top/filters:quality(70):format(tiff)/gopher.png"},

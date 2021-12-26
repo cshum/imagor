@@ -13,7 +13,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, isThumbnail, stretch, upscale bool,
+	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool,
 ) error {
 	if p.Trim {
 		if err := trim(img, p.TrimBy, p.TrimTolerance); err != nil {
@@ -48,7 +48,7 @@ func (v *VipsProcessor) process(
 	} else if h == 0 {
 		h = img.Height() * w / img.Width()
 	}
-	if !isThumbnail {
+	if !thumbnail {
 		if p.FitIn {
 			if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
 				if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone); err != nil {

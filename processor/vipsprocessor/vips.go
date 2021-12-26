@@ -150,16 +150,13 @@ func (v *VipsProcessor) Process(
 	ctx context.Context, file *imagor.File, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.File, error) {
 	var (
-		upscale     = false
-		isThumbnail = false
-		hasTrim     = false
-		stretch     = p.Stretch
-		img         *vips.ImageRef
-		err         error
+		upscale   = false
+		trim      = p.Trim
+		stretch   = p.Stretch
+		thumbnail = false
+		img       *vips.ImageRef
+		err       error
 	)
-	if p.Trim {
-		hasTrim = true
-	}
 	for _, p := range p.Filters {
 		switch p.Name {
 		case "stretch":
@@ -172,11 +169,11 @@ func (v *VipsProcessor) Process(
 			upscale = false
 			break
 		case "trim":
-			hasTrim = true
+			trim = true
 			break
 		}
 	}
-	if p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 && !hasTrim {
+	if !trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
@@ -197,7 +194,7 @@ func (v *VipsProcessor) Process(
 				); err != nil {
 					return nil, err
 				}
-				isThumbnail = true
+				thumbnail = true
 			}
 		} else if stretch {
 			if p.Width > 0 && p.Height > 0 {
@@ -206,28 +203,28 @@ func (v *VipsProcessor) Process(
 				); err != nil {
 					return nil, err
 				}
-				isThumbnail = true
+				thumbnail = true
 			}
 		} else {
 			if p.Width > 0 && p.Height > 0 {
 				interest := vips.InterestingNone
 				if p.Smart {
 					interest = vips.InterestingAttention
-					isThumbnail = true
+					thumbnail = true
 				} else if (p.VAlign == imagorpath.VAlignTop && p.HAlign == "") ||
 					(p.HAlign == imagorpath.HAlignLeft && p.VAlign == "") {
 					interest = vips.InterestingLow
-					isThumbnail = true
+					thumbnail = true
 				} else if (p.VAlign == imagorpath.VAlignBottom && p.HAlign == "") ||
 					(p.HAlign == imagorpath.HAlignRight && p.VAlign == "") {
 					interest = vips.InterestingHigh
-					isThumbnail = true
+					thumbnail = true
 				} else if (p.VAlign == "" || p.VAlign == "middle") &&
 					(p.HAlign == "" || p.HAlign == "center") {
 					interest = vips.InterestingCentre
-					isThumbnail = true
+					thumbnail = true
 				}
-				if isThumbnail {
+				if thumbnail {
 					if img, err = v.newThumbnail(
 						file, p.Width, p.Height, interest, vips.SizeBoth,
 					); err != nil {
@@ -237,8 +234,8 @@ func (v *VipsProcessor) Process(
 			}
 		}
 	}
-	if !isThumbnail {
-		if hasTrim {
+	if !thumbnail {
+		if trim {
 			// special ops does not support create by thumbnail
 			if img, err = v.newImage(file); err != nil {
 				return nil, err
@@ -271,7 +268,7 @@ func (v *VipsProcessor) Process(
 			break
 		}
 	}
-	if err := v.process(ctx, img, p, load, isThumbnail, stretch, upscale); err != nil {
+	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale); err != nil {
 		return nil, wrapErr(err)
 	}
 	buf, meta, err := export(img, format, quality)
