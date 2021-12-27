@@ -150,13 +150,16 @@ func (v *VipsProcessor) Process(
 	ctx context.Context, file *imagor.File, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.File, error) {
 	var (
+		special   = false
 		upscale   = false
-		trim      = p.Trim
 		stretch   = p.Stretch
 		thumbnail = false
 		img       *vips.ImageRef
 		err       error
 	)
+	if p.Trim {
+		special = true
+	}
 	for _, p := range p.Filters {
 		switch p.Name {
 		case "stretch":
@@ -168,12 +171,17 @@ func (v *VipsProcessor) Process(
 		case "no_upscale":
 			upscale = false
 			break
+		case "fill", "background_color":
+			if args := strings.Split(p.Args, ","); args[0] == "auto" {
+				special = true
+			}
+			break
 		case "trim":
-			trim = true
+			special = true
 			break
 		}
 	}
-	if !trim && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
+	if !special && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
@@ -235,7 +243,7 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if !thumbnail {
-		if trim {
+		if special {
 			// special ops does not support create by thumbnail
 			if img, err = v.newImage(file); err != nil {
 				return nil, err

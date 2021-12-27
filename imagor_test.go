@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"io"
 	"math/rand"
@@ -75,7 +76,7 @@ func TestAcquireDeadlockResolve(t *testing.T) {
 		})
 	})
 	assert.Equal(t, &File{Path: "abc"}, f)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestAcquireTimeout(t *testing.T) {
@@ -278,10 +279,10 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithProcessTimeout(time.Millisecond*2),
 		WithUnsafe(true),
 	)
-	assert.NoError(t, app.Startup(context.Background()))
+	require.NoError(t, app.Startup(context.Background()))
 	assert.Equal(t, time.Millisecond*2, app.ProcessTimeout)
 	assert.Equal(t, time.Millisecond, app.SaveTimeout)
-	defer assert.NoError(t, app.Shutdown(context.Background()))
+	defer require.NoError(t, app.Shutdown(context.Background()))
 	t.Run("consistent", func(t *testing.T) {
 		t.Parallel()
 		for i := 0; i < 2; i++ {

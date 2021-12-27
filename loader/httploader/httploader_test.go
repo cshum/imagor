@@ -3,6 +3,7 @@ package httploader
 import (
 	"github.com/cshum/imagor"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -50,9 +51,9 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 			r.Header.Set("X-Imagor-Ping", "Pong")
 			b, err := loader.Load(r, tt.target)
 			if tt.err == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				buf, err := b.Bytes()
-				assert.NoError(t, err, tt.result)
+				require.NoError(t, err, tt.result)
 				assert.Equal(t, string(buf), tt.result)
 			} else {
 				assert.EqualError(t, err, tt.err)

@@ -11,12 +11,7 @@ import (
 	"strings"
 )
 
-func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, args ...string) (err error) {
-	var colour string
-	var ln = len(args)
-	if ln > 0 {
-		colour = strings.ToLower(args[0])
-	}
+func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
 	c := getColor(img, colour)
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
 		// fill color
@@ -220,6 +215,9 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 
 func backgroundColor(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
+		return
+	}
+	if !img.HasAlpha() {
 		return
 	}
 	return img.Flatten(getColor(img, args[0]))

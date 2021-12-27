@@ -7,6 +7,7 @@ import (
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/store/filestore"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -42,6 +43,8 @@ var tests = []struct {
 	{"resize right", "100x200/right/top/gopher.png"},
 	{"stretch", "stretch/100x100/filters:modulate(-10,30,20)/gopher.png"},
 	{"fit-in flip hue", "fit-in/-200x0/filters:hue(290):saturation(100):fill(FFO):upscale()/gopher.png"},
+	{"fill auto", "fit-in/400x400/filters:fill(auto)/find_trim.png"},
+	{"fill auto bottom-right", "fit-in/400x400/filters:fill(auto,bottom-right)/find_trim.png"},
 	{"resize top flip blur", "200x-210/top/filters:blur(5):sharpen(5):background_color(ffff00):format(jpeg):quality(70)/gopher.png"},
 	{"crop stretch top flip", "10x20:3000x5000/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
 	{"padding rotation fill blur grayscale", "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
@@ -55,10 +58,10 @@ var tests = []struct {
 
 func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func())) {
 	t.Run(name, func(t *testing.T) {
-		assert.NoError(t, app.Startup(context.Background()))
+		require.NoError(t, app.Startup(context.Background()))
 		t.Parallel()
 		cleanup(func() {
-			assert.NoError(t, app.Shutdown(context.Background()))
+			require.NoError(t, app.Shutdown(context.Background()))
 		})
 
 		for _, tt := range tests {
@@ -69,7 +72,7 @@ func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func()))
 				assert.Equal(t, 200, w.Code)
 				path := filepath.Join(testDataDir, "result", imagorpath.Escape(tt.path))
 				buf, err := ioutil.ReadFile(path)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
 					if len(b) < 512 {
 						t.Error(string(b))

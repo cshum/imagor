@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -104,7 +105,7 @@ func TestFileStore_Path(t *testing.T) {
 func TestFileStore_Load_Store(t *testing.T) {
 	ctx := context.Background()
 	dir, err := ioutil.TempDir("", "imagor-test")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	t.Run("blacklisted path", func(t *testing.T) {
 		s := New(dir)
@@ -116,22 +117,22 @@ func TestFileStore_Load_Store(t *testing.T) {
 		s := New(dir, WithMkdirPermission("0755"), WithWritePermission("0666"))
 		_, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
-		assert.NoError(t, s.Save(ctx, "/foo/fooo/asdf", imagor.NewFileBytes([]byte("bar"))))
+		require.NoError(t, s.Save(ctx, "/foo/fooo/asdf", imagor.NewFileBytes([]byte("bar"))))
 		b, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		buf, err := b.Bytes()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
 	})
 
 	t.Run("save err if exists", func(t *testing.T) {
 		s := New(dir, WithSaveErrIfExists(true))
-		assert.NoError(t, s.Save(ctx, "/foo/bar/asdf", imagor.NewFileBytes([]byte("bar"))))
+		require.NoError(t, s.Save(ctx, "/foo/bar/asdf", imagor.NewFileBytes([]byte("bar"))))
 		assert.Error(t, s.Save(ctx, "/foo/bar/asdf", imagor.NewFileBytes([]byte("boo"))))
 		b, err := s.Load(&http.Request{}, "/foo/bar/asdf")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		buf, err := b.Bytes()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
 	})
 }

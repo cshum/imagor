@@ -111,7 +111,7 @@ func (v *VipsProcessor) process(
 				return err
 			}
 		} else if filter.Name == "fill" {
-			if err := v.fill(img, w, h, p.HPadding, p.VPadding, upscale, args...); err != nil {
+			if err := v.fill(img, w, h, p.HPadding, p.VPadding, upscale, filter.Args); err != nil {
 				return err
 			}
 		}
@@ -157,12 +157,23 @@ func isWhite(c *vips.Color) bool {
 	return c.R == 0xff && c.G == 0xff && c.B == 0xff
 }
 
-func getColor(img *vips.ImageRef, name string) *vips.Color {
+func getColor(img *vips.ImageRef, color string) *vips.Color {
 	vc := &vips.Color{}
-	name = strings.TrimPrefix(strings.ToLower(name), "#")
-	if name == "auto" || name == "" {
+	args := strings.Split(strings.ToLower(color), ",")
+	mode := ""
+	name := strings.TrimPrefix(args[0], "#")
+	if len(args) > 1 {
+		mode = args[1]
+	}
+	if name == "auto" {
 		if img != nil {
-			p, _ := img.GetPoint(0, 0)
+			x := 0
+			y := 0
+			if mode == "bottom-right" {
+				x = img.Width() - 1
+				y = img.Height() - 1
+			}
+			p, _ := img.GetPoint(x, y)
 			if len(p) >= 3 {
 				vc.R = uint8(p[0])
 				vc.G = uint8(p[1])
