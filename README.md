@@ -142,7 +142,7 @@ var Base64 = require("crypto-js/enc-base64")
 
 function sign(path, secret) {
   hash = hmacSHA1(path, secret);
-  hash = Base64.stringify(hash).replace('+', '-').replace('/', '_')
+  hash = Base64.stringify(hash).replace(/\+/g, '-').replace(/\//g, '_')
   return hash + '/' + path
 }
 
