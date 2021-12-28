@@ -103,7 +103,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 - `filters` a pipeline of image filter operations to be applied, see filters section
 - `IMAGE` is the image URI
 
-Imagor provides utilities for previewing and generating Imagor endpoint URI, including the Go [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) package and `/params` endpoint:
+Imagor provides utilities for previewing and generating Imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
 
 #### `GET /params`
 
@@ -134,7 +134,7 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks that abuse multiple image operations.
 
 The hash is based on HMAC SHA1 digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
-An example in Node.js:
+An example in JavaScript:
 
 ```javascript
 var hmacSHA1 = require("crypto-js/hmac-sha1")
