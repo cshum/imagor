@@ -170,11 +170,11 @@ The hash is based on HMAC digest, created by taking the URL path (excluding /uns
 An example in Node.js:
 
 ```javascript
-var hmasSHA1 = require("crypto-js/hmac-sha1")
+var hmacSHA1 = require("crypto-js/hmac-sha1")
 var Base64 = require("crypto-js/enc-base64")
 
 function sign(path, secret) {
-  hash = hmasSHA1(path, secret);
+  hash = hmacSHA1(path, secret);
   hash = Base64.stringify(hash).replace('+', '-').replace('/', '_')
   return hash + '/' + path
 }
@@ -283,7 +283,6 @@ Usage of imagor:
   -imagor-save-timeout duration
         Timeout for saving image to Imagor Storage (default 20s)
 
-
   -server-address string
         Server address
   -server-cors
@@ -378,7 +377,6 @@ Usage of imagor:
         S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present
   -s3-result-storage-path-prefix string
         Base path prefix for S3 Result Storage
-
 
   -vips-concurrency int
         VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
