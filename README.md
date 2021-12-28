@@ -133,7 +133,7 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 
 In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks that abuse multiple image operations.
 
-The hash is based on HMAC digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+The hash is based on HMAC SHA1 digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
 An example in Node.js:
 
 ```javascript
