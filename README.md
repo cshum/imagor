@@ -157,7 +157,7 @@ func Test(t *testing.T) {
 	// generate signed Imagor endpoint from Params struct with secret
 	path := imagorpath.Generate(params, "mysecret")
 
-	assert.Equal(t, path, "g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
+	assert.Equal(t, path, "OyGJyvfYJw8xNkYDmXU-4NPA2U0=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 }
 
 ```
@@ -167,20 +167,20 @@ func Test(t *testing.T) {
 In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks that abuse multiple image operations.
 
 The hash is based on HMAC digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
-An example in Go:
+An example in Node.js:
 
-```go
-func SignPath(path, secret string) string {
-	h := hmac.New(sha1.New, []byte(secret))
-	h.Write([]byte(strings.TrimPrefix(path, "/")))
-	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
-	return hash + "/" + path
+```javascript
+var hmasSHA1 = require("crypto-js/hmac-sha1")
+var Base64 = require("crypto-js/enc-base64")
+
+function sign(path, secret) {
+  hash = hmasSHA1(path, secret);
+  hash = Base64.stringify(hash).replace('+', '-').replace('/', '_')
+  return hash + '/' + path
 }
 
-func main() {
-	fmt.Println(SignPath("500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png", "mysecret"))
-	// RArq3FZw_bqxLcpKo1WI0aX_q7s=/fit-in/500x500/filters:fill(white):format(jpeg)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
-}
+console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png', 'mysecret'))
+// cST4Ko5_FqwT3BDn-Wf4gO3RFSk=/500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
 ### Filters
