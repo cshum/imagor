@@ -103,7 +103,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 - `filters` a pipeline of image filter operations to be applied, see filters section
 - `IMAGE` is the image URI
 
-Imagor provides utilities for previewing and generating Imagor endpoint URI:
+Imagor provides utilities for previewing and generating Imagor endpoint URI, including the Go [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) package and `/params` endpoint:
 
 #### `GET /params`
 
@@ -127,39 +127,6 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
     }
   ]
 }
-```
-
-#### `imagorpath` package
-
-Imagor Go library provides a `imagorpath` package which
-allows you to parse and generate Imagor endpoint using the `Params` struct:
-
-```go
-import "github.com/cshum/imagor/imagorpath"
-
-...
-
-func Test(t *testing.T) {
-	params := imagorpath.Params{
-		Image:    "raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
-		FitIn:    true,
-		Width:    500,
-		Height:   400,
-		VPadding: 20,
-		Filters: imagorpath.Filters{
-			{
-				Name: "fill",
-				Args: "white",
-			},
-		},
-	}
-
-	// generate signed Imagor endpoint from Params struct with secret
-	path := imagorpath.Generate(params, "mysecret")
-
-	assert.Equal(t, path, "OyGJyvfYJw8xNkYDmXU-4NPA2U0=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
-}
-
 ```
 
 ### URL Signature
