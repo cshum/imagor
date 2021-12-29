@@ -49,7 +49,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 }
 
 func (s *S3Store) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Escape(image)
+	image = "/" + imagorpath.Normalize(image)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}

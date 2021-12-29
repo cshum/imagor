@@ -37,7 +37,7 @@ func New(baseDir string, options ...Option) *FileStore {
 }
 
 func (s *FileStore) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Escape(image)
+	image = "/" + imagorpath.Normalize(image)
 	for _, blacklist := range s.Blacklists {
 		if blacklist.MatchString(image) {
 			return "", false
