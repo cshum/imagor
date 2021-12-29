@@ -4,12 +4,14 @@ import (
 	"io/ioutil"
 )
 
+// File abstraction for file path, bytes data and meta attributes
 type File struct {
 	Path string
 	Meta *Meta
 	buf  []byte
 }
 
+// Meta image attributes
 type Meta struct {
 	Format      string `json:"format"`
 	ContentType string `json:"content_type"`

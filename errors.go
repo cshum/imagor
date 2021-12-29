@@ -25,6 +25,7 @@ const errPrefix = "imagor:"
 
 var errMsgRegexp = regexp.MustCompile(fmt.Sprintf("^%s ([0-9]+) (.*)$", errPrefix))
 
+// Error Imagor error convention
 type Error struct {
 	Message string `json:"message,omitempty"`
 	Code    int    `json:"status,omitempty"`
@@ -42,14 +43,17 @@ func (e Error) Timeout() bool {
 	return e.Code == http.StatusRequestTimeout || e.Code == http.StatusGatewayTimeout
 }
 
+// NewError creates Imagor Error from message and status code
 func NewError(msg string, code int) Error {
 	return Error{Message: msg, Code: code}
 }
 
+// NewErrorFromStatusCode creates Imagor Error solely from status code
 func NewErrorFromStatusCode(code int) Error {
 	return NewError(http.StatusText(code), code)
 }
 
+// WrapError wraps Go error into Imagor Error
 func WrapError(err error) error {
 	if err == nil {
 		return nil

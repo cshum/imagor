@@ -16,12 +16,13 @@ import (
 	"time"
 )
 
-type LoadFunc func(string) (*File, error)
-
 // Loader Load image from image source
 type Loader interface {
 	Load(r *http.Request, image string) (*File, error)
 }
+
+// LoadFunc imagor load function for Processor
+type LoadFunc func(string) (*File, error)
 
 // Storage save image buffer
 type Storage interface {
@@ -82,6 +83,7 @@ func New(options ...Option) *Imagor {
 	return app
 }
 
+// Startup Imagor startup lifecycle
 func (app *Imagor) Startup(ctx context.Context) (err error) {
 	for _, processor := range app.Processors {
 		if err = processor.Startup(ctx); err != nil {
@@ -91,6 +93,7 @@ func (app *Imagor) Startup(ctx context.Context) (err error) {
 	return
 }
 
+// Shutdown Imagor shutdown lifecycle
 func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 	for _, processor := range app.Processors {
 		if err = processor.Shutdown(ctx); err != nil {
@@ -100,6 +103,7 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 	return
 }
 
+// ServeHTTP implements http.Handler for Imagor operations
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
@@ -155,6 +159,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// Do executes Imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err error) {
 	var cancel func()
 	ctx := r.Context()
