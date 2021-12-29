@@ -38,7 +38,7 @@ func (f *File) HasPath() bool {
 	return f.Path != ""
 }
 
-func (f *File) Bytes() ([]byte, error) {
+func (f *File) ReadAll() ([]byte, error) {
 	if len(f.buf) > 0 {
 		return f.buf, nil
 	}

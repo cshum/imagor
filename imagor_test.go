@@ -248,7 +248,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithResultStorages(resultStore),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
-				buf, _ := file.Bytes()
+				buf, _ := file.ReadAll()
 				if string(buf) == "bar" {
 					return NewFileBytes([]byte("tar")), ErrPass
 				}
@@ -265,7 +265,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return file, nil
 			}),
 			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
-				buf, _ := file.Bytes()
+				buf, _ := file.ReadAll()
 				if string(buf) == "tar" {
 					return NewFileBytesWithMeta([]byte("bark"), fakeMeta), nil
 				}

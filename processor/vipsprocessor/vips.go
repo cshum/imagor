@@ -122,7 +122,7 @@ func (v *VipsProcessor) newThumbnail(
 		img, err := vips.NewThumbnailWithSizeFromFile(file.Path, width, height, crop, size)
 		return img, wrapErr(err)
 	}
-	buf, err := file.Bytes()
+	buf, err := file.ReadAll()
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
 		img, err := vips.NewImageFromFile(file.Path)
 		return img, wrapErr(err)
 	}
-	buf, err := file.Bytes()
+	buf, err := file.ReadAll()
 	if err != nil {
 		return nil, err
 	}

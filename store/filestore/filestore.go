@@ -71,7 +71,7 @@ func (s *FileStore) Save(_ context.Context, image string, file *imagor.File) (er
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
 	}
-	buf, err := file.Bytes()
+	buf, err := file.ReadAll()
 	if err != nil {
 		return err
 	}

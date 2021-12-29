@@ -52,7 +52,7 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 			b, err := loader.Load(r, tt.target)
 			if tt.err == "" {
 				require.NoError(t, err)
-				buf, err := b.Bytes()
+				buf, err := b.ReadAll()
 				require.NoError(t, err, tt.result)
 				assert.Equal(t, string(buf), tt.result)
 			} else {
