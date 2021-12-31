@@ -2,9 +2,9 @@ package vipsprocessor
 
 import (
 	"context"
-	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/davidbyttow/govips/v2/vips"
 	"go.uber.org/zap"
 	"golang.org/x/image/colornames"
 	"image/color"

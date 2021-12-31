@@ -2,9 +2,9 @@ package vipsprocessor
 
 import (
 	"fmt"
-	"github.com/cshum/govips/v2/vips"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/davidbyttow/govips/v2/vips"
 	"math"
 	"net/url"
 	"strconv"
