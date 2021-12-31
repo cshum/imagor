@@ -394,7 +394,7 @@ func wrapErr(err error) error {
 	if strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
 		return imagor.ErrUnsupportedFormat
 	}
-	if idx := strings.Index(msg, "Stack:"); idx > 1 {
+	if idx := strings.Index(msg, "Stack:"); idx > -1 {
 		msg = strings.TrimSpace(msg[:idx]) // neglect govips stacks from err msg
 	}
 	return imagor.NewError(msg, 406)
