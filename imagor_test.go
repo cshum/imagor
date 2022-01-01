@@ -138,14 +138,14 @@ func TestVersion(t *testing.T) {
 	app := New(
 		WithDebug(true),
 		WithLogger(zap.NewExample()),
-		WithVersion("test"))
+	)
 
 	r := httptest.NewRequest(
 		http.MethodGet, "https://example.com/", nil)
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r)
 	assert.Equal(t, 200, w.Code)
-	assert.Equal(t, `{"imagor":{"version":"test"}}`, w.Body.String())
+	assert.Equal(t, fmt.Sprintf(`{"imagor":{"version":"%s"}}`, Version), w.Body.String())
 }
 
 func TestParams(t *testing.T) {

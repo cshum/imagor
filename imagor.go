@@ -46,7 +46,6 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	Version        string
 	Unsafe         bool
 	Secret         string
 	Loaders        []Loader
@@ -68,7 +67,6 @@ type Imagor struct {
 // New create new Imagor
 func New(options ...Option) *Imagor {
 	app := &Imagor{
-		Version:        "dev",
 		Logger:         zap.NewNop(),
 		RequestTimeout: time.Second * 30,
 		LoadTimeout:    time.Second * 20,
@@ -110,7 +108,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		resJSON(w, json.RawMessage(fmt.Sprintf(
-			`{"imagor":{"version":"%s"}}`, app.Version,
+			`{"imagor":{"version":"%s"}}`, Version,
 		)))
 		return
 	}
