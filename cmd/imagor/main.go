@@ -20,8 +20,6 @@ import (
 	"time"
 )
 
-var Version = "dev"
-
 func main() {
 	var (
 		fs             = flag.NewFlagSet("imagor", flag.ExitOnError)
@@ -37,6 +35,7 @@ func main() {
 
 	var (
 		debug        = fs.Bool("debug", false, "Debug mode")
+		version      = fs.Bool("version", false, "Imagor version")
 		port         = fs.Int("port", 8000, "Sever port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
@@ -54,7 +53,6 @@ func main() {
 			time.Second*20, "Timeout for image processing")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
 			time.Hour*24, "Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache")
-		imagorVersion = fs.Bool("imagor-version", false, "Imagor version")
 
 		serverAddress = fs.String("server-address", "",
 			"Server address")
@@ -177,8 +175,8 @@ func main() {
 		panic(err)
 	}
 
-	if *imagorVersion {
-		fmt.Println(Version)
+	if *version {
+		fmt.Println(imagor.Version)
 		return
 	}
 
@@ -332,7 +330,6 @@ func main() {
 				httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
 				httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
 				httploader.WithDefaultScheme(*httpLoaderDefaultScheme),
-				httploader.WithUserAgent(fmt.Sprintf("Imagor/%s", Version)),
 			),
 		)
 	}
@@ -340,7 +337,6 @@ func main() {
 	// run server with Imagor app
 	server.New(
 		imagor.New(
-			imagor.WithVersion(Version),
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
 			imagor.WithProcessors(

@@ -232,13 +232,13 @@ Usage of imagor:
         Debug mode
   -port int
         Sever port (default 8000)
+  -version
+        Imagor version
 
   -imagor-secret string
         Secret key for signing Imagor URL
   -imagor-unsafe
         Unsafe Imagor that does not require URL signature. Prone to URL tampering
-  -imagor-version
-        Imagor version
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
   -imagor-load-timeout duration

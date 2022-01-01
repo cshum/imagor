@@ -1,17 +1,17 @@
 build:
 	CGO_CFLAGS_ALLOW=-Xpreprocessor go build -o bin/imagor ./cmd/imagor/main.go
 
+test:
+	go clean -testcache && CGO_CFLAGS_ALLOW=-Xpreprocessor go test -cover ./...
+
 dev: build
 	./bin/imagor -debug -imagor-unsafe
 
 get:
 	go get -v -t -d ./...
 
-test:
-	go clean -testcache && CGO_CFLAGS_ALLOW=-Xpreprocessor go test -cover ./...
-
 docker-dev-build:
-	docker build --build-arg IMAGOR_VERSION=dev -t shumc/imagor:dev .
+	docker build --build-arg -t shumc/imagor:dev .
 
 docker-dev-run:
 	touch .env
@@ -19,16 +19,22 @@ docker-dev-run:
 
 docker-dev: docker-dev-build docker-dev-run
 
-docker-build:
-	docker build --no-cache=true --build-arg IMAGOR_VERSION=$(VERSION) -t shumc/imagor:$(VERSION) .
+%-tag: VERSION:=$(if $(VERSION),$(VERSION),$$(./bin/imagor -version))
 
-docker-push:
+docker-build-tag:
+	docker build --no-cache=true -t shumc/imagor:$(VERSION) .
+
+docker-push-tag:
 	docker push shumc/imagor:$(VERSION)
 
-docker-latest:
+docker-latest-tag:
 	docker tag shumc/imagor:$(VERSION) shumc/imagor:latest
 	docker push shumc/imagor:latest
 
-docker-tag: docker-build docker-push
+docker-tag: docker-build-tag docker-push-tag
 
-docker: docker-build docker-push docker-latest
+git-tag:
+	git tag "v$(VERSION)"
+	git push --tags
+
+release: test build docker-build-tag docker-push-tag docker-latest-tag git-tag

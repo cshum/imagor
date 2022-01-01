@@ -2,6 +2,7 @@ package httploader
 
 import (
 	"compress/gzip"
+	"fmt"
 	"github.com/cshum/imagor"
 	"io"
 	"net/http"
@@ -41,7 +42,7 @@ func New(options ...Option) *HTTPLoader {
 	h := &HTTPLoader{
 		OverrideHeaders: map[string]string{},
 		DefaultScheme:   "https",
-		UserAgent:       "Imagor",
+		UserAgent:       fmt.Sprintf("Imagor/%s", imagor.Version),
 	}
 	for _, option := range options {
 		option(h)

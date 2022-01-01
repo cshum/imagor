@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+const Version = "0.5.15"
+
 // Loader Load image from image source
 type Loader interface {
 	Load(r *http.Request, image string) (*File, error)
