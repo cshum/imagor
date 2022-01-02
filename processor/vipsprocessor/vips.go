@@ -118,7 +118,7 @@ func (v *VipsProcessor) newThumbnail(
 	if imagor.IsFileEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
-	if blob.HasPath() && v.LoadFromFile {
+	if blob.HasFilePath() && v.LoadFromFile {
 		img, err := vips.NewThumbnailWithSizeFromFile(blob.FilePath, width, height, crop, size)
 		return img, wrapErr(err)
 	}
@@ -134,7 +134,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob) (*vips.ImageRef, error) {
 	if imagor.IsFileEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
-	if blob.HasPath() && v.LoadFromFile {
+	if blob.HasFilePath() && v.LoadFromFile {
 		img, err := vips.NewImageFromFile(blob.FilePath)
 		return img, wrapErr(err)
 	}

@@ -36,7 +36,7 @@ func (f *Blob) IsEmpty() bool {
 	return f.FilePath == "" && len(f.buf) == 0
 }
 
-func (f *Blob) HasPath() bool {
+func (f *Blob) HasFilePath() bool {
 	return f.FilePath != ""
 }
 
