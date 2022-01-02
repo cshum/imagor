@@ -1,7 +1,7 @@
 ARG GOLANG_VERSION=1.17
 FROM golang:${GOLANG_VERSION}-buster as builder
 
-ARG LIBVIPS_VERSION=8.12.1
+ARG VIPS_VERSION=8.12.1
 
 # Installs libvips + required libraries
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -14,9 +14,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
   swig libmagickwand-dev libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev \
   libgsf-1-dev fftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libheif-dev && \
   cd /tmp && \
-  curl -fsSLO https://github.com/libvips/libvips/releases/download/v${LIBVIPS_VERSION}/vips-${LIBVIPS_VERSION}.tar.gz && \
-  tar zvxf vips-${LIBVIPS_VERSION}.tar.gz && \
-  cd /tmp/vips-${LIBVIPS_VERSION} && \
+  curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz && \
+  tar zvxf vips-${VIPS_VERSION}.tar.gz && \
+  cd /tmp/vips-${VIPS_VERSION} && \
 	CFLAGS="-g -O3" CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -g -O3" \
     ./configure \
     --disable-debug \
