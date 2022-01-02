@@ -72,8 +72,8 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 	if unescape, e := url.QueryUnescape(args[0]); e == nil {
 		image = unescape
 	}
-	var file *imagor.File
-	if file, err = load(image); err != nil {
+	var blob *imagor.Blob
+	if blob, err = load(image); err != nil {
 		return
 	}
 	var x, y, w, h int
@@ -94,13 +94,13 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 			h = img.Height() * h / 100
 		}
 		if overlay, err = v.newThumbnail(
-			file, w, h, vips.InterestingNone, vips.SizeDown,
+			blob, w, h, vips.InterestingNone, vips.SizeDown,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.newThumbnail(
-			file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+			blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
 		); err != nil {
 			return
 		}

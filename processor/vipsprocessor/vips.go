@@ -113,16 +113,16 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 }
 
 func (v *VipsProcessor) newThumbnail(
-	file *imagor.File, width, height int, crop vips.Interesting, size vips.Size,
+	blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size,
 ) (*vips.ImageRef, error) {
-	if imagor.IsFileEmpty(file) {
+	if imagor.IsFileEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
-	if file.HasPath() && v.LoadFromFile {
-		img, err := vips.NewThumbnailWithSizeFromFile(file.Path, width, height, crop, size)
+	if blob.HasPath() && v.LoadFromFile {
+		img, err := vips.NewThumbnailWithSizeFromFile(blob.FilePath, width, height, crop, size)
 		return img, wrapErr(err)
 	}
-	buf, err := file.ReadAll()
+	buf, err := blob.ReadAll()
 	if err != nil {
 		return nil, err
 	}
@@ -130,15 +130,15 @@ func (v *VipsProcessor) newThumbnail(
 	return img, wrapErr(err)
 }
 
-func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
-	if imagor.IsFileEmpty(file) {
+func (v *VipsProcessor) newImage(blob *imagor.Blob) (*vips.ImageRef, error) {
+	if imagor.IsFileEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
-	if file.HasPath() && v.LoadFromFile {
-		img, err := vips.NewImageFromFile(file.Path)
+	if blob.HasPath() && v.LoadFromFile {
+		img, err := vips.NewImageFromFile(blob.FilePath)
 		return img, wrapErr(err)
 	}
-	buf, err := file.ReadAll()
+	buf, err := blob.ReadAll()
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +147,8 @@ func (v *VipsProcessor) newImage(file *imagor.File) (*vips.ImageRef, error) {
 }
 
 func (v *VipsProcessor) Process(
-	ctx context.Context, file *imagor.File, p imagorpath.Params, load imagor.LoadFunc,
-) (*imagor.File, error) {
+	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
+) (*imagor.Blob, error) {
 	var (
 		special   = false
 		upscale   = false
@@ -198,7 +198,7 @@ func (v *VipsProcessor) Process(
 					size = vips.SizeBoth
 				}
 				if img, err = v.newThumbnail(
-					file, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size,
+					blob, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size,
 				); err != nil {
 					return nil, err
 				}
@@ -207,7 +207,7 @@ func (v *VipsProcessor) Process(
 		} else if stretch {
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.newThumbnail(
-					file, p.Width, p.Height, vips.InterestingNone, vips.SizeForce,
+					blob, p.Width, p.Height, vips.InterestingNone, vips.SizeForce,
 				); err != nil {
 					return nil, err
 				}
@@ -234,7 +234,7 @@ func (v *VipsProcessor) Process(
 				}
 				if thumbnail {
 					if img, err = v.newThumbnail(
-						file, p.Width, p.Height, interest, vips.SizeBoth,
+						blob, p.Width, p.Height, interest, vips.SizeBoth,
 					); err != nil {
 						return nil, err
 					}
@@ -245,12 +245,12 @@ func (v *VipsProcessor) Process(
 	if !thumbnail {
 		if special {
 			// special ops does not support create by thumbnail
-			if img, err = v.newImage(file); err != nil {
+			if img, err = v.newImage(blob); err != nil {
 				return nil, err
 			}
 		} else {
 			if img, err = v.newThumbnail(
-				file, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+				blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
 			); err != nil {
 				return nil, err
 			}
@@ -283,7 +283,7 @@ func (v *VipsProcessor) Process(
 	if err != nil {
 		return nil, wrapErr(err)
 	}
-	return imagor.NewFileBytesWithMeta(buf, getMeta(meta)), nil
+	return imagor.NewBlobBytesWithMeta(buf, getMeta(meta)), nil
 }
 
 func getMeta(meta *vips.ImageMetadata) *imagor.Meta {

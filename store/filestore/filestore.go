@@ -49,7 +49,7 @@ func (s *FileStore) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *FileStore) Load(_ *http.Request, image string) (*imagor.File, error) {
+func (s *FileStore) Load(_ *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -60,10 +60,10 @@ func (s *FileStore) Load(_ *http.Request, image string) (*imagor.File, error) {
 		}
 		return nil, err
 	}
-	return imagor.NewFilePath(image), nil
+	return imagor.NewBlobFilePath(image), nil
 }
 
-func (s *FileStore) Save(_ context.Context, image string, file *imagor.File) (err error) {
+func (s *FileStore) Save(_ context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass
@@ -71,7 +71,7 @@ func (s *FileStore) Save(_ context.Context, image string, file *imagor.File) (er
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
 	}
-	buf, err := file.ReadAll()
+	buf, err := blob.ReadAll()
 	if err != nil {
 		return err
 	}

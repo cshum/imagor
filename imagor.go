@@ -20,15 +20,15 @@ const Version = "0.5.17"
 
 // Loader Load image from image source
 type Loader interface {
-	Load(r *http.Request, image string) (*File, error)
+	Load(r *http.Request, image string) (*Blob, error)
 }
 
 // LoadFunc imagor load function for Processor
-type LoadFunc func(string) (*File, error)
+type LoadFunc func(string) (*Blob, error)
 
 // Storage save image buffer
 type Storage interface {
-	Save(ctx context.Context, image string, file *File) error
+	Save(ctx context.Context, image string, blob *Blob) error
 }
 
 // Store both a Loader and Storage
@@ -40,7 +40,7 @@ type Store interface {
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error)
+	Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -160,7 +160,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Do executes Imagor operations
-func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err error) {
+func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if app.RequestTimeout > 0 {
@@ -176,19 +176,19 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 		return
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
-	load := func(image string) (*File, error) {
+	load := func(image string) (*Blob, error) {
 		return app.loadStore(r, image)
 	}
-	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*File, error) {
-		if file, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(file) {
-			return file, err
+	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
+		if blob, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(blob) {
+			return blob, err
 		}
-		if file, err = app.loadStore(r, p.Image); err != nil {
+		if blob, err = app.loadStore(r, p.Image); err != nil {
 			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
-			return file, err
+			return blob, err
 		}
-		if IsFileEmpty(file) {
-			return file, err
+		if IsFileEmpty(blob) {
+			return blob, err
 		}
 		var cancel func()
 		if app.ProcessTimeout > 0 {
@@ -196,9 +196,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 			defer cancel()
 		}
 		for _, processor := range app.Processors {
-			f, e := processor.Process(ctx, file, p, load)
+			f, e := processor.Process(ctx, blob, p, load)
 			if e == nil {
-				file = f
+				blob = f
 				err = nil
 				if app.Debug {
 					app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", f.Meta))
@@ -208,7 +208,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 				if e == ErrPass {
 					if !IsFileEmpty(f) {
 						// pass to next processor
-						file = f
+						blob = f
 					}
 					if app.Debug {
 						app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
@@ -223,38 +223,38 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (file *File, err err
 			}
 		}
 		if err == nil && len(app.ResultStorages) > 0 {
-			app.save(ctx, nil, app.ResultStorages, resultKey, file)
+			app.save(ctx, nil, app.ResultStorages, resultKey, blob)
 		}
-		return file, err
+		return blob, err
 	})
 }
 
-func (app *Imagor) loadStore(r *http.Request, key string) (*File, error) {
-	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (file *File, err error) {
+func (app *Imagor) loadStore(r *http.Request, key string) (*Blob, error) {
+	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
 		var origin Store
 		r = r.WithContext(ctx)
-		file, origin, err = app.load(r, app.Loaders, key)
-		if IsFileEmpty(file) {
+		blob, origin, err = app.load(r, app.Loaders, key)
+		if IsFileEmpty(blob) {
 			return
 		}
 		if len(app.Storages) > 0 {
-			app.save(ctx, origin, app.Storages, key, file)
+			app.save(ctx, origin, app.Storages, key, blob)
 		}
 		return
 	})
 }
 
-func (app *Imagor) loadResult(r *http.Request, key string) (file *File, err error) {
+func (app *Imagor) loadResult(r *http.Request, key string) (blob *Blob, err error) {
 	if len(app.ResultLoaders) == 0 {
 		return
 	}
-	file, _, err = app.load(r, app.ResultLoaders, key)
+	blob, _, err = app.load(r, app.ResultLoaders, key)
 	return
 }
 
 func (app *Imagor) load(
 	r *http.Request, loaders []Loader, key string,
-) (file *File, origin Store, err error) {
+) (blob *Blob, origin Store, err error) {
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
@@ -267,7 +267,7 @@ func (app *Imagor) load(
 	for _, loader := range loaders {
 		f, e := loader.Load(loadReq, key)
 		if !IsFileEmpty(f) {
-			file = f
+			blob = f
 		}
 		if e == nil {
 			err = nil
@@ -297,7 +297,7 @@ func (app *Imagor) load(
 }
 
 func (app *Imagor) save(
-	ctx context.Context, origin Storage, storages []Storage, key string, file *File,
+	ctx context.Context, origin Storage, storages []Storage, key string, blob *Blob,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -316,7 +316,7 @@ func (app *Imagor) save(
 		wg.Add(1)
 		go func(storage Storage) {
 			defer wg.Done()
-			if err := storage.Save(ctx, key, file); err != nil {
+			if err := storage.Save(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
@@ -333,8 +333,8 @@ type acquireKey struct {
 
 func (app *Imagor) acquire(
 	ctx context.Context,
-	key string, fn func(ctx context.Context) (*File, error),
-) (file *File, err error) {
+	key string, fn func(ctx context.Context) (*Blob, error),
+) (blob *Blob, err error) {
 	if app.Debug {
 		app.Logger.Debug("acquire", zap.String("key", key))
 	}
@@ -349,7 +349,7 @@ func (app *Imagor) acquire(
 	select {
 	case res := <-ch:
 		if res.Val != nil {
-			return res.Val.(*File), res.Err
+			return res.Val.(*Blob), res.Err
 		}
 		return nil, res.Err
 	case <-ctx.Done():

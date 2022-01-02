@@ -23,22 +23,22 @@ func jsonStr(v interface{}) string {
 	return string(buf)
 }
 
-type loaderFunc func(r *http.Request, image string) (file *File, err error)
+type loaderFunc func(r *http.Request, image string) (blob *Blob, err error)
 
-func (f loaderFunc) Load(r *http.Request, image string) (*File, error) {
+func (f loaderFunc) Load(r *http.Request, image string) (*Blob, error) {
 	return f(r, image)
 }
 
-type storageFunc func(ctx context.Context, image string, file *File) error
+type storageFunc func(ctx context.Context, image string, blob *Blob) error
 
-func (f storageFunc) Save(ctx context.Context, image string, file *File) error {
-	return f(ctx, image, file)
+func (f storageFunc) Save(ctx context.Context, image string, blob *Blob) error {
+	return f(ctx, image, blob)
 }
 
-type processorFunc func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error)
+type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
 
-func (f processorFunc) Process(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
-	return f(ctx, file, p, load)
+func (f processorFunc) Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+	return f(ctx, blob, p, load)
 }
 func (f processorFunc) Startup(_ context.Context) error {
 	return nil
@@ -68,14 +68,14 @@ func TestWithUnsafe(t *testing.T) {
 func TestAcquireDeadlockResolve(t *testing.T) {
 	ctx := context.Background()
 	app := New()
-	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
-		return app.acquire(ctx, "b", func(ctx context.Context) (*File, error) {
-			return app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
-				return &File{Path: "abc"}, nil
+	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
+		return app.acquire(ctx, "b", func(ctx context.Context) (*Blob, error) {
+			return app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
+				return &Blob{FilePath: "abc"}, nil
 			})
 		})
 	})
-	assert.Equal(t, &File{Path: "abc"}, f)
+	assert.Equal(t, &Blob{FilePath: "abc"}, f)
 	require.NoError(t, err)
 }
 
@@ -83,9 +83,9 @@ func TestAcquireTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
 	defer cancel()
 	app := New()
-	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*File, error) {
+	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
 		time.Sleep(time.Second)
-		return &File{}, nil
+		return &Blob{}, nil
 	})
 	assert.Nil(t, f)
 	assert.Equal(t, context.DeadlineExceeded, err)
@@ -172,12 +172,12 @@ func TestParams(t *testing.T) {
 }
 
 type mapStore struct {
-	Map     map[string]*File
+	Map     map[string]*Blob
 	LoadCnt map[string]int
 	SaveCnt map[string]int
 }
 
-func (s *mapStore) Load(r *http.Request, image string) (*File, error) {
+func (s *mapStore) Load(r *http.Request, image string) (*Blob, error) {
 	buf, ok := s.Map[image]
 	if !ok {
 		return nil, ErrNotFound
@@ -185,18 +185,18 @@ func (s *mapStore) Load(r *http.Request, image string) (*File, error) {
 	s.LoadCnt[image] = s.LoadCnt[image] + 1
 	return buf, nil
 }
-func (s *mapStore) Save(ctx context.Context, image string, file *File) error {
-	s.Map[image] = file
+func (s *mapStore) Save(ctx context.Context, image string, blob *Blob) error {
+	s.Map[image] = blob
 	s.SaveCnt[image] = s.SaveCnt[image] + 1
 	return nil
 }
 
 func TestWithLoadersStoragesProcessors(t *testing.T) {
 	store := &mapStore{
-		Map: map[string]*File{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
+		Map: map[string]*Blob{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
 	}
 	resultStore := &mapStore{
-		Map: map[string]*File{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
+		Map: map[string]*Blob{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
 	}
 	fakeMeta := &Meta{Format: "a", ContentType: "b", Width: 167, Height: 167}
 	fakeMetaBuf, _ := json.Marshal(fakeMeta)
@@ -205,40 +205,40 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
 			store,
-			loaderFunc(func(r *http.Request, image string) (*File, error) {
+			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "foo" {
-					return NewFileBytes([]byte("bar")), nil
+					return NewBlobBytes([]byte("bar")), nil
 				}
 				if image == "bar" {
-					return NewFileBytes([]byte("foo")), nil
+					return NewBlobBytes([]byte("foo")), nil
 				}
 				if image == "ping" {
-					return NewFileBytes([]byte("pong")), nil
+					return NewBlobBytes([]byte("pong")), nil
 				}
 				if image == "empty" {
 					return nil, nil
 				}
 				return nil, ErrPass
 			}),
-			loaderFunc(func(r *http.Request, image string) (*File, error) {
+			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "beep" {
-					return NewFileBytes([]byte("boop")), nil
+					return NewBlobBytes([]byte("boop")), nil
 				}
 				if image == "boom" {
 					return nil, errors.New("unexpected error")
 				}
 				if image == "poop" {
-					return NewFileBytes([]byte("poop")), nil
+					return NewBlobBytes([]byte("poop")), nil
 				}
 				if image == "timeout" {
-					return NewFileBytes([]byte("timeout")), nil
+					return NewBlobBytes([]byte("timeout")), nil
 				}
 				return nil, ErrPass
 			}),
 		),
 		WithStorages(
 			store,
-			storageFunc(func(ctx context.Context, image string, buf *File) error {
+			storageFunc(func(ctx context.Context, image string, buf *Blob) error {
 				time.Sleep(time.Millisecond * 2)
 				assert.Error(t, context.DeadlineExceeded, ctx.Err())
 				return ctx.Err()
@@ -247,10 +247,10 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithResultLoaders(resultStore),
 		WithResultStorages(resultStore),
 		WithProcessors(
-			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
-				buf, _ := file.ReadAll()
+			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				buf, _ := blob.ReadAll()
 				if string(buf) == "bar" {
-					return NewFileBytes([]byte("tar")), ErrPass
+					return NewBlobBytes([]byte("tar")), ErrPass
 				}
 				if string(buf) == "poop" {
 					return nil, ErrPass
@@ -262,17 +262,17 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 					}
 					return file, err
 				}
-				return file, nil
+				return blob, nil
 			}),
-			processorFunc(func(ctx context.Context, file *File, p imagorpath.Params, load LoadFunc) (*File, error) {
-				buf, _ := file.ReadAll()
+			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				buf, _ := blob.ReadAll()
 				if string(buf) == "tar" {
-					return NewFileBytesWithMeta([]byte("bark"), fakeMeta), nil
+					return NewBlobBytesWithMeta([]byte("bark"), fakeMeta), nil
 				}
 				if string(buf) == "poop" {
 					return nil, ErrUnsupportedFormat
 				}
-				return file, nil
+				return blob, nil
 			}),
 		),
 		WithSaveTimeout(time.Millisecond),
@@ -344,15 +344,15 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 }
 func TestWithSameStore(t *testing.T) {
 	store := &mapStore{
-		Map: map[string]*File{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
+		Map: map[string]*Blob{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
 	}
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
 			store,
-			loaderFunc(func(r *http.Request, image string) (*File, error) {
+			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "beep" {
-					return NewFileBytes([]byte("boop")), nil
+					return NewBlobBytes([]byte("boop")), nil
 				}
 				return nil, ErrPass
 			}),
@@ -385,7 +385,7 @@ func TestWithLoadTimeout(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	loader := loaderFunc(func(r *http.Request, image string) (file *File, err error) {
+	loader := loaderFunc(func(r *http.Request, image string) (blob *Blob, err error) {
 		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, image, nil)
 		if err != nil {
 			return nil, err
@@ -398,7 +398,7 @@ func TestWithLoadTimeout(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return NewFileBytes(buf), err
+		return NewBlobBytes(buf), err
 	})
 
 	tests := []struct {
@@ -462,11 +462,11 @@ func TestSuppression(t *testing.T) {
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
-			loaderFunc(func(r *http.Request, image string) (*File, error) {
+			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				randBytes := make([]byte, 100)
 				rand.Read(randBytes)
 				time.Sleep(time.Millisecond * 100)
-				return NewFileBytes(randBytes), nil
+				return NewBlobBytes(randBytes), nil
 			}),
 		),
 		WithUnsafe(true),

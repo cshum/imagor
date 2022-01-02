@@ -19,7 +19,7 @@ type testProcessor struct {
 	ShutdownCnt int
 }
 
-func (app *testProcessor) Process(ctx context.Context, file *imagor.File, p imagorpath.Params, load imagor.LoadFunc) (*imagor.File, error) {
+func (app *testProcessor) Process(ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc) (*imagor.Blob, error) {
 	return nil, nil
 }
 
