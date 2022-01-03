@@ -74,9 +74,9 @@ services:
       S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying storage bucket
       S3_STORAGE_BASE_DIR: images # optional
       
-      S3_RESULT_LOADER_BUCKET: mybucket # enable S3 result loader by specifying loader bucket
+      S3_RESULT_LOADER_BUCKET: mybucket # enable S3 result loader by specifying result loader bucket
       S3_RESULT_LOADER_BASE_DIR: images/result # optional
-      S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result loader by specifying loader bucket
+      S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying result storage bucket
       S3_RESULT_STORAGE_BASE_DIR: images/result # optional
     ports:
       - "8000:8000"
