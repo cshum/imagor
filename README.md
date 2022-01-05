@@ -96,7 +96,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 - `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
 - `stretch` means resize the image to `ExF` without keeping its aspect ratios
 - `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
-- `GxH` add horizontal padding `G` and vertical padding `H` under `fit-in`
+- `GxH` add horizontal padding `G` and vertical padding `H`
 - `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
 - `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 - `smart` means using smart detection of focal points
