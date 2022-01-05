@@ -41,8 +41,8 @@ func (v *VipsProcessor) process(
 		h = p.Height
 	)
 	if w == 0 && h == 0 {
-		w = img.Width()
-		h = img.Height()
+		w = img.Width() + p.HPadding*2
+		h = img.Height() + p.VPadding*2
 	} else if w == 0 {
 		w = img.Width() * h / img.Height()
 	} else if h == 0 {
@@ -57,11 +57,11 @@ func (v *VipsProcessor) process(
 			}
 		} else if stretch {
 			if err := img.ThumbnailWithSize(
-				w, h, vips.InterestingNone, vips.SizeForce,
+				w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, vips.SizeForce,
 			); err != nil {
 				return err
 			}
-		} else if w < img.Width() || h < img.Height() {
+		} else if w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
 			interest := vips.InterestingCentre
 			if p.Smart {
 				interest = vips.InterestingAttention
@@ -78,7 +78,7 @@ func (v *VipsProcessor) process(
 					interest = vips.InterestingHigh
 				}
 			}
-			if err := img.Thumbnail(w, h, interest); err != nil {
+			if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, interest); err != nil {
 				return err
 			}
 		}

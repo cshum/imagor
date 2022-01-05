@@ -207,7 +207,8 @@ func (v *VipsProcessor) Process(
 		} else if stretch {
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.newThumbnail(
-					blob, p.Width, p.Height, vips.InterestingNone, vips.SizeForce,
+					blob, p.Width-p.HPadding*2, p.Height-p.VPadding*2,
+					vips.InterestingNone, vips.SizeForce,
 				); err != nil {
 					return nil, err
 				}
@@ -234,7 +235,7 @@ func (v *VipsProcessor) Process(
 				}
 				if thumbnail {
 					if img, err = v.newThumbnail(
-						blob, p.Width, p.Height, interest, vips.SizeBoth,
+						blob, p.Width-p.HPadding*2, p.Height-p.VPadding*2, interest, vips.SizeBoth,
 					); err != nil {
 						return nil, err
 					}
