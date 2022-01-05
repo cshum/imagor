@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
 	"io"
 	"mime"
 	"net/http"
@@ -49,7 +48,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 }
 
 func (s *S3Store) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image)
+	image = "/" + S3Encoder(image)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
