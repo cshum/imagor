@@ -17,15 +17,10 @@ func Zip(a1, a2 []string) []string {
 func S3Encoder(str string) string {
 	array1 := []string{
 		"+",
-		"!",
 		"\"",
 		"#",
 		"$",
 		"&",
-		"'",
-		"(",
-		")",
-		"*",
 		",",
 		":",
 		";",
@@ -35,15 +30,10 @@ func S3Encoder(str string) string {
 	}
 	array2 := []string{
 		"%2B",
-		"%21",
 		"%22",
 		"%23",
 		"%24",
 		"%26",
-		"%27",
-		"%28",
-		"%29",
-		"%2A",
 		"%2C",
 		"%3A",
 		"%3B",
