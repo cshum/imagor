@@ -54,3 +54,11 @@ func WithSaveErrIfExists(saveErrIfExists bool) Option {
 		h.SaveErrIfExists = saveErrIfExists
 	}
 }
+
+func WithSafeChars(chars string) Option {
+	return func(h *FileStore) {
+		if chars != "" {
+			h.SafeChars = chars
+		}
+	}
+}

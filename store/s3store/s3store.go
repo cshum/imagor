@@ -25,6 +25,9 @@ type S3Store struct {
 	BaseDir    string
 	PathPrefix string
 	ACL        string
+	SafeChars  string
+
+	safeChars map[byte]bool
 }
 
 func New(sess *session.Session, bucket string, options ...Option) *S3Store {
@@ -41,15 +44,42 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 		BaseDir:    baseDir,
 		PathPrefix: "/",
 		ACL:        s3.ObjectCannedACLPublicRead,
+
+		safeChars: map[byte]bool{},
 	}
 	for _, option := range options {
 		option(s)
 	}
+	for _, c := range s.SafeChars {
+		s.safeChars[byte(c)] = true
+	}
 	return s
 }
 
+func (s *S3Store) shouldEscape(c byte) bool {
+	// alphanum
+	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
+		return false
+	}
+	switch c {
+	case '/': // should not escape path segment
+		return false
+	case '-', '_', '.', '~': // Unreserved characters
+		return false
+	case '!', '\'', '(', ')', '*':
+		// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters
+		return false
+	}
+	if len(s.safeChars) > 0 && s.safeChars[c] {
+		// safe chars from config
+		return false
+	}
+	// Everything else must be escaped.
+	return true
+}
+
 func (s *S3Store) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image)
+	image = "/" + imagorpath.Normalize(image, s.shouldEscape)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
