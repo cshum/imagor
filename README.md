@@ -276,11 +276,14 @@ Usage of imagor:
   -http-loader-disable
         Disable HTTP Loader
 
+  -file-safe-chars string
+        File safe characters to be excluded from image key escape
+        
   -file-loader-base-dir string
         Base directory for File Loader. Will activate File Loader only if this value present
   -file-loader-path-prefix string
         Base path prefix for File Loader
-
+        
   -file-storage-base-dir string
         Base directory for File Storage. Will activate File Storage only if this value present
   -file-storage-path-prefix string
@@ -298,23 +301,25 @@ Usage of imagor:
         AWS Secret Access Key. Required if using S3 Loader or S3 Storage
   -s3-endpoint string
         Optional S3 Endpoint to override default
+  -s3-safe-chars string
+        S3 safe characters to be excluded from image key escape
 
-  -s3-loader-base-dir string
-        Base directory for S3 Loader
   -s3-loader-bucket string
         S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present
+  -s3-loader-base-dir string
+        Base directory for S3 Loader
   -s3-loader-path-prefix string
         Base path prefix for S3 Loader
-
-  -s3-storage-base-dir string
-        Base directory for S3 Storage
+        
   -s3-storage-bucket string
         S3 Bucket for S3 Storage. Will activate S3 Storage only if this value present
+  -s3-storage-base-dir string
+        Base directory for S3 Storage
   -s3-storage-path-prefix string
         Base path prefix for S3 Storage
   -s3-storage-acl string
         Upload ACL for S3 Storage (default "public-read")
-  
+
   -file-result-loader-base-dir string
         Base directory for File Result Loader. Will activate File Result Loader only if this value present
   -file-result-loader-path-prefix string
@@ -328,22 +333,22 @@ Usage of imagor:
         Base path prefix for File Result Storage
   -file-result-storage-write-permission string
         File Storage write permission (default "0666")
-  
-  -s3-result-loader-base-dir string
-        Base directory for S3 Result Loader
+
   -s3-result-loader-bucket string
         S3 Bucket for S3 Result Loader. Will activate S3 Result Loader only if this value present
+  -s3-result-loader-base-dir string
+        Base directory for S3 Result Loader
   -s3-result-loader-path-prefix string
         Base path prefix for S3 Result Loader
         
-  -s3-result-storage-acl string
-        Upload ACL for S3 Result Storage (default "public-read")
-  -s3-result-storage-base-dir string
-        Base directory for S3 Result Storage
   -s3-result-storage-bucket string
         S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present
+  -s3-result-storage-base-dir string
+        Base directory for S3 Result Storage
   -s3-result-storage-path-prefix string
         Base path prefix for S3 Result Storage
+  -s3-result-storage-acl string
+        Upload ACL for S3 Result Storage (default "public-read")
 
   -vips-concurrency int
         VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
