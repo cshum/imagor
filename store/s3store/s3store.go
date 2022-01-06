@@ -48,8 +48,26 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 	return s
 }
 
+func shouldEscape(c byte) bool {
+	// alphanum
+	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
+		return false
+	}
+	switch c {
+	case '/': // should not escape path segment
+		return false
+	case '-', '_', '.', '~': // Unreserved characters (mark)
+		return false
+	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
+	case '!', '\'', '(', ')', '*':
+		return false
+	}
+	// Everything else must be escaped.
+	return true
+}
+
 func (s *S3Store) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image)
+	image = "/" + imagorpath.Normalize(image, shouldEscape)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
