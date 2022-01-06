@@ -1,6 +1,7 @@
 package s3store
 
 import (
+	"path"
 	"strings"
 )
 
@@ -14,7 +15,7 @@ func Zip(a1, a2 []string) []string {
 }
 
 func S3Encoder(str string) string {
-	array1 := []string { 
+	array1 := []string{
 		"+",
 		"!",
 		"\"",
@@ -32,7 +33,7 @@ func S3Encoder(str string) string {
 		"?",
 		"@",
 	}
-	array2 := []string { 
+	array2 := []string{
 		"%2B",
 		"%21",
 		"%22",
@@ -52,4 +53,16 @@ func S3Encoder(str string) string {
 	}
 	str = strings.NewReplacer(Zip(array1, array2)...).Replace(str)
 	return str
+}
+
+// Normalize imagor path to be file path friendly
+func S3Normalize(image string) string {
+	var escaped []string
+	image = path.Clean(image)
+	image = strings.Trim(image, "/")
+	parts := strings.Split(image, "/")
+	for _, part := range parts {
+		escaped = append(escaped, S3Encoder(part))
+	}
+	return strings.Join(escaped, "/")
 }
