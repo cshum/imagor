@@ -110,7 +110,7 @@ func main() {
 		s3Endpoint = fs.String("s3-endpoint", "",
 			"Optional S3 Endpoint to override default")
 		s3SafeChars = fs.String("s3-safe-chars", "",
-			"S3 safe characters to be excluded from image key names escape")
+			"S3 safe characters to be excluded from image key escape")
 
 		s3LoaderBucket = fs.String("s3-loader-bucket", "",
 			"S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present")
@@ -128,6 +128,8 @@ func main() {
 		s3StorageACL = fs.String("s3-storage-acl", "public-read",
 			"Upload ACL for S3 Storage")
 
+		fileSafeChars = fs.String("file-safe-chars", "",
+			"File safe characters to be excluded from image key escape")
 		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
 			"Base directory for File Loader. Will activate File Loader only if this value present")
 		fileLoaderPathPrefix = fs.String("file-loader-path-prefix", "",
@@ -205,6 +207,7 @@ func main() {
 			filestore.WithPathPrefix(*fileStoragePathPrefix),
 			filestore.WithMkdirPermission(*fileStorageMkdirPermission),
 			filestore.WithWritePermission(*fileStorageWritePermission),
+			filestore.WithSafeChars(*fileSafeChars),
 		)
 		storages = append(storages, store)
 	}
@@ -221,6 +224,7 @@ func main() {
 				filestore.New(
 					*fileLoaderBaseDir,
 					filestore.WithPathPrefix(*fileLoaderPathPrefix),
+					filestore.WithSafeChars(*fileSafeChars),
 				),
 			)
 		}
@@ -232,6 +236,7 @@ func main() {
 			filestore.WithPathPrefix(*fileResultStoragePathPrefix),
 			filestore.WithMkdirPermission(*fileResultStorageMkdirPermission),
 			filestore.WithWritePermission(*fileResultStorageWritePermission),
+			filestore.WithSafeChars(*fileSafeChars),
 		)
 		resultStorages = append(resultStorages, resultStore)
 	}
@@ -248,6 +253,7 @@ func main() {
 				filestore.New(
 					*fileResultLoaderBaseDir,
 					filestore.WithPathPrefix(*fileResultLoaderPathPrefix),
+					filestore.WithSafeChars(*fileSafeChars),
 				),
 			)
 		}

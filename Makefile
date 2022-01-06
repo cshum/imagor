@@ -7,6 +7,9 @@ test:
 dev: build
 	./bin/imagor -debug -imagor-unsafe
 
+help: build
+	./bin/imagor -h
+
 get:
 	go get -v -t -d ./...
 

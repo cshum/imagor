@@ -18,9 +18,25 @@ func TestFileStore_Path(t *testing.T) {
 		baseURI    string
 		image      string
 		blacklist  *regexp.Regexp
+		safeChars  string
 		expected   string
 		expectedOk bool
 	}{
+		{
+			name:       "escape unsafe chars",
+			baseDir:    "/home/imagor",
+			image:      "/foo/b{:}ar",
+			expected:   "/home/imagor/foo/b%7B%3A%7Dar",
+			expectedOk: true,
+		},
+		{
+			name:       "escape safe chars",
+			baseDir:    "/home/imagor",
+			image:      "/foo/b{:}ar",
+			expected:   "/home/imagor/foo/b{%3A}ar",
+			safeChars:  "{}",
+			expectedOk: true,
+		},
 		{
 			name:       "path under with base uri",
 			baseDir:    "/home/imagor",
@@ -94,6 +110,7 @@ func TestFileStore_Path(t *testing.T) {
 			res, ok := New(tt.baseDir,
 				WithPathPrefix(tt.baseURI),
 				WithBlacklist(tt.blacklist),
+				WithSafeChars(tt.safeChars),
 			).Path(tt.image)
 			if res != tt.expected || ok != tt.expectedOk {
 				t.Errorf(" = %s,%v want %s,%v", res, ok, tt.expected, tt.expectedOk)

@@ -20,6 +20,9 @@ type FileStore struct {
 	MkdirPermission os.FileMode
 	WritePermission os.FileMode
 	SaveErrIfExists bool
+	SafeChars       string
+
+	safeChars map[byte]bool
 }
 
 func New(baseDir string, options ...Option) *FileStore {
@@ -29,15 +32,39 @@ func New(baseDir string, options ...Option) *FileStore {
 		Blacklists:      []*regexp.Regexp{dotFileRegex},
 		MkdirPermission: 0755,
 		WritePermission: 0666,
+
+		safeChars: map[byte]bool{},
 	}
 	for _, option := range options {
 		option(s)
 	}
+	for _, c := range s.SafeChars {
+		s.safeChars[byte(c)] = true
+	}
 	return s
 }
 
+func (s *FileStore) shouldEscape(c byte) bool {
+	// alphanum
+	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
+		return false
+	}
+	switch c {
+	case '/': // should not escape path segment
+		return false
+	case '-', '_', '.', '~': // Unreserved characters
+		return false
+	}
+	if len(s.safeChars) > 0 && s.safeChars[c] {
+		// safe chars from config
+		return false
+	}
+	// Everything else must be escaped.
+	return true
+}
+
 func (s *FileStore) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image)
+	image = "/" + imagorpath.Normalize(image, s.shouldEscape)
 	for _, blacklist := range s.Blacklists {
 		if blacklist.MatchString(image) {
 			return "", false
