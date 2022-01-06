@@ -27,12 +27,10 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 	spaceCount, hexCount := 0, 0
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if shouldEscape(c) {
-			if c == ' ' {
-				spaceCount++
-			} else {
-				hexCount++
-			}
+		if c == ' ' {
+			spaceCount++
+		} else if shouldEscape(c) {
+			hexCount++
 		}
 	}
 
@@ -50,7 +48,7 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 		t = make([]byte, required)
 	}
 
-	if hexCount == 0 {
+	if hexCount == 0 && shouldEscape(' ') {
 		copy(t, s)
 		for i := 0; i < len(s); i++ {
 			if s[i] == ' ' {
@@ -62,16 +60,18 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 
 	j := 0
 	for i := 0; i < len(s); i++ {
-		switch c := s[i]; {
-		case c == ' ':
-			t[j] = '+'
-			j++
-		case shouldEscape(c):
-			t[j] = '%'
-			t[j+1] = upperhex[c>>4]
-			t[j+2] = upperhex[c&15]
-			j += 3
-		default:
+		c := s[i]
+		if shouldEscape(c) {
+			if c != ' ' {
+				t[j] = '%'
+				t[j+1] = upperhex[c>>4]
+				t[j+2] = upperhex[c&15]
+				j += 3
+			} else {
+				t[j] = '+'
+				j++
+			}
+		} else {
 			t[j] = s[i]
 			j++
 		}
