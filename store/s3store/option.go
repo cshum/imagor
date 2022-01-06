@@ -46,3 +46,11 @@ func WithACL(acl string) Option {
 		}
 	}
 }
+
+func WithSafeChars(chars string) Option {
+	return func(h *S3Store) {
+		if chars != "" {
+			h.SafeChars = chars
+		}
+	}
+}

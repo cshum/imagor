@@ -12,10 +12,36 @@ func TestS3Store_Path(t *testing.T) {
 		baseDir        string
 		baseURI        string
 		image          string
+		safeChars      string
 		expectedPath   string
 		expectedBucket string
 		expectedOk     bool
 	}{
+		{
+			name:           "defaults ok",
+			bucket:         "mybucket",
+			image:          "/foo/bar",
+			expectedBucket: "mybucket",
+			expectedPath:   "/foo/bar",
+			expectedOk:     true,
+		},
+		{
+			name:           "escape unsafe chars",
+			bucket:         "mybucket",
+			image:          "/foo/b{:}ar",
+			expectedBucket: "mybucket",
+			expectedPath:   "/foo/b%7B%3A%7Dar",
+			expectedOk:     true,
+		},
+		{
+			name:           "escape safe chars",
+			bucket:         "mybucket",
+			image:          "/foo/b{:}ar",
+			expectedBucket: "mybucket",
+			expectedPath:   "/foo/b{%3A}ar",
+			safeChars:      "{}",
+			expectedOk:     true,
+		},
 		{
 			name:           "path under with base uri",
 			bucket:         "mybucket",
@@ -67,6 +93,7 @@ func TestS3Store_Path(t *testing.T) {
 			if tt.baseDir != "" {
 				opts = append(opts, WithBaseDir(tt.baseDir))
 			}
+			opts = append(opts, WithSafeChars(tt.safeChars))
 			s := New(sess, tt.bucket, opts...)
 			res, ok := s.Path(tt.image)
 			if res != tt.expectedPath || ok != tt.expectedOk || s.Bucket != tt.expectedBucket {
