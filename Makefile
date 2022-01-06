@@ -14,7 +14,7 @@ get:
 	go get -v -t -d ./...
 
 docker-dev-build:
-	docker build --build-arg -t shumc/imagor:dev .
+	docker build -t shumc/imagor:dev .
 
 docker-dev-run:
 	touch .env
