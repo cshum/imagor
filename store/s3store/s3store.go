@@ -56,10 +56,12 @@ func shouldEscape(c byte) bool {
 	switch c {
 	case '/': // should not escape path segment
 		return false
-	case '-', '_', '.', '~': // Unreserved characters (mark)
+	case '-', '_', '.', '~': // Unreserved characters
 		return false
-	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
+	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters
 	case '!', '\'', '(', ')', '*':
+		return false
+	case '{', '}': // additional characters to allow
 		return false
 	}
 	// Everything else must be escaped.

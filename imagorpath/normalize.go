@@ -15,7 +15,7 @@ func defaultShouldEscape(c byte) bool {
 	switch c {
 	case '/': // should not escape path segment
 		return false
-	case '-', '_', '.', '~': // Unreserved characters (mark)
+	case '-', '_', '.', '~': // Unreserved characters
 		return false
 	}
 	// Everything else must be escaped.
@@ -80,7 +80,7 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 }
 
 // Normalize imagor path to be file path friendly,
-// optional shouldEscape func to
+// optional shouldEscape func to define safe characters
 func Normalize(image string, shouldEscape ...func(c byte) bool) string {
 	image = path.Clean(image)
 	image = strings.Trim(image, "/")
