@@ -45,8 +45,14 @@ func (v *VipsProcessor) process(
 		h = img.Height() + p.VPadding*2
 	} else if w == 0 {
 		w = img.Width() * h / img.Height()
+		if !upscale && w > img.Width() {
+			w = img.Width()
+		}
 	} else if h == 0 {
 		h = img.Height() * w / img.Width()
+		if !upscale && h > img.Height() {
+			h = img.Height()
+		}
 	}
 	if !thumbnail {
 		if p.FitIn {
