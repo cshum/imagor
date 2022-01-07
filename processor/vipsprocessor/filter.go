@@ -158,13 +158,13 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 			y += img.Height() - overlay.Height()
 		}
 	}
-	for i := 0; i < repeatX; i++ {
-		for j := 0; j < repeatY; j++ {
-			if err = img.Composite(
-				overlay, vips.BlendModeOver, x+w*i, y+h*j); err != nil {
-				return
-			}
+	if repeatX*repeatY > 1 {
+		if err = overlay.Replicate(repeatX, repeatY); err != nil {
+			return
 		}
+	}
+	if err = img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
+		return
 	}
 	return
 }
