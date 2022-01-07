@@ -61,7 +61,7 @@ func (v *VipsProcessor) process(
 			); err != nil {
 				return err
 			}
-		} else if w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
+		} else if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
 			interest := vips.InterestingCentre
 			if p.Smart {
 				interest = vips.InterestingAttention

@@ -151,7 +151,7 @@ func (v *VipsProcessor) Process(
 ) (*imagor.Blob, error) {
 	var (
 		special   = false
-		upscale   = false
+		upscale   = true
 		stretch   = p.Stretch
 		thumbnail = false
 		img       *vips.ImageRef
@@ -159,6 +159,9 @@ func (v *VipsProcessor) Process(
 	)
 	if p.Trim {
 		special = true
+	}
+	if p.FitIn {
+		upscale = false
 	}
 	for _, p := range p.Filters {
 		switch p.Name {
