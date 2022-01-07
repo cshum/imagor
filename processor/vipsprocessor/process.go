@@ -56,10 +56,12 @@ func (v *VipsProcessor) process(
 				}
 			}
 		} else if stretch {
-			if err := img.ThumbnailWithSize(
-				w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, vips.SizeForce,
-			); err != nil {
-				return err
+			if upscale || (w-p.HPadding*2 < img.Width() && h-p.VPadding*2 < img.Height()) {
+				if err := img.ThumbnailWithSize(
+					w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, vips.SizeForce,
+				); err != nil {
+					return err
+				}
 			}
 		} else if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
 			interest := vips.InterestingCentre
