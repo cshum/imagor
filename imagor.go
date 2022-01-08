@@ -344,18 +344,17 @@ func (app *Imagor) acquire(
 	}
 	isCanceled := false
 	ch := app.g.DoChan(key, func() (interface{}, error) {
-		v, err := fn(ctx)
+		v, err := fn(context.WithValue(ctx, acquireKey{key}, true))
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
 			isCanceled = true
-		} else {
-			ctx = context.WithValue(ctx, acquireKey{key}, true)
 		}
 		return v, err
 	})
 	select {
 	case res := <-ch:
 		if !isCanceled && errors.Is(res.Err, context.Canceled) {
+			// resolve canceled
 			return app.acquire(ctx, key, fn)
 		}
 		if res.Val != nil {
