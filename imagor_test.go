@@ -30,9 +30,13 @@ func (f loaderFunc) Load(r *http.Request, image string) (*Blob, error) {
 	return f(r, image)
 }
 
-type storageFunc func(ctx context.Context, image string, blob *Blob) error
+type fakeStorageFunc func(ctx context.Context, image string, blob *Blob) error
 
-func (f storageFunc) Save(ctx context.Context, image string, blob *Blob) error {
+func (f fakeStorageFunc) Load(r *http.Request, image string) (*Blob, error) {
+	return nil, ErrPass
+}
+
+func (f fakeStorageFunc) Save(ctx context.Context, image string, blob *Blob) error {
 	return f(ctx, image, blob)
 }
 
@@ -264,7 +268,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		),
 		WithStorages(
 			store,
-			storageFunc(func(ctx context.Context, image string, buf *Blob) error {
+			fakeStorageFunc(func(ctx context.Context, image string, buf *Blob) error {
 				time.Sleep(time.Millisecond * 2)
 				assert.Error(t, context.DeadlineExceeded, ctx.Err())
 				return ctx.Err()

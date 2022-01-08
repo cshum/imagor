@@ -18,24 +18,19 @@ import (
 
 const Version = "0.6.5"
 
-// Loader Load image from image source
+// Loader load image from source
 type Loader interface {
 	Load(r *http.Request, image string) (*Blob, error)
 }
 
-// LoadFunc imagor load function for Processor
-type LoadFunc func(string) (*Blob, error)
-
-// Storage save image buffer
+// Storage load and save image
 type Storage interface {
+	Loader
 	Save(ctx context.Context, image string, blob *Blob) error
 }
 
-// Store both a Loader and Storage
-type Store interface {
-	Loader
-	Storage
-}
+// LoadFunc imagor load function for Processor
+type LoadFunc func(string) (*Blob, error)
 
 // Processor process image buffer
 type Processor interface {
@@ -232,7 +227,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 
 func (app *Imagor) loadStore(r *http.Request, key string) (*Blob, error) {
 	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
-		var origin Store
+		var origin Storage
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key)
 		if IsFileEmpty(blob) {
@@ -255,7 +250,7 @@ func (app *Imagor) loadResult(r *http.Request, key string) (blob *Blob, err erro
 
 func (app *Imagor) load(
 	r *http.Request, loaders []Loader, key string,
-) (blob *Blob, origin Store, err error) {
+) (blob *Blob, origin Storage, err error) {
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
@@ -272,7 +267,7 @@ func (app *Imagor) load(
 		}
 		if e == nil {
 			err = nil
-			origin, _ = loader.(Store)
+			origin, _ = loader.(Storage)
 			break
 		}
 		// should not log expected error as of now, as it has not reached the end
