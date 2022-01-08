@@ -1,4 +1,4 @@
-package s3store
+package s3storage
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-type S3Store struct {
+type S3Storage struct {
 	S3       *s3.S3
 	Uploader *s3manager.Uploader
 	Bucket   string
@@ -30,13 +30,13 @@ type S3Store struct {
 	safeChars map[byte]bool
 }
 
-func New(sess *session.Session, bucket string, options ...Option) *S3Store {
+func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	baseDir := "/"
 	if idx := strings.Index(bucket, "/"); idx > -1 {
 		baseDir = bucket[idx:]
 		bucket = bucket[:idx]
 	}
-	s := &S3Store{
+	s := &S3Storage{
 		S3:       s3.New(sess),
 		Uploader: s3manager.NewUploader(sess),
 		Bucket:   bucket,
@@ -56,7 +56,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Store {
 	return s
 }
 
-func (s *S3Store) shouldEscape(c byte) bool {
+func (s *S3Storage) shouldEscape(c byte) bool {
 	// alphanum
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
 		return false
@@ -78,7 +78,7 @@ func (s *S3Store) shouldEscape(c byte) bool {
 	return true
 }
 
-func (s *S3Store) Path(image string) (string, bool) {
+func (s *S3Storage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.shouldEscape)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
@@ -86,7 +86,7 @@ func (s *S3Store) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *S3Store) Load(r *http.Request, image string) (*imagor.Blob, error) {
+func (s *S3Storage) Load(r *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -108,7 +108,7 @@ func (s *S3Store) Load(r *http.Request, image string) (*imagor.Blob, error) {
 	return imagor.NewBlobBytes(buf), err
 }
 
-func (s *S3Store) Save(ctx context.Context, image string, blob *imagor.Blob) error {
+func (s *S3Storage) Save(ctx context.Context, image string, blob *imagor.Blob) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

@@ -1,4 +1,4 @@
-package filestore
+package filestorage
 
 import (
 	"os"
@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-type Option func(h *FileStore)
+type Option func(h *FileStorage)
 
 func WithPathPrefix(prefix string) Option {
-	return func(s *FileStore) {
+	return func(s *FileStorage) {
 		if prefix != "" {
 			prefix = "/" + strings.Trim(prefix, "/")
 			if prefix != "/" {
@@ -22,7 +22,7 @@ func WithPathPrefix(prefix string) Option {
 }
 
 func WithBlacklist(blacklist *regexp.Regexp) Option {
-	return func(s *FileStore) {
+	return func(s *FileStorage) {
 		if blacklist != nil {
 			s.Blacklists = append(s.Blacklists, blacklist)
 		}
@@ -30,7 +30,7 @@ func WithBlacklist(blacklist *regexp.Regexp) Option {
 }
 
 func WithMkdirPermission(perm string) Option {
-	return func(h *FileStore) {
+	return func(h *FileStorage) {
 		if perm != "" {
 			if fm, err := strconv.ParseUint(perm, 0, 32); err == nil {
 				h.MkdirPermission = os.FileMode(fm)
@@ -40,7 +40,7 @@ func WithMkdirPermission(perm string) Option {
 }
 
 func WithWritePermission(perm string) Option {
-	return func(h *FileStore) {
+	return func(h *FileStorage) {
 		if perm != "" {
 			if fm, err := strconv.ParseUint(perm, 0, 32); err == nil {
 				h.WritePermission = os.FileMode(fm)
@@ -50,13 +50,13 @@ func WithWritePermission(perm string) Option {
 }
 
 func WithSaveErrIfExists(saveErrIfExists bool) Option {
-	return func(h *FileStore) {
+	return func(h *FileStorage) {
 		h.SaveErrIfExists = saveErrIfExists
 	}
 }
 
 func WithSafeChars(chars string) Option {
-	return func(h *FileStore) {
+	return func(h *FileStorage) {
 		if chars != "" {
 			h.SafeChars = chars
 		}

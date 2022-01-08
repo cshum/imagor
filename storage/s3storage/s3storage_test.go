@@ -1,4 +1,4 @@
-package s3store
+package s3storage
 
 import (
 	"github.com/aws/aws-sdk-go/aws/session"

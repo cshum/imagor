@@ -1,4 +1,4 @@
-package filestore
+package filestorage
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 
 var dotFileRegex = regexp.MustCompile("/\\.")
 
-type FileStore struct {
+type FileStorage struct {
 	BaseDir         string
 	PathPrefix      string
 	Blacklists      []*regexp.Regexp
@@ -25,8 +25,8 @@ type FileStore struct {
 	safeChars map[byte]bool
 }
 
-func New(baseDir string, options ...Option) *FileStore {
-	s := &FileStore{
+func New(baseDir string, options ...Option) *FileStorage {
+	s := &FileStorage{
 		BaseDir:         baseDir,
 		PathPrefix:      "/",
 		Blacklists:      []*regexp.Regexp{dotFileRegex},
@@ -44,7 +44,7 @@ func New(baseDir string, options ...Option) *FileStore {
 	return s
 }
 
-func (s *FileStore) shouldEscape(c byte) bool {
+func (s *FileStorage) shouldEscape(c byte) bool {
 	// alphanum
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
 		return false
@@ -63,7 +63,7 @@ func (s *FileStore) shouldEscape(c byte) bool {
 	return true
 }
 
-func (s *FileStore) Path(image string) (string, bool) {
+func (s *FileStorage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.shouldEscape)
 	for _, blacklist := range s.Blacklists {
 		if blacklist.MatchString(image) {
@@ -76,7 +76,7 @@ func (s *FileStore) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *FileStore) Load(_ *http.Request, image string) (*imagor.Blob, error) {
+func (s *FileStorage) Load(_ *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -90,7 +90,7 @@ func (s *FileStore) Load(_ *http.Request, image string) (*imagor.Blob, error) {
 	return imagor.NewBlobFilePath(image), nil
 }
 
-func (s *FileStore) Save(_ context.Context, image string, blob *imagor.Blob) (err error) {
+func (s *FileStorage) Save(_ context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

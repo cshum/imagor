@@ -10,8 +10,8 @@ import (
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/server"
-	"github.com/cshum/imagor/store/filestore"
-	"github.com/cshum/imagor/store/s3store"
+	"github.com/cshum/imagor/storage/filestorage"
+	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/joho/godotenv"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
@@ -189,12 +189,12 @@ func main() {
 
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
-		store := filestore.New(
+		store := filestorage.New(
 			*fileStorageBaseDir,
-			filestore.WithPathPrefix(*fileStoragePathPrefix),
-			filestore.WithMkdirPermission(*fileStorageMkdirPermission),
-			filestore.WithWritePermission(*fileStorageWritePermission),
-			filestore.WithSafeChars(*fileSafeChars),
+			filestorage.WithPathPrefix(*fileStoragePathPrefix),
+			filestorage.WithMkdirPermission(*fileStorageMkdirPermission),
+			filestorage.WithWritePermission(*fileStorageWritePermission),
+			filestorage.WithSafeChars(*fileSafeChars),
 		)
 		loaders = append(loaders, store)
 		storages = append(storages, store)
@@ -205,22 +205,22 @@ func main() {
 			*fileStoragePathPrefix != *fileLoaderPathPrefix {
 			// create another loader if different from storage
 			loaders = append(loaders,
-				filestore.New(
+				filestorage.New(
 					*fileLoaderBaseDir,
-					filestore.WithPathPrefix(*fileLoaderPathPrefix),
-					filestore.WithSafeChars(*fileSafeChars),
+					filestorage.WithPathPrefix(*fileLoaderPathPrefix),
+					filestorage.WithSafeChars(*fileSafeChars),
 				),
 			)
 		}
 	}
 	if *fileResultStorageBaseDir != "" {
 		// activate File Result Storage only if base dir config presents
-		resultStore := filestore.New(
+		resultStore := filestorage.New(
 			*fileResultStorageBaseDir,
-			filestore.WithPathPrefix(*fileResultStoragePathPrefix),
-			filestore.WithMkdirPermission(*fileResultStorageMkdirPermission),
-			filestore.WithWritePermission(*fileResultStorageWritePermission),
-			filestore.WithSafeChars(*fileSafeChars),
+			filestorage.WithPathPrefix(*fileResultStoragePathPrefix),
+			filestorage.WithMkdirPermission(*fileResultStorageMkdirPermission),
+			filestorage.WithWritePermission(*fileResultStorageWritePermission),
+			filestorage.WithSafeChars(*fileSafeChars),
 		)
 		resultLoaders = append(resultLoaders, resultStore)
 		resultStorages = append(resultStorages, resultStore)
@@ -239,11 +239,11 @@ func main() {
 		}
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
-			store := s3store.New(sess, *s3StorageBucket,
-				s3store.WithPathPrefix(*s3StoragePathPrefix),
-				s3store.WithBaseDir(*s3StorageBaseDir),
-				s3store.WithACL(*s3StorageACL),
-				s3store.WithSafeChars(*s3SafeChars),
+			store := s3storage.New(sess, *s3StorageBucket,
+				s3storage.WithPathPrefix(*s3StoragePathPrefix),
+				s3storage.WithBaseDir(*s3StorageBaseDir),
+				s3storage.WithACL(*s3StorageACL),
+				s3storage.WithSafeChars(*s3SafeChars),
 			)
 			loaders = append(loaders, store)
 			storages = append(storages, store)
@@ -255,21 +255,21 @@ func main() {
 				*s3LoaderBaseDir != *s3StorageBaseDir {
 				// create another loader if different from storage
 				loaders = append(loaders,
-					s3store.New(sess, *s3LoaderBucket,
-						s3store.WithPathPrefix(*s3LoaderPathPrefix),
-						s3store.WithBaseDir(*s3LoaderBaseDir),
-						s3store.WithSafeChars(*s3SafeChars),
+					s3storage.New(sess, *s3LoaderBucket,
+						s3storage.WithPathPrefix(*s3LoaderPathPrefix),
+						s3storage.WithBaseDir(*s3LoaderBaseDir),
+						s3storage.WithSafeChars(*s3SafeChars),
 					),
 				)
 			}
 		}
 		if *s3ResultStorageBucket != "" {
 			// activate S3 ResultStorage only if bucket config presents
-			resultStore := s3store.New(sess, *s3ResultStorageBucket,
-				s3store.WithPathPrefix(*s3ResultStoragePathPrefix),
-				s3store.WithBaseDir(*s3ResultStorageBaseDir),
-				s3store.WithACL(*s3ResultStorageACL),
-				s3store.WithSafeChars(*s3SafeChars),
+			resultStore := s3storage.New(sess, *s3ResultStorageBucket,
+				s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
+				s3storage.WithBaseDir(*s3ResultStorageBaseDir),
+				s3storage.WithACL(*s3ResultStorageACL),
+				s3storage.WithSafeChars(*s3SafeChars),
 			)
 			resultLoaders = append(resultLoaders, resultStore)
 			resultStorages = append(resultStorages, resultStore)

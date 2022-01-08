@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/store/filestore"
+	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -93,7 +93,7 @@ func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func()))
 
 func TestVipsProcessor(t *testing.T) {
 	doTest(t, "from buffer", imagor.New(
-		imagor.WithLoaders(filestore.New(testDataDir)),
+		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
@@ -101,13 +101,13 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithProcessors(New(
 			WithDebug(true),
 		)),
-		imagor.WithResultStorages(filestore.New(
+		imagor.WithResultStorages(filestorage.New(
 			filepath.Join(testDataDir, "result"),
-			filestore.WithSaveErrIfExists(true),
+			filestorage.WithSaveErrIfExists(true),
 		)),
 	), t.Cleanup)
 	doTest(t, "from file", imagor.New(
-		imagor.WithLoaders(filestore.New(testDataDir)),
+		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
@@ -117,9 +117,9 @@ func TestVipsProcessor(t *testing.T) {
 			WithLogger(zap.NewExample()),
 			WithLoadFromFile(true),
 		)),
-		imagor.WithResultStorages(filestore.New(
+		imagor.WithResultStorages(filestorage.New(
 			filepath.Join(testDataDir, "result"),
-			filestore.WithSaveErrIfExists(true),
+			filestorage.WithSaveErrIfExists(true),
 		)),
 	), t.Cleanup)
 }

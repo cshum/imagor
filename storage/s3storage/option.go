@@ -1,14 +1,14 @@
-package s3store
+package s3storage
 
 import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"strings"
 )
 
-type Option func(h *S3Store)
+type Option func(h *S3Storage)
 
 func WithBaseDir(baseDir string) Option {
-	return func(s *S3Store) {
+	return func(s *S3Storage) {
 		if baseDir != "" {
 			baseDir = "/" + strings.Trim(baseDir, "/")
 			if baseDir != "/" {
@@ -20,7 +20,7 @@ func WithBaseDir(baseDir string) Option {
 }
 
 func WithPathPrefix(prefix string) Option {
-	return func(s *S3Store) {
+	return func(s *S3Storage) {
 		if prefix != "" {
 			prefix = "/" + strings.Trim(prefix, "/")
 			if prefix != "/" {
@@ -40,7 +40,7 @@ var aclValuesMap = (func() map[string]bool {
 })()
 
 func WithACL(acl string) Option {
-	return func(h *S3Store) {
+	return func(h *S3Storage) {
 		if aclValuesMap[acl] {
 			h.ACL = acl
 		}
@@ -48,7 +48,7 @@ func WithACL(acl string) Option {
 }
 
 func WithSafeChars(chars string) Option {
-	return func(h *S3Store) {
+	return func(h *S3Storage) {
 		if chars != "" {
 			h.SafeChars = chars
 		}
