@@ -187,10 +187,9 @@ func main() {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
-	var store, resultStore *filestore.FileStore
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
-		store = filestore.New(
+		store := filestore.New(
 			*fileStorageBaseDir,
 			filestore.WithPathPrefix(*fileStoragePathPrefix),
 			filestore.WithMkdirPermission(*fileStorageMkdirPermission),
@@ -202,9 +201,8 @@ func main() {
 	}
 	if *fileLoaderBaseDir != "" {
 		// activate File Loader only if base dir config presents
-		if !(store != nil &&
-			*fileStorageBaseDir == *fileLoaderBaseDir &&
-			*fileStoragePathPrefix == *fileLoaderPathPrefix) {
+		if *fileStorageBaseDir != *fileLoaderBaseDir ||
+			*fileStoragePathPrefix != *fileLoaderPathPrefix {
 			// create another loader if different from storage
 			loaders = append(loaders,
 				filestore.New(
@@ -217,7 +215,7 @@ func main() {
 	}
 	if *fileResultStorageBaseDir != "" {
 		// activate File Result Storage only if base dir config presents
-		resultStore = filestore.New(
+		resultStore := filestore.New(
 			*fileResultStorageBaseDir,
 			filestore.WithPathPrefix(*fileResultStoragePathPrefix),
 			filestore.WithMkdirPermission(*fileResultStorageMkdirPermission),
@@ -239,10 +237,9 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		var store, resultStore *s3store.S3Store
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
-			store = s3store.New(sess, *s3StorageBucket,
+			store := s3store.New(sess, *s3StorageBucket,
 				s3store.WithPathPrefix(*s3StoragePathPrefix),
 				s3store.WithBaseDir(*s3StorageBaseDir),
 				s3store.WithACL(*s3StorageACL),
@@ -253,11 +250,10 @@ func main() {
 		}
 		if *s3LoaderBucket != "" {
 			// activate S3 Loader only if bucket config presents
-			if !(store != nil &&
-				*s3LoaderPathPrefix == *s3StoragePathPrefix &&
-				*s3LoaderBucket == *s3StorageBucket &&
-				*s3LoaderBaseDir == *s3StorageBaseDir) {
-				// create another result loader if different from storage
+			if *s3LoaderPathPrefix != *s3StoragePathPrefix ||
+				*s3LoaderBucket != *s3StorageBucket ||
+				*s3LoaderBaseDir != *s3StorageBaseDir {
+				// create another loader if different from storage
 				loaders = append(loaders,
 					s3store.New(sess, *s3LoaderBucket,
 						s3store.WithPathPrefix(*s3LoaderPathPrefix),
@@ -267,10 +263,9 @@ func main() {
 				)
 			}
 		}
-
 		if *s3ResultStorageBucket != "" {
 			// activate S3 ResultStorage only if bucket config presents
-			resultStore = s3store.New(sess, *s3ResultStorageBucket,
+			resultStore := s3store.New(sess, *s3ResultStorageBucket,
 				s3store.WithPathPrefix(*s3ResultStoragePathPrefix),
 				s3store.WithBaseDir(*s3ResultStorageBaseDir),
 				s3store.WithACL(*s3ResultStorageACL),
