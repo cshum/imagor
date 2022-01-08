@@ -344,7 +344,11 @@ func (app *Imagor) acquire(
 	}
 	ch := app.g.DoChan(key, func() (interface{}, error) {
 		ctx = context.WithValue(ctx, acquireKey{key}, true)
-		return fn(ctx)
+		v, err := fn(ctx)
+		if errors.Is(err, context.Canceled) {
+			app.g.Forget(key)
+		}
+		return v, err
 	})
 	select {
 	case res := <-ch:
