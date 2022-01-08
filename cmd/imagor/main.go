@@ -144,13 +144,6 @@ func main() {
 		fileStorageWritePermission = fs.String("file-storage-write-permission", "0666",
 			"File Storage write permission")
 
-		s3ResultLoaderBucket = fs.String("s3-result-loader-bucket", "",
-			"S3 Bucket for S3 Result Loader. Will activate S3 Result Loader only if this value present")
-		s3ResultLoaderBaseDir = fs.String("s3-result-loader-base-dir", "",
-			"Base directory for S3 Result Loader")
-		s3ResultLoaderPathPrefix = fs.String("s3-result-loader-path-prefix", "",
-			"Base path prefix for S3 Result Loader")
-
 		s3ResultStorageBucket = fs.String("s3-result-storage-bucket", "",
 			"S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present")
 		s3ResultStorageBaseDir = fs.String("s3-result-storage-base-dir", "",
@@ -159,11 +152,6 @@ func main() {
 			"Base path prefix for S3 Result Storage")
 		s3ResultStorageACL = fs.String("s3-result-storage-acl", "public-read",
 			"Upload ACL for S3 Result Storage")
-
-		fileResultLoaderBaseDir = fs.String("file-result-loader-base-dir", "",
-			"Base directory for File Result Loader. Will activate File Result Loader only if this value present")
-		fileResultLoaderPathPrefix = fs.String("file-result-loader-path-prefix", "",
-			"Base path prefix for File Result Loader")
 
 		fileResultStorageBaseDir = fs.String("file-result-storage-base-dir", "",
 			"Base directory for File Result Storage. Will activate File Result Storage only if this value present")
@@ -239,21 +227,6 @@ func main() {
 		resultLoaders = append(resultLoaders, resultStore)
 		resultStorages = append(resultStorages, resultStore)
 	}
-	if *fileResultLoaderBaseDir != "" {
-		// activate File Result Loader only if base dir config presents
-		if !(resultStore != nil &&
-			*fileResultStorageBaseDir == *fileResultLoaderBaseDir &&
-			*fileResultStoragePathPrefix == *fileResultLoaderPathPrefix) {
-			// create another result loader if different from storage
-			resultLoaders = append(resultLoaders,
-				filestore.New(
-					*fileResultLoaderBaseDir,
-					filestore.WithPathPrefix(*fileResultLoaderPathPrefix),
-					filestore.WithSafeChars(*fileSafeChars),
-				),
-			)
-		}
-	}
 
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
 		// activate AWS Session only if credentials present
@@ -305,22 +278,6 @@ func main() {
 			)
 			resultLoaders = append(resultLoaders, resultStore)
 			resultStorages = append(resultStorages, resultStore)
-		}
-		if *s3ResultLoaderBucket != "" {
-			// activate S3 ResultLoader only if bucket config presents
-			if !(store != nil &&
-				*s3ResultLoaderPathPrefix == *s3ResultStoragePathPrefix &&
-				*s3ResultLoaderBucket == *s3ResultStorageBucket &&
-				*s3ResultLoaderBaseDir == *s3ResultStorageBaseDir) {
-				// create another result loader if different from storage
-				resultLoaders = append(resultLoaders,
-					s3store.New(sess, *s3ResultLoaderBucket,
-						s3store.WithPathPrefix(*s3ResultLoaderPathPrefix),
-						s3store.WithBaseDir(*s3ResultLoaderBaseDir),
-						s3store.WithSafeChars(*s3SafeChars),
-					),
-				)
-			}
 		}
 	}
 

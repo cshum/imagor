@@ -48,8 +48,6 @@ services:
       
       FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
       FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
-      
-      FILE_RESULT_LOADER_BASE_DIR: /mnt/data/result # enable file result loader by specifying base dir
       FILE_RESULT_STORAGE_BASE_DIR: /mnt/data/result # enable file result storage by specifying base dir
     ports:
       - "8000:8000"
@@ -71,11 +69,10 @@ services:
       
       S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying bucket
       S3_LOADER_BASE_DIR: images # optional
+      
       S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying bucket
       S3_STORAGE_BASE_DIR: images # optional
       
-      S3_RESULT_LOADER_BUCKET: mybucket # enable S3 result loader by specifying bucket
-      S3_RESULT_LOADER_BASE_DIR: images/result # optional
       S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
       S3_RESULT_STORAGE_BASE_DIR: images/result # optional
     ports:
@@ -320,11 +317,6 @@ Usage of imagor:
   -s3-storage-acl string
         Upload ACL for S3 Storage (default "public-read")
 
-  -file-result-loader-base-dir string
-        Base directory for File Result Loader. Will activate File Result Loader only if this value present
-  -file-result-loader-path-prefix string
-        Base path prefix for File Result Loader
-        
   -file-result-storage-base-dir string
         Base directory for File Result Storage. Will activate File Result Storage only if this value present
   -file-result-storage-mkdir-permission string
@@ -334,13 +326,6 @@ Usage of imagor:
   -file-result-storage-write-permission string
         File Storage write permission (default "0666")
 
-  -s3-result-loader-bucket string
-        S3 Bucket for S3 Result Loader. Will activate S3 Result Loader only if this value present
-  -s3-result-loader-base-dir string
-        Base directory for S3 Result Loader
-  -s3-result-loader-path-prefix string
-        Base path prefix for S3 Result Loader
-        
   -s3-result-storage-bucket string
         S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present
   -s3-result-storage-base-dir string
