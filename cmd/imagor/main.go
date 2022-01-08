@@ -209,17 +209,15 @@ func main() {
 			filestore.WithWritePermission(*fileStorageWritePermission),
 			filestore.WithSafeChars(*fileSafeChars),
 		)
+		loaders = append(loaders, store)
 		storages = append(storages, store)
 	}
 	if *fileLoaderBaseDir != "" {
 		// activate File Loader only if base dir config presents
-		if store != nil &&
+		if !(store != nil &&
 			*fileStorageBaseDir == *fileLoaderBaseDir &&
-			*fileStoragePathPrefix == *fileLoaderPathPrefix {
-			// reuse store if loader and storage are the same
-			loaders = append(loaders, store)
-		} else {
-			// otherwise, create another loader
+			*fileStoragePathPrefix == *fileLoaderPathPrefix) {
+			// create another loader if different from storage
 			loaders = append(loaders,
 				filestore.New(
 					*fileLoaderBaseDir,
@@ -238,17 +236,15 @@ func main() {
 			filestore.WithWritePermission(*fileResultStorageWritePermission),
 			filestore.WithSafeChars(*fileSafeChars),
 		)
+		resultLoaders = append(resultLoaders, resultStore)
 		resultStorages = append(resultStorages, resultStore)
 	}
 	if *fileResultLoaderBaseDir != "" {
 		// activate File Result Loader only if base dir config presents
-		if resultStore != nil &&
+		if !(resultStore != nil &&
 			*fileResultStorageBaseDir == *fileResultLoaderBaseDir &&
-			*fileResultStoragePathPrefix == *fileResultLoaderPathPrefix {
-			// reuse store if loader and storage are the same
-			resultLoaders = append(resultLoaders, resultStore)
-		} else {
-			// otherwise, create another result loader
+			*fileResultStoragePathPrefix == *fileResultLoaderPathPrefix) {
+			// create another result loader if different from storage
 			resultLoaders = append(resultLoaders,
 				filestore.New(
 					*fileResultLoaderBaseDir,
@@ -279,18 +275,16 @@ func main() {
 				s3store.WithACL(*s3StorageACL),
 				s3store.WithSafeChars(*s3SafeChars),
 			)
+			loaders = append(loaders, store)
 			storages = append(storages, store)
 		}
 		if *s3LoaderBucket != "" {
 			// activate S3 Loader only if bucket config presents
-			if store != nil &&
+			if !(store != nil &&
 				*s3LoaderPathPrefix == *s3StoragePathPrefix &&
 				*s3LoaderBucket == *s3StorageBucket &&
-				*s3LoaderBaseDir == *s3StorageBaseDir {
-				// reuse store if loader and storage are the same
-				loaders = append(loaders, store)
-			} else {
-				// otherwise, create another loader
+				*s3LoaderBaseDir == *s3StorageBaseDir) {
+				// create another result loader if different from storage
 				loaders = append(loaders,
 					s3store.New(sess, *s3LoaderBucket,
 						s3store.WithPathPrefix(*s3LoaderPathPrefix),
@@ -309,18 +303,16 @@ func main() {
 				s3store.WithACL(*s3ResultStorageACL),
 				s3store.WithSafeChars(*s3SafeChars),
 			)
+			resultLoaders = append(resultLoaders, resultStore)
 			resultStorages = append(resultStorages, resultStore)
 		}
 		if *s3ResultLoaderBucket != "" {
 			// activate S3 ResultLoader only if bucket config presents
-			if store != nil &&
+			if !(store != nil &&
 				*s3ResultLoaderPathPrefix == *s3ResultStoragePathPrefix &&
 				*s3ResultLoaderBucket == *s3ResultStorageBucket &&
-				*s3ResultLoaderBaseDir == *s3ResultStorageBaseDir {
-				// reuse store if loader and storage are the same
-				resultLoaders = append(resultLoaders, resultStore)
-			} else {
-				// otherwise, create another loader
+				*s3ResultLoaderBaseDir == *s3ResultStorageBaseDir) {
+				// create another result loader if different from storage
 				resultLoaders = append(resultLoaders,
 					s3store.New(sess, *s3ResultLoaderBucket,
 						s3store.WithPathPrefix(*s3ResultLoaderPathPrefix),
