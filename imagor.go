@@ -130,6 +130,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
 		if e, ok := WrapError(err).(Error); ok {
 			if e == ErrPass {
 				// passed till the end means not found
@@ -171,6 +174,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		return
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
+	load := func(image string) (*Blob, error) {
+		return app.loadStore(r, image)
+	}
 	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
 		if blob, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(blob) {
 			return blob, err
@@ -186,10 +192,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if app.ProcessTimeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
 			defer cancel()
-		}
-		pr := r.WithContext(ctx)
-		load := func(image string) (*Blob, error) {
-			return app.loadStore(pr, image)
 		}
 		for _, processor := range app.Processors {
 			f, e := processor.Process(ctx, blob, p, load)

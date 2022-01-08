@@ -400,6 +400,7 @@ func wrapErr(err error) error {
 	}
 	if idx := strings.Index(msg, "Stack:"); idx > -1 {
 		msg = strings.TrimSpace(msg[:idx]) // neglect govips stacks from err msg
+		return imagor.NewError(msg, 406)
 	}
-	return imagor.NewError(msg, 406)
+	return err
 }
