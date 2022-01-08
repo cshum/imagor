@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -89,6 +90,31 @@ func TestAcquireTimeout(t *testing.T) {
 	})
 	assert.Nil(t, f)
 	assert.Equal(t, context.DeadlineExceeded, err)
+}
+
+func TestAcquireForgetCanceled(t *testing.T) {
+	n := 10
+	app := New()
+	var wg sync.WaitGroup
+	wg.Add(n * 2)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			_, err := app.acquire(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
+				time.Sleep(time.Millisecond)
+				return NewBlobFilePath("a"), nil
+			})
+			assert.Nil(t, err)
+		}()
+		go func() {
+			defer wg.Done()
+			_, _ = app.acquire(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
+				time.Sleep(time.Millisecond)
+				return nil, context.Canceled
+			})
+		}()
+	}
+	wg.Wait()
 }
 
 func TestWithSecret(t *testing.T) {

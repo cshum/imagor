@@ -342,16 +342,22 @@ func (app *Imagor) acquire(
 		// resolve deadlock
 		return fn(ctx)
 	}
+	isCanceled := false
 	ch := app.g.DoChan(key, func() (interface{}, error) {
-		ctx = context.WithValue(ctx, acquireKey{key}, true)
 		v, err := fn(ctx)
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
+			isCanceled = true
+		} else {
+			ctx = context.WithValue(ctx, acquireKey{key}, true)
 		}
 		return v, err
 	})
 	select {
 	case res := <-ch:
+		if !isCanceled && errors.Is(res.Err, context.Canceled) {
+			return app.acquire(ctx, key, fn)
+		}
 		if res.Val != nil {
 			return res.Val.(*Blob), res.Err
 		}
