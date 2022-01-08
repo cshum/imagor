@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const Version = "0.6.4"
+const Version = "0.6.5"
 
 // Loader Load image from image source
 type Loader interface {
