@@ -302,11 +302,11 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 		),
 		WithSaveTimeout(time.Millisecond),
-		WithProcessTimeout(time.Millisecond*5),
+		WithProcessTimeout(time.Second),
 		WithUnsafe(true),
 	)
 	require.NoError(t, app.Startup(context.Background()))
-	assert.Equal(t, time.Millisecond*5, app.ProcessTimeout)
+	assert.Equal(t, time.Second, app.ProcessTimeout)
 	assert.Equal(t, time.Millisecond, app.SaveTimeout)
 	defer require.NoError(t, app.Shutdown(context.Background()))
 	t.Run("consistent", func(t *testing.T) {
