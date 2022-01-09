@@ -116,7 +116,11 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var buf []byte
 	var ln int
 	if !IsFileEmpty(file) {
-		buf, _ = file.ReadAll()
+		buf, err = file.ReadAll()
+		if err != nil {
+			resJSON(w, WrapError(err))
+			return
+		}
 		ln = len(buf)
 		if file.Meta != nil {
 			if p.Meta {
