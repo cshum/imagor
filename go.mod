@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/aws-sdk-go v1.42.15
-	github.com/davidbyttow/govips/v2 v2.9.0
+	github.com/davidbyttow/govips/v2 v2.9.1-0.20220108154210-ed097f29f611
 	github.com/joho/godotenv v1.4.0
 	github.com/peterbourgon/ff/v3 v3.1.2
 	github.com/rs/cors v1.8.0
@@ -24,5 +24,3 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
-
-replace github.com/davidbyttow/govips/v2 v2.9.0 => github.com/davidbyttow/govips/v2 v2.9.1-0.20220108154210-ed097f29f611
