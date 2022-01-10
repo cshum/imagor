@@ -1,6 +1,7 @@
 package vipsprocessor
 
 import (
+	"context"
 	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -11,7 +12,7 @@ import (
 	"strings"
 )
 
-func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
+func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
 	c := getColor(img, colour)
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
 		// fill color
@@ -41,7 +42,7 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale b
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
-		defer cp.Close()
+		addImageRef(ctx, cp)
 		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.Height() {
 			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
 				return
@@ -63,7 +64,7 @@ func (v *VipsProcessor) fill(img *vips.ImageRef, w, h, hPad, vPad int, upscale b
 	return
 }
 
-func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
+func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -105,7 +106,7 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 			return
 		}
 	}
-	defer overlay.Close()
+	addImageRef(ctx, overlay)
 	w = overlay.Width()
 	h = overlay.Height()
 	// alpha
@@ -169,7 +170,7 @@ func (v *VipsProcessor) watermark(img *vips.ImageRef, load imagor.LoadFunc, args
 	return
 }
 
-func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	var rx, ry int
 	var c *vips.Color
 	if len(args) == 0 {
@@ -201,7 +202,7 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 	`, w, h, rx, ry, w, h)), w, h, vips.InterestingNone); err != nil {
 		return
 	}
-	defer rounded.Close()
+	addImageRef(ctx, rounded)
 	if err = img.Composite(rounded, vips.BlendModeDestIn, 0, 0); err != nil {
 		return
 	}
@@ -213,7 +214,7 @@ func roundCorner(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err err
 	return nil
 }
 
-func backgroundColor(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func backgroundColor(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -223,7 +224,7 @@ func backgroundColor(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err
 	return img.Flatten(getColor(img, args[0]))
 }
 
-func rotate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func rotate(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -244,11 +245,11 @@ func rotate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	return
 }
 
-func grayscale(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+func grayscale(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.Modulate(1, 0, 0)
 }
 
-func brightness(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func brightness(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -257,7 +258,7 @@ func brightness(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err erro
 	return linearRGB(img, []float64{1, 1, 1}, []float64{b, b, b})
 }
 
-func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func contrast(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -269,7 +270,7 @@ func contrast(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error)
 	return linearRGB(img, []float64{a, a, a}, []float64{b, b, b})
 }
 
-func hue(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func hue(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -277,7 +278,7 @@ func hue(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	return img.Modulate(1, 1, h)
 }
 
-func saturation(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func saturation(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -286,7 +287,7 @@ func saturation(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err erro
 	return img.Modulate(1, s, 0)
 }
 
-func rgb(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func rgb(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) != 3 {
 		return
 	}
@@ -299,7 +300,7 @@ func rgb(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	return linearRGB(img, []float64{1, 1, 1}, []float64{r, g, b})
 }
 
-func modulate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func modulate(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) != 3 {
 		return
 	}
@@ -311,7 +312,7 @@ func modulate(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error)
 	return img.Modulate(b, s, h)
 }
 
-func blur(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func blur(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	var sigma float64
 	switch len(args) {
 	case 2:
@@ -328,7 +329,7 @@ func blur(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	return
 }
 
-func sharpen(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func sharpen(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	var sigma float64
 	switch len(args) {
 	case 1:
@@ -342,15 +343,15 @@ func sharpen(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) 
 	return img.Sharpen(sigma, 1, 2)
 }
 
-func stripIcc(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+func stripIcc(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.RemoveICCProfile()
 }
 
-func stripExif(img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+func stripExif(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.RemoveICCProfile()
 }
 
-func trimFilter(img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
+func trimFilter(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
 	var (
 		ln        = len(args)
 		pos       string

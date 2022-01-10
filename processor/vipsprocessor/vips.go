@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-type FilterFunc func(img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
+type FilterFunc func(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
 type FilterMap map[string]FilterFunc
 
@@ -157,6 +157,8 @@ func (v *VipsProcessor) Process(
 		img       *vips.ImageRef
 		err       error
 	)
+	ctx = withInitImageRefs(ctx)
+	defer closeImageRefs(ctx)
 	if p.Trim {
 		special = true
 	}
@@ -260,7 +262,7 @@ func (v *VipsProcessor) Process(
 			}
 		}
 	}
-	defer img.Close()
+	addImageRef(ctx, img)
 	var (
 		format  = img.Format()
 		quality int

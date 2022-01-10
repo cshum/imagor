@@ -115,11 +115,11 @@ func (v *VipsProcessor) process(
 		start := time.Now()
 		args := strings.Split(filter.Args, ",")
 		if fn := v.Filters[filter.Name]; fn != nil {
-			if err := fn(img, load, args...); err != nil {
+			if err := fn(ctx, img, load, args...); err != nil {
 				return err
 			}
 		} else if filter.Name == "fill" {
-			if err := v.fill(img, w, h, p.HPadding, p.VPadding, upscale, filter.Args); err != nil {
+			if err := v.fill(ctx, img, w, h, p.HPadding, p.VPadding, upscale, filter.Args); err != nil {
 				return err
 			}
 		}
