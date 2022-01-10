@@ -42,7 +42,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
-		addImageRef(ctx, cp)
+		AddImageRef(ctx, cp)
 		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.Height() {
 			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
 				return
@@ -106,7 +106,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			return
 		}
 	}
-	addImageRef(ctx, overlay)
+	AddImageRef(ctx, overlay)
 	w = overlay.Width()
 	h = overlay.Height()
 	// alpha
@@ -202,7 +202,7 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 	`, w, h, rx, ry, w, h)), w, h, vips.InterestingNone); err != nil {
 		return
 	}
-	addImageRef(ctx, rounded)
+	AddImageRef(ctx, rounded)
 	if err = img.Composite(rounded, vips.BlendModeDestIn, 0, 0); err != nil {
 		return
 	}

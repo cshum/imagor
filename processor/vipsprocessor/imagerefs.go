@@ -26,7 +26,8 @@ func withInitImageRefs(ctx context.Context) context.Context {
 	return context.WithValue(ctx, imageRefKey{}, &imageRefs{})
 }
 
-func addImageRef(ctx context.Context, img *vips.ImageRef) {
+// AddImageRef add vips image ref for keeping track of gc
+func AddImageRef(ctx context.Context, img *vips.ImageRef) {
 	if r, ok := ctx.Value(imageRefKey{}).(*imageRefs); ok {
 		r.Add(img)
 	}

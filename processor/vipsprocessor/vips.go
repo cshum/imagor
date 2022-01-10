@@ -262,7 +262,7 @@ func (v *VipsProcessor) Process(
 			}
 		}
 	}
-	addImageRef(ctx, img)
+	AddImageRef(ctx, img)
 	var (
 		format  = img.Format()
 		quality int
