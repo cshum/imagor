@@ -101,7 +101,7 @@ func TestVipsProcessor(t *testing.T) {
 		imagor.WithProcessors(New(
 			WithDebug(true),
 		)),
-		imagor.WithResultStorages(filestorage.New(
+		imagor.WithResultSavers(filestorage.New(
 			filepath.Join(testDataDir, "result"),
 			filestorage.WithSaveErrIfExists(true),
 		)),
@@ -117,7 +117,7 @@ func TestVipsProcessor(t *testing.T) {
 			WithLogger(zap.NewExample()),
 			WithLoadFromFile(true),
 		)),
-		imagor.WithResultStorages(filestorage.New(
+		imagor.WithResultSavers(filestorage.New(
 			filepath.Join(testDataDir, "result"),
 			filestorage.WithSaveErrIfExists(true),
 		)),

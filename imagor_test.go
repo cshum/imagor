@@ -30,13 +30,9 @@ func (f loaderFunc) Load(r *http.Request, image string) (*Blob, error) {
 	return f(r, image)
 }
 
-type fakeStorageFunc func(ctx context.Context, image string, blob *Blob) error
+type saverFunc func(ctx context.Context, image string, blob *Blob) error
 
-func (f fakeStorageFunc) Load(r *http.Request, image string) (*Blob, error) {
-	return nil, ErrPass
-}
-
-func (f fakeStorageFunc) Save(ctx context.Context, image string, blob *Blob) error {
+func (f saverFunc) Save(ctx context.Context, image string, blob *Blob) error {
 	return f(ctx, image, blob)
 }
 
@@ -266,16 +262,16 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return nil, ErrPass
 			}),
 		),
-		WithStorages(
+		WithSavers(
 			store,
-			fakeStorageFunc(func(ctx context.Context, image string, buf *Blob) error {
+			saverFunc(func(ctx context.Context, image string, buf *Blob) error {
 				time.Sleep(time.Millisecond * 2)
 				assert.Error(t, context.DeadlineExceeded, ctx.Err())
 				return ctx.Err()
 			}),
 		),
 		WithResultLoaders(resultStore),
-		WithResultStorages(resultStore),
+		WithResultSavers(resultStore),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
@@ -387,7 +383,7 @@ func TestWithSameStore(t *testing.T) {
 				return nil, ErrPass
 			}),
 		),
-		WithStorages(store),
+		WithSavers(store),
 		WithSaveTimeout(time.Millisecond),
 		WithProcessTimeout(time.Millisecond*2),
 		WithUnsafe(true),

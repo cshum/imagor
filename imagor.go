@@ -23,10 +23,15 @@ type Loader interface {
 	Load(r *http.Request, image string) (*Blob, error)
 }
 
-// Storage load and save image
+// Saver saves image
+type Saver interface {
+	Save(ctx context.Context, image string, blob *Blob) error
+}
+
+// Storage implements Loader and Saver
 type Storage interface {
 	Loader
-	Save(ctx context.Context, image string, blob *Blob) error
+	Saver
 }
 
 // LoadFunc imagor load function for Processor
@@ -44,9 +49,9 @@ type Imagor struct {
 	Unsafe         bool
 	Secret         string
 	Loaders        []Loader
-	Storages       []Storage
+	Savers         []Saver
 	ResultLoaders  []Loader
-	ResultStorages []Storage
+	ResultSavers   []Saver
 	Processors     []Processor
 	RequestTimeout time.Duration
 	LoadTimeout    time.Duration
@@ -220,8 +225,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				}
 			}
 		}
-		if err == nil && len(app.ResultStorages) > 0 {
-			app.save(ctx, nil, app.ResultStorages, resultKey, blob)
+		if err == nil && len(app.ResultSavers) > 0 {
+			app.save(ctx, nil, app.ResultSavers, resultKey, blob)
 		}
 		return blob, err
 	})
@@ -229,14 +234,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 
 func (app *Imagor) loadStore(r *http.Request, key string) (*Blob, error) {
 	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
-		var origin Storage
+		var origin Saver
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key)
 		if IsFileEmpty(blob) {
 			return
 		}
-		if len(app.Storages) > 0 {
-			app.save(ctx, origin, app.Storages, key, blob)
+		if len(app.Savers) > 0 {
+			app.save(ctx, origin, app.Savers, key, blob)
 		}
 		return
 	})
@@ -252,7 +257,7 @@ func (app *Imagor) loadResult(r *http.Request, key string) (blob *Blob, err erro
 
 func (app *Imagor) load(
 	r *http.Request, loaders []Loader, key string,
-) (blob *Blob, origin Storage, err error) {
+) (blob *Blob, origin Saver, err error) {
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
@@ -269,7 +274,7 @@ func (app *Imagor) load(
 		}
 		if e == nil {
 			err = nil
-			origin, _ = loader.(Storage)
+			origin, _ = loader.(Saver)
 			break
 		}
 		// should not log expected error as of now, as it has not reached the end
@@ -295,7 +300,7 @@ func (app *Imagor) load(
 }
 
 func (app *Imagor) save(
-	ctx context.Context, origin Storage, storages []Storage, key string, blob *Blob,
+	ctx context.Context, origin Saver, savers []Saver, key string, blob *Blob,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -303,8 +308,8 @@ func (app *Imagor) save(
 	}
 	defer cancel()
 	var wg sync.WaitGroup
-	for _, storage := range storages {
-		if storage == origin {
+	for _, saver := range savers {
+		if saver == origin {
 			// loaded from the same store, no need save again
 			if app.Debug {
 				app.Logger.Debug("skip-save", zap.String("key", key))
@@ -312,14 +317,14 @@ func (app *Imagor) save(
 			continue
 		}
 		wg.Add(1)
-		go func(storage Storage) {
+		go func(saver Saver) {
 			defer wg.Done()
-			if err := storage.Save(ctx, key, blob); err != nil {
+			if err := saver.Save(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
 			}
-		}(storage)
+		}(saver)
 	}
 	wg.Wait()
 	return
@@ -368,12 +373,12 @@ func (app *Imagor) debugLog() {
 	if !app.Debug {
 		return
 	}
-	var loaders, storages, resultLoaders, resultStorages, processors []string
+	var loaders, savers, resultLoaders, resultSavers, processors []string
 	for _, v := range app.Loaders {
 		loaders = append(loaders, getType(v))
 	}
-	for _, v := range app.Storages {
-		storages = append(storages, getType(v))
+	for _, v := range app.Savers {
+		savers = append(savers, getType(v))
 	}
 	for _, v := range app.Processors {
 		processors = append(processors, getType(v))
@@ -381,8 +386,8 @@ func (app *Imagor) debugLog() {
 	for _, v := range app.ResultLoaders {
 		resultLoaders = append(resultLoaders, getType(v))
 	}
-	for _, v := range app.ResultStorages {
-		resultStorages = append(resultStorages, getType(v))
+	for _, v := range app.ResultSavers {
+		resultSavers = append(resultSavers, getType(v))
 	}
 	app.Logger.Debug("imagor",
 		zap.Bool("unsafe", app.Unsafe),
@@ -391,9 +396,9 @@ func (app *Imagor) debugLog() {
 		zap.Duration("save_timeout", app.SaveTimeout),
 		zap.Duration("cache_header_ttl", app.CacheHeaderTTL),
 		zap.Strings("loaders", loaders),
-		zap.Strings("storages", storages),
+		zap.Strings("savers", savers),
 		zap.Strings("result_loaders", resultLoaders),
-		zap.Strings("result_storages", resultStorages),
+		zap.Strings("result_savers", resultSavers),
 		zap.Strings("processors", processors),
 	)
 }

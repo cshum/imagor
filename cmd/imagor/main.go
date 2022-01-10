@@ -22,13 +22,13 @@ import (
 
 func main() {
 	var (
-		fs             = flag.NewFlagSet("imagor", flag.ExitOnError)
-		logger         *zap.Logger
-		err            error
-		loaders        []imagor.Loader
-		storages       []imagor.Storage
-		resultLoaders  []imagor.Loader
-		resultStorages []imagor.Storage
+		fs            = flag.NewFlagSet("imagor", flag.ExitOnError)
+		logger        *zap.Logger
+		err           error
+		loaders       []imagor.Loader
+		savers        []imagor.Saver
+		resultLoaders []imagor.Loader
+		resultSavers  []imagor.Saver
 	)
 
 	_ = godotenv.Load()
@@ -104,9 +104,9 @@ func main() {
 		awsRegion = fs.String("aws-region", "",
 			"AWS Region. Required if using S3 Loader or storage")
 		awsAccessKeyId = fs.String("aws-access-key-id", "",
-			"AWS Access Key ID. Required if using S3 Loader or storage")
+			"AWS Access Key ID. Required if using S3 Loader or Storage")
 		awsSecretAccessKey = fs.String("aws-secret-access-key", "",
-			"AWS Secret Access Key. Required if using S3 Loader or storage")
+			"AWS Secret Access Key. Required if using S3 Loader or Storage")
 		s3Endpoint = fs.String("s3-endpoint", "",
 			"Optional S3 Endpoint to override default")
 		s3SafeChars = fs.String("s3-safe-chars", "",
@@ -189,15 +189,15 @@ func main() {
 
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
-		store := filestorage.New(
+		storage := filestorage.New(
 			*fileStorageBaseDir,
 			filestorage.WithPathPrefix(*fileStoragePathPrefix),
 			filestorage.WithMkdirPermission(*fileStorageMkdirPermission),
 			filestorage.WithWritePermission(*fileStorageWritePermission),
 			filestorage.WithSafeChars(*fileSafeChars),
 		)
-		loaders = append(loaders, store)
-		storages = append(storages, store)
+		loaders = append(loaders, storage)
+		savers = append(savers, storage)
 	}
 	if *fileLoaderBaseDir != "" {
 		// activate File Loader only if base dir config presents
@@ -215,15 +215,15 @@ func main() {
 	}
 	if *fileResultStorageBaseDir != "" {
 		// activate File Result Storage only if base dir config presents
-		resultStore := filestorage.New(
+		resultStorage := filestorage.New(
 			*fileResultStorageBaseDir,
 			filestorage.WithPathPrefix(*fileResultStoragePathPrefix),
 			filestorage.WithMkdirPermission(*fileResultStorageMkdirPermission),
 			filestorage.WithWritePermission(*fileResultStorageWritePermission),
 			filestorage.WithSafeChars(*fileSafeChars),
 		)
-		resultLoaders = append(resultLoaders, resultStore)
-		resultStorages = append(resultStorages, resultStore)
+		resultLoaders = append(resultLoaders, resultStorage)
+		resultSavers = append(resultSavers, resultStorage)
 	}
 
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
@@ -239,14 +239,14 @@ func main() {
 		}
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
-			store := s3storage.New(sess, *s3StorageBucket,
+			storage := s3storage.New(sess, *s3StorageBucket,
 				s3storage.WithPathPrefix(*s3StoragePathPrefix),
 				s3storage.WithBaseDir(*s3StorageBaseDir),
 				s3storage.WithACL(*s3StorageACL),
 				s3storage.WithSafeChars(*s3SafeChars),
 			)
-			loaders = append(loaders, store)
-			storages = append(storages, store)
+			loaders = append(loaders, storage)
+			savers = append(savers, storage)
 		}
 		if *s3LoaderBucket != "" {
 			// activate S3 Loader only if bucket config presents
@@ -265,14 +265,14 @@ func main() {
 		}
 		if *s3ResultStorageBucket != "" {
 			// activate S3 ResultStorage only if bucket config presents
-			resultStore := s3storage.New(sess, *s3ResultStorageBucket,
+			resultStorage := s3storage.New(sess, *s3ResultStorageBucket,
 				s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
 				s3storage.WithBaseDir(*s3ResultStorageBaseDir),
 				s3storage.WithACL(*s3ResultStorageACL),
 				s3storage.WithSafeChars(*s3SafeChars),
 			)
-			resultLoaders = append(resultLoaders, resultStore)
-			resultStorages = append(resultStorages, resultStore)
+			resultLoaders = append(resultLoaders, resultStorage)
+			resultSavers = append(resultSavers, resultStorage)
 		}
 	}
 
@@ -294,7 +294,7 @@ func main() {
 	server.New(
 		imagor.New(
 			imagor.WithLoaders(loaders...),
-			imagor.WithStorages(storages...),
+			imagor.WithSavers(savers...),
 			imagor.WithProcessors(
 				vipsprocessor.New(
 					vipsprocessor.WithDisableBlur(*vipsDisableBlur),
@@ -312,7 +312,7 @@ func main() {
 				),
 			),
 			imagor.WithResultLoaders(resultLoaders...),
-			imagor.WithResultStorages(resultStorages...),
+			imagor.WithResultSavers(resultSavers...),
 			imagor.WithSecret(*imagorSecret),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithLoadTimeout(*imagorLoadTimeout),
