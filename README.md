@@ -1,7 +1,7 @@
 # Imagor
 
 [![Build Status](https://github.com/cshum/imagor/workflows/build/badge.svg)](https://github.com/cshum/imagor/actions)
-[![Docker](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/) 
+[![Docker](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 
 Imagor is a fast, Docker-ready image processing server written in Go.
 
@@ -33,7 +33,7 @@ http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.gi
 
 #### Docker Compose Example
 
-Imagor with File Loader and Storage using mounted volume:
+Imagor with File Loader, File Storage and File Result Storage using mounted volume:
 
 ```yaml
 version: "3"
@@ -53,7 +53,7 @@ services:
       - "8000:8000"
 ```
 
-Imagor with AWS S3 Loader and Storage:
+Imagor with AWS S3 Loader, S3 Storage and S3 Result Storage:
 
 ```yaml
 version: "3"
@@ -76,6 +76,10 @@ services:
     ports:
       - "8000:8000"
 ```
+
+- `Loader` loads image without saving it. Enable `Loader` where you wish to load images from, but not modifying it e.g. static directory.
+- `Storage` loads and saves the original image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
+- `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
 
 ### Imagor Endpoint
 
