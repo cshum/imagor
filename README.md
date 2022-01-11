@@ -31,64 +31,6 @@ http://localhost:8000/unsafe/fit-in/-500x500/10x10/filters:hue(290):saturation(1
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
-### Loader, Storage and Result Storage
-
-Imagor `Loader`, `Storage` and `Result Storage` are the building blocks for loading and saving images from various sources:
-
-- `Loader` loads image. Enable `Loader` where you wish to load images from, but without modifying it e.g. static directory.
-- `Storage` loads and saves image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
-- `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
-
-Imagor provides built-in adaptors that support HTTP, proxy, file system and AWS S3. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
-
-#### Docker Compose Example
-
-Imagor with file system, using mounted volume:
-```yaml
-version: "3"
-services:
-  imagor:
-    image: shumc/imagor:latest
-    volumes:
-      - ./:/mnt/data
-    environment:
-      PORT: 8000
-      IMAGOR_UNSAFE: 1 # unsafe URL for testing
-
-      FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
-
-      FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
-
-      FILE_RESULT_STORAGE_BASE_DIR: /mnt/data/result # enable file result storage by specifying base dir
-    ports:
-      - "8000:8000"
-```
-
-Imagor with AWS S3:
-```yaml
-version: "3"
-services:
-  imagor:
-    image: shumc/imagor:latest
-    environment:
-      PORT: 8000
-      IMAGOR_SECRET: mysecret # secret key for URL signature
-      AWS_ACCESS_KEY_ID: ...
-      AWS_SECRET_ACCESS_KEY: ...
-      AWS_REGION: ...
-
-      S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying bucket
-      S3_LOADER_BASE_DIR: images # optional
-
-      S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying bucket
-      S3_STORAGE_BASE_DIR: images # optional
-
-      S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
-      S3_RESULT_STORAGE_BASE_DIR: images/result # optional
-    ports:
-      - "8000:8000"
-```
-
 ### Imagor Endpoint
 
 Imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
@@ -134,27 +76,6 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
     }
   ]
 }
-```
-
-### URL Signature
-
-In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks that abuse multiple image operations.
-
-The hash is based on HMAC SHA1 digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
-An example in Node.js:
-
-```javascript
-var hmacSHA1 = require("crypto-js/hmac-sha1")
-var Base64 = require("crypto-js/enc-base64")
-
-function sign(path, secret) {
-  var hash = hmacSHA1(path, secret)
-  hash = Base64.stringify(hash).replace(/\+/g, '-').replace(/\//g, '_')
-  return hash + '/' + path
-}
-
-console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png', 'mysecret'))
-// cST4Ko5_FqwT3BDn-Wf4gO3RFSk=/500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
 ### Filters
@@ -215,6 +136,85 @@ Imagor supports the following filters:
   - `alpha` watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent).
   - `w_ratio` percentage of the width of the image the watermark should fit-in
   - `h_ratio` percentage of the height of the image the watermark should fit-in
+
+### Loader, Storage and Result Storage
+
+Imagor `Loader`, `Storage` and `Result Storage` are the building blocks for loading and saving images from various sources:
+
+- `Loader` loads image. Enable `Loader` where you wish to load images from, but without modifying it e.g. static directory.
+- `Storage` loads and saves image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
+- `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
+
+Imagor provides built-in adaptors that support HTTP, proxy, file system and AWS S3. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
+
+#### Docker Compose Example
+
+Imagor with file system, using mounted volume:
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    volumes:
+      - ./:/mnt/data
+    environment:
+      PORT: 8000
+      IMAGOR_UNSAFE: 1 # unsafe URL for testing
+
+      FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
+
+      FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
+
+      FILE_RESULT_STORAGE_BASE_DIR: /mnt/data/result # enable file result storage by specifying base dir
+    ports:
+      - "8000:8000"
+```
+
+Imagor with AWS S3:
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    environment:
+      PORT: 8000
+      IMAGOR_SECRET: mysecret # secret key for URL signature
+      AWS_ACCESS_KEY_ID: ...
+      AWS_SECRET_ACCESS_KEY: ...
+      AWS_REGION: ...
+
+      S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying bucket
+      S3_LOADER_BASE_DIR: images # optional
+
+      S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying bucket
+      S3_STORAGE_BASE_DIR: images # optional
+
+      S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
+      S3_RESULT_STORAGE_BASE_DIR: images/result # optional
+    ports:
+      - "8000:8000"
+```
+
+### URL Signature
+
+In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks that abuse multiple image operations.
+
+The hash is based on HMAC SHA1 digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+An example in Node.js:
+
+```javascript
+var hmacSHA1 = require("crypto-js/hmac-sha1")
+var Base64 = require("crypto-js/enc-base64")
+
+function sign(path, secret) {
+  var hash = hmacSHA1(path, secret)
+  hash = Base64.stringify(hash).replace(/\+/g, '-').replace(/\//g, '_')
+  return hash + '/' + path
+}
+
+console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png', 'mysecret'))
+// cST4Ko5_FqwT3BDn-Wf4gO3RFSk=/500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+```
 
 ### Configurations
 
