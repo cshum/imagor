@@ -157,8 +157,8 @@ func (v *VipsProcessor) Process(
 		img       *vips.ImageRef
 		err       error
 	)
-	ctx = withInitImageRefs(ctx)
-	defer closeImageRefs(ctx)
+	ctx = WithInitImageRefs(ctx)
+	defer CloseImageRefs(ctx)
 	if p.Trim {
 		special = true
 	}
