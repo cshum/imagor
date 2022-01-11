@@ -20,10 +20,10 @@ func (r *imageRefs) Add(img *vips.ImageRef) {
 }
 
 func (r *imageRefs) Close() {
+	r.m.Lock()
 	for _, img := range r.imageRefs {
 		img.Close()
 	}
-	r.m.Lock()
 	r.imageRefs = nil
 	r.m.Unlock()
 }
