@@ -3,6 +3,7 @@ package httploader
 import (
 	"crypto/tls"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -16,12 +17,32 @@ func WithTransport(transport http.RoundTripper) Option {
 	}
 }
 
+func WithProxyTransport(proxyURL string) Option {
+	return func(h *HTTPLoader) {
+		if proxyURL != "" {
+			u, err := url.Parse(proxyURL)
+			if err != nil {
+				return
+			}
+			t, ok := h.Transport.(*http.Transport)
+			if !ok {
+				t = http.DefaultTransport.(*http.Transport).Clone()
+			}
+			t.Proxy = http.ProxyURL(u)
+			h.Transport = t
+		}
+	}
+}
+
 func WithInsecureSkipVerifyTransport(enabled bool) Option {
 	return func(h *HTTPLoader) {
 		if enabled {
-			transport := http.DefaultTransport.(*http.Transport).Clone()
-			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-			h.Transport = transport
+			t, ok := h.Transport.(*http.Transport)
+			if !ok {
+				t = http.DefaultTransport.(*http.Transport).Clone()
+			}
+			t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			h.Transport = t
 		}
 	}
 }

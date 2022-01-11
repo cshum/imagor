@@ -33,13 +33,13 @@ http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.gi
 
 ### Loader, Storage and Result Storage
 
-Imagor `Loader`, `Storage` and `Result Storage` are building blocks for loading and saving images from various sources.
+Imagor `Loader`, `Storage` and `Result Storage` are the building blocks for loading and saving images from various sources:
 
 - `Loader` loads image. Enable `Loader` where you wish to load images from, but without modifying it e.g. static directory.
 - `Storage` loads and saves image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
 - `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
 
-Imagor provides built-in adaptors that support HTTP, file system and AWS S3. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
+Imagor provides built-in adaptors that support HTTP, proxy, file system and AWS S3. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
 
 #### Docker Compose Example
 
@@ -287,12 +287,12 @@ Usage of imagor:
         File safe characters to be excluded from image key escape
         
   -file-loader-base-dir string
-        Base directory for File Loader. Will activate File Loader only if this value present
+        Base directory for File Loader. Enable File Loader only if this value present
   -file-loader-path-prefix string
         Base path prefix for File Loader
         
   -file-storage-base-dir string
-        Base directory for File Storage. Will activate File Storage only if this value present
+        Base directory for File Storage. Enable File Storage only if this value present
   -file-storage-path-prefix string
         Base path prefix for File Storage
   -file-storage-mkdir-permission string
@@ -312,14 +312,14 @@ Usage of imagor:
         S3 safe characters to be excluded from image key escape
 
   -s3-loader-bucket string
-        S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present
+        S3 Bucket for S3 Loader. Enable S3 Loader only if this value present
   -s3-loader-base-dir string
         Base directory for S3 Loader
   -s3-loader-path-prefix string
         Base path prefix for S3 Loader
         
   -s3-storage-bucket string
-        S3 Bucket for S3 Storage. Will activate S3 Storage only if this value present
+        S3 Bucket for S3 Storage. Enable S3 Storage only if this value present
   -s3-storage-base-dir string
         Base directory for S3 Storage
   -s3-storage-path-prefix string
@@ -328,7 +328,7 @@ Usage of imagor:
         Upload ACL for S3 Storage (default "public-read")
 
   -file-result-storage-base-dir string
-        Base directory for File Result Storage. Will activate File Result Storage only if this value present
+        Base directory for File Result Storage. Enable File Result Storage only if this value present
   -file-result-storage-mkdir-permission string
         File Result Storage mkdir permission (default "0755")
   -file-result-storage-path-prefix string
@@ -337,7 +337,7 @@ Usage of imagor:
         File Storage write permission (default "0666")
 
   -s3-result-storage-bucket string
-        S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present
+        S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
   -s3-result-storage-base-dir string
         Base directory for S3 Result Storage
   -s3-result-storage-path-prefix string
@@ -365,4 +365,20 @@ Usage of imagor:
         VIPS max image height
   -vips-max-width int
         VIPS max image width
+        
+  -proxy-http-loader-url string
+        Proxy URL for Proxy HTTP Loader. Enable Proxy HTTP Loader only if this value present
+  -proxy-http-loader-allowed-sources string
+        Proxy HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
+  -proxy-http-loader-default-scheme string
+        Proxy HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
+  -proxy-http-loader-forward-all-headers
+        Forward all request headers to Proxy HTTP Loader request
+  -proxy-http-loader-forward-headers string
+        Forward request header to Proxy HTTP Loader request by csv e.g. User-Agent,Accept
+  -proxy-http-loader-insecure-skip-verify-transport
+        Proxy HTTP Loader to use HTTP transport with InsecureSkipVerify true
+  -proxy-http-loader-max-allowed-size int
+        Proxy HTTP Loader maximum allowed size in bytes for loading images if set
+
 ```

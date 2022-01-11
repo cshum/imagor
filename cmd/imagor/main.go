@@ -113,14 +113,14 @@ func main() {
 			"S3 safe characters to be excluded from image key escape")
 
 		s3LoaderBucket = fs.String("s3-loader-bucket", "",
-			"S3 Bucket for S3 Loader. Will activate S3 Loader only if this value present")
+			"S3 Bucket for S3 Loader. Enable S3 Loader only if this value present")
 		s3LoaderBaseDir = fs.String("s3-loader-base-dir", "",
 			"Base directory for S3 Loader")
 		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "",
 			"Base path prefix for S3 Loader")
 
 		s3StorageBucket = fs.String("s3-storage-bucket", "",
-			"S3 Bucket for S3 Storage. Will activate S3 Storage only if this value present")
+			"S3 Bucket for S3 Storage. Enable S3 Storage only if this value present")
 		s3StorageBaseDir = fs.String("s3-storage-base-dir", "",
 			"Base directory for S3 Storage")
 		s3StoragePathPrefix = fs.String("s3-storage-path-prefix", "",
@@ -131,12 +131,12 @@ func main() {
 		fileSafeChars = fs.String("file-safe-chars", "",
 			"File safe characters to be excluded from image key escape")
 		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
-			"Base directory for File Loader. Will activate File Loader only if this value present")
+			"Base directory for File Loader. Enable File Loader only if this value present")
 		fileLoaderPathPrefix = fs.String("file-loader-path-prefix", "",
 			"Base path prefix for File Loader")
 
 		fileStorageBaseDir = fs.String("file-storage-base-dir", "",
-			"Base directory for File Storage. Will activate File Storage only if this value present")
+			"Base directory for File Storage. Enable File Storage only if this value present")
 		fileStoragePathPrefix = fs.String("file-storage-path-prefix", "",
 			"Base path prefix for File Storage")
 		fileStorageMkdirPermission = fs.String("file-storage-mkdir-permission", "0755",
@@ -145,7 +145,7 @@ func main() {
 			"File Storage write permission")
 
 		s3ResultStorageBucket = fs.String("s3-result-storage-bucket", "",
-			"S3 Bucket for S3 Result Storage. Will activate S3 Result Storage only if this value present")
+			"S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present")
 		s3ResultStorageBaseDir = fs.String("s3-result-storage-base-dir", "",
 			"Base directory for S3 Result Storage")
 		s3ResultStoragePathPrefix = fs.String("s3-result-storage-path-prefix", "",
@@ -154,13 +154,28 @@ func main() {
 			"Upload ACL for S3 Result Storage")
 
 		fileResultStorageBaseDir = fs.String("file-result-storage-base-dir", "",
-			"Base directory for File Result Storage. Will activate File Result Storage only if this value present")
+			"Base directory for File Result Storage. Enable File Result Storage only if this value present")
 		fileResultStoragePathPrefix = fs.String("file-result-storage-path-prefix", "",
 			"Base path prefix for File Result Storage")
 		fileResultStorageMkdirPermission = fs.String("file-result-storage-mkdir-permission", "0755",
 			"File Result Storage mkdir permission")
 		fileResultStorageWritePermission = fs.String("file-result-storage-write-permission", "0666",
 			"File Storage write permission")
+
+		proxyHTTPLoaderURL = fs.String("proxy-http-loader-url", "",
+			"Proxy URL for Proxy HTTP Loader. Enable Proxy HTTP Loader only if this value present")
+		proxyHTTPLoaderForwardHeaders = fs.String("proxy-http-loader-forward-headers", "",
+			"Forward request header to Proxy HTTP Loader request by csv e.g. User-Agent,Accept")
+		proxyHTTPLoaderForwardAllHeaders = fs.Bool("proxy-http-loader-forward-all-headers", false,
+			"Forward all request headers to Proxy HTTP Loader request")
+		proxyHTTPLoaderAllowedSources = fs.String("proxy-http-loader-allowed-sources", "",
+			"Proxy HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.")
+		proxyHTTPLoaderMaxAllowedSize = fs.Int("proxy-http-loader-max-allowed-size", 0,
+			"Proxy HTTP Loader maximum allowed size in bytes for loading images if set")
+		proxyHTTPLoaderInsecureSkipVerifyTransport = fs.Bool("proxy-http-loader-insecure-skip-verify-transport", false,
+			"Proxy HTTP Loader to use HTTP transport with InsecureSkipVerify true")
+		proxyHTTPLoaderDefaultScheme = fs.String("proxy-http-loader-default-scheme", "https",
+			"Proxy HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
@@ -274,6 +289,18 @@ func main() {
 			resultLoaders = append(resultLoaders, resultStorage)
 			resultSavers = append(resultSavers, resultStorage)
 		}
+	}
+
+	if *proxyHTTPLoaderURL != "" {
+		loaders = append(loaders, httploader.New(
+			httploader.WithProxyTransport(*proxyHTTPLoaderURL),
+			httploader.WithForwardAllHeaders(*proxyHTTPLoaderForwardAllHeaders),
+			httploader.WithForwardHeaders(*proxyHTTPLoaderForwardHeaders),
+			httploader.WithAllowedSources(*proxyHTTPLoaderAllowedSources),
+			httploader.WithMaxAllowedSize(*proxyHTTPLoaderMaxAllowedSize),
+			httploader.WithInsecureSkipVerifyTransport(*proxyHTTPLoaderInsecureSkipVerifyTransport),
+			httploader.WithDefaultScheme(*proxyHTTPLoaderDefaultScheme),
+		))
 	}
 
 	if !*httpLoaderDisable {

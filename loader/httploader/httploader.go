@@ -13,8 +13,7 @@ import (
 )
 
 type HTTPLoader struct {
-	// The Transport used to request images.
-	// If nil, http.DefaultTransport is used.
+	// The Transport used to request images, default http.DefaultTransport.
 	Transport http.RoundTripper
 
 	// ForwardHeaders copy request headers to image request headers
@@ -40,6 +39,7 @@ type HTTPLoader struct {
 
 func New(options ...Option) *HTTPLoader {
 	h := &HTTPLoader{
+		Transport:       http.DefaultTransport.(*http.Transport).Clone(),
 		OverrideHeaders: map[string]string{},
 		DefaultScheme:   "https",
 		UserAgent:       fmt.Sprintf("Imagor/%s", imagor.Version),
