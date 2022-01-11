@@ -281,7 +281,7 @@ Usage of imagor:
   -http-loader-max-allowed-size int
         HTTP Loader maximum allowed size in bytes for loading images if set
   -http-loader-proxy-urls string
-        HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present
+        HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port
   -http-loader-proxy-allowed-sources string
         HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-disable
