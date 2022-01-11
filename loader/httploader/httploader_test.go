@@ -332,3 +332,63 @@ func TestWithMaxAllowedSize(t *testing.T) {
 		},
 	})
 }
+
+func TestWithNoProxy(t *testing.T) {
+	h := New()
+	r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
+	pu, err := h.Transport.(*http.Transport).Proxy(r)
+	assert.Nil(t, pu)
+	assert.NoError(t, err)
+}
+
+func TestWithProxy(t *testing.T) {
+	h := New(WithProxyTransport("https://user:pass@proxy.com:1667", ""))
+
+	r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
+	pu, err := h.Transport.(*http.Transport).Proxy(r)
+	require.NotNil(t, pu)
+	assert.Equal(t, "https://user:pass@proxy.com:1667", pu.String())
+	assert.NoError(t, err)
+}
+
+func TestWithProxyAllowedSources(t *testing.T) {
+	proxyURL := "https://user:pass@proxy.com:1667"
+	h := New(WithProxyTransport(proxyURL, "*.foo.com,example.com"))
+	tests := []struct {
+		target  string
+		isProxy bool
+	}{
+		{
+			target:  "https://example.com/imagor",
+			isProxy: true,
+		},
+		{
+			target:  "https://fff.example.com/imagor",
+			isProxy: false,
+		},
+		{
+			target:  "https://abc.foo.com/imagor",
+			isProxy: true,
+		},
+		{
+			target:  "https://foo.com/imagor",
+			isProxy: false,
+		},
+		{
+			target:  "https://example2.com/imagor",
+			isProxy: false,
+		},
+	}
+	for _, tt := range tests {
+		r := httptest.NewRequest(http.MethodGet, tt.target, nil)
+		pu, err := h.Transport.(*http.Transport).Proxy(r)
+		if tt.isProxy {
+			require.NotNil(t, pu)
+			assert.Equal(t, proxyURL, pu.String())
+			assert.NoError(t, err)
+		} else {
+			assert.Nil(t, pu)
+			assert.NoError(t, err)
+		}
+	}
+}

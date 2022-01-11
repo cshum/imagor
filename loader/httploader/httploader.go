@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 )
@@ -142,16 +141,4 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 		req.Header.Set(key, value)
 	}
 	return req, nil
-}
-
-func isURLAllowed(u *url.URL, allowedSources []string) bool {
-	if len(allowedSources) == 0 {
-		return true
-	}
-	for _, source := range allowedSources {
-		if matched, e := path.Match(source, u.Host); matched && e == nil {
-			return true
-		}
-	}
-	return false
 }
