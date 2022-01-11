@@ -3,23 +3,29 @@ package vipsprocessor
 import (
 	"context"
 	"github.com/davidbyttow/govips/v2/vips"
+	"sync"
 )
 
 type imageRefKey struct{}
 
 type imageRefs struct {
 	imageRefs []*vips.ImageRef
+	m         sync.Mutex
 }
 
-func (r *imageRefs) Add(imageRef *vips.ImageRef) {
-	r.imageRefs = append(r.imageRefs, imageRef)
+func (r *imageRefs) Add(img *vips.ImageRef) {
+	r.m.Lock()
+	r.imageRefs = append(r.imageRefs, img)
+	r.m.Unlock()
 }
 
 func (r *imageRefs) Close() {
 	for _, img := range r.imageRefs {
 		img.Close()
 	}
+	r.m.Lock()
 	r.imageRefs = nil
+	r.m.Unlock()
 }
 
 // WithInitImageRefs context with image ref tracking
