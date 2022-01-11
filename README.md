@@ -31,10 +31,17 @@ http://localhost:8000/unsafe/fit-in/-500x500/10x10/filters:hue(290):saturation(1
 http://localhost:8000/unsafe/fit-in/800x800/filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
+### Loader, Storage and Result Storage
+
+- `Loader` loads image. Enable `Loader` where you wish to load images from, but without modifying it e.g. static directory.
+- `Storage` loads and saves image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
+- `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
+
+Imagor supports multiple `Loader`, `Storage` and `Result Storage`. By default, `HTTP Loader` is enabled as fallback. You can choose to enable adaptors that fit you use cases:
+
 #### Docker Compose Example
 
-Imagor with File Loader, File Storage and File Result Storage using mounted volume:
-
+Imagor with file system, using mounted volume:
 ```yaml
 version: "3"
 services:
@@ -47,14 +54,15 @@ services:
       IMAGOR_UNSAFE: 1 # unsafe URL for testing
       
       FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
+      
       FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
+      
       FILE_RESULT_STORAGE_BASE_DIR: /mnt/data/result # enable file result storage by specifying base dir
     ports:
       - "8000:8000"
 ```
 
-Imagor with AWS S3 Loader, S3 Storage and S3 Result Storage:
-
+Imagor with AWS S3:
 ```yaml
 version: "3"
 services:
@@ -69,17 +77,15 @@ services:
       
       S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying bucket
       S3_LOADER_BASE_DIR: images # optional
+      
       S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying bucket
       S3_STORAGE_BASE_DIR: images # optional
+      
       S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
       S3_RESULT_STORAGE_BASE_DIR: images/result # optional
     ports:
       - "8000:8000"
 ```
-
-- `Loader` loads image without saving it. Enable `Loader` where you wish to load images from, but not modifying it e.g. static directory.
-- `Storage` loads and saves the original image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
-- `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
 
 ### Imagor Endpoint
 
