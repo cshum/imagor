@@ -280,6 +280,10 @@ Usage of imagor:
         HTTP Loader to use HTTP transport with InsecureSkipVerify true
   -http-loader-max-allowed-size int
         HTTP Loader maximum allowed size in bytes for loading images if set
+  -http-loader-proxy-urls string
+        HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present
+  -http-loader-proxy-allowed-sources string
+        HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-disable
         Disable HTTP Loader
 
@@ -365,20 +369,4 @@ Usage of imagor:
         VIPS max image height
   -vips-max-width int
         VIPS max image width
-        
-  -proxy-http-loader-url string
-        Proxy URL for Proxy HTTP Loader. Enable Proxy HTTP Loader only if this value present
-  -proxy-http-loader-allowed-sources string
-        Proxy HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
-  -proxy-http-loader-default-scheme string
-        Proxy HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
-  -proxy-http-loader-forward-all-headers
-        Forward all request headers to Proxy HTTP Loader request
-  -proxy-http-loader-forward-headers string
-        Forward request header to Proxy HTTP Loader request by csv e.g. User-Agent,Accept
-  -proxy-http-loader-insecure-skip-verify-transport
-        Proxy HTTP Loader to use HTTP transport with InsecureSkipVerify true
-  -proxy-http-loader-max-allowed-size int
-        Proxy HTTP Loader maximum allowed size in bytes for loading images if set
-
 ```

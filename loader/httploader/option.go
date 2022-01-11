@@ -2,6 +2,7 @@ package httploader
 
 import (
 	"crypto/tls"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,18 +18,41 @@ func WithTransport(transport http.RoundTripper) Option {
 	}
 }
 
-func WithProxyTransport(proxyURL string) Option {
+func randomProxyFunc(proxyURLs, hosts string) func(*http.Request) (*url.URL, error) {
+	var urls []*url.URL
+	var allowedSources []string
+	for _, split := range strings.Split(proxyURLs, ",") {
+		if u, err := url.Parse(strings.TrimSpace(split)); err == nil {
+			urls = append(urls, u)
+		}
+	}
+	ln := len(urls)
+	for _, host := range strings.Split(hosts, ",") {
+		host = strings.TrimSpace(host)
+		if len(host) > 0 {
+			allowedSources = append(allowedSources, host)
+		}
+	}
+	return func(r *http.Request) (u *url.URL, err error) {
+		if len(urls) == 0 {
+			return
+		}
+		if !isURLAllowed(r.URL, allowedSources) {
+			return
+		}
+		u = urls[rand.Intn(ln)]
+		return
+	}
+}
+
+func WithProxyTransport(proxyURLs, hosts string) Option {
 	return func(h *HTTPLoader) {
-		if proxyURL != "" {
-			u, err := url.Parse(proxyURL)
-			if err != nil {
-				return
-			}
+		if proxyURLs != "" {
 			t, ok := h.Transport.(*http.Transport)
 			if !ok {
 				t = http.DefaultTransport.(*http.Transport).Clone()
 			}
-			t.Proxy = http.ProxyURL(u)
+			t.Proxy = randomProxyFunc(proxyURLs, hosts)
 			h.Transport = t
 		}
 	}

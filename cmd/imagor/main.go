@@ -98,6 +98,10 @@ func main() {
 			"HTTP Loader to use HTTP transport with InsecureSkipVerify true")
 		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
 			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
+		httpLoaderProxyURLs = fs.String("http-loader-proxy-urls", "",
+			"HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present")
+		httpLoaderProxyAllowedSources = fs.String("http-loader-proxy-allowed-sources", "",
+			"HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.")
 		httpLoaderDisable = fs.Bool("http-loader-disable", false,
 			"Disable HTTP Loader")
 
@@ -161,21 +165,6 @@ func main() {
 			"File Result Storage mkdir permission")
 		fileResultStorageWritePermission = fs.String("file-result-storage-write-permission", "0666",
 			"File Storage write permission")
-
-		proxyHTTPLoaderURL = fs.String("proxy-http-loader-url", "",
-			"Proxy URL for Proxy HTTP Loader. Enable Proxy HTTP Loader only if this value present")
-		proxyHTTPLoaderForwardHeaders = fs.String("proxy-http-loader-forward-headers", "",
-			"Forward request header to Proxy HTTP Loader request by csv e.g. User-Agent,Accept")
-		proxyHTTPLoaderForwardAllHeaders = fs.Bool("proxy-http-loader-forward-all-headers", false,
-			"Forward all request headers to Proxy HTTP Loader request")
-		proxyHTTPLoaderAllowedSources = fs.String("proxy-http-loader-allowed-sources", "",
-			"Proxy HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.")
-		proxyHTTPLoaderMaxAllowedSize = fs.Int("proxy-http-loader-max-allowed-size", 0,
-			"Proxy HTTP Loader maximum allowed size in bytes for loading images if set")
-		proxyHTTPLoaderInsecureSkipVerifyTransport = fs.Bool("proxy-http-loader-insecure-skip-verify-transport", false,
-			"Proxy HTTP Loader to use HTTP transport with InsecureSkipVerify true")
-		proxyHTTPLoaderDefaultScheme = fs.String("proxy-http-loader-default-scheme", "https",
-			"Proxy HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
@@ -291,18 +280,6 @@ func main() {
 		}
 	}
 
-	if *proxyHTTPLoaderURL != "" {
-		loaders = append(loaders, httploader.New(
-			httploader.WithProxyTransport(*proxyHTTPLoaderURL),
-			httploader.WithForwardAllHeaders(*proxyHTTPLoaderForwardAllHeaders),
-			httploader.WithForwardHeaders(*proxyHTTPLoaderForwardHeaders),
-			httploader.WithAllowedSources(*proxyHTTPLoaderAllowedSources),
-			httploader.WithMaxAllowedSize(*proxyHTTPLoaderMaxAllowedSize),
-			httploader.WithInsecureSkipVerifyTransport(*proxyHTTPLoaderInsecureSkipVerifyTransport),
-			httploader.WithDefaultScheme(*proxyHTTPLoaderDefaultScheme),
-		))
-	}
-
 	if !*httpLoaderDisable {
 		// fallback with HTTP Loader unless explicitly disabled
 		loaders = append(loaders,
@@ -313,6 +290,7 @@ func main() {
 				httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
 				httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
 				httploader.WithDefaultScheme(*httpLoaderDefaultScheme),
+				httploader.WithProxyTransport(*httpLoaderProxyURLs, *httpLoaderProxyAllowedSources),
 			),
 		)
 	}

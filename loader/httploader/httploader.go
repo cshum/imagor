@@ -71,7 +71,7 @@ func (h *HTTPLoader) Load(r *http.Request, image string) (*imagor.Blob, error) {
 			return nil, imagor.ErrPass
 		}
 	}
-	if !h.isUrlAllowed(u) {
+	if !isURLAllowed(u, h.AllowedSources) {
 		return nil, imagor.ErrPass
 	}
 	client := &http.Client{Transport: h.Transport}
@@ -144,11 +144,11 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 	return req, nil
 }
 
-func (h *HTTPLoader) isUrlAllowed(u *url.URL) bool {
-	if len(h.AllowedSources) == 0 {
+func isURLAllowed(u *url.URL, allowedSources []string) bool {
+	if len(allowedSources) == 0 {
 		return true
 	}
-	for _, source := range h.AllowedSources {
+	for _, source := range allowedSources {
 		if matched, e := path.Match(source, u.Host); matched && e == nil {
 			return true
 		}
