@@ -109,6 +109,12 @@ func Parse(path string) (p Params) {
 	if match[index] != "" {
 		p.HPadding, _ = strconv.Atoi(match[index+1])
 		p.VPadding, _ = strconv.Atoi(match[index+2])
+		if p.Width > 0 && p.HPadding*2 > p.Width {
+			p.HPadding = p.Width/2 - 1
+		}
+		if p.Height > 0 && p.VPadding*2 > p.Height {
+			p.VPadding = p.Height/2 - 1
+		}
 	}
 	index += 3
 	if match[index] != "" {

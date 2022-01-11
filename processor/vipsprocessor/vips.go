@@ -245,6 +245,20 @@ func (v *VipsProcessor) Process(
 						return nil, err
 					}
 				}
+			} else if p.Width > 0 && p.Height == 0 {
+				if img, err = v.newThumbnail(
+					blob, p.Width-p.HPadding*2, v.MaxHeight, vips.InterestingNone, vips.SizeBoth,
+				); err != nil {
+					return nil, err
+				}
+				thumbnail = true
+			} else if p.Height > 0 && p.Width == 0 {
+				if img, err = v.newThumbnail(
+					blob, v.MaxWidth, p.Height-p.VPadding*2, vips.InterestingNone, vips.SizeBoth,
+				); err != nil {
+					return nil, err
+				}
+				thumbnail = true
 			}
 		}
 	}

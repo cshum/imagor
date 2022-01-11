@@ -43,6 +43,8 @@ var tests = []struct {
 	{"resize right", "100x200/right/top/gopher.png"},
 	{"fit-in unspecified height", "fit-in/500x0/filters:fill(white):format(jpg)/gopher-front.png"},
 	{"resize unspecified height", "500x0/filters:fill(white):format(jpg)/gopher-front.png"},
+	{"fit-in unspecified width", "fit-in/0x500/filters:fill(white):format(jpg)/gopher-front.png"},
+	{"resize unspecified width", "0x500/filters:fill(white):format(jpg)/gopher-front.png"},
 	{"stretch", "stretch/100x100/filters:modulate(-10,30,20)/gopher.png"},
 	{"fit-in flip hue", "fit-in/-200x0/filters:hue(290):saturation(100):fill(FFO):upscale()/gopher.png"},
 	{"fit-in padding", "fit-in/100x100/10x5/filters:fill(white)/gopher.png"},
