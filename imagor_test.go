@@ -259,6 +259,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if image == "timeout" {
 					return NewBlobBytes([]byte("timeout")), nil
 				}
+				if image == "dood" {
+					return NewBlobBytes([]byte("dood")), errors.New("error with value")
+				}
 				return nil, ErrPass
 			}),
 		),
@@ -292,6 +295,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
+				assert.NotEqual(t, "dood", string(buf), "should not save error")
 				if string(buf) == "tar" {
 					return NewBlobBytesWithMeta([]byte("bark"), fakeMeta), nil
 				}
@@ -357,6 +361,13 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 					http.MethodGet, "https://example.com/unsafe/boom", nil))
 				assert.Equal(t, 500, w.Code)
 				assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
+			})
+			t.Run(fmt.Sprintf("error with value %d", i), func(t *testing.T) {
+				w := httptest.NewRecorder()
+				app.ServeHTTP(w, httptest.NewRequest(
+					http.MethodGet, "https://example.com/unsafe/dood", nil))
+				assert.Equal(t, 500, w.Code)
+				assert.Equal(t, "dood", w.Body.String())
 			})
 			t.Run(fmt.Sprintf("processor error return original %d", i), func(t *testing.T) {
 				w := httptest.NewRecorder()
