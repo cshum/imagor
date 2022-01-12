@@ -392,3 +392,35 @@ func TestWithProxyAllowedSources(t *testing.T) {
 		}
 	}
 }
+
+func TestWithAccept(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			assert.Equal(t, r.Header.Get("Accept"), "image/*")
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
+				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+			}
+			resp.Header.Set("Content-Type", strings.TrimPrefix(r.URL.Path, "/"))
+			return resp, nil
+		})),
+		WithAccept("image/*"),
+	), []test{
+		{
+			name:   "content type ok",
+			target: "https://foo.bar/image/jpeg",
+			result: "ok",
+		},
+		{
+			name:   "content type ok",
+			target: "https://foo.bar/image/png",
+			result: "ok",
+		},
+		{
+			name:   "content type not ok",
+			target: "https://foo.bar/text/html",
+			err:    imagor.ErrUnsupportedFormat.Error(),
+		},
+	})
+}

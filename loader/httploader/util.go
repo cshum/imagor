@@ -46,3 +46,24 @@ func isURLAllowed(u *url.URL, allowedSources []string) bool {
 	}
 	return false
 }
+
+func parseContentType(contentType string) string {
+	idx := strings.Index(contentType, ";")
+	if idx == -1 {
+		idx = len(contentType)
+	}
+	return strings.TrimSpace(strings.ToLower(contentType[0:idx]))
+}
+
+func validateContentType(contentType string, accepts []string) bool {
+	if len(accepts) == 0 {
+		return true
+	}
+	contentType = parseContentType(contentType)
+	for _, accept := range accepts {
+		if ok, err := path.Match(accept, contentType); ok && err == nil {
+			return true
+		}
+	}
+	return false
+}

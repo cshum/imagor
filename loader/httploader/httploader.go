@@ -25,6 +25,9 @@ type HTTPLoader struct {
 	// supports glob patterns such as *.google.com
 	AllowedSources []string
 
+	// Accept set request Accept and validate response Content-Type header
+	Accept string
+
 	// MaxAllowedSize maximum bytes allowed for image
 	MaxAllowedSize int
 
@@ -34,6 +37,8 @@ type HTTPLoader struct {
 	// UserAgent default user agent for image request.
 	// Can be overridden by ForwardHeaders and OverrideHeaders
 	UserAgent string
+
+	accepts []string
 }
 
 func New(options ...Option) *HTTPLoader {
@@ -48,6 +53,13 @@ func New(options ...Option) *HTTPLoader {
 	}
 	if s := strings.ToLower(h.DefaultScheme); s == "nil" {
 		h.DefaultScheme = ""
+	}
+	if h.Accept != "" {
+		for _, seg := range strings.Split(h.Accept, ",") {
+			if typ := parseContentType(seg); typ != "" {
+				h.accepts = append(h.accepts, typ)
+			}
+		}
 	}
 	return h
 }
@@ -118,6 +130,9 @@ func (h *HTTPLoader) Load(r *http.Request, image string) (*imagor.Blob, error) {
 	if resp.StatusCode >= 400 {
 		return imagor.NewBlobBytes(buf), imagor.NewErrorFromStatusCode(resp.StatusCode)
 	}
+	if !validateContentType(resp.Header.Get("Content-Type"), h.accepts) {
+		return imagor.NewBlobBytes(buf), imagor.ErrUnsupportedFormat
+	}
 	return imagor.NewBlobBytes(buf), nil
 }
 
@@ -127,6 +142,9 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 		return nil, err
 	}
 	req.Header.Set("User-Agent", h.UserAgent)
+	if h.Accept != "" {
+		req.Header.Set("Accept", h.Accept)
+	}
 	for _, header := range h.ForwardHeaders {
 		if header == "*" {
 			req.Header = r.Header.Clone()

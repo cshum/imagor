@@ -98,6 +98,8 @@ func main() {
 			"HTTP Loader to use HTTP transport with InsecureSkipVerify true")
 		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
 			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
+		httpLoaderAccept = fs.String("http-loader-accept", "",
+			"HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. 'image/*, application/xhtml+xml'")
 		httpLoaderProxyURLs = fs.String("http-loader-proxy-urls", "",
 			"HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port")
 		httpLoaderProxyAllowedSources = fs.String("http-loader-proxy-allowed-sources", "",
@@ -285,6 +287,7 @@ func main() {
 		loaders = append(loaders,
 			httploader.New(
 				httploader.WithForwardAllHeaders(*httpLoaderForwardAllHeaders),
+				httploader.WithAccept(*httpLoaderAccept),
 				httploader.WithForwardHeaders(*httpLoaderForwardHeaders),
 				httploader.WithAllowedSources(*httpLoaderAllowedSources),
 				httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),
