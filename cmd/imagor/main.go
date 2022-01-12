@@ -99,7 +99,7 @@ func main() {
 		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
 			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
 		httpLoaderAccept = fs.String("http-loader-accept", "",
-			"HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. 'image/*, application/xhtml+xml'")
+			"HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. image/*")
 		httpLoaderProxyURLs = fs.String("http-loader-proxy-urls", "",
 			"HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port")
 		httpLoaderProxyAllowedSources = fs.String("http-loader-proxy-allowed-sources", "",

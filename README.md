@@ -271,7 +271,7 @@ Usage of imagor:
   -http-loader-allowed-sources string
         HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-accept string
-        HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. 'image/*, application/xhtml+xml'
+        HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. image/*
   -http-loader-forward-headers string
         Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
   -http-loader-forward-all-headers
