@@ -237,7 +237,7 @@ func (app *Imagor) loadStore(r *http.Request, key string) (*Blob, error) {
 		var origin Saver
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key)
-		if IsFileEmpty(blob) {
+		if err != nil || IsFileEmpty(blob) {
 			return
 		}
 		if len(app.Savers) > 0 {
