@@ -269,6 +269,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			store,
 			saverFunc(func(ctx context.Context, image string, buf *Blob) error {
 				time.Sleep(time.Millisecond * 2)
+				require.NotEqual(t, "dood", image, "should not save error")
 				assert.Error(t, context.DeadlineExceeded, ctx.Err())
 				return ctx.Err()
 			}),
@@ -295,7 +296,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
-				assert.NotEqual(t, "dood", string(buf), "should not save error")
 				if string(buf) == "tar" {
 					return NewBlobBytesWithMeta([]byte("bark"), fakeMeta), nil
 				}
