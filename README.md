@@ -357,8 +357,6 @@ Usage of imagor:
         VIPS disable blur operations for vips processor
   -vips-disable-filters string
         VIPS disable filters by csv e.g. blur,watermark,rgb
-  -vips-load-from-file
-        VIPS to load from file when file loader is used. By default load from buffer, which is faster but consumes more memory
   -vips-max-cache-files int
         VIPS max cache files
   -vips-max-cache-mem int

@@ -17,7 +17,6 @@ type FilterMap map[string]FilterFunc
 
 type VipsProcessor struct {
 	Filters        FilterMap
-	LoadFromFile   bool
 	DisableBlur    bool
 	DisableFilters []string
 	MaxFilterOps   int
@@ -118,10 +117,6 @@ func (v *VipsProcessor) newThumbnail(
 	if imagor.IsFileEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
-	if blob.HasFilePath() && v.LoadFromFile {
-		img, err := vips.NewThumbnailWithSizeFromFile(blob.FilePath, width, height, crop, size)
-		return img, wrapErr(err)
-	}
 	buf, err := blob.ReadAll()
 	if err != nil {
 		return nil, err
@@ -133,10 +128,6 @@ func (v *VipsProcessor) newThumbnail(
 func (v *VipsProcessor) newImage(blob *imagor.Blob) (*vips.ImageRef, error) {
 	if imagor.IsFileEmpty(blob) {
 		return nil, imagor.ErrNotFound
-	}
-	if blob.HasFilePath() && v.LoadFromFile {
-		img, err := vips.NewImageFromFile(blob.FilePath)
-		return img, wrapErr(err)
 	}
 	buf, err := blob.ReadAll()
 	if err != nil {

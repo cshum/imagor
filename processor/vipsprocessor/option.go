@@ -13,12 +13,6 @@ func WithFilter(name string, filter FilterFunc) Option {
 	}
 }
 
-func WithLoadFromFile(enabled bool) Option {
-	return func(v *VipsProcessor) {
-		v.LoadFromFile = enabled
-	}
-}
-
 func WithDisableBlur(disabled bool) Option {
 	return func(v *VipsProcessor) {
 		v.DisableBlur = disabled

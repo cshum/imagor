@@ -64,37 +64,8 @@ var tests = []struct {
 	{"watermark", "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
 }
 
-func doTest(t *testing.T, name string, app *imagor.Imagor, cleanup func(func())) {
-	t.Run(name, func(t *testing.T) {
-		require.NoError(t, app.Startup(context.Background()))
-		t.Parallel()
-		cleanup(func() {
-			require.NoError(t, app.Shutdown(context.Background()))
-		})
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
-				assert.Equal(t, 200, w.Code)
-				path := filepath.Join(testDataDir, "result", imagorpath.Normalize(tt.path))
-				buf, err := ioutil.ReadFile(path)
-				require.NoError(t, err)
-				if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
-					if len(b) < 512 {
-						t.Error(string(b))
-					} else {
-						t.Errorf("%s: not equal", path)
-					}
-				}
-			})
-		}
-	})
-}
-
 func TestVipsProcessor(t *testing.T) {
-	doTest(t, "from buffer", imagor.New(
+	app := imagor.New(
 		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
@@ -107,21 +78,28 @@ func TestVipsProcessor(t *testing.T) {
 			filepath.Join(testDataDir, "result"),
 			filestorage.WithSaveErrIfExists(true),
 		)),
-	), t.Cleanup)
-	doTest(t, "from file", imagor.New(
-		imagor.WithLoaders(filestorage.New(testDataDir)),
-		imagor.WithUnsafe(true),
-		imagor.WithDebug(true),
-		imagor.WithLogger(zap.NewExample()),
-		imagor.WithRequestTimeout(time.Second*3),
-		imagor.WithProcessors(New(
-			WithDebug(false),
-			WithLogger(zap.NewExample()),
-			WithLoadFromFile(true),
-		)),
-		imagor.WithResultSavers(filestorage.New(
-			filepath.Join(testDataDir, "result"),
-			filestorage.WithSaveErrIfExists(true),
-		)),
-	), t.Cleanup)
+	)
+	require.NoError(t, app.Startup(context.Background()))
+	t.Parallel()
+	t.Cleanup(func() {
+		require.NoError(t, app.Shutdown(context.Background()))
+	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
+			assert.Equal(t, 200, w.Code)
+			path := filepath.Join(testDataDir, "result", imagorpath.Normalize(tt.path))
+			buf, err := ioutil.ReadFile(path)
+			require.NoError(t, err)
+			if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
+				if len(b) < 512 {
+					t.Error(string(b))
+				} else {
+					t.Errorf("%s: not equal", path)
+				}
+			}
+		})
+	}
 }
