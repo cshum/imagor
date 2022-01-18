@@ -72,11 +72,11 @@ func TestAcquireDeadlockResolve(t *testing.T) {
 	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
 		return app.acquire(ctx, "b", func(ctx context.Context) (*Blob, error) {
 			return app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
-				return &Blob{FilePath: "abc"}, nil
+				return &Blob{path: "abc"}, nil
 			})
 		})
 	})
-	assert.Equal(t, &Blob{FilePath: "abc"}, f)
+	assert.Equal(t, &Blob{path: "abc"}, f)
 	require.NoError(t, err)
 }
 

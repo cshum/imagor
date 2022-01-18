@@ -7,11 +7,11 @@ import (
 
 // Blob abstraction for file path, bytes data and meta attributes
 type Blob struct {
-	FilePath string
-	Meta     *Meta
-	buf      []byte
+	path string
+	buf  []byte
+	rw   sync.RWMutex
 
-	rw sync.RWMutex
+	Meta *Meta
 }
 
 // Meta image attributes
@@ -24,7 +24,7 @@ type Meta struct {
 }
 
 func NewBlobFilePath(filepath string) *Blob {
-	return &Blob{FilePath: filepath}
+	return &Blob{path: filepath}
 }
 
 func NewBlobBytes(bytes []byte) *Blob {
@@ -36,11 +36,7 @@ func NewBlobBytesWithMeta(bytes []byte, meta *Meta) *Blob {
 }
 
 func (f *Blob) IsEmpty() bool {
-	return f.FilePath == "" && len(f.buf) == 0
-}
-
-func (f *Blob) HasFilePath() bool {
-	return f.FilePath != ""
+	return f.path == "" && len(f.buf) == 0
 }
 
 func (f *Blob) setBuf(buf []byte) {
@@ -60,8 +56,8 @@ func (f *Blob) ReadAll() ([]byte, error) {
 	if len(buf) > 0 {
 		return buf, nil
 	}
-	if f.FilePath != "" {
-		buf, err := ioutil.ReadFile(f.FilePath)
+	if f.path != "" {
+		buf, err := ioutil.ReadFile(f.path)
 		if err != nil {
 			return buf, err
 		}
