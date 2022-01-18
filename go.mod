@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/aws-sdk-go v1.42.15
-	github.com/davidbyttow/govips/v2 v2.9.1-0.20220109131824-910ca57d3b12
+	github.com/davidbyttow/govips/v2 v2.10.0
 	github.com/joho/godotenv v1.4.0
 	github.com/peterbourgon/ff/v3 v3.1.2
 	github.com/rs/cors v1.8.0
@@ -20,7 +20,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/net v0.0.0-20211123203042-d83791d6bcd9 // indirect
+	golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
