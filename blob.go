@@ -9,7 +9,8 @@ import (
 type Blob struct {
 	path string
 	buf  []byte
-	rw   sync.RWMutex
+	once sync.Once
+	err  error
 
 	Meta *Meta
 }
@@ -39,32 +40,20 @@ func (f *Blob) IsEmpty() bool {
 	return f.path == "" && len(f.buf) == 0
 }
 
-func (f *Blob) setBuf(buf []byte) {
-	f.rw.Lock()
-	f.buf = buf
-	f.rw.Unlock()
-}
-
-func (f *Blob) getBuf() []byte {
-	f.rw.RLock()
-	defer f.rw.RUnlock()
-	return f.buf
-}
-
 func (f *Blob) ReadAll() ([]byte, error) {
-	buf := f.getBuf()
-	if len(buf) > 0 {
-		return buf, nil
-	}
-	if f.path != "" {
-		buf, err := ioutil.ReadFile(f.path)
-		if err != nil {
-			return buf, err
+	f.once.Do(func() {
+		if len(f.buf) > 0 {
+			return
 		}
-		f.setBuf(buf)
-		return buf, nil
-	}
-	return nil, ErrNotFound
+		if f.path != "" {
+			f.buf, f.err = ioutil.ReadFile(f.path)
+		}
+		if len(f.buf) == 0 && f.err == nil {
+			f.buf = nil
+			f.err = ErrNotFound
+		}
+	})
+	return f.buf, f.err
 }
 
 func IsFileEmpty(f *Blob) bool {
