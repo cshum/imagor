@@ -36,26 +36,31 @@ func NewBlobBytesWithMeta(bytes []byte, meta *Meta) *Blob {
 	return &Blob{buf: bytes, Meta: meta}
 }
 
-func (f *Blob) IsEmpty() bool {
-	return f.path == "" && len(f.buf) == 0
-}
-
-func (f *Blob) ReadAll() ([]byte, error) {
-	f.once.Do(func() {
-		if len(f.buf) > 0 {
+func (b *Blob) readAllOnce() {
+	b.once.Do(func() {
+		if len(b.buf) > 0 {
 			return
 		}
-		if f.path != "" {
-			f.buf, f.err = ioutil.ReadFile(f.path)
+		if b.path != "" {
+			b.buf, b.err = ioutil.ReadFile(b.path)
 		}
-		if len(f.buf) == 0 && f.err == nil {
-			f.buf = nil
-			f.err = ErrNotFound
+		if len(b.buf) == 0 && b.err == nil {
+			b.buf = nil
+			b.err = ErrNotFound
+			return
 		}
 	})
-	return f.buf, f.err
 }
 
-func IsFileEmpty(f *Blob) bool {
+func (b *Blob) IsEmpty() bool {
+	return b.path == "" && len(b.buf) == 0
+}
+
+func (b *Blob) ReadAll() ([]byte, error) {
+	b.readAllOnce()
+	return b.buf, b.err
+}
+
+func IsBlobEmpty(f *Blob) bool {
 	return f == nil || f.IsEmpty()
 }

@@ -114,7 +114,7 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 func (v *VipsProcessor) newThumbnail(
 	blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size,
 ) (*vips.ImageRef, error) {
-	if imagor.IsFileEmpty(blob) {
+	if imagor.IsBlobEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
 	buf, err := blob.ReadAll()
@@ -126,7 +126,7 @@ func (v *VipsProcessor) newThumbnail(
 }
 
 func (v *VipsProcessor) newImage(blob *imagor.Blob) (*vips.ImageRef, error) {
-	if imagor.IsFileEmpty(blob) {
+	if imagor.IsBlobEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
 	buf, err := blob.ReadAll()

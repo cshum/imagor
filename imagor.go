@@ -120,7 +120,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	file, err := app.Do(r, p)
 	var buf []byte
 	var ln int
-	if !IsFileEmpty(file) {
+	if !IsBlobEmpty(file) {
 		buf, _ = file.ReadAll()
 		ln = len(buf)
 		if file.Meta != nil {
@@ -183,14 +183,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		return app.loadStore(r, image)
 	}
 	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
-		if blob, err = app.loadResult(r, resultKey); err == nil && !IsFileEmpty(blob) {
+		if blob, err = app.loadResult(r, resultKey); err == nil && !IsBlobEmpty(blob) {
 			return blob, err
 		}
 		if blob, err = app.loadStore(r, p.Image); err != nil {
 			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 			return blob, err
 		}
-		if IsFileEmpty(blob) {
+		if IsBlobEmpty(blob) {
 			return blob, err
 		}
 		var cancel func()
@@ -209,7 +209,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				break
 			} else {
 				if e == ErrPass {
-					if !IsFileEmpty(f) {
+					if !IsBlobEmpty(f) {
 						// pass to next processor
 						blob = f
 					}
@@ -237,7 +237,7 @@ func (app *Imagor) loadStore(r *http.Request, key string) (*Blob, error) {
 		var origin Saver
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key)
-		if err != nil || IsFileEmpty(blob) {
+		if err != nil || IsBlobEmpty(blob) {
 			return
 		}
 		if len(app.Savers) > 0 {
@@ -269,7 +269,7 @@ func (app *Imagor) load(
 	}
 	for _, loader := range loaders {
 		f, e := loader.Load(loadReq, key)
-		if !IsFileEmpty(f) {
+		if !IsBlobEmpty(f) {
 			blob = f
 		}
 		if e == nil {
