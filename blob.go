@@ -1,6 +1,7 @@
 package imagor
 
 import (
+	"bytes"
 	"io/ioutil"
 	"sync"
 )
@@ -11,6 +12,8 @@ type Blob struct {
 	buf  []byte
 	once sync.Once
 	err  error
+
+	maybeAnimated bool
 
 	Meta *Meta
 }
@@ -36,6 +39,10 @@ func NewBlobBytesWithMeta(bytes []byte, meta *Meta) *Blob {
 	return &Blob{buf: bytes, Meta: meta}
 }
 
+var jpegHeader = []byte("\xFF\xD8\xFF")
+var gifHeader = []byte("\x47\x49\x46")
+var webpHeader = []byte("\x57\x45\x42\x50")
+
 func (b *Blob) readAllOnce() {
 	b.once.Do(func() {
 		if len(b.buf) > 0 {
@@ -49,11 +56,22 @@ func (b *Blob) readAllOnce() {
 			b.err = ErrNotFound
 			return
 		}
+		if !bytes.HasPrefix(b.buf, jpegHeader) {
+			if bytes.HasPrefix(b.buf, gifHeader) || bytes.Equal(b.buf[8:12], webpHeader) {
+				b.maybeAnimated = true
+			}
+		}
 	})
 }
 
 func (b *Blob) IsEmpty() bool {
+	b.readAllOnce()
 	return b.path == "" && len(b.buf) == 0
+}
+
+func (b *Blob) MaybeAnimated() bool {
+	b.readAllOnce()
+	return b.maybeAnimated
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {
