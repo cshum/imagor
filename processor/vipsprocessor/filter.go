@@ -69,10 +69,6 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 }
 
 func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
-	if IsAnimated(ctx) {
-		// skip animation support
-		return
-	}
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -115,15 +111,15 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		}
 	}
 	AddImageRef(ctx, overlay)
+	if err = overlay.AddAlpha(); err != nil {
+		return
+	}
 	w = overlay.Width()
 	h = overlay.PageHeight()
 	// alpha
 	if ln >= 4 {
 		alpha, _ := strconv.ParseFloat(args[3], 64)
 		alpha = 1 - alpha/100
-		if err = overlay.AddAlpha(); err != nil {
-			return
-		}
 		if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
 			return
 		}
@@ -172,7 +168,17 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			return
 		}
 	}
-	if err = img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
+	if err = overlay.EmbedBackgroundRGBA(
+		x, y, img.Width(), img.PageHeight(), &vips.ColorRGBA{},
+	); err != nil {
+		return
+	}
+	if n := GetPageN(ctx); n > 1 {
+		if err = overlay.Replicate(1, n); err != nil {
+			return
+		}
+	}
+	if err = img.Composite(overlay, vips.BlendModeOver, 0, 0); err != nil {
 		return
 	}
 	return
