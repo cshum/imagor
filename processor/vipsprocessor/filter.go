@@ -192,7 +192,7 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 
 	var rounded *vips.ImageRef
 	var w = img.Width()
-	var h = img.Height()
+	var h = img.PageHeight()
 	if rounded, err = vips.NewThumbnailFromBuffer([]byte(fmt.Sprintf(`
 		<svg viewBox="0 0 %d %d">
 			<rect rx="%d" ry="%d" 

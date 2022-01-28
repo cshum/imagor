@@ -128,7 +128,7 @@ func (v *VipsProcessor) newThumbnail(
 	if blob.SupportsAnimation() && (n > 1 || n == -1) {
 		params = vips.NewImportParams()
 		params.NumPages.Set(n)
-		if crop == vips.InterestingNone || size == vips.SizeForce || img.Height() == img.PageHeight() {
+		if crop == vips.InterestingNone || size == vips.SizeForce {
 			img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
 		} else {
 			if img, err = vips.LoadImageFromBuffer(buf, params); err != nil {
@@ -173,12 +173,12 @@ func (v *VipsProcessor) thumbnail(
 func (v *VipsProcessor) animatedThumbnailWithCrop(
 	img *vips.ImageRef, w, h int, crop vips.Interesting, size vips.Size,
 ) (err error) {
-	if size == vips.SizeDown && img.Width() < w && img.Height() < h {
+	if size == vips.SizeDown && img.Width() < w && img.PageHeight() < h {
 		return
 	}
 	// use ExtractArea for animated cropping
 	var top, left int
-	if float64(w)/float64(h) > float64(img.Width())/float64(img.Height()) {
+	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 		if err = img.ThumbnailWithSize(w, v.MaxHeight, vips.InterestingNone, size); err != nil {
 			return
 		}
@@ -189,10 +189,10 @@ func (v *VipsProcessor) animatedThumbnailWithCrop(
 	}
 	if crop == vips.InterestingHigh {
 		left = img.Width() - w
-		top = img.Height() - h
+		top = img.PageHeight() - h
 	} else if crop == vips.InterestingCentre || crop == vips.InterestingAttention {
 		left = (img.Width() - w) / 2
-		top = (img.Height() - h) / 2
+		top = (img.PageHeight() - h) / 2
 	}
 	return img.ExtractArea(left, top, w, h)
 }

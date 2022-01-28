@@ -55,7 +55,7 @@ func (b *Blob) readAllOnce() {
 				return
 			}
 		}
-		if !bytes.HasPrefix(b.buf, jpegHeader) {
+		if len(b.buf) > 24 && !bytes.HasPrefix(b.buf, jpegHeader) {
 			if bytes.HasPrefix(b.buf, gifHeader) || bytes.Equal(b.buf[8:12], webpHeader) {
 				b.supportsAnimation = true
 			}
