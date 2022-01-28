@@ -45,16 +45,15 @@ var webpHeader = []byte("\x57\x45\x42\x50")
 
 func (b *Blob) readAllOnce() {
 	b.once.Do(func() {
-		if len(b.buf) > 0 {
-			return
-		}
-		if b.path != "" {
-			b.buf, b.err = ioutil.ReadFile(b.path)
-		}
-		if len(b.buf) == 0 && b.err == nil {
-			b.buf = nil
-			b.err = ErrNotFound
-			return
+		if len(b.buf) == 0 {
+			if b.path != "" {
+				b.buf, b.err = ioutil.ReadFile(b.path)
+			}
+			if len(b.buf) == 0 && b.err == nil {
+				b.buf = nil
+				b.err = ErrNotFound
+				return
+			}
 		}
 		if !bytes.HasPrefix(b.buf, jpegHeader) {
 			if bytes.HasPrefix(b.buf, gifHeader) || bytes.Equal(b.buf[8:12], webpHeader) {
