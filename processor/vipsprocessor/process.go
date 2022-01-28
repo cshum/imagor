@@ -86,7 +86,7 @@ func (v *VipsProcessor) process(
 					interest = vips.InterestingHigh
 				}
 			}
-			if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, interest); err != nil {
+			if err := v.thumbnail(img, w-p.HPadding*2, h-p.VPadding*2, interest, vips.SizeBoth); err != nil {
 				return err
 			}
 		}

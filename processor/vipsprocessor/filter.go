@@ -95,13 +95,13 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			h = img.Height() * h / 100
 		}
 		if overlay, err = v.newThumbnail(
-			blob, w, h, vips.InterestingNone, vips.SizeDown,
+			blob, w, h, vips.InterestingNone, vips.SizeDown, 1,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.newThumbnail(
-			blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+			blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, 1,
 		); err != nil {
 			return
 		}

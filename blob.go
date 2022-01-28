@@ -13,7 +13,7 @@ type Blob struct {
 	once sync.Once
 	err  error
 
-	maybeAnimated bool
+	supportsAnimation bool
 
 	Meta *Meta
 }
@@ -58,7 +58,7 @@ func (b *Blob) readAllOnce() {
 		}
 		if !bytes.HasPrefix(b.buf, jpegHeader) {
 			if bytes.HasPrefix(b.buf, gifHeader) || bytes.Equal(b.buf[8:12], webpHeader) {
-				b.maybeAnimated = true
+				b.supportsAnimation = true
 			}
 		}
 	})
@@ -69,9 +69,9 @@ func (b *Blob) IsEmpty() bool {
 	return b.path == "" && len(b.buf) == 0
 }
 
-func (b *Blob) MaybeAnimated() bool {
+func (b *Blob) SupportsAnimation() bool {
 	b.readAllOnce()
-	return b.maybeAnimated
+	return b.supportsAnimation
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {
