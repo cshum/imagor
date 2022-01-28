@@ -120,8 +120,10 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	if ln >= 4 {
 		alpha, _ := strconv.ParseFloat(args[3], 64)
 		alpha = 1 - alpha/100
-		if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
-			return
+		if alpha != 1 {
+			if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
+				return
+			}
 		}
 	}
 	// x y
