@@ -16,7 +16,7 @@ func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool,
 ) error {
 	if p.Trim {
-		if err := trim(img, p.TrimBy, p.TrimTolerance); err != nil {
+		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {
 			return err
 		}
 	}
@@ -132,7 +132,11 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
-func trim(img *vips.ImageRef, pos string, tolerance int) error {
+func trim(ctx context.Context, img *vips.ImageRef, pos string, tolerance int) error {
+	if IsAnimated(ctx) {
+		// skip animation support
+		return nil
+	}
 	var x, y int
 	if pos == imagorpath.TrimByBottomRight {
 		x = img.Width() - 1
