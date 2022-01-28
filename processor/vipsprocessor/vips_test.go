@@ -62,6 +62,19 @@ var tests = []struct {
 	{"trim tolerance", "trim:50/500x500/filters:stretch()/find_trim.png"},
 	{"trim filter", "/fit-in/100x100/filters:fill(auto):trim(50)/find_trim.png"},
 	{"watermark", "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
+
+	{"original animated", "dancing-banana.gif"},
+	{"resize center animated", "100x100/dancing-banana.gif"},
+	{"resize top animated", "200x100/top/dancing-banana.gif"},
+	{"resize top animated", "200x100/right/top/dancing-banana.gif"},
+	{"resize bottom animated", "200x100/bottom/dancing-banana.gif"},
+	{"resize bottom animated", "200x100/left/bottom/dancing-banana.gif"},
+	{"resize left animated", "100x200/left/dancing-banana.gif"},
+	{"resize left animated", "100x200/left/bottom/dancing-banana.gif"},
+	{"resize right animated", "100x200/right/dancing-banana.gif"},
+	{"resize right animated", "100x200/right/top/dancing-banana.gif"},
+	{"stretch animated", "stretch/100x200/dancing-banana.gif"},
+	{"resize padding animated", "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif"},
 }
 
 func TestVipsProcessor(t *testing.T) {
