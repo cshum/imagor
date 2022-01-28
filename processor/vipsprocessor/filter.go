@@ -179,10 +179,6 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 }
 
 func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
-	if IsAnimated(ctx) {
-		// skip animation support
-		return
-	}
 	var rx, ry int
 	var c *vips.Color
 	if len(args) == 0 {
@@ -215,6 +211,11 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 		return
 	}
 	AddImageRef(ctx, rounded)
+	if n := GetPageN(ctx); n > 1 {
+		if err = rounded.Replicate(1, n); err != nil {
+			return
+		}
+	}
 	if err = img.Composite(rounded, vips.BlendModeDestIn, 0, 0); err != nil {
 		return
 	}
