@@ -14,7 +14,7 @@ import (
 
 func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
 	c := getColor(img, colour)
-	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
+	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
 		// fill color
 		if img.HasAlpha() {
 			if err = img.Flatten(getColor(img, colour)); err != nil {
@@ -22,7 +22,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			}
 		}
 		left := (w - img.Width()) / 2
-		top := (h - img.Height()) / 2
+		top := (h - img.PageHeight()) / 2
 		if isBlack(c) {
 			if err = img.Embed(left, top, w, h, vips.ExtendBlack); err != nil {
 				return
@@ -43,7 +43,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			return
 		}
 		AddImageRef(ctx, cp)
-		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.Height() {
+		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.PageHeight() {
 			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
 				return
 			}
@@ -57,7 +57,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			return
 		}
 		if err = img.Composite(
-			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.Height())/2); err != nil {
+			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.PageHeight())/2); err != nil {
 			return
 		}
 	}
@@ -85,39 +85,41 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	// w_ratio h_ratio
 	if ln >= 6 {
 		w = img.Width()
-		h = img.Height()
+		h = img.PageHeight()
 		if args[4] != "none" {
 			w, _ = strconv.Atoi(args[4])
 			w = img.Width() * w / 100
 		}
 		if args[5] != "none" {
 			h, _ = strconv.Atoi(args[5])
-			h = img.Height() * h / 100
+			h = img.PageHeight() * h / 100
 		}
 		if overlay, err = v.newThumbnail(
-			blob, w, h, vips.InterestingNone, vips.SizeDown,
+			blob, w, h, vips.InterestingNone, vips.SizeDown, 1,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.newThumbnail(
-			blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+			blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, 1,
 		); err != nil {
 			return
 		}
 	}
 	AddImageRef(ctx, overlay)
+	if err = overlay.AddAlpha(); err != nil {
+		return
+	}
 	w = overlay.Width()
-	h = overlay.Height()
+	h = overlay.PageHeight()
 	// alpha
 	if ln >= 4 {
 		alpha, _ := strconv.ParseFloat(args[3], 64)
 		alpha = 1 - alpha/100
-		if err = overlay.AddAlpha(); err != nil {
-			return
-		}
-		if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
-			return
+		if alpha != 1 {
+			if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}); err != nil {
+				return
+			}
 		}
 	}
 	// x y
@@ -138,25 +140,25 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			x, _ = strconv.Atoi(args[1])
 		}
 		if args[2] == "center" {
-			y = (img.Height() - overlay.Height()) / 2
+			y = (img.PageHeight() - overlay.Height()) / 2
 		} else if args[2] == imagorpath.VAlignTop {
 			y = 0
 		} else if args[2] == imagorpath.VAlignBottom {
-			y = img.Height() - overlay.Height()
+			y = img.PageHeight() - overlay.Height()
 		} else if args[2] == "repeat" {
 			y = 0
-			repeatY = img.Height()/overlay.Height() + 1
+			repeatY = img.PageHeight()/overlay.Height() + 1
 		} else if strings.HasSuffix(args[2], "p") {
 			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
-			y = y * img.Height() / 100
+			y = y * img.PageHeight() / 100
 		} else {
 			y, _ = strconv.Atoi(args[2])
 		}
 		if x < 0 {
-			x += img.Width() - overlay.Width()
+			x += img.PageHeight() - overlay.Width()
 		}
 		if y < 0 {
-			y += img.Height() - overlay.Height()
+			y += img.PageHeight() - overlay.Height()
 		}
 	}
 	if repeatX*repeatY > 1 {
@@ -164,7 +166,17 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			return
 		}
 	}
-	if err = img.Composite(overlay, vips.BlendModeOver, x, y); err != nil {
+	if err = overlay.EmbedBackgroundRGBA(
+		x, y, img.Width(), img.PageHeight(), &vips.ColorRGBA{},
+	); err != nil {
+		return
+	}
+	if n := GetPageN(ctx); n > 1 {
+		if err = overlay.Replicate(1, n); err != nil {
+			return
+		}
+	}
+	if err = img.Composite(overlay, vips.BlendModeOver, 0, 0); err != nil {
 		return
 	}
 	return
@@ -192,7 +204,7 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 
 	var rounded *vips.ImageRef
 	var w = img.Width()
-	var h = img.Height()
+	var h = img.PageHeight()
 	if rounded, err = vips.NewThumbnailFromBuffer([]byte(fmt.Sprintf(`
 		<svg viewBox="0 0 %d %d">
 			<rect rx="%d" ry="%d" 
@@ -203,6 +215,11 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 		return
 	}
 	AddImageRef(ctx, rounded)
+	if n := GetPageN(ctx); n > 1 {
+		if err = rounded.Replicate(1, n); err != nil {
+			return
+		}
+	}
 	if err = img.Composite(rounded, vips.BlendModeDestIn, 0, 0); err != nil {
 		return
 	}
@@ -351,7 +368,7 @@ func stripExif(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, _ ...st
 	return img.RemoveICCProfile()
 }
 
-func trimFilter(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
+func trimFilter(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
 	var (
 		ln        = len(args)
 		pos       string
@@ -363,7 +380,7 @@ func trimFilter(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args .
 	if ln > 1 {
 		pos = args[1]
 	}
-	return trim(img, pos, tolerance)
+	return trim(ctx, img, pos, tolerance)
 }
 
 func linearRGB(img *vips.ImageRef, a, b []float64) error {

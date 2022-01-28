@@ -278,11 +278,6 @@ func (app *Imagor) load(
 			break
 		}
 		// should not log expected error as of now, as it has not reached the end
-		if e != nil {
-			if app.Debug || (e != ErrPass && e != ErrNotFound && !errors.Is(e, context.Canceled)) {
-				app.Logger.Warn("load", zap.String("key", key), zap.Error(e))
-			}
-		}
 		err = e
 	}
 	if err == nil {

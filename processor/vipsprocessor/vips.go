@@ -16,27 +16,29 @@ type FilterFunc func(ctx context.Context, img *vips.ImageRef, load imagor.LoadFu
 type FilterMap map[string]FilterFunc
 
 type VipsProcessor struct {
-	Filters        FilterMap
-	DisableBlur    bool
-	DisableFilters []string
-	MaxFilterOps   int
-	Logger         *zap.Logger
-	Concurrency    int
-	MaxCacheFiles  int
-	MaxCacheMem    int
-	MaxCacheSize   int
-	MaxWidth       int
-	MaxHeight      int
-	Debug          bool
+	Filters            FilterMap
+	DisableBlur        bool
+	DisableFilters     []string
+	MaxFilterOps       int
+	Logger             *zap.Logger
+	Concurrency        int
+	MaxCacheFiles      int
+	MaxCacheMem        int
+	MaxCacheSize       int
+	MaxWidth           int
+	MaxHeight          int
+	MaxAnimationFrames int
+	Debug              bool
 }
 
 func New(options ...Option) *VipsProcessor {
 	v := &VipsProcessor{
-		MaxWidth:     9999,
-		MaxHeight:    9999,
-		MaxFilterOps: 10,
-		Concurrency:  1,
-		Logger:       zap.NewNop(),
+		MaxWidth:           9999,
+		MaxHeight:          9999,
+		MaxFilterOps:       10,
+		Concurrency:        1,
+		MaxAnimationFrames: -1,
+		Logger:             zap.NewNop(),
 	}
 	v.Filters = FilterMap{
 		"watermark":        v.watermark,
@@ -112,7 +114,7 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 }
 
 func (v *VipsProcessor) newThumbnail(
-	blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size,
+	blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size, n int,
 ) (*vips.ImageRef, error) {
 	if imagor.IsBlobEmpty(blob) {
 		return nil, imagor.ErrNotFound
@@ -121,11 +123,28 @@ func (v *VipsProcessor) newThumbnail(
 	if err != nil {
 		return nil, err
 	}
-	img, err := vips.NewThumbnailWithSizeFromBuffer(buf, width, height, crop, size)
+	var params *vips.ImportParams
+	var img *vips.ImageRef
+	if n == 1 || n == 0 {
+		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
+	} else {
+		params = vips.NewImportParams()
+		params.NumPages.Set(n)
+		if crop == vips.InterestingNone || size == vips.SizeForce {
+			img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
+		} else {
+			if img, err = vips.LoadImageFromBuffer(buf, params); err != nil {
+				return nil, err
+			}
+			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
+				return img, err
+			}
+		}
+	}
 	return img, wrapErr(err)
 }
 
-func (v *VipsProcessor) newImage(blob *imagor.Blob) (*vips.ImageRef, error) {
+func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, error) {
 	if imagor.IsBlobEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
@@ -133,8 +152,49 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob) (*vips.ImageRef, error) {
 	if err != nil {
 		return nil, err
 	}
-	img, err := vips.NewImageFromBuffer(buf)
+	var params *vips.ImportParams
+	if n != 1 && n != 0 {
+		params = vips.NewImportParams()
+		params.NumPages.Set(n)
+	}
+	img, err := vips.LoadImageFromBuffer(buf, params)
 	return img, wrapErr(err)
+}
+
+func (v *VipsProcessor) thumbnail(
+	img *vips.ImageRef, width, height int, crop vips.Interesting, size vips.Size,
+) error {
+	if crop == vips.InterestingNone || size == vips.SizeForce || img.Height() == img.PageHeight() {
+		return img.ThumbnailWithSize(width, height, crop, size)
+	}
+	return v.animatedThumbnailWithCrop(img, width, height, crop, size)
+}
+
+func (v *VipsProcessor) animatedThumbnailWithCrop(
+	img *vips.ImageRef, w, h int, crop vips.Interesting, size vips.Size,
+) (err error) {
+	if size == vips.SizeDown && img.Width() < w && img.PageHeight() < h {
+		return
+	}
+	// use ExtractArea for animated cropping
+	var top, left int
+	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
+		if err = img.ThumbnailWithSize(w, v.MaxHeight, vips.InterestingNone, size); err != nil {
+			return
+		}
+	} else {
+		if err = img.ThumbnailWithSize(v.MaxWidth, h, vips.InterestingNone, size); err != nil {
+			return
+		}
+	}
+	if crop == vips.InterestingHigh {
+		left = img.Width() - w
+		top = img.PageHeight() - h
+	} else if crop == vips.InterestingCentre || crop == vips.InterestingAttention {
+		left = (img.Width() - w) / 2
+		top = (img.PageHeight() - h) / 2
+	}
+	return img.ExtractArea(left, top, w, h)
 }
 
 func (v *VipsProcessor) Process(
@@ -146,6 +206,8 @@ func (v *VipsProcessor) Process(
 		stretch   = p.Stretch
 		thumbnail = false
 		img       *vips.ImageRef
+		format    = vips.ImageTypeUnknown
+		maxN      = v.MaxAnimationFrames
 		err       error
 	)
 	ctx = WithInitImageRefs(ctx)
@@ -156,8 +218,21 @@ func (v *VipsProcessor) Process(
 	if p.FitIn {
 		upscale = false
 	}
+	if maxN == 0 || !blob.SupportsAnimation() {
+		// no frames if source image not support animation,
+		maxN = 1
+	}
 	for _, p := range p.Filters {
 		switch p.Name {
+		case "format":
+			if typ, ok := imageTypeMap[p.Args]; ok {
+				format = typ
+				if format != vips.ImageTypeGIF && format != vips.ImageTypeWEBP {
+					// no frames if export format not support animation
+					maxN = 1
+				}
+			}
+			break
 		case "stretch":
 			stretch = true
 			break
@@ -194,7 +269,7 @@ func (v *VipsProcessor) Process(
 					size = vips.SizeBoth
 				}
 				if img, err = v.newThumbnail(
-					blob, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size,
+					blob, w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, size, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -204,7 +279,7 @@ func (v *VipsProcessor) Process(
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.newThumbnail(
 					blob, p.Width-p.HPadding*2, p.Height-p.VPadding*2,
-					vips.InterestingNone, vips.SizeForce,
+					vips.InterestingNone, vips.SizeForce, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -231,21 +306,24 @@ func (v *VipsProcessor) Process(
 				}
 				if thumbnail {
 					if img, err = v.newThumbnail(
-						blob, p.Width-p.HPadding*2, p.Height-p.VPadding*2, interest, vips.SizeBoth,
+						blob, p.Width-p.HPadding*2, p.Height-p.VPadding*2,
+						interest, vips.SizeBoth, maxN,
 					); err != nil {
 						return nil, err
 					}
 				}
 			} else if p.Width > 0 && p.Height == 0 {
 				if img, err = v.newThumbnail(
-					blob, p.Width-p.HPadding*2, v.MaxHeight, vips.InterestingNone, vips.SizeBoth,
+					blob, p.Width-p.HPadding*2, v.MaxHeight,
+					vips.InterestingNone, vips.SizeBoth, maxN,
 				); err != nil {
 					return nil, err
 				}
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
 				if img, err = v.newThumbnail(
-					blob, v.MaxWidth, p.Height-p.VPadding*2, vips.InterestingNone, vips.SizeBoth,
+					blob, v.MaxWidth, p.Height-p.VPadding*2,
+					vips.InterestingNone, vips.SizeBoth, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -256,12 +334,13 @@ func (v *VipsProcessor) Process(
 	if !thumbnail {
 		if special {
 			// special ops does not support create by thumbnail
-			if img, err = v.newImage(blob); err != nil {
+			if img, err = v.newImage(blob, maxN); err != nil {
 				return nil, err
 			}
 		} else {
 			if img, err = v.newThumbnail(
-				blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown,
+				blob, v.MaxWidth, v.MaxHeight,
+				vips.InterestingNone, vips.SizeDown, maxN,
 			); err != nil {
 				return nil, err
 			}
@@ -269,16 +348,18 @@ func (v *VipsProcessor) Process(
 	}
 	AddImageRef(ctx, img)
 	var (
-		format  = img.Format()
 		quality int
+		pageN   = img.Height() / img.PageHeight()
 	)
+	if format == vips.ImageTypeUnknown {
+		format = img.Format()
+	}
+	SetPageN(ctx, pageN)
+	if v.Debug {
+		v.Logger.Debug("image", zap.Int("page_n", pageN))
+	}
 	for _, p := range p.Filters {
 		switch p.Name {
-		case "format":
-			if typ, ok := imageTypeMap[p.Args]; ok {
-				format = typ
-			}
-			break
 		case "quality":
 			quality, _ = strconv.Atoi(p.Args)
 			break

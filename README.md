@@ -353,6 +353,8 @@ Usage of imagor:
 
   -vips-concurrency int
         VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
+  -vips-max-animation-frames int
+        VIPS maximum of animated image frames to be processed. Set 1 to disable animation, -1 for unlimited. (default -1)
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string

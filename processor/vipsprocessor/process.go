@@ -16,7 +16,7 @@ func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool,
 ) error {
 	if p.Trim {
-		if err := trim(img, p.TrimBy, p.TrimTolerance); err != nil {
+		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {
 			return err
 		}
 	}
@@ -26,7 +26,7 @@ func (v *VipsProcessor) process(
 		if w := img.Width(); cropRight > w {
 			cropRight = w
 		}
-		if h := img.Height(); cropBottom > h {
+		if h := img.PageHeight(); cropBottom > h {
 			cropBottom = h
 		}
 		if err := img.ExtractArea(
@@ -42,38 +42,38 @@ func (v *VipsProcessor) process(
 	)
 	if w == 0 && h == 0 {
 		w = img.Width() + p.HPadding*2
-		h = img.Height() + p.VPadding*2
+		h = img.PageHeight() + p.VPadding*2
 	} else if w == 0 {
-		w = img.Width() * h / img.Height()
+		w = img.Width() * h / img.PageHeight()
 		if !upscale && w > img.Width() {
 			w = img.Width()
 		}
 	} else if h == 0 {
-		h = img.Height() * w / img.Width()
-		if !upscale && h > img.Height() {
-			h = img.Height()
+		h = img.PageHeight() * w / img.Width()
+		if !upscale && h > img.PageHeight() {
+			h = img.PageHeight()
 		}
 	}
 	if !thumbnail {
 		if p.FitIn {
-			if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
+			if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.PageHeight() {
 				if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone); err != nil {
 					return err
 				}
 			}
 		} else if stretch {
-			if upscale || (w-p.HPadding*2 < img.Width() && h-p.VPadding*2 < img.Height()) {
+			if upscale || (w-p.HPadding*2 < img.Width() && h-p.VPadding*2 < img.PageHeight()) {
 				if err := img.ThumbnailWithSize(
 					w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, vips.SizeForce,
 				); err != nil {
 					return err
 				}
 			}
-		} else if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.Height() {
+		} else if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.PageHeight() {
 			interest := vips.InterestingCentre
 			if p.Smart {
 				interest = vips.InterestingAttention
-			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.Height()) {
+			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 				if p.VAlign == imagorpath.VAlignTop {
 					interest = vips.InterestingLow
 				} else if p.VAlign == imagorpath.VAlignBottom {
@@ -86,7 +86,7 @@ func (v *VipsProcessor) process(
 					interest = vips.InterestingHigh
 				}
 			}
-			if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, interest); err != nil {
+			if err := v.thumbnail(img, w-p.HPadding*2, h-p.VPadding*2, interest, vips.SizeBoth); err != nil {
 				return err
 			}
 		}
@@ -132,11 +132,15 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
-func trim(img *vips.ImageRef, pos string, tolerance int) error {
+func trim(ctx context.Context, img *vips.ImageRef, pos string, tolerance int) error {
+	if IsAnimated(ctx) {
+		// skip animation support
+		return nil
+	}
 	var x, y int
 	if pos == imagorpath.TrimByBottomRight {
 		x = img.Width() - 1
-		y = img.Height() - 1
+		y = img.PageHeight() - 1
 	}
 	if tolerance == 0 {
 		tolerance = 1
@@ -179,7 +183,7 @@ func getColor(img *vips.ImageRef, color string) *vips.Color {
 			y := 0
 			if mode == "bottom-right" {
 				x = img.Width() - 1
-				y = img.Height() - 1
+				y = img.PageHeight() - 1
 			}
 			p, _ := img.GetPoint(x, y)
 			if len(p) >= 3 {
