@@ -337,7 +337,12 @@ func (v *VipsProcessor) Process(
 	var (
 		format  = img.Format()
 		quality int
+		pageN   = img.Height() / img.PageHeight()
 	)
+	SetPageN(ctx, pageN)
+	if v.Debug {
+		v.Logger.Debug("image", zap.Int("page_n", pageN))
+	}
 	for _, p := range p.Filters {
 		switch p.Name {
 		case "format":

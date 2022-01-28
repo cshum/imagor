@@ -13,6 +13,10 @@ import (
 )
 
 func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
+	if IsAnimated(ctx) {
+		// skip animation support
+		return
+	}
 	c := getColor(img, colour)
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
 		// fill color
@@ -65,6 +69,10 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 }
 
 func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
+	if IsAnimated(ctx) {
+		// skip animation support
+		return
+	}
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -171,6 +179,10 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 }
 
 func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if IsAnimated(ctx) {
+		// skip animation support
+		return
+	}
 	var rx, ry int
 	var c *vips.Color
 	if len(args) == 0 {

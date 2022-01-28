@@ -3,29 +3,24 @@ package vipsprocessor
 import (
 	"context"
 	"github.com/davidbyttow/govips/v2/vips"
-	"sync"
 )
 
 type imageRefKey struct{}
 
 type imageRefs struct {
 	imageRefs []*vips.ImageRef
-	m         sync.Mutex
+	PageN     int
 }
 
 func (r *imageRefs) Add(img *vips.ImageRef) {
-	r.m.Lock()
 	r.imageRefs = append(r.imageRefs, img)
-	r.m.Unlock()
 }
 
 func (r *imageRefs) Close() {
-	r.m.Lock()
 	for _, img := range r.imageRefs {
 		img.Close()
 	}
 	r.imageRefs = nil
-	r.m.Unlock()
 }
 
 // WithInitImageRefs context with image ref tracking
@@ -45,4 +40,21 @@ func CloseImageRefs(ctx context.Context) {
 	if r, ok := ctx.Value(imageRefKey{}).(*imageRefs); ok {
 		r.Close()
 	}
+}
+
+func SetPageN(ctx context.Context, n int) {
+	if r, ok := ctx.Value(imageRefKey{}).(*imageRefs); ok {
+		r.PageN = n
+	}
+}
+
+func GetPageN(ctx context.Context) int {
+	if r, ok := ctx.Value(imageRefKey{}).(*imageRefs); ok {
+		return r.PageN
+	}
+	return 1
+}
+
+func IsAnimated(ctx context.Context) bool {
+	return GetPageN(ctx) > 1
 }
