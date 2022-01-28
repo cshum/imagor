@@ -13,12 +13,8 @@ import (
 )
 
 func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
-	if IsAnimated(ctx) {
-		// skip animation support
-		return
-	}
 	c := getColor(img, colour)
-	if colour != "blur" || (colour == "blur" && v.DisableBlur) {
+	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
 		// fill color
 		if img.HasAlpha() {
 			if err = img.Flatten(getColor(img, colour)); err != nil {

@@ -125,7 +125,7 @@ func (v *VipsProcessor) newThumbnail(
 	}
 	var params *vips.ImportParams
 	var img *vips.ImageRef
-	if n == 1 {
+	if n == 1 || n == 0 {
 		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
 	} else {
 		params = vips.NewImportParams()
@@ -153,7 +153,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 		return nil, err
 	}
 	var params *vips.ImportParams
-	if n != 1 {
+	if n != 1 && n != 0 {
 		params = vips.NewImportParams()
 		params.NumPages.Set(n)
 	}
