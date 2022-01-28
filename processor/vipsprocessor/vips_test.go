@@ -12,9 +12,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -24,6 +26,29 @@ var testDataDir string
 func init() {
 	_, b, _, _ := runtime.Caller(0)
 	testDataDir = filepath.Join(filepath.Dir(b), "../../testdata")
+}
+
+func getEnvironment() string {
+	switch runtime.GOOS {
+	case "windows":
+		return "windows"
+	case "darwin":
+		out, err := exec.Command("sw_vers", "-productVersion").Output()
+		if err != nil {
+			return "macos-unknown"
+		}
+		majorVersion := strings.Split(strings.TrimSpace(string(out)), ".")[0]
+		return "macos-" + majorVersion
+	case "linux":
+		out, err := exec.Command("lsb_release", "-cs").Output()
+		if err != nil {
+			return "linux"
+		}
+		strout := strings.TrimSuffix(string(out), "\n")
+		return "linux-" + strout
+	}
+	// default to linux assets otherwise
+	return "linux"
 }
 
 var tests = []struct {
@@ -75,9 +100,11 @@ var tests = []struct {
 	{"resize right animated", "100x200/right/top/dancing-banana.gif"},
 	{"stretch animated", "stretch/100x200/dancing-banana.gif"},
 	{"resize padding animated", "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif"},
+	{"watermark animated", "fit-in/500x500/filters:fill(white):watermark(gopher-front.png,repeat,bottom,0,30,30)/dancing-banana.gif"},
 }
 
 func TestVipsProcessor(t *testing.T) {
+	resultDir := filepath.Join(testDataDir, "result", getEnvironment())
 	app := imagor.New(
 		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
@@ -88,7 +115,7 @@ func TestVipsProcessor(t *testing.T) {
 			WithDebug(true),
 		)),
 		imagor.WithResultSavers(filestorage.New(
-			filepath.Join(testDataDir, "result"),
+			resultDir,
 			filestorage.WithSaveErrIfExists(true),
 		)),
 	)
@@ -103,7 +130,7 @@ func TestVipsProcessor(t *testing.T) {
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 			assert.Equal(t, 200, w.Code)
-			path := filepath.Join(testDataDir, "result", imagorpath.Normalize(tt.path))
+			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path))
 			buf, err := ioutil.ReadFile(path)
 			require.NoError(t, err)
 			if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
