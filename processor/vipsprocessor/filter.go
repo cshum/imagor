@@ -22,7 +22,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			}
 		}
 		left := (w - img.Width()) / 2
-		top := (h - img.Height()) / 2
+		top := (h - img.PageHeight()) / 2
 		if isBlack(c) {
 			if err = img.Embed(left, top, w, h, vips.ExtendBlack); err != nil {
 				return
@@ -43,7 +43,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			return
 		}
 		AddImageRef(ctx, cp)
-		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.Height() {
+		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.PageHeight() {
 			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
 				return
 			}
@@ -57,7 +57,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			return
 		}
 		if err = img.Composite(
-			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.Height())/2); err != nil {
+			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.PageHeight())/2); err != nil {
 			return
 		}
 	}
@@ -85,14 +85,14 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	// w_ratio h_ratio
 	if ln >= 6 {
 		w = img.Width()
-		h = img.Height()
+		h = img.PageHeight()
 		if args[4] != "none" {
 			w, _ = strconv.Atoi(args[4])
 			w = img.Width() * w / 100
 		}
 		if args[5] != "none" {
 			h, _ = strconv.Atoi(args[5])
-			h = img.Height() * h / 100
+			h = img.PageHeight() * h / 100
 		}
 		if overlay, err = v.newThumbnail(
 			blob, w, h, vips.InterestingNone, vips.SizeDown, 1,
@@ -108,7 +108,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	}
 	AddImageRef(ctx, overlay)
 	w = overlay.Width()
-	h = overlay.Height()
+	h = overlay.PageHeight()
 	// alpha
 	if ln >= 4 {
 		alpha, _ := strconv.ParseFloat(args[3], 64)
@@ -138,25 +138,25 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			x, _ = strconv.Atoi(args[1])
 		}
 		if args[2] == "center" {
-			y = (img.Height() - overlay.Height()) / 2
+			y = (img.PageHeight() - overlay.Height()) / 2
 		} else if args[2] == imagorpath.VAlignTop {
 			y = 0
 		} else if args[2] == imagorpath.VAlignBottom {
-			y = img.Height() - overlay.Height()
+			y = img.PageHeight() - overlay.Height()
 		} else if args[2] == "repeat" {
 			y = 0
-			repeatY = img.Height()/overlay.Height() + 1
+			repeatY = img.PageHeight()/overlay.Height() + 1
 		} else if strings.HasSuffix(args[2], "p") {
 			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
-			y = y * img.Height() / 100
+			y = y * img.PageHeight() / 100
 		} else {
 			y, _ = strconv.Atoi(args[2])
 		}
 		if x < 0 {
-			x += img.Width() - overlay.Width()
+			x += img.PageHeight() - overlay.Width()
 		}
 		if y < 0 {
-			y += img.Height() - overlay.Height()
+			y += img.PageHeight() - overlay.Height()
 		}
 	}
 	if repeatX*repeatY > 1 {
