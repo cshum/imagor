@@ -155,7 +155,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			y, _ = strconv.Atoi(args[2])
 		}
 		if x < 0 {
-			x += img.PageHeight() - overlay.Width()
+			x += img.Width() - overlay.Width()
 		}
 		if y < 0 {
 			y += img.PageHeight() - overlay.Height()
