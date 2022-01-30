@@ -12,58 +12,6 @@ import (
 	"strings"
 )
 
-func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
-	c := getColor(img, colour)
-	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
-		// fill color
-		if img.HasAlpha() {
-			if err = img.Flatten(getColor(img, colour)); err != nil {
-				return
-			}
-		}
-		left := (w - img.Width()) / 2
-		top := (h - img.PageHeight()) / 2
-		if isBlack(c) {
-			if err = img.Embed(left, top, w, h, vips.ExtendBlack); err != nil {
-				return
-			}
-		} else if isWhite(c) {
-			if err = img.Embed(left, top, w, h, vips.ExtendWhite); err != nil {
-				return
-			}
-		} else {
-			if err = img.EmbedBackground(left, top, w, h, c); err != nil {
-				return
-			}
-		}
-	} else {
-		// fill blur
-		var cp *vips.ImageRef
-		if cp, err = img.Copy(); err != nil {
-			return
-		}
-		AddImageRef(ctx, cp)
-		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.PageHeight() {
-			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
-				return
-			}
-		}
-		if err = img.ThumbnailWithSize(
-			w, h, vips.InterestingNone, vips.SizeForce,
-		); err != nil {
-			return
-		}
-		if err = img.GaussianBlur(50); err != nil {
-			return
-		}
-		if err = img.Composite(
-			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.PageHeight())/2); err != nil {
-			return
-		}
-	}
-	return
-}
-
 func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
@@ -78,8 +26,8 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		return
 	}
 	var x, y, w, h int
-	var repeatX = 1
-	var repeatY = 1
+	var across = 1
+	var down = 1
 	var overlay *vips.ImageRef
 
 	// w_ratio h_ratio
@@ -132,7 +80,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			x = img.Width() - overlay.Width()
 		} else if args[1] == "repeat" {
 			x = 0
-			repeatX = img.Width()/overlay.Width() + 1
+			across = img.Width()/overlay.Width() + 1
 		} else if strings.HasSuffix(args[1], "p") {
 			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
 			x = x * img.Width() / 100
@@ -147,7 +95,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			y = img.PageHeight() - overlay.Height()
 		} else if args[2] == "repeat" {
 			y = 0
-			repeatY = img.PageHeight()/overlay.Height() + 1
+			down = img.PageHeight()/overlay.Height() + 1
 		} else if strings.HasSuffix(args[2], "p") {
 			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
 			y = y * img.PageHeight() / 100
@@ -161,8 +109,8 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			y += img.PageHeight() - overlay.Height()
 		}
 	}
-	if repeatX*repeatY > 1 {
-		if err = overlay.Replicate(repeatX, repeatY); err != nil {
+	if across*down > 1 {
+		if err = overlay.Replicate(across, down); err != nil {
 			return
 		}
 	}
@@ -178,6 +126,58 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	}
 	if err = img.Composite(overlay, vips.BlendModeOver, 0, 0); err != nil {
 		return
+	}
+	return
+}
+
+func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
+	c := getColor(img, colour)
+	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
+		// fill color
+		if img.HasAlpha() {
+			if err = img.Flatten(getColor(img, colour)); err != nil {
+				return
+			}
+		}
+		left := (w - img.Width()) / 2
+		top := (h - img.PageHeight()) / 2
+		if isBlack(c) {
+			if err = img.Embed(left, top, w, h, vips.ExtendBlack); err != nil {
+				return
+			}
+		} else if isWhite(c) {
+			if err = img.Embed(left, top, w, h, vips.ExtendWhite); err != nil {
+				return
+			}
+		} else {
+			if err = img.EmbedBackground(left, top, w, h, c); err != nil {
+				return
+			}
+		}
+	} else {
+		// fill blur
+		var cp *vips.ImageRef
+		if cp, err = img.Copy(); err != nil {
+			return
+		}
+		AddImageRef(ctx, cp)
+		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.PageHeight() {
+			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
+				return
+			}
+		}
+		if err = img.ThumbnailWithSize(
+			w, h, vips.InterestingNone, vips.SizeForce,
+		); err != nil {
+			return
+		}
+		if err = img.GaussianBlur(50); err != nil {
+			return
+		}
+		if err = img.Composite(
+			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.PageHeight())/2); err != nil {
+			return
+		}
 	}
 	return
 }
