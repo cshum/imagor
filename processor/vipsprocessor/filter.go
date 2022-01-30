@@ -145,18 +145,20 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 				return
 			}
 		}
-		left := (w - img.Width()) / 2
-		top := (h - img.PageHeight()) / 2
+		left := (w-img.Width())/2 + hPad
+		top := (h-img.PageHeight())/2 + vPad
+		width := w + hPad*2
+		height := h + vPad*2
 		if isBlack(c) {
-			if err = img.Embed(left, top, w, h, vips.ExtendBlack); err != nil {
+			if err = img.Embed(left, top, width, height, vips.ExtendBlack); err != nil {
 				return
 			}
 		} else if isWhite(c) {
-			if err = img.Embed(left, top, w, h, vips.ExtendWhite); err != nil {
+			if err = img.Embed(left, top, width, height, vips.ExtendWhite); err != nil {
 				return
 			}
 		} else {
-			if err = img.EmbedBackground(left, top, w, h, c); err != nil {
+			if err = img.EmbedBackground(left, top, width, height, c); err != nil {
 				return
 			}
 		}
@@ -167,13 +169,13 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			return
 		}
 		AddImageRef(ctx, cp)
-		if upscale || w-hPad*2 < img.Width() || h-vPad*2 < img.PageHeight() {
-			if err = cp.Thumbnail(w-hPad*2, h-vPad*2, vips.InterestingNone); err != nil {
+		if upscale || w < img.Width() || h < img.PageHeight() {
+			if err = cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
 				return
 			}
 		}
 		if err = img.ThumbnailWithSize(
-			w, h, vips.InterestingNone, vips.SizeForce,
+			w+hPad*2, h+vPad*2, vips.InterestingNone, vips.SizeForce,
 		); err != nil {
 			return
 		}
@@ -181,7 +183,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			return
 		}
 		if err = img.Composite(
-			cp, vips.BlendModeOver, (w-cp.Width())/2, (h-cp.PageHeight())/2); err != nil {
+			cp, vips.BlendModeOver, (w-cp.Width())/2+hPad, (h-cp.PageHeight())/2+vPad); err != nil {
 			return
 		}
 	}

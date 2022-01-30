@@ -56,20 +56,20 @@ func (v *VipsProcessor) process(
 	}
 	if !thumbnail {
 		if p.FitIn {
-			if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.PageHeight() {
-				if err := img.Thumbnail(w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone); err != nil {
+			if upscale || w < img.Width() || h < img.PageHeight() {
+				if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
 					return err
 				}
 			}
 		} else if stretch {
-			if upscale || (w-p.HPadding*2 < img.Width() && h-p.VPadding*2 < img.PageHeight()) {
+			if upscale || (w < img.Width() && h < img.PageHeight()) {
 				if err := img.ThumbnailWithSize(
-					w-p.HPadding*2, h-p.VPadding*2, vips.InterestingNone, vips.SizeForce,
+					w, h, vips.InterestingNone, vips.SizeForce,
 				); err != nil {
 					return err
 				}
 			}
-		} else if upscale || w-p.HPadding*2 < img.Width() || h-p.VPadding*2 < img.PageHeight() {
+		} else if upscale || w < img.Width() || h < img.PageHeight() {
 			interest := vips.InterestingCentre
 			if p.Smart {
 				interest = vips.InterestingAttention
@@ -86,7 +86,7 @@ func (v *VipsProcessor) process(
 					interest = vips.InterestingHigh
 				}
 			}
-			if err := v.thumbnail(img, w-p.HPadding*2, h-p.VPadding*2, interest, vips.SizeBoth); err != nil {
+			if err := v.thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
 				return err
 			}
 		}
