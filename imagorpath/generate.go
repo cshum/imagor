@@ -33,7 +33,7 @@ func generate(p Params) string {
 		parts = append(parts, "stretch")
 	}
 	if p.HFlip || p.Width != 0 || p.VFlip || p.Height != 0 ||
-		p.HPadding > 0 || p.VPadding > 0 {
+		p.PaddingLeft > 0 || p.PaddingTop > 0 {
 		if p.Width < 0 {
 			p.HFlip = !p.HFlip
 			p.Width = -p.Width
@@ -52,8 +52,15 @@ func generate(p Params) string {
 		parts = append(parts, fmt.Sprintf(
 			"%s%dx%s%d", hFlipStr, p.Width, vFlipStr, p.Height))
 	}
-	if p.HPadding > 0 || p.VPadding > 0 {
-		parts = append(parts, fmt.Sprintf("%dx%d", p.HPadding, p.VPadding))
+	if p.PaddingLeft > 0 || p.PaddingTop > 0 || p.PaddingRight > 0 || p.PaddingBottom > 0 {
+		if p.PaddingLeft == p.PaddingRight && p.PaddingTop == p.PaddingBottom {
+			parts = append(parts, fmt.Sprintf("%dx%d", p.PaddingLeft, p.PaddingTop))
+		} else {
+			parts = append(parts, fmt.Sprintf(
+				"%dx%d:%dx%d",
+				p.PaddingLeft, p.PaddingTop,
+				p.PaddingRight, p.PaddingBottom))
+		}
 	}
 	if p.HAlign == HAlignLeft || p.HAlign == HAlignRight {
 		parts = append(parts, p.HAlign)

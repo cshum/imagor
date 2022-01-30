@@ -136,12 +136,12 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	return
 }
 
-func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, hPad, vPad int, colour string) (err error) {
+func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
 	c := getColor(img, colour)
-	left := (w-img.Width())/2 + hPad
-	top := (h-img.PageHeight())/2 + vPad
-	width := w + hPad*2
-	height := h + vPad*2
+	left := (w-img.Width())/2 + pLeft
+	top := (h-img.PageHeight())/2 + pTop
+	width := w + pLeft + pRight
+	height := h + pTop + pBottom
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
 		// fill color
 		if img.HasAlpha() {

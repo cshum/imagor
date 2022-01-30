@@ -32,7 +32,7 @@ var paramsRegex = regexp.MustCompile(
 		// dimensions
 		"((\\-?)(\\d*)x(\\-?)(\\d*)/)?" +
 		// paddings
-		"((\\d+)x(\\d+)/)?" +
+		"((\\d+)x(\\d+)(:(\\d+)x(\\d+))?/)?" +
 		// h_align
 		"((left|right|center)/)?" +
 		// v_align
@@ -107,10 +107,17 @@ func Parse(path string) (p Params) {
 	}
 	index += 5
 	if match[index] != "" {
-		p.HPadding, _ = strconv.Atoi(match[index+1])
-		p.VPadding, _ = strconv.Atoi(match[index+2])
+		p.PaddingLeft, _ = strconv.Atoi(match[index+1])
+		p.PaddingTop, _ = strconv.Atoi(match[index+2])
+		if match[index+3] != "" {
+			p.PaddingRight, _ = strconv.Atoi(match[index+4])
+			p.PaddingBottom, _ = strconv.Atoi(match[index+5])
+		} else {
+			p.PaddingRight = p.PaddingLeft
+			p.PaddingBottom = p.PaddingTop
+		}
 	}
-	index += 3
+	index += 6
 	if match[index] != "" {
 		p.HAlign = match[index+1]
 	}

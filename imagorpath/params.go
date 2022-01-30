@@ -37,8 +37,10 @@ type Params struct {
 	Stretch       bool    `json:"stretch,omitempty"`
 	Width         int     `json:"width,omitempty"`
 	Height        int     `json:"height,omitempty"`
-	HPadding      int     `json:"h_padding,omitempty"`
-	VPadding      int     `json:"v_padding,omitempty"`
+	PaddingLeft   int     `json:"padding_left,omitempty"`
+	PaddingTop    int     `json:"padding_top,omitempty"`
+	PaddingRight  int     `json:"padding_right,omitempty"`
+	PaddingBottom int     `json:"padding_bottom,omitempty"`
 	HFlip         bool    `json:"h_flip,omitempty"`
 	VFlip         bool    `json:"v_flip,omitempty"`
 	HAlign        string  `json:"h_align,omitempty"`
