@@ -42,7 +42,7 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 Imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
-/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
+/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
 - `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
@@ -51,7 +51,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 - `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
 - `stretch` means resize the image to `ExF` without keeping its aspect ratios
 - `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
-- `GxH` add horizontal padding `G` and vertical padding `H`
+- `GxH:IxJ` add left-top padding `GxH` and right-bottom padding `IxJ`
 - `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
 - `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 - `smart` means using smart detection of focal points
