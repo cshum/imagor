@@ -135,6 +135,7 @@ func (v *VipsProcessor) newThumbnail(
 				return nil, err
 			}
 			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
+				img.Close()
 				return img, err
 			}
 		}
