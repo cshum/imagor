@@ -29,28 +29,13 @@ https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png
 Try out the following image URLs:
 ```
 http://localhost:8000/unsafe/fit-in/200x200/top/filters:fill(white):format(jpeg)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
-```
-![fit-in](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg)
-
-```
 http://localhost:8000/unsafe/200x200/top/filters:fill(white):format(jpeg)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
-```
-![resize](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg)
-
-```
 http://localhost:8000/unsafe/fit-in/-200x200/10x10/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
-```
-![flip, padding and filters](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg)
-
-```
 http://localhost:8000/unsafe/30x40:100x150/filters:fill(cyan)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
-```
-![crop](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif)
-
-```
 http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,0,40,40)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
 ```
-![watermark](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif)
+<img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif" height="100" />  
+
 
 ### Imagor Endpoint
 
