@@ -329,7 +329,11 @@ func modulate(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...
 	return img.Modulate(b, s, h)
 }
 
-func blur(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func blur(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if IsAnimated(ctx) {
+		// skip animation support
+		return
+	}
 	var sigma float64
 	switch len(args) {
 	case 2:
