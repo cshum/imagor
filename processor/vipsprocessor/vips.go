@@ -218,8 +218,7 @@ func (v *VipsProcessor) Process(
 	if p.FitIn {
 		upscale = false
 	}
-	if maxN == 0 {
-		// no frames if source image not support animation,
+	if maxN == 0 || maxN < -1 {
 		maxN = 1
 	}
 	for _, p := range p.Filters {
