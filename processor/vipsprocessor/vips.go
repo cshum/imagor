@@ -125,9 +125,7 @@ func (v *VipsProcessor) newThumbnail(
 	}
 	var params *vips.ImportParams
 	var img *vips.ImageRef
-	if n == 1 || n == 0 {
-		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
-	} else {
+	if blob.SupportsAnimation() && n != 1 && n != 0 {
 		params = vips.NewImportParams()
 		params.NumPages.Set(n)
 		if crop == vips.InterestingNone || size == vips.SizeForce {
@@ -140,6 +138,8 @@ func (v *VipsProcessor) newThumbnail(
 				return img, err
 			}
 		}
+	} else {
+		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
 	}
 	return img, wrapErr(err)
 }
@@ -153,7 +153,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 		return nil, err
 	}
 	var params *vips.ImportParams
-	if n != 1 && n != 0 {
+	if blob.SupportsAnimation() && n != 1 && n != 0 {
 		params = vips.NewImportParams()
 		params.NumPages.Set(n)
 	}
@@ -218,7 +218,7 @@ func (v *VipsProcessor) Process(
 	if p.FitIn {
 		upscale = false
 	}
-	if maxN == 0 || !blob.SupportsAnimation() {
+	if maxN == 0 {
 		// no frames if source image not support animation,
 		maxN = 1
 	}
