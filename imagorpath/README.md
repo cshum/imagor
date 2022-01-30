@@ -13,7 +13,8 @@ func Test(t *testing.T) {
 		FitIn:    true,
 		Width:    500,
 		Height:   400,
-		VPadding: 20,
+		PaddingTop: 20,
+		PaddingBottom: 20,
 		Filters: imagorpath.Filters{
 			{
 				Name: "fill",
@@ -39,7 +40,8 @@ func Test(t *testing.T) {
 			FitIn:    true,
 			Width:    500,
 			Height:   400,
-			VPadding: 20,
+			PaddingTop: 20,
+			PaddingBottom: 20,
 			Filters: imagorpath.Filters{
 				{
 					Name: "fill",
