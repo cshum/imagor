@@ -104,6 +104,7 @@ var tests = []struct {
 	{"resize padding animated", "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif"},
 	{"watermark animated", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,repeat,bottom,0,30,30)/dancing-banana.gif"},
 	{"watermark animated align bottom right", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,-20,-10,0,30,30)/dancing-banana.gif"},
+	{"watermark double animated", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30)/dancing-banana.gif"},
 }
 
 func TestVipsProcessor(t *testing.T) {

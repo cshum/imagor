@@ -29,7 +29,12 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	var across = 1
 	var down = 1
 	var overlay *vips.ImageRef
-
+	var maxN = GetPageN(ctx)
+	var hasRepeat = args[1] == "repeat" || args[2] == "repeat"
+	if hasRepeat {
+		// no animated watermark on repeat mode
+		maxN = 1
+	}
 	// w_ratio h_ratio
 	if ln >= 6 {
 		w = img.Width()
@@ -43,17 +48,18 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			h = img.PageHeight() * h / 100
 		}
 		if overlay, err = v.newThumbnail(
-			blob, w, h, vips.InterestingNone, vips.SizeDown, 1,
+			blob, w, h, vips.InterestingNone, vips.SizeDown, maxN,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.newThumbnail(
-			blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, 1,
+			blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, maxN,
 		); err != nil {
 			return
 		}
 	}
+	var overlayN = overlay.Height() / overlay.PageHeight()
 	AddImageRef(ctx, overlay)
 	if err = overlay.AddAlpha(); err != nil {
 		return
@@ -88,14 +94,14 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			x, _ = strconv.Atoi(args[1])
 		}
 		if args[2] == "center" {
-			y = (img.PageHeight() - overlay.Height()) / 2
+			y = (img.PageHeight() - overlay.PageHeight()) / 2
 		} else if args[2] == imagorpath.VAlignTop {
 			y = 0
 		} else if args[2] == imagorpath.VAlignBottom {
-			y = img.PageHeight() - overlay.Height()
+			y = img.PageHeight() - overlay.PageHeight()
 		} else if args[2] == "repeat" {
 			y = 0
-			down = img.PageHeight()/overlay.Height() + 1
+			down = img.PageHeight()/overlay.PageHeight() + 1
 		} else if strings.HasSuffix(args[2], "p") {
 			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
 			y = y * img.PageHeight() / 100
@@ -106,10 +112,10 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			x += img.Width() - overlay.Width()
 		}
 		if y < 0 {
-			y += img.PageHeight() - overlay.Height()
+			y += img.PageHeight() - overlay.PageHeight()
 		}
 	}
-	if across*down > 1 {
+	if hasRepeat {
 		if err = overlay.Replicate(across, down); err != nil {
 			return
 		}
@@ -120,6 +126,10 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		return
 	}
 	if n := GetPageN(ctx); n > 1 {
+		n = n / overlayN
+		if n < 1 {
+			n = 1
+		}
 		if err = overlay.Replicate(1, n); err != nil {
 			return
 		}
