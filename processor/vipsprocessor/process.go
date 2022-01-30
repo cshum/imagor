@@ -41,8 +41,8 @@ func (v *VipsProcessor) process(
 		h = p.Height
 	)
 	if w == 0 && h == 0 {
-		w = img.Width() + p.HPadding*2
-		h = img.PageHeight() + p.VPadding*2
+		w = img.Width()
+		h = img.PageHeight()
 	} else if w == 0 {
 		w = img.Width() * h / img.PageHeight()
 		if !upscale && w > img.Width() {
