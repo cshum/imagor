@@ -119,7 +119,7 @@ func (v *VipsProcessor) process(
 				return err
 			}
 		} else if filter.Name == "fill" {
-			if err := v.fill(ctx, img, w, h, p.HPadding, p.VPadding, upscale, filter.Args); err != nil {
+			if err := v.fill(ctx, img, w, h, p.HPadding, p.VPadding, filter.Args); err != nil {
 				return err
 			}
 		}

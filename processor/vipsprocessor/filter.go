@@ -136,7 +136,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	return
 }
 
-func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad, vPad int, upscale bool, colour string) (err error) {
+func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, hPad, vPad int, colour string) (err error) {
 	c := getColor(img, colour)
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
 		// fill color
@@ -169,11 +169,6 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h, hPad
 			return
 		}
 		AddImageRef(ctx, cp)
-		if upscale || w < img.Width() || h < img.PageHeight() {
-			if err = cp.Thumbnail(w, h, vips.InterestingNone); err != nil {
-				return
-			}
-		}
 		if err = img.ThumbnailWithSize(
 			w+hPad*2, h+vPad*2, vips.InterestingNone, vips.SizeForce,
 		); err != nil {
