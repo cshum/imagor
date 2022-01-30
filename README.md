@@ -74,7 +74,8 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
   "fit_in": true,
   "width": 500,
   "height": 400,
-  "v_padding": 20,
+  "padding-top": 20,
+  "padding-bottom": 20,
   "filters": [
     {
       "name": "fill",
