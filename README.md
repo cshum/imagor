@@ -18,7 +18,7 @@ Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe
 ```
 
-Original Images:
+Original images:
 ```
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
