@@ -138,6 +138,10 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 
 func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, hPad, vPad int, colour string) (err error) {
 	c := getColor(img, colour)
+	left := (w-img.Width())/2 + hPad
+	top := (h-img.PageHeight())/2 + vPad
+	width := w + hPad*2
+	height := h + vPad*2
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
 		// fill color
 		if img.HasAlpha() {
@@ -145,10 +149,6 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, 
 				return
 			}
 		}
-		left := (w-img.Width())/2 + hPad
-		top := (h-img.PageHeight())/2 + vPad
-		width := w + hPad*2
-		height := h + vPad*2
 		if isBlack(c) {
 			if err = img.Embed(left, top, width, height, vips.ExtendBlack); err != nil {
 				return
@@ -170,7 +170,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, 
 		}
 		AddImageRef(ctx, cp)
 		if err = img.ThumbnailWithSize(
-			w+hPad*2, h+vPad*2, vips.InterestingNone, vips.SizeForce,
+			width, height, vips.InterestingNone, vips.SizeForce,
 		); err != nil {
 			return
 		}
@@ -178,7 +178,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, 
 			return
 		}
 		if err = img.Composite(
-			cp, vips.BlendModeOver, (w-cp.Width())/2+hPad, (h-cp.PageHeight())/2+vPad); err != nil {
+			cp, vips.BlendModeOver, left, top); err != nil {
 			return
 		}
 	}
