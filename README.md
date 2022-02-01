@@ -28,7 +28,7 @@ https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png
 
 Try out the following image URLs:
 ```
-http://localhost:8000/unsafe/fit-in/200x200/top/filters:fill(white):format(jpeg)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+http://localhost:8000/unsafe/fit-in/200x200/filters:fill(white):format(jpeg)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 http://localhost:8000/unsafe/200x200/top/filters:fill(white):format(jpeg)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 http://localhost:8000/unsafe/fit-in/-200x200/10x10/filters:hue(290):saturation(100):fill(yellow):format(jpeg):quality(80)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 http://localhost:8000/unsafe/30x40:100x150/filters:fill(cyan)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
