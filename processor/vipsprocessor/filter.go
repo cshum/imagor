@@ -125,7 +125,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	); err != nil {
 		return
 	}
-	if n := GetPageN(ctx); n > 1 {
+	if n := GetPageN(ctx); n > overlayN {
 		if err = overlay.Replicate(1, n/overlayN+1); err != nil {
 			return
 		}
@@ -133,6 +133,28 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	if err = img.Composite(overlay, vips.BlendModeOver, 0, 0); err != nil {
 		return
 	}
+	return
+}
+
+func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	newN, _ := strconv.Atoi(args[0])
+	if newN < 1 {
+		return
+	}
+	height := img.PageHeight()
+	if err = img.SetPageHeight(img.Height()); err != nil {
+		return
+	}
+	if err = img.Embed(0, 0, img.Width(), height*newN, vips.ExtendRepeat); err != nil {
+		return
+	}
+	if err = img.SetPageHeight(height); err != nil {
+		return
+	}
+	SetPageN(ctx, newN)
 	return
 }
 

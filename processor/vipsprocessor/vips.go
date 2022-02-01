@@ -57,6 +57,7 @@ func New(options ...Option) *VipsProcessor {
 		"strip_icc":        stripIcc,
 		"strip_exif":       stripExif,
 		"trim":             trimFilter,
+		"frames":           frames,
 	}
 	for _, option := range options {
 		option(v)
