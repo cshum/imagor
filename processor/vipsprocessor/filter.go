@@ -125,7 +125,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	); err != nil {
 		return
 	}
-	if n := GetPageN(ctx); n > 1 {
+	if n := GetPageN(ctx); n > overlayN {
 		if err = overlay.Replicate(1, n/overlayN+1); err != nil {
 			return
 		}
