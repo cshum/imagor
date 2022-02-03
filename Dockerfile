@@ -1,7 +1,7 @@
 ARG GOLANG_VERSION=1.17
 FROM golang:${GOLANG_VERSION}-buster as builder
 
-ARG VIPS_VERSION=8.12.1
+ARG VIPS_VERSION=8.12.2
 
 # Installs libvips + required libraries
 RUN DEBIAN_FRONTEND=noninteractive \
