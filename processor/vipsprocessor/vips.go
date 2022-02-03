@@ -131,13 +131,8 @@ func (v *VipsProcessor) newThumbnail(
 		params.NumPages.Set(n)
 		if crop == vips.InterestingNone || size == vips.SizeForce {
 			if blob.IsPNG() {
-				if img, err = vips.NewImageFromBuffer(buf); err != nil {
-					return img, wrapErr(err)
-				}
-				if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
-					img.Close()
-					return img, wrapErr(err)
-				}
+				// avoid vips pngload error
+				return newThumbnailFix(buf, width, height, crop, size)
 			} else {
 				img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
 			}
@@ -151,17 +146,26 @@ func (v *VipsProcessor) newThumbnail(
 			}
 		}
 	} else if blob.IsPNG() {
-		if img, err = vips.NewImageFromBuffer(buf); err != nil {
-			return img, wrapErr(err)
-		}
-		if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
-			img.Close()
-			return img, wrapErr(err)
-		}
+		// avoid vips pngload error
+		return newThumbnailFix(buf, width, height, crop, size)
 	} else {
 		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
 	}
 	return img, wrapErr(err)
+}
+
+func newThumbnailFix(
+	buf []byte, width, height int, crop vips.Interesting, size vips.Size,
+) (img *vips.ImageRef, err error) {
+	if img, err = vips.NewImageFromBuffer(buf); err != nil {
+		return
+	}
+	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
+		img.Close()
+		return
+	}
+	err = wrapErr(err)
+	return
 }
 
 func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, error) {
