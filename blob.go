@@ -14,6 +14,7 @@ type Blob struct {
 	err  error
 
 	supportsAnimation bool
+	isPNG             bool
 
 	Meta *Meta
 }
@@ -42,6 +43,7 @@ func NewBlobBytesWithMeta(bytes []byte, meta *Meta) *Blob {
 var jpegHeader = []byte("\xFF\xD8\xFF")
 var gifHeader = []byte("\x47\x49\x46")
 var webpHeader = []byte("\x57\x45\x42\x50")
+var pngHeader = []byte("\x89\x50\x4E\x47")
 
 func (b *Blob) readAllOnce() {
 	b.once.Do(func() {
@@ -58,6 +60,8 @@ func (b *Blob) readAllOnce() {
 		if len(b.buf) > 24 && !bytes.HasPrefix(b.buf, jpegHeader) {
 			if bytes.HasPrefix(b.buf, gifHeader) || bytes.Equal(b.buf[8:12], webpHeader) {
 				b.supportsAnimation = true
+			} else if bytes.HasPrefix(b.buf, pngHeader) {
+				b.isPNG = true
 			}
 		}
 	})
@@ -71,6 +75,10 @@ func (b *Blob) IsEmpty() bool {
 func (b *Blob) SupportsAnimation() bool {
 	b.readAllOnce()
 	return b.supportsAnimation
+}
+
+func (b *Blob) IsPNG() bool {
+	return b.isPNG
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {

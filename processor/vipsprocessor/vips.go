@@ -130,15 +130,33 @@ func (v *VipsProcessor) newThumbnail(
 		params = vips.NewImportParams()
 		params.NumPages.Set(n)
 		if crop == vips.InterestingNone || size == vips.SizeForce {
-			img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
+			if blob.IsPNG() {
+				if img, err = vips.NewImageFromBuffer(buf); err != nil {
+					return img, wrapErr(err)
+				}
+				if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
+					img.Close()
+					return img, wrapErr(err)
+				}
+			} else {
+				img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
+			}
 		} else {
 			if img, err = vips.LoadImageFromBuffer(buf, params); err != nil {
-				return nil, err
+				return nil, wrapErr(err)
 			}
 			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
 				img.Close()
-				return img, err
+				return img, wrapErr(err)
 			}
+		}
+	} else if blob.IsPNG() {
+		if img, err = vips.NewImageFromBuffer(buf); err != nil {
+			return img, wrapErr(err)
+		}
+		if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
+			img.Close()
+			return img, wrapErr(err)
 		}
 	} else {
 		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
