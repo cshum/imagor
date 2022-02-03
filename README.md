@@ -110,7 +110,9 @@ Imagor supports the following filters:
     - If color is "auto" - the top left image pixel will be chosen as the filling color
 - `format(format)` specifies the output format of the image
   - `format` accepts jpeg, png, webp, gif, jp2, tiff
-- `frames(n[, delay])` set or replicate the number of frames `n` and milliseconds `delay` for animation with gif or webp. Otherwise, stack all the frames vertically
+- `frames(n[, delay])` set the number of frames to repeat for animation with gif or webp. Otherwise, stack all the frames vertically
+  - `n` number of frames to repeat
+  - `delay` frames delay in millisecond, default 100
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
