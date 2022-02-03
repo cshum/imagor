@@ -30,7 +30,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	var down = 1
 	var overlay *vips.ImageRef
 	var n = -1
-	var hasRepeat = args[1] == "repeat" || args[2] == "repeat"
+	var hasRepeat = len(args) > 2 && (args[1] == "repeat" || args[2] == "repeat")
 	if hasRepeat {
 		// no animated watermark on repeat mode
 		n = 1
