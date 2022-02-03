@@ -25,4 +25,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
-replace github.com/davidbyttow/govips/v2 v2.10.0 => github.com/cshum/govips/v2 v2.10.5
+replace github.com/davidbyttow/govips/v2 v2.10.0 => github.com/cshum/govips/v2 v2.10.6

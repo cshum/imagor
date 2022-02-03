@@ -137,7 +137,8 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 }
 
 func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
-	if len(args) == 0 {
+	ln := len(args)
+	if ln == 0 {
 		return
 	}
 	newN, _ := strconv.Atoi(args[0])
@@ -155,6 +156,21 @@ func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...
 		return
 	}
 	SetPageN(ctx, newN)
+
+	var delay int
+	if ln > 1 {
+		delay, _ = strconv.Atoi(args[1])
+	}
+	if delay == 0 {
+		delay = 100
+	}
+	delays := make([]int, newN)
+	for i := 0; i < newN; i++ {
+		delays[i] = delay
+	}
+	if err = img.SetPageDelay(delays); err != nil {
+		return
+	}
 	return
 }
 
