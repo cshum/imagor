@@ -108,8 +108,8 @@ var tests = []struct {
 	{"watermark double animated 2", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,30,-10,0,40,40):watermark(dancing-banana.gif,0,10,0,40,40)/nyan-cat.gif"},
 	{"padding with watermark double animated", "200x0/20x20:100x20/filters:fill(yellow):watermark(dancing-banana.gif,-10,-10,0,50,50):watermark(dancing-banana.gif,-30,10,0,50,50)/nyan-cat.gif"},
 
-	{"watermark pages animated", "fit-in/200x200/filters:fill(white):pages(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
-	{"watermark pages static", "fit-in/200x200/filters:fill(white):pages(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
+	{"watermark frames animated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
+	{"watermark frames static", "fit-in/200x200/filters:fill(white):frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
 }
 
 func TestVipsProcessor(t *testing.T) {

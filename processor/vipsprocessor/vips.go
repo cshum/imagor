@@ -57,7 +57,7 @@ func New(options ...Option) *VipsProcessor {
 		"strip_icc":        stripIcc,
 		"strip_exif":       stripExif,
 		"trim":             trimFilter,
-		"pages":            pages,
+		"frames":           frames,
 	}
 	for _, option := range options {
 		option(v)
@@ -251,7 +251,7 @@ func (v *VipsProcessor) Process(
 			if typ, ok := imageTypeMap[p.Args]; ok {
 				format = typ
 				if format != vips.ImageTypeGIF && format != vips.ImageTypeWEBP {
-					// no pages if export format not support animation
+					// no frames if export format not support animation
 					maxN = 1
 				}
 			}

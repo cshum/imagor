@@ -136,7 +136,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	return
 }
 
-func pages(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
