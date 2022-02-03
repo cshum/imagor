@@ -113,6 +113,7 @@ Imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
+- `pages(n[, delay])` set or replicate the number of pages `n` and milliseconds `delay`. For animation with gif or webp format, otherwise export all the pages vertically
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
 - `rgb(r,g,b)` amount of color in each of the rgb channels in %. Can range from -100 to 100
