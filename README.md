@@ -368,7 +368,7 @@ Usage of imagor:
   -vips-max-animation-frames int
         VIPS maximum of animated image frames to be processed. Set 1 to disable animation, -1 for unlimited. (default -1)
   -vips-mozjpeg
-        VIPS enable maximum compression with MozJPEG for JPEG export
+        VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string
