@@ -66,6 +66,8 @@ var tests = []struct {
 	{"resize left", "100x200/left/bottom/gopher.png"},
 	{"resize right", "100x200/right/gopher.png"},
 	{"resize right", "100x200/right/top/gopher.png"},
+	{"proportion", "filters:proportion(10)/gopher.png"},
+	{"proportion float", "filters:proportion(0.1)/gopher.png"},
 	{"fit-in unspecified height", "fit-in/500x0/filters:fill(white):format(jpg)/gopher-front.png"},
 	{"resize unspecified height", "500x0/filters:fill(white):format(jpg)/gopher-front.png"},
 	{"fit-in unspecified width", "fit-in/0x500/filters:fill(white):format(jpg)/gopher-front.png"},
