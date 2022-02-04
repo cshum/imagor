@@ -105,7 +105,6 @@ Imagor supports the following filters:
 - `contrast(amount)` increases or decreases the image contrast
   - `amount` -100 to 100, the amount in % to increase or decrease the image contrast
 - `crop(left, top, right, bottom)` apply crop operation as part of the filter pipeline
-  - `left`, `top`, `right`, `bottom` - the bounding box in pixels for cropping
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image.
@@ -118,9 +117,6 @@ Imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
-- `padding(color, left[, top[, right, bottom]])` fill additional padding with the specified color:
-  - `color` - color name or hexadecimal rgb expression without the “#” character
-  - `left`, `top`, `right`, `bottom` - amount of pixels for padding
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
 - `rgb(r,g,b)` amount of color in each of the rgb channels in %. Can range from -100 to 100
