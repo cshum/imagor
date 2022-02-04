@@ -87,6 +87,8 @@ func main() {
 			"VIPS max image width")
 		vipsMaxHeight = fs.Int("vips-max-height", 0,
 			"VIPS max image height")
+		vipsMozJPEG = fs.Bool("vips-mozjpeg", false,
+			"VIPS enable maximum compression with MozJPEG for JPEG export")
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
@@ -317,6 +319,7 @@ func main() {
 					vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
 					vipsprocessor.WithMaxWidth(*vipsMaxWidth),
 					vipsprocessor.WithMaxHeight(*vipsMaxHeight),
+					vipsprocessor.WithMozJPEG(*vipsMozJPEG),
 					vipsprocessor.WithLogger(logger),
 					vipsprocessor.WithDebug(*debug),
 				),

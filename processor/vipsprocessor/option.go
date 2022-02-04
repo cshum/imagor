@@ -33,6 +33,12 @@ func WithDisableFilters(filters ...string) Option {
 	}
 }
 
+func WithMozJPEG(enabled bool) Option {
+	return func(v *VipsProcessor) {
+		v.MozJPEG = enabled
+	}
+}
+
 func WithMaxFilterOps(num int) Option {
 	return func(v *VipsProcessor) {
 		if num != 0 {

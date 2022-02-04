@@ -28,6 +28,7 @@ type VipsProcessor struct {
 	MaxWidth           int
 	MaxHeight          int
 	MaxAnimationFrames int
+	MozJPEG            bool
 	Debug              bool
 }
 
@@ -397,7 +398,7 @@ func (v *VipsProcessor) Process(
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale); err != nil {
 		return nil, wrapErr(err)
 	}
-	buf, meta, err := export(img, format, quality)
+	buf, meta, err := v.export(img, format, quality)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -451,7 +452,7 @@ var imageMimeTypeMap = map[string]string{
 	"jp2":  "image/jp2",
 }
 
-func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
+func (v *VipsProcessor) export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
 	switch format {
 	case vips.ImageTypePNG:
 		opts := vips.NewPngExportParams()
@@ -494,6 +495,15 @@ func export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *
 		return image.ExportJp2k(opts)
 	default:
 		opts := vips.NewJpegExportParams()
+		if v.MozJPEG {
+			opts.Quality = 75
+			opts.StripMetadata = true
+			opts.OptimizeCoding = true
+			opts.Interlace = true
+			opts.OptimizeScans = true
+			opts.TrellisQuant = true
+			opts.QuantTable = 3
+		}
 		if quality > 0 {
 			opts.Quality = quality
 		}

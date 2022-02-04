@@ -16,6 +16,7 @@ func TestWithOption(t *testing.T) {
 			WithMaxCacheFiles(10),
 			WithMaxWidth(999),
 			WithMaxHeight(998),
+			WithMozJPEG(true),
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
 			WithDisableFilters("rgb", "fill, watermark"),
@@ -28,6 +29,7 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, 999, vips.MaxWidth)
 		assert.Equal(t, 998, vips.MaxHeight)
 		assert.Equal(t, 3, vips.MaxAnimationFrames)
+		assert.Equal(t, true, vips.MozJPEG)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, vips.DisableFilters)
 
 	})
