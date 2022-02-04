@@ -110,7 +110,7 @@ Imagor supports the following filters:
     - If color is "blur" - missing parts are filled with blurred original image.
     - If color is "auto" - the top left image pixel will be chosen as the filling color
 - `format(format)` specifies the output format of the image
-  - `format` accepts jpeg, png, gif, webp, pdf, jp2, tiff
+  - `format` accepts jpeg, png, gif, webp, jp2, tiff
 - `frames(n[, delay])` set the number of frames to repeat for animation with gif or webp. Otherwise, stack all the frames vertically
   - `n` number of frames to repeat
   - `delay` frames delay in milliseconds, default 100
