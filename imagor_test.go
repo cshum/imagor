@@ -66,12 +66,12 @@ func TestWithUnsafe(t *testing.T) {
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 }
 
-func TestAcquireDeadlockResolve(t *testing.T) {
+func TestSuppressDeadlockResolve(t *testing.T) {
 	ctx := context.Background()
 	app := New()
-	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
-		return app.acquire(ctx, "b", func(ctx context.Context) (*Blob, error) {
-			return app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
+	f, err := app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
+		return app.suppress(ctx, "b", func(ctx context.Context) (*Blob, error) {
+			return app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
 				return &Blob{path: "abc"}, nil
 			})
 		})
@@ -80,11 +80,11 @@ func TestAcquireDeadlockResolve(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAcquireTimeout(t *testing.T) {
+func TestSuppressTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
 	defer cancel()
 	app := New()
-	f, err := app.acquire(ctx, "a", func(ctx context.Context) (*Blob, error) {
+	f, err := app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
 		time.Sleep(time.Second)
 		return &Blob{}, nil
 	})
@@ -92,7 +92,7 @@ func TestAcquireTimeout(t *testing.T) {
 	assert.Equal(t, context.DeadlineExceeded, err)
 }
 
-func TestAcquireForgetCanceled(t *testing.T) {
+func TestSuppressForgetCanceled(t *testing.T) {
 	n := 10
 	app := New()
 	var wg sync.WaitGroup
@@ -100,7 +100,7 @@ func TestAcquireForgetCanceled(t *testing.T) {
 	for i := 0; i < n; i++ {
 		go func() {
 			defer wg.Done()
-			_, err := app.acquire(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
+			_, err := app.suppress(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
 				time.Sleep(time.Millisecond)
 				return NewBlobFilePath("a"), nil
 			})
@@ -108,7 +108,7 @@ func TestAcquireForgetCanceled(t *testing.T) {
 		}()
 		go func() {
 			defer wg.Done()
-			_, _ = app.acquire(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
+			_, _ = app.suppress(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
 				time.Sleep(time.Millisecond)
 				return nil, context.Canceled
 			})
@@ -523,7 +523,7 @@ func TestSuppression(t *testing.T) {
 		resChan <- res{image, w.Body.String()}
 	}
 	for i := 0; i < n; i++ {
-		// should acquire calls so every call of same image must be same value
+		// should suppress calls so every call of same image must be same value
 		// though a and b must be different value
 		go do("a")
 		go do("b")

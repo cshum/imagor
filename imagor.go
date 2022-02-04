@@ -182,7 +182,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	load := func(image string) (*Blob, error) {
 		return app.loadStore(r, image)
 	}
-	return app.acquire(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
+	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
 		if blob, err = app.loadResult(r, resultKey); err == nil && !IsBlobEmpty(blob) {
 			return blob, err
 		}
@@ -233,7 +233,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 }
 
 func (app *Imagor) loadStore(r *http.Request, key string) (*Blob, error) {
-	return app.acquire(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
+	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
 		var origin Saver
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key)
@@ -329,12 +329,12 @@ type acquireKey struct {
 	Key string
 }
 
-func (app *Imagor) acquire(
+func (app *Imagor) suppress(
 	ctx context.Context,
 	key string, fn func(ctx context.Context) (*Blob, error),
 ) (blob *Blob, err error) {
 	if app.Debug {
-		app.Logger.Debug("acquire", zap.String("key", key))
+		app.Logger.Debug("suppress", zap.String("key", key))
 	}
 	if isAcquired, ok := ctx.Value(acquireKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
@@ -353,7 +353,7 @@ func (app *Imagor) acquire(
 	case res := <-ch:
 		if !isCanceled && errors.Is(res.Err, context.Canceled) {
 			// resolve canceled
-			return app.acquire(ctx, key, fn)
+			return app.suppress(ctx, key, fn)
 		}
 		if res.Val != nil {
 			return res.Val.(*Blob), res.Err
