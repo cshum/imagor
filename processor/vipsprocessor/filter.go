@@ -272,6 +272,29 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 	return nil
 }
 
+func (v *VipsProcessor) padding(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
+	ln := len(args)
+	if ln < 2 {
+		return nil
+	}
+	var (
+		color   = args[0]
+		left, _ = strconv.Atoi(args[1])
+		top     = left
+		right   = left
+		bottom  = left
+	)
+	if ln > 2 {
+		top, _ = strconv.Atoi(args[2])
+		bottom = top
+	}
+	if ln > 4 {
+		right, _ = strconv.Atoi(args[3])
+		bottom, _ = strconv.Atoi(args[4])
+	}
+	return v.fill(ctx, img, img.Width(), img.PageHeight(), left, top, right, bottom, color)
+}
+
 func backgroundColor(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
@@ -391,7 +414,11 @@ func blur(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...st
 	return
 }
 
-func sharpen(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func sharpen(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if IsAnimated(ctx) {
+		// skip animation support
+		return
+	}
 	var sigma float64
 	switch len(args) {
 	case 1:

@@ -110,6 +110,8 @@ var tests = []struct {
 
 	{"watermark frames animated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
 	{"watermark frames static", "fit-in/200x200/filters:fill(white):frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
+
+	{"padding", "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
 }
 
 func TestVipsProcessor(t *testing.T) {
