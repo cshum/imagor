@@ -112,6 +112,7 @@ var tests = []struct {
 	{"padding with watermark double animated", "200x0/20x20:100x20/filters:fill(yellow):watermark(dancing-banana.gif,-10,-10,0,50,50):watermark(dancing-banana.gif,-30,10,0,50,50)/nyan-cat.gif"},
 
 	{"watermark frames animated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
+	{"watermark frames animated repeated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif,repeat,repeat,0,33,33):format(gif)/gopher.png"},
 	{"watermark frames static", "fit-in/200x200/filters:fill(white):frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
 	{"watermark repeated animated", "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
 
