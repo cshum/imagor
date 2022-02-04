@@ -29,11 +29,9 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	var across = 1
 	var down = 1
 	var overlay *vips.ImageRef
-	var n = -1
-	var hasRepeat = len(args) > 2 && (args[1] == "repeat" || args[2] == "repeat")
-	if hasRepeat {
-		// no animated watermark on repeat mode
-		n = 1
+	var n = 1
+	if IsAnimated(ctx) {
+		n = -1
 	}
 	// w_ratio h_ratio
 	if ln >= 6 {
@@ -115,8 +113,8 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 			y += img.PageHeight() - overlay.PageHeight()
 		}
 	}
-	if hasRepeat {
-		if err = overlay.Replicate(across, down); err != nil {
+	if across*down > 1 {
+		if err = overlay.Embed(0, 0, across*w, down*h, vips.ExtendRepeat); err != nil {
 			return
 		}
 	}
@@ -126,7 +124,11 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		return
 	}
 	if n := GetPageN(ctx); n > overlayN {
-		if err = overlay.Replicate(1, n/overlayN+1); err != nil {
+		cnt := n / overlayN
+		if n%overlayN > 0 {
+			cnt += 1
+		}
+		if err = overlay.Replicate(1, cnt); err != nil {
 			return
 		}
 	}
