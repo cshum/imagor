@@ -365,24 +365,26 @@ Usage of imagor:
   -s3-result-storage-acl string
         Upload ACL for S3 Result Storage (default "public-read")
 
-  -vips-concurrency int
-        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
   -vips-max-animation-frames int
         VIPS maximum of animated image frames to be processed. Set 1 to disable animation, -1 for unlimited. (default -1)
+  -vips-mozjpeg
+        VIPS enable maximum compression with MozJPEG for JPEG export
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string
         VIPS disable filters by csv e.g. blur,watermark,rgb
-  -vips-max-cache-files int
-        VIPS max cache files
-  -vips-max-cache-mem int
-        VIPS max cache mem
-  -vips-max-cache-size int
-        VIPS max cache size
   -vips-max-filter-ops int
         VIPS maximum number of filter operations allowed (default 10)
   -vips-max-height int
         VIPS max image height
   -vips-max-width int
         VIPS max image width
+  -vips-concurrency int
+        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
+  -vips-max-cache-files int
+        VIPS max cache files
+  -vips-max-cache-mem int
+        VIPS max cache mem
+  -vips-max-cache-size int
+        VIPS max cache size
 ```
