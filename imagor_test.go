@@ -274,6 +274,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return ctx.Err()
 			}),
 		),
+		WithProcessConcurrency(1000),
 		WithResultLoaders(resultStore),
 		WithResultSavers(resultStore),
 		WithProcessors(

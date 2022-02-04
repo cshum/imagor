@@ -87,6 +87,14 @@ func WithProcessTimeout(timeout time.Duration) Option {
 	}
 }
 
+func WithProcessConcurrency(concurrency int64) Option {
+	return func(o *Imagor) {
+		if concurrency > 0 {
+			o.ProcessConcurrency = concurrency
+		}
+	}
+}
+
 func WithUnsafe(unsafe bool) Option {
 	return func(o *Imagor) {
 		o.Unsafe = unsafe

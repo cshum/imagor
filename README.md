@@ -260,14 +260,16 @@ Usage of imagor:
         Unsafe Imagor that does not require URL signature. Prone to URL tampering
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
-  -imagor-load-timeout duration
-        Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
-  -imagor-process-timeout duration
-        Timeout for image processing (default 20s)
   -imagor-request-timeout duration
         Timeout for performing Imagor request (default 30s)
+  -imagor-load-timeout duration
+        Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
   -imagor-save-timeout duration
         Timeout for saving image to Imagor Storage (default 20s)
+  -imagor-process-timeout duration
+        Timeout for image processing (default 20s)
+  -imagor-process-concurrency int
+        Imagor semaphore size for process concurrency control. Set -1 for no limit (default -1)
 
   -server-address string
         Server address

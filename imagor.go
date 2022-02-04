@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
+	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
 	"net/http"
 	"reflect"
@@ -46,22 +47,24 @@ type Processor interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	Unsafe         bool
-	Secret         string
-	Loaders        []Loader
-	Savers         []Saver
-	ResultLoaders  []Loader
-	ResultSavers   []Saver
-	Processors     []Processor
-	RequestTimeout time.Duration
-	LoadTimeout    time.Duration
-	SaveTimeout    time.Duration
-	ProcessTimeout time.Duration
-	CacheHeaderTTL time.Duration
-	Logger         *zap.Logger
-	Debug          bool
+	Unsafe             bool
+	Secret             string
+	Loaders            []Loader
+	Savers             []Saver
+	ResultLoaders      []Loader
+	ResultSavers       []Saver
+	Processors         []Processor
+	RequestTimeout     time.Duration
+	LoadTimeout        time.Duration
+	SaveTimeout        time.Duration
+	ProcessTimeout     time.Duration
+	CacheHeaderTTL     time.Duration
+	ProcessConcurrency int64
+	Logger             *zap.Logger
+	Debug              bool
 
 	g singleflight.Group
+	w *semaphore.Weighted
 }
 
 // New create new Imagor
@@ -76,6 +79,9 @@ func New(options ...Option) *Imagor {
 	}
 	for _, option := range options {
 		option(app)
+	}
+	if app.ProcessConcurrency > 0 {
+		app.w = semaphore.NewWeighted(app.ProcessConcurrency)
 	}
 	if app.Debug {
 		app.debugLog()
@@ -198,6 +204,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
 			defer cancel()
 		}
+		if err = app.acquire(ctx); err != nil {
+			app.Logger.Debug("acquire", zap.Error(err))
+			return blob, err
+		}
+		defer app.release()
 		for _, processor := range app.Processors {
 			f, e := processor.Process(ctx, blob, p, load)
 			if e == nil {
@@ -364,6 +375,21 @@ func (app *Imagor) suppress(
 	}
 }
 
+func (app *Imagor) acquire(ctx context.Context) error {
+	if app.w == nil {
+		return nil
+	}
+	return app.w.Acquire(ctx, 1)
+}
+
+func (app *Imagor) release() {
+	if app.w == nil {
+		return
+	}
+	app.w.Release(1)
+	return
+}
+
 func (app *Imagor) debugLog() {
 	if !app.Debug {
 		return
@@ -389,7 +415,9 @@ func (app *Imagor) debugLog() {
 		zap.Bool("unsafe", app.Unsafe),
 		zap.Duration("request_timeout", app.RequestTimeout),
 		zap.Duration("load_timeout", app.LoadTimeout),
+		zap.Duration("process_timeout", app.ProcessTimeout),
 		zap.Duration("save_timeout", app.SaveTimeout),
+		zap.Int64("process_concurrency", app.ProcessConcurrency),
 		zap.Duration("cache_header_ttl", app.CacheHeaderTTL),
 		zap.Strings("loaders", loaders),
 		zap.Strings("savers", savers),

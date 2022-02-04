@@ -51,6 +51,8 @@ func main() {
 			time.Second*20, "Timeout for saving image to Imagor Storage")
 		imagorProcessTimeout = fs.Duration("imagor-process-timeout",
 			time.Second*20, "Timeout for image processing")
+		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
+			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
 			time.Hour*24, "Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache")
 
@@ -326,6 +328,7 @@ func main() {
 			imagor.WithLoadTimeout(*imagorLoadTimeout),
 			imagor.WithSaveTimeout(*imagorSaveTimeout),
 			imagor.WithProcessTimeout(*imagorProcessTimeout),
+			imagor.WithProcessConcurrency(*imagorProcessConcurrency),
 			imagor.WithCacheHeaderTTL(*imagorCacheHeaderTTL),
 			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),
