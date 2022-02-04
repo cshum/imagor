@@ -385,6 +385,7 @@ func (app *Imagor) debugLog() {
 		resultSavers = append(resultSavers, getType(v))
 	}
 	app.Logger.Debug("imagor",
+		zap.String("version", Version),
 		zap.Bool("unsafe", app.Unsafe),
 		zap.Duration("request_timeout", app.RequestTimeout),
 		zap.Duration("load_timeout", app.LoadTimeout),
