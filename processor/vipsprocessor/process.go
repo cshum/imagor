@@ -21,18 +21,7 @@ func (v *VipsProcessor) process(
 		}
 	}
 	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
-		cropRight := p.CropRight
-		cropBottom := p.CropBottom
-		if w := img.Width(); cropRight > w {
-			cropRight = w
-		}
-		if h := img.PageHeight(); cropBottom > h {
-			cropBottom = h
-		}
-		if err := img.ExtractArea(
-			p.CropLeft, p.CropTop,
-			cropRight-p.CropLeft, cropBottom-p.CropTop,
-		); err != nil {
+		if err := crop(img, p.CropLeft, p.CropTop, p.CropRight, p.CropBottom); err != nil {
 			return err
 		}
 	}
@@ -161,6 +150,29 @@ func trim(ctx context.Context, img *vips.ImageRef, pos string, tolerance int) er
 		return err
 	}
 	return nil
+}
+
+func crop(img *vips.ImageRef, left, top, right, bottom int) (err error) {
+	var (
+		width  = img.Width()
+		height = img.PageHeight()
+	)
+	if left < 0 {
+		left = 0
+	}
+	if top < 0 {
+		top = 0
+	}
+	if right-left <= 0 || bottom-top <= 0 {
+		return // no-ops
+	}
+	if right > width {
+		right = width
+	}
+	if bottom > height {
+		bottom = height
+	}
+	return img.ExtractArea(left, top, right-left, bottom-top)
 }
 
 func isBlack(c *vips.Color) bool {

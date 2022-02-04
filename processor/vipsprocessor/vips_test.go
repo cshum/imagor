@@ -91,6 +91,7 @@ var tests = []struct {
 	{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 	{"original animated", "dancing-banana.gif"},
 	{"crop animated", "30x20:100x150/dancing-banana.gif"},
+	{"crop filter animated", "filters:crop(30,20,100,1500)/dancing-banana.gif"},
 	{"resize center animated", "100x100/dancing-banana.gif"},
 	{"resize top animated", "200x100/top/dancing-banana.gif"},
 	{"resize top animated", "200x100/right/top/dancing-banana.gif"},

@@ -104,6 +104,8 @@ Imagor supports the following filters:
   - `amount` -100 to 100, the amount in % to increase or decrease the image brightness
 - `contrast(amount)` increases or decreases the image contrast
   - `amount` -100 to 100, the amount in % to increase or decrease the image contrast
+- `crop(left, top, right, bottom)` apply crop operation as part of the filter pipeline
+  - `left`, `top`, `right`, `bottom` - the bounding box in pixels for cropping
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image.
@@ -112,7 +114,7 @@ Imagor supports the following filters:
   - `format` accepts jpeg, png, gif, webp, pdf, jp2, tiff
 - `frames(n[, delay])` set the number of frames to repeat for animation with gif or webp. Otherwise, stack all the frames vertically
   - `n` number of frames to repeat
-  - `delay` frames delay in millisecond, default 100
+  - `delay` frames delay in milliseconds, default 100
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
