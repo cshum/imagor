@@ -78,6 +78,7 @@ func (b *Blob) SupportsAnimation() bool {
 }
 
 func (b *Blob) IsPNG() bool {
+	b.readAllOnce()
 	return b.isPNG
 }
 
