@@ -339,6 +339,28 @@ func rotate(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...st
 	return
 }
 
+func proportion(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) == 0 {
+		return
+	}
+	scale, _ := strconv.ParseFloat(args[0], 64)
+	if scale <= 0 {
+		return // no ops
+	}
+	if scale > 1 {
+		scale /= 100
+	}
+	if scale > 100 {
+		scale = 100
+	}
+	width := int(float64(img.Width()) * scale)
+	height := int(float64(img.PageHeight()) * scale)
+	if width <= 0 || height <= 0 {
+		return // op ops
+	}
+	return img.Thumbnail(width, height, vips.InterestingNone)
+}
+
 func grayscale(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.Modulate(1, 0, 0)
 }

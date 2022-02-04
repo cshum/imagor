@@ -60,6 +60,7 @@ func New(options ...Option) *VipsProcessor {
 		"frames":           frames,
 		"padding":          v.padding,
 		"crop":             cropFilter,
+		"proportion":       proportion,
 	}
 	for _, option := range options {
 		option(v)

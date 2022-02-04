@@ -127,6 +127,7 @@ Imagor supports the following filters:
   - `color` the color name or hexadecimal rgb expression without the “#” character
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
+- `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `sharpen(sigma)` sharpens the image
 - `trim([tolerance [, position]])` apply trim operation as part of the filter pipeline
   - `tolerance` the euclidean distance between the colors to get trimmed within the tolerance, default 1
