@@ -63,8 +63,8 @@ type Imagor struct {
 	Logger             *zap.Logger
 	Debug              bool
 
-	g singleflight.Group
-	w *semaphore.Weighted
+	g    singleflight.Group
+	sema *semaphore.Weighted
 }
 
 // New create new Imagor
@@ -81,7 +81,7 @@ func New(options ...Option) *Imagor {
 		option(app)
 	}
 	if app.ProcessConcurrency > 0 {
-		app.w = semaphore.NewWeighted(app.ProcessConcurrency)
+		app.sema = semaphore.NewWeighted(app.ProcessConcurrency)
 	}
 	if app.Debug {
 		app.debugLog()
@@ -204,11 +204,13 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
 			defer cancel()
 		}
-		if err = app.acquire(ctx); err != nil {
-			app.Logger.Debug("acquire", zap.Error(err))
-			return blob, err
+		if app.sema != nil {
+			if err = app.sema.Acquire(ctx, 1); err != nil {
+				app.Logger.Debug("acquire", zap.Error(err))
+				return blob, err
+			}
+			defer app.sema.Release(1)
 		}
-		defer app.release()
 		for _, processor := range app.Processors {
 			f, e := processor.Process(ctx, blob, p, load)
 			if e == nil {
@@ -336,7 +338,7 @@ func (app *Imagor) save(
 	return
 }
 
-type acquireKey struct {
+type suppressKey struct {
 	Key string
 }
 
@@ -347,13 +349,13 @@ func (app *Imagor) suppress(
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
-	if isAcquired, ok := ctx.Value(acquireKey{key}).(bool); ok && isAcquired {
+	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
 		return fn(ctx)
 	}
 	isCanceled := false
 	ch := app.g.DoChan(key, func() (interface{}, error) {
-		v, err := fn(context.WithValue(ctx, acquireKey{key}, true))
+		v, err := fn(context.WithValue(ctx, suppressKey{key}, true))
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
 			isCanceled = true
@@ -373,21 +375,6 @@ func (app *Imagor) suppress(
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
-}
-
-func (app *Imagor) acquire(ctx context.Context) error {
-	if app.w == nil {
-		return nil
-	}
-	return app.w.Acquire(ctx, 1)
-}
-
-func (app *Imagor) release() {
-	if app.w == nil {
-		return
-	}
-	app.w.Release(1)
-	return
 }
 
 func (app *Imagor) debugLog() {
