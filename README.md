@@ -117,6 +117,7 @@ Imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
+- `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
 - `rgb(r,g,b)` amount of color in each of the rgb channels in %. Can range from -100 to 100
@@ -127,7 +128,6 @@ Imagor supports the following filters:
   - `color` the color name or hexadecimal rgb expression without the “#” character
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
-- `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `sharpen(sigma)` sharpens the image
 - `trim([tolerance [, position]])` apply trim operation as part of the filter pipeline
   - `tolerance` the euclidean distance between the colors to get trimmed within the tolerance, default 1
