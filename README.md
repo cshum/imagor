@@ -330,6 +330,9 @@ Usage of imagor:
         Optional S3 Endpoint to override default
   -s3-safe-chars string
         S3 safe characters to be excluded from image key escape
+  -s3-force-path-style
+        S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key
+
 
   -s3-loader-bucket string
         S3 Bucket for S3 Loader. Enable S3 Loader only if this value present
