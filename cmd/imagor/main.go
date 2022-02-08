@@ -119,6 +119,8 @@ func main() {
 			"AWS Secret Access Key. Required if using S3 Loader or Storage")
 		s3Endpoint = fs.String("s3-endpoint", "",
 			"Optional S3 Endpoint to override default")
+		s3ForcePathStyle = fs.Bool("s3-force-path-style", false,
+			"S3 force the request to use path-style addressing http://s3.amazonaws.com/bucket/key")
 		s3SafeChars = fs.String("s3-safe-chars", "",
 			"S3 safe characters to be excluded from image key escape")
 
@@ -237,13 +239,17 @@ func main() {
 	}
 
 	if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
-		// activate AWS Session only if credentials present
-		sess, err := session.NewSession(&aws.Config{
+		config := &aws.Config{
 			Endpoint: s3Endpoint,
 			Region:   awsRegion,
 			Credentials: credentials.NewStaticCredentials(
 				*awsAccessKeyId, *awsSecretAccessKey, ""),
-		})
+		}
+		if *s3ForcePathStyle {
+			config.WithS3ForcePathStyle(true)
+		}
+		// activate AWS Session only if credentials present
+		sess, err := session.NewSession(config)
 		if err != nil {
 			panic(err)
 		}
