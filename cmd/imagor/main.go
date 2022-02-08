@@ -120,7 +120,7 @@ func main() {
 		s3Endpoint = fs.String("s3-endpoint", "",
 			"Optional S3 Endpoint to override default")
 		s3ForcePathStyle = fs.Bool("s3-force-path-style", false,
-			"S3 force the request to use path-style addressing http://s3.amazonaws.com/bucket/key")
+			"S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key")
 		s3SafeChars = fs.String("s3-safe-chars", "",
 			"S3 safe characters to be excluded from image key escape")
 
