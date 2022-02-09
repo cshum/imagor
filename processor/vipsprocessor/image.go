@@ -19,16 +19,32 @@ func (v *VipsProcessor) newThumbnail(
 	var img *vips.ImageRef
 	if isAnimated(blob, n) {
 		params = vips.NewImportParams()
-		params.NumPages.Set(n)
+		if n < -1 {
+			params.NumPages.Set(-n)
+		} else {
+			params.NumPages.Set(-1)
+		}
 		if crop == vips.InterestingNone || size == vips.SizeForce {
-			img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
+			if img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params); err != nil {
+				return nil, wrapErr(err)
+			}
+			if n > 1 && img.Pages() > n {
+				// reload image to restrict frames loaded
+				img.Close()
+				return v.newThumbnail(blob, width, height, crop, size, -n)
+			}
 		} else {
 			if img, err = vips.LoadImageFromBuffer(buf, params); err != nil {
 				return nil, wrapErr(err)
 			}
+			if n > 1 && img.Pages() > n {
+				// reload image to restrict frames loaded
+				img.Close()
+				return v.newThumbnail(blob, width, height, crop, size, -n)
+			}
 			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
 				img.Close()
-				return img, wrapErr(err)
+				return nil, wrapErr(err)
 			}
 		}
 	} else if blob.IsPNG() {
@@ -65,10 +81,29 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 	var params *vips.ImportParams
 	if isAnimated(blob, n) {
 		params = vips.NewImportParams()
-		params.NumPages.Set(n)
+		if n < -1 {
+			params.NumPages.Set(-n)
+		} else {
+			params.NumPages.Set(-1)
+		}
+		img, err := vips.LoadImageFromBuffer(buf, params)
+		if err != nil {
+			return nil, wrapErr(err)
+		}
+		// reload image to restrict frames loaded
+		if n > 1 && img.Pages() > n {
+			img.Close()
+			return v.newImage(blob, -n)
+		} else {
+			return img, nil
+		}
+	} else {
+		img, err := vips.LoadImageFromBuffer(buf, params)
+		if err != nil {
+			return nil, wrapErr(err)
+		}
+		return img, nil
 	}
-	img, err := vips.LoadImageFromBuffer(buf, params)
-	return img, wrapErr(err)
 }
 
 func (v *VipsProcessor) thumbnail(
