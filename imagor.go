@@ -186,13 +186,20 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
 	load := func(image string) (*Blob, error) {
-		return app.loadStore(r, image)
+		return app.loadStorage(r, image)
 	}
 	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
 		if blob, err = app.loadResult(r, resultKey); err == nil && !IsBlobEmpty(blob) {
 			return blob, err
 		}
-		if blob, err = app.loadStore(r, p.Image); err != nil {
+		if app.sema != nil {
+			if err = app.sema.Acquire(ctx, 1); err != nil {
+				app.Logger.Debug("acquire", zap.Error(err))
+				return blob, err
+			}
+			defer app.sema.Release(1)
+		}
+		if blob, err = app.loadStorage(r, p.Image); err != nil {
 			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 			return blob, err
 		}
@@ -203,13 +210,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if app.ProcessTimeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
 			defer cancel()
-		}
-		if app.sema != nil {
-			if err = app.sema.Acquire(ctx, 1); err != nil {
-				app.Logger.Debug("acquire", zap.Error(err))
-				return blob, err
-			}
-			defer app.sema.Release(1)
 		}
 		for _, processor := range app.Processors {
 			f, e := processor.Process(ctx, blob, p, load)
@@ -245,7 +245,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	})
 }
 
-func (app *Imagor) loadStore(r *http.Request, key string) (*Blob, error) {
+func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
 	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
 		var origin Saver
 		r = r.WithContext(ctx)
