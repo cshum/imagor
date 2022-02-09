@@ -145,6 +145,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"stretch animated", "stretch/100x200/dancing-banana.gif"},
 		{"resize padding animated", "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif"},
 		{"watermark animated", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,repeat,bottom,0,30,30)/dancing-banana.gif"},
+		{"trim animated no-op", "trim/100x100/dancing-banana.gif"},
 		{"watermark animated align bottom right", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,-20,-10,0,30,30)/dancing-banana.gif"},
 		{"watermark double animated", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif"},
 		{"watermark double animated 2", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,30,-10,0,40,40):watermark(dancing-banana.gif,0,10,0,40,40)/nyan-cat.gif"},
@@ -167,6 +168,7 @@ func TestVipsProcessor_MaxFrames(t *testing.T) {
 		{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 		{"original animated", "dancing-banana.gif"},
 		{"crop animated", "30x20:100x150/dancing-banana.gif"},
+		{"trim animated no-op", "trim/100x100/dancing-banana.gif"},
 		{"resize top animated", "200x100/top/dancing-banana.gif"},
 		{"watermark repeated animated", "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
 	}
@@ -180,6 +182,7 @@ func TestVipsProcessor_MaxFramesLimited(t *testing.T) {
 		{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 		{"original animated", "dancing-banana.gif"},
 		{"crop animated", "30x20:100x150/dancing-banana.gif"},
+		{"trim animated no-op", "trim/100x100/dancing-banana.gif"},
 		{"resize top animated", "200x100/top/dancing-banana.gif"},
 		{"watermark repeated animated", "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
 	}
