@@ -122,19 +122,19 @@ func (v *VipsProcessor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
 	var (
-		special   = false
-		upscale   = true
-		stretch   = p.Stretch
-		thumbnail = false
-		img       *vips.ImageRef
-		format    = vips.ImageTypeUnknown
-		maxN      = v.MaxAnimationFrames
-		err       error
+		hasFindPoint = false
+		upscale      = true
+		stretch      = p.Stretch
+		thumbnail    = false
+		img          *vips.ImageRef
+		format       = vips.ImageTypeUnknown
+		maxN         = v.MaxAnimationFrames
+		err          error
 	)
 	ctx = WithInitImageRefs(ctx)
 	defer CloseImageRefs(ctx)
 	if p.Trim {
-		special = true
+		hasFindPoint = true
 	}
 	if p.FitIn {
 		upscale = false
@@ -164,15 +164,15 @@ func (v *VipsProcessor) Process(
 			break
 		case "fill", "background_color":
 			if args := strings.Split(p.Args, ","); args[0] == "auto" {
-				special = true
+				hasFindPoint = true
 			}
 			break
 		case "trim":
-			special = true
+			hasFindPoint = true
 			break
 		}
 	}
-	if !special && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
+	if !hasFindPoint && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
@@ -252,9 +252,9 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if !thumbnail {
-		if special {
-			// special ops does not support create by thumbnail
-			if img, err = v.newImage(blob, maxN); err != nil {
+		if hasFindPoint {
+			// create by thumbnail does not support find point
+			if img, err = v.newImage(blob); err != nil {
 				return nil, err
 			}
 		} else {

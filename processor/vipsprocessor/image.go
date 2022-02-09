@@ -70,7 +70,7 @@ func newThumbnailFix(
 	return
 }
 
-func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, error) {
+func (v *VipsProcessor) newImage(blob *imagor.Blob) (*vips.ImageRef, error) {
 	if imagor.IsBlobEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
@@ -78,32 +78,11 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 	if err != nil {
 		return nil, err
 	}
-	var params *vips.ImportParams
-	if isAnimated(blob, n) {
-		params = vips.NewImportParams()
-		if n < -1 {
-			params.NumPages.Set(-n)
-		} else {
-			params.NumPages.Set(-1)
-		}
-		img, err := vips.LoadImageFromBuffer(buf, params)
-		if err != nil {
-			return nil, wrapErr(err)
-		}
-		// reload image to restrict frames loaded
-		if n > 1 && img.Pages() > n {
-			img.Close()
-			return v.newImage(blob, -n)
-		} else {
-			return img, nil
-		}
-	} else {
-		img, err := vips.LoadImageFromBuffer(buf, params)
-		if err != nil {
-			return nil, wrapErr(err)
-		}
-		return img, nil
+	img, err := vips.NewImageFromBuffer(buf)
+	if err != nil {
+		return nil, wrapErr(err)
 	}
+	return img, nil
 }
 
 func (v *VipsProcessor) thumbnail(

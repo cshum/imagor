@@ -51,85 +51,19 @@ func getEnvironment() string {
 	return "linux"
 }
 
-var tests = []struct {
+type test struct {
 	name string
 	path string
-}{
-	{"original", "gopher-front.png"},
-	{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
-	{"resize smart", "100x100/smart/filters:autojpg()/gopher.png"},
-	{"resize top", "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
-	{"resize top", "200x100/right/top/gopher.png"},
-	{"resize bottom", "200x100/bottom/gopher.png"},
-	{"resize bottom", "200x100/left/bottom/gopher.png"},
-	{"resize left", "100x200/left/gopher.png"},
-	{"resize left", "100x200/left/bottom/gopher.png"},
-	{"resize right", "100x200/right/gopher.png"},
-	{"resize right", "100x200/right/top/gopher.png"},
-	{"proportion", "filters:proportion(10)/gopher.png"},
-	{"proportion float", "filters:proportion(0.1)/gopher.png"},
-	{"fit-in unspecified height", "fit-in/500x0/filters:fill(white):format(jpg)/gopher-front.png"},
-	{"resize unspecified height", "500x0/filters:fill(white):format(jpg)/gopher-front.png"},
-	{"fit-in unspecified width", "fit-in/0x500/filters:fill(white):format(jpg)/gopher-front.png"},
-	{"resize unspecified width", "0x500/filters:fill(white):format(jpg)/gopher-front.png"},
-	{"stretch", "stretch/100x100/filters:modulate(-10,30,20)/gopher.png"},
-	{"fit-in flip hue", "fit-in/-200x0/filters:hue(290):saturation(100):fill(FFO):upscale()/gopher.png"},
-	{"fit-in padding", "fit-in/100x100/10x5/filters:fill(white)/gopher.png"},
-	{"resize padding", "100x100/10x5/top/filters:fill(white)/gopher.png"},
-	{"stretch padding", "stretch/100x100/10x5/filters:fill(white)/gopher.png"},
-	{"padding", "0x0/40x50/filters:fill(white)/gopher-front.png"},
-	{"fill auto", "fit-in/400x400/filters:fill(auto)/find_trim.png"},
-	{"fill auto bottom-right", "fit-in/400x400/filters:fill(auto,bottom-right)/find_trim.png"},
-	{"resize top flip blur", "200x-210/top/filters:blur(5):sharpen(5):background_color(ffff00):format(jpeg):quality(70)/gopher.png"},
-	{"crop stretch top flip", "10x20:3000x5000/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
-	{"padding rotation fill blur grayscale", "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
-	{"fill round_corner", "fit-in/0x210/filters:fill(yellow):round_corner(40,60,green)/gopher.png"},
-	{"trim right", "trim:bottom-right/500x500/filters:strip_exif():upscale():no_upscale()/find_trim.png"},
-	{"trim upscale", "trim/fit-in/1000x1000/filters:upscale():strip_icc()/find_trim.png"},
-	{"trim tolerance", "trim:50/500x500/filters:stretch()/find_trim.png"},
-	{"trim filter", "/fit-in/100x100/filters:fill(auto):trim(50)/find_trim.png"},
-	{"watermark", "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
-
-	{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
-	{"original animated", "dancing-banana.gif"},
-	{"crop animated", "30x20:100x150/dancing-banana.gif"},
-	{"crop filter animated", "filters:crop(30,20,100,1500)/dancing-banana.gif"},
-	{"resize center animated", "100x100/dancing-banana.gif"},
-	{"resize top animated", "200x100/top/dancing-banana.gif"},
-	{"resize top animated", "200x100/right/top/dancing-banana.gif"},
-	{"resize bottom animated", "200x100/bottom/dancing-banana.gif"},
-	{"resize bottom animated", "200x100/left/bottom/dancing-banana.gif"},
-	{"resize left animated", "100x200/left/dancing-banana.gif"},
-	{"resize left animated", "100x200/left/bottom/dancing-banana.gif"},
-	{"resize right animated", "100x200/right/dancing-banana.gif"},
-	{"resize right animated", "100x200/right/top/dancing-banana.gif"},
-	{"stretch animated", "stretch/100x200/dancing-banana.gif"},
-	{"resize padding animated", "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif"},
-	{"watermark animated", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,repeat,bottom,0,30,30)/dancing-banana.gif"},
-	{"watermark animated align bottom right", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,-20,-10,0,30,30)/dancing-banana.gif"},
-	{"watermark double animated", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif"},
-	{"watermark double animated 2", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,30,-10,0,40,40):watermark(dancing-banana.gif,0,10,0,40,40)/nyan-cat.gif"},
-	{"padding with watermark double animated", "200x0/20x20:100x20/filters:fill(yellow):watermark(dancing-banana.gif,-10,-10,0,50,50):watermark(dancing-banana.gif,-30,10,0,50,50)/nyan-cat.gif"},
-
-	{"watermark frames animated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
-	{"watermark frames animated repeated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif,repeat,repeat,0,33,33):format(gif)/gopher.png"},
-	{"watermark frames static", "fit-in/200x200/filters:fill(white):frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
-	{"watermark repeated animated", "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
-
-	{"padding", "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
 }
 
-func TestVipsProcessor(t *testing.T) {
-	resultDir := filepath.Join(testDataDir, "result", getEnvironment())
+func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 	app := imagor.New(
 		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
 		imagor.WithRequestTimeout(time.Second*3),
-		imagor.WithProcessors(New(
-			WithDebug(true),
-		)),
+		imagor.WithProcessors(New(opts...)),
 		imagor.WithResultSavers(filestorage.New(
 			resultDir,
 			filestorage.WithSaveErrIfExists(true),
@@ -137,9 +71,6 @@ func TestVipsProcessor(t *testing.T) {
 	)
 	require.NoError(t, app.Startup(context.Background()))
 	t.Parallel()
-	t.Cleanup(func() {
-		require.NoError(t, app.Shutdown(context.Background()))
-	})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -158,4 +89,99 @@ func TestVipsProcessor(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVipsProcessor(t *testing.T) {
+	var resultDir = filepath.Join(testDataDir, "result", getEnvironment())
+	var tests = []test{
+		{"original", "gopher-front.png"},
+		{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
+		{"resize smart", "100x100/smart/filters:autojpg()/gopher.png"},
+		{"resize top", "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
+		{"resize top", "200x100/right/top/gopher.png"},
+		{"resize bottom", "200x100/bottom/gopher.png"},
+		{"resize bottom", "200x100/left/bottom/gopher.png"},
+		{"resize left", "100x200/left/gopher.png"},
+		{"resize left", "100x200/left/bottom/gopher.png"},
+		{"resize right", "100x200/right/gopher.png"},
+		{"resize right", "100x200/right/top/gopher.png"},
+		{"proportion", "filters:proportion(10)/gopher.png"},
+		{"proportion float", "filters:proportion(0.1)/gopher.png"},
+		{"fit-in unspecified height", "fit-in/500x0/filters:fill(white):format(jpg)/gopher-front.png"},
+		{"resize unspecified height", "500x0/filters:fill(white):format(jpg)/gopher-front.png"},
+		{"fit-in unspecified width", "fit-in/0x500/filters:fill(white):format(jpg)/gopher-front.png"},
+		{"resize unspecified width", "0x500/filters:fill(white):format(jpg)/gopher-front.png"},
+		{"stretch", "stretch/100x100/filters:modulate(-10,30,20)/gopher.png"},
+		{"fit-in flip hue", "fit-in/-200x0/filters:hue(290):saturation(100):fill(FFO):upscale()/gopher.png"},
+		{"fit-in padding", "fit-in/100x100/10x5/filters:fill(white)/gopher.png"},
+		{"resize padding", "100x100/10x5/top/filters:fill(white)/gopher.png"},
+		{"stretch padding", "stretch/100x100/10x5/filters:fill(white)/gopher.png"},
+		{"padding", "0x0/40x50/filters:fill(white)/gopher-front.png"},
+		{"fill auto", "fit-in/400x400/filters:fill(auto)/find_trim.png"},
+		{"fill auto bottom-right", "fit-in/400x400/filters:fill(auto,bottom-right)/find_trim.png"},
+		{"resize top flip blur", "200x-210/top/filters:blur(5):sharpen(5):background_color(ffff00):format(jpeg):quality(70)/gopher.png"},
+		{"crop stretch top flip", "10x20:3000x5000/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
+		{"padding rotation fill blur grayscale", "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
+		{"fill round_corner", "fit-in/0x210/filters:fill(yellow):round_corner(40,60,green)/gopher.png"},
+		{"trim right", "trim:bottom-right/500x500/filters:strip_exif():upscale():no_upscale()/find_trim.png"},
+		{"trim upscale", "trim/fit-in/1000x1000/filters:upscale():strip_icc()/find_trim.png"},
+		{"trim tolerance", "trim:50/500x500/filters:stretch()/find_trim.png"},
+		{"trim filter", "/fit-in/100x100/filters:fill(auto):trim(50)/find_trim.png"},
+		{"watermark", "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
+
+		{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
+		{"original animated", "dancing-banana.gif"},
+		{"crop animated", "30x20:100x150/dancing-banana.gif"},
+		{"crop filter animated", "filters:crop(30,20,100,1500)/dancing-banana.gif"},
+		{"resize center animated", "100x100/dancing-banana.gif"},
+		{"resize top animated", "200x100/top/dancing-banana.gif"},
+		{"resize top animated", "200x100/right/top/dancing-banana.gif"},
+		{"resize bottom animated", "200x100/bottom/dancing-banana.gif"},
+		{"resize bottom animated", "200x100/left/bottom/dancing-banana.gif"},
+		{"resize left animated", "100x200/left/dancing-banana.gif"},
+		{"resize left animated", "100x200/left/bottom/dancing-banana.gif"},
+		{"resize right animated", "100x200/right/dancing-banana.gif"},
+		{"resize right animated", "100x200/right/top/dancing-banana.gif"},
+		{"stretch animated", "stretch/100x200/dancing-banana.gif"},
+		{"resize padding animated", "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif"},
+		{"watermark animated", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,repeat,bottom,0,30,30)/dancing-banana.gif"},
+		{"watermark animated align bottom right", "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,-20,-10,0,30,30)/dancing-banana.gif"},
+		{"watermark double animated", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif"},
+		{"watermark double animated 2", "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,30,-10,0,40,40):watermark(dancing-banana.gif,0,10,0,40,40)/nyan-cat.gif"},
+		{"padding with watermark double animated", "200x0/20x20:100x20/filters:fill(yellow):watermark(dancing-banana.gif,-10,-10,0,50,50):watermark(dancing-banana.gif,-30,10,0,50,50)/nyan-cat.gif"},
+
+		{"watermark frames animated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
+		{"watermark frames animated repeated", "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif,repeat,repeat,0,33,33):format(gif)/gopher.png"},
+		{"watermark frames static", "fit-in/200x200/filters:fill(white):frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
+		{"watermark repeated animated", "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
+
+		{"padding", "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
+	}
+	doTests(t, resultDir, tests, WithDebug(true))
+}
+
+func TestVipsProcessor_MaxFrames(t *testing.T) {
+	var resultDir = filepath.Join(testDataDir, "result-max-frames", getEnvironment())
+	var tests = []test{
+		{"original", "gopher-front.png"},
+		{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
+		{"original animated", "dancing-banana.gif"},
+		{"crop animated", "30x20:100x150/dancing-banana.gif"},
+		{"resize top animated", "200x100/top/dancing-banana.gif"},
+		{"watermark repeated animated", "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
+	}
+	doTests(t, resultDir, tests, WithDebug(true), WithMaxAnimationFrames(100))
+}
+
+func TestVipsProcessor_MaxFramesLimited(t *testing.T) {
+	var resultDir = filepath.Join(testDataDir, "result-max-frames-limited", getEnvironment())
+	var tests = []test{
+		{"original", "gopher-front.png"},
+		{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
+		{"original animated", "dancing-banana.gif"},
+		{"crop animated", "30x20:100x150/dancing-banana.gif"},
+		{"resize top animated", "200x100/top/dancing-banana.gif"},
+		{"watermark repeated animated", "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
+	}
+	doTests(t, resultDir, tests, WithDebug(true), WithMaxAnimationFrames(3))
 }

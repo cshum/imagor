@@ -147,18 +147,19 @@ func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...
 	if newN < 1 {
 		return
 	}
-	height := img.PageHeight()
-	if err = img.SetPageHeight(img.Height()); err != nil {
-		return
+	if n := GetPageN(ctx); n != newN {
+		height := img.PageHeight()
+		if err = img.SetPageHeight(img.Height()); err != nil {
+			return
+		}
+		if err = img.Embed(0, 0, img.Width(), height*newN, vips.ExtendRepeat); err != nil {
+			return
+		}
+		if err = img.SetPageHeight(height); err != nil {
+			return
+		}
+		SetPageN(ctx, newN)
 	}
-	if err = img.Embed(0, 0, img.Width(), height*newN, vips.ExtendRepeat); err != nil {
-		return
-	}
-	if err = img.SetPageHeight(height); err != nil {
-		return
-	}
-	SetPageN(ctx, newN)
-
 	var delay int
 	if ln > 1 {
 		delay, _ = strconv.Atoi(args[1])
