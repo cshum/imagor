@@ -70,7 +70,7 @@ func main() {
 		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
 			"VIPS disable blur operations for vips processor")
 		vipsMaxAnimationFrames = fs.Int("vips-max-animation-frames", -1,
-			"VIPS maximum of animated image frames to be processed. Set 1 to disable animation, -1 for unlimited.")
+			"VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited.")
 		vipsDisableFilters = fs.String("vips-disable-filters", "",
 			"VIPS disable filters by csv e.g. blur,watermark,rgb")
 		vipsMaxFilterOps = fs.Int("vips-max-filter-ops", 10,

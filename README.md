@@ -370,7 +370,7 @@ Usage of imagor:
         Upload ACL for S3 Result Storage (default "public-read")
 
   -vips-max-animation-frames int
-        VIPS maximum of animated image frames to be processed. Set 1 to disable animation, -1 for unlimited. (default -1)
+        VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited.
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string
