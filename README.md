@@ -207,11 +207,11 @@ services:
       - "8000:8000"
 ```
 
-### URL Signature
+### Security
 
-In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setup `IMAGOR_SECRET` to avoid DDoS attacks that abuse multiple image operations.
+In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setting up URL signature using `IMAGOR_SECRET`, to avoid DDoS attacks that abuse multiple image operations.
 
-The hash is based on HMAC SHA1 digest, created by taking the URL path (excluding /unsafe/) with secret. The hash is then base64url-encoded.
+The hash is based on SHA digest, created by taking the URL path (excluding `/unsafe/`) with secret. The hash is then Base64 URL encoded.
 An example in Node.js:
 
 ```javascript
