@@ -105,6 +105,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 		return img, nil
 	}
 }
+
 func (v *VipsProcessor) thumbnail(
 	img *vips.ImageRef, width, height int, crop vips.Interesting, size vips.Size,
 ) error {
