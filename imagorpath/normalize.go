@@ -81,15 +81,12 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 
 // Normalize imagor path to be file path friendly,
 // optional shouldEscape func to define safe characters
-func Normalize(image string, shouldEscape ...func(c byte) bool) string {
+func Normalize(image string, shouldEscape func(c byte) bool) string {
 	image = path.Clean(image)
 	image = strings.Trim(image, "/")
-	if len(shouldEscape) == 0 {
+	if shouldEscape == nil {
 		return escape(image, defaultShouldEscape)
 	} else {
-		for _, fn := range shouldEscape {
-			image = escape(image, fn)
-		}
-		return image
+		return escape(image, shouldEscape)
 	}
 }

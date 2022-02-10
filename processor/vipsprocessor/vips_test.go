@@ -77,7 +77,7 @@ func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 			assert.Equal(t, 200, w.Code)
-			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path))
+			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
 			buf, err := ioutil.ReadFile(path)
 			require.NoError(t, err)
 			if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
