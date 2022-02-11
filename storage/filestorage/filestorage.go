@@ -44,15 +44,9 @@ func New(baseDir string, options ...Option) *FileStorage {
 	return s
 }
 
-func (s *FileStorage) shouldEscape(c byte) bool {
-	// alphanum
-	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
-		return false
-	}
-	switch c {
-	case '/': // should not escape path segment
-		return false
-	case '-', '_', '.', '~': // Unreserved characters
+func (s *FileStorage) escapeByte(c byte) bool {
+	if !imagorpath.DefaultEscapeByte(c) {
+		// based on default escape char
 		return false
 	}
 	if len(s.safeChars) > 0 && s.safeChars[c] {
@@ -64,7 +58,7 @@ func (s *FileStorage) shouldEscape(c byte) bool {
 }
 
 func (s *FileStorage) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image, s.shouldEscape)
+	image = "/" + imagorpath.Normalize(image, s.escapeByte)
 	for _, blacklist := range s.Blacklists {
 		if blacklist.MatchString(image) {
 			return "", false

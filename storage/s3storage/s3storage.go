@@ -56,7 +56,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	return s
 }
 
-func (s *S3Storage) shouldEscape(c byte) bool {
+func (s *S3Storage) escapeByte(c byte) bool {
 	// alphanum
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
 		return false
@@ -79,7 +79,7 @@ func (s *S3Storage) shouldEscape(c byte) bool {
 }
 
 func (s *S3Storage) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image, s.shouldEscape)
+	image = "/" + imagorpath.Normalize(image, s.escapeByte)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}

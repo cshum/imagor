@@ -7,7 +7,9 @@ import (
 
 const upperhex = "0123456789ABCDEF"
 
-func defaultShouldEscape(c byte) bool {
+type EscapeByte func(byte) bool
+
+func DefaultEscapeByte(c byte) bool {
 	// alphanum
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
 		return false
@@ -80,13 +82,13 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 }
 
 // Normalize imagor path to be file path friendly,
-// optional shouldEscape func to define safe characters
-func Normalize(image string, shouldEscape func(c byte) bool) string {
+// optional escapeByte func for custom safe characters
+func Normalize(image string, escapeByte EscapeByte) string {
 	image = path.Clean(image)
 	image = strings.Trim(image, "/")
-	if shouldEscape == nil {
-		return escape(image, defaultShouldEscape)
+	if escapeByte == nil {
+		return escape(image, DefaultEscapeByte)
 	} else {
-		return escape(image, shouldEscape)
+		return escape(image, escapeByte)
 	}
 }
