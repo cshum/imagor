@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 )
 
 func TestFileStore_Path(t *testing.T) {
@@ -119,7 +120,7 @@ func TestFileStore_Path(t *testing.T) {
 	}
 }
 
-func TestFileStore_Load_Store(t *testing.T) {
+func TestFileStorage_Load_Save(t *testing.T) {
 	ctx := context.Background()
 	dir, err := ioutil.TempDir("", "imagor-test")
 	require.NoError(t, err)
@@ -151,5 +152,17 @@ func TestFileStore_Load_Store(t *testing.T) {
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
+	})
+
+	t.Run("expiration", func(t *testing.T) {
+		s := New(dir, WithExpiration(time.Millisecond*10))
+		b, err := s.Load(&http.Request{}, "/foo/bar/asdf")
+		require.NoError(t, err)
+		buf, err := b.ReadAll()
+		require.NoError(t, err)
+		assert.Equal(t, "bar", string(buf))
+		time.Sleep(time.Millisecond * 10)
+		_, err = s.Load(&http.Request{}, "/foo/bar/asdf")
+		require.ErrorIs(t, err, imagor.ErrExpired)
 	})
 }

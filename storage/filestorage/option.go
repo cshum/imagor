@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Option func(h *FileStorage)
@@ -59,6 +60,14 @@ func WithSafeChars(chars string) Option {
 	return func(h *FileStorage) {
 		if chars != "" {
 			h.SafeChars = chars
+		}
+	}
+}
+
+func WithExpiration(exp time.Duration) Option {
+	return func(h *FileStorage) {
+		if exp > 0 {
+			h.Expiration = exp
 		}
 	}
 }

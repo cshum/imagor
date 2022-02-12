@@ -139,6 +139,8 @@ func main() {
 			"Base path prefix for S3 Storage")
 		s3StorageACL = fs.String("s3-storage-acl", "public-read",
 			"Upload ACL for S3 Storage")
+		s3StorageExpiration = fs.Duration("s3-storage-expiration", 0,
+			"S3 Storage expiration duration e.g. 24h. Default no expiration")
 
 		fileSafeChars = fs.String("file-safe-chars", "",
 			"File safe characters to be excluded from image key escape")
@@ -155,6 +157,8 @@ func main() {
 			"File Storage mkdir permission")
 		fileStorageWritePermission = fs.String("file-storage-write-permission", "0666",
 			"File Storage write permission")
+		fileStorageExpiration = fs.Duration("file-storage-expiration", 0,
+			"File Storage expiration duration e.g. 24h. Default no expiration")
 
 		s3ResultStorageBucket = fs.String("s3-result-storage-bucket", "",
 			"S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present")
@@ -164,6 +168,8 @@ func main() {
 			"Base path prefix for S3 Result Storage")
 		s3ResultStorageACL = fs.String("s3-result-storage-acl", "public-read",
 			"Upload ACL for S3 Result Storage")
+		s3ResultStorageExpiration = fs.Duration("s3-result-storage-expiration", 0,
+			"S3 Result Storage expiration duration e.g. 24h. Default no expiration")
 
 		fileResultStorageBaseDir = fs.String("file-result-storage-base-dir", "",
 			"Base directory for File Result Storage. Enable File Result Storage only if this value present")
@@ -173,6 +179,8 @@ func main() {
 			"File Result Storage mkdir permission")
 		fileResultStorageWritePermission = fs.String("file-result-storage-write-permission", "0666",
 			"File Storage write permission")
+		fileResultStorageExpiration = fs.Duration("file-result-storage-expiration", 0,
+			"File Result Storage expiration duration e.g. 24h. Default no expiration")
 	)
 
 	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
@@ -207,6 +215,7 @@ func main() {
 			filestorage.WithMkdirPermission(*fileStorageMkdirPermission),
 			filestorage.WithWritePermission(*fileStorageWritePermission),
 			filestorage.WithSafeChars(*fileSafeChars),
+			filestorage.WithExpiration(*fileStorageExpiration),
 		)
 		loaders = append(loaders, storage)
 		savers = append(savers, storage)
@@ -233,6 +242,7 @@ func main() {
 			filestorage.WithMkdirPermission(*fileResultStorageMkdirPermission),
 			filestorage.WithWritePermission(*fileResultStorageWritePermission),
 			filestorage.WithSafeChars(*fileSafeChars),
+			filestorage.WithExpiration(*fileResultStorageExpiration),
 		)
 		resultLoaders = append(resultLoaders, resultStorage)
 		resultSavers = append(resultSavers, resultStorage)
@@ -260,6 +270,7 @@ func main() {
 				s3storage.WithBaseDir(*s3StorageBaseDir),
 				s3storage.WithACL(*s3StorageACL),
 				s3storage.WithSafeChars(*s3SafeChars),
+				s3storage.WithExpiration(*s3StorageExpiration),
 			)
 			loaders = append(loaders, storage)
 			savers = append(savers, storage)
@@ -286,6 +297,7 @@ func main() {
 				s3storage.WithBaseDir(*s3ResultStorageBaseDir),
 				s3storage.WithACL(*s3ResultStorageACL),
 				s3storage.WithSafeChars(*s3SafeChars),
+				s3storage.WithExpiration(*s3ResultStorageExpiration),
 			)
 			resultLoaders = append(resultLoaders, resultStorage)
 			resultSavers = append(resultSavers, resultStorage)

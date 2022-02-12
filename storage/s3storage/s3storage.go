@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type S3Storage struct {
@@ -26,6 +27,7 @@ type S3Storage struct {
 	PathPrefix string
 	ACL        string
 	SafeChars  string
+	Expiration time.Duration
 
 	safeChars map[byte]bool
 }
@@ -100,6 +102,11 @@ func (s *S3Storage) Load(r *http.Request, image string) (*imagor.Blob, error) {
 		return nil, imagor.ErrNotFound
 	} else if err != nil {
 		return nil, err
+	}
+	if s.Expiration > 0 && out.LastModified != nil {
+		if time.Now().Sub(*out.LastModified) > s.Expiration {
+			return nil, imagor.ErrExpired
+		}
 	}
 	buf, err := io.ReadAll(out.Body)
 	if err != nil {

@@ -3,6 +3,7 @@ package s3storage
 import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"strings"
+	"time"
 )
 
 type Option func(h *S3Storage)
@@ -51,6 +52,14 @@ func WithSafeChars(chars string) Option {
 	return func(h *S3Storage) {
 		if chars != "" {
 			h.SafeChars = chars
+		}
+	}
+}
+
+func WithExpiration(exp time.Duration) Option {
+	return func(h *S3Storage) {
+		if exp > 0 {
+			h.Expiration = exp
 		}
 	}
 }
