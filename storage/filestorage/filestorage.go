@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var dotFileRegex = regexp.MustCompile("/\\.")
@@ -21,6 +22,7 @@ type FileStorage struct {
 	WritePermission os.FileMode
 	SaveErrIfExists bool
 	SafeChars       string
+	Expiration      time.Duration
 
 	safeChars map[byte]bool
 }
@@ -75,11 +77,15 @@ func (s *FileStorage) Load(_ *http.Request, image string) (*imagor.Blob, error) 
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	if _, err := os.Stat(image); err != nil {
+	stats, err := os.Stat(image)
+	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, imagor.ErrNotFound
 		}
 		return nil, err
+	}
+	if s.Expiration > 0 && time.Now().Sub(stats.ModTime()) > s.Expiration {
+		return nil, imagor.ErrExpired
 	}
 	return imagor.NewBlobFilePath(image), nil
 }

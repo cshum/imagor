@@ -321,6 +321,19 @@ Usage of imagor:
         File Storage mkdir permission (default "0755")
   -file-storage-write-permission string
         File Storage write permission (default "0666")
+  -file-storage-expiration duration
+        File Storage expiration duration e.g. 24h. Default no expiration
+
+  -file-result-storage-base-dir string
+        Base directory for File Result Storage. Enable File Result Storage only if this value present
+  -file-result-storage-mkdir-permission string
+        File Result Storage mkdir permission (default "0755")
+  -file-result-storage-path-prefix string
+        Base path prefix for File Result Storage
+  -file-result-storage-write-permission string
+        File Storage write permission (default "0666")
+  -file-result-storage-expiration duration
+        File Result Storage expiration duration e.g. 24h. Default no expiration
 
   -aws-access-key-id string
         AWS Access Key ID. Required if using S3 Loader or S3 Storage
@@ -350,15 +363,8 @@ Usage of imagor:
         Base path prefix for S3 Storage
   -s3-storage-acl string
         Upload ACL for S3 Storage (default "public-read")
-
-  -file-result-storage-base-dir string
-        Base directory for File Result Storage. Enable File Result Storage only if this value present
-  -file-result-storage-mkdir-permission string
-        File Result Storage mkdir permission (default "0755")
-  -file-result-storage-path-prefix string
-        Base path prefix for File Result Storage
-  -file-result-storage-write-permission string
-        File Storage write permission (default "0666")
+  -s3-storage-expiration duration
+        S3 Storage expiration duration e.g. 24h. Default no expiration
 
   -s3-result-storage-bucket string
         S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
@@ -368,6 +374,8 @@ Usage of imagor:
         Base path prefix for S3 Result Storage
   -s3-result-storage-acl string
         Upload ACL for S3 Result Storage (default "public-read")
+  -s3-result-storage-expiration duration
+        S3 Result Storage expiration duration e.g. 24h. Default no expiration
 
   -vips-max-animation-frames int
         VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited.

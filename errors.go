@@ -16,6 +16,7 @@ var (
 	ErrMethodNotAllowed  = NewError("method not allowed", http.StatusMethodNotAllowed)
 	ErrSignatureMismatch = NewError("url signature mismatch", http.StatusForbidden)
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
+	ErrExpired           = NewError("expired", http.StatusGone)
 	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
 	ErrMaxSizeExceeded   = NewError("maximum size exceeded", http.StatusBadRequest)
 	ErrInternal          = NewError("internal error", http.StatusInternalServerError)
