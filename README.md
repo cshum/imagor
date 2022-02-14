@@ -47,7 +47,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 
 - `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
 - `trim` removes surrounding space in images using top-left pixel color
-- `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`
+- `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
 - `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
 - `stretch` means resize the image to `ExF` without keeping its aspect ratios
 - `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
