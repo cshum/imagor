@@ -163,6 +163,30 @@ func TestParseGenerate(t *testing.T) {
 				Filters:       []Filter{{Name: "some_filter"}},
 			},
 		},
+		{
+			name: "non url image with crop by percentage",
+			uri:  "meta/trim/0.200000x0.150000:0.450000x0.670000/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
+			params: Params{
+				Path:              "meta/trim/0.200000x0.150000:0.450000x0.670000/fit-in/-300x-200/left/top/smart/filters:some_filter()/img",
+				Image:             "img",
+				Trim:              true,
+				TrimBy:            "top-left",
+				CropLeftPercent:   0.200000,
+				CropTopPercent:    0.150000,
+				CropRightPercent:  0.450000,
+				CropBottomPercent: 0.670000,
+				Width:             300,
+				Height:            200,
+				Meta:              true,
+				HFlip:             true,
+				VFlip:             true,
+				HAlign:            "left",
+				VAlign:            "top",
+				Smart:             true,
+				FitIn:             true,
+				Filters:           []Filter{{Name: "some_filter"}},
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.name == "" {

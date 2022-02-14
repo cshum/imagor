@@ -24,7 +24,7 @@ var paramsRegex = regexp.MustCompile(
 		// trim
 		"(trim(:(top-left|bottom-right))?(:(\\d+))?/)?" +
 		// crop
-		"((\\d+)x(\\d+):(\\d+)x(\\d+)/)?" +
+		"(((0\\.)?\\d+)x((0\\.)?\\d+):((0\\.)?\\d+)x((0\\.)?\\d+)/)?" +
 		// fit-in
 		"(fit-in/)?" +
 		// stretch
@@ -85,12 +85,28 @@ func Parse(path string) (p Params) {
 	}
 	index += 5
 	if match[index] != "" {
-		p.CropLeft, _ = strconv.Atoi(match[index+1])
-		p.CropTop, _ = strconv.Atoi(match[index+2])
-		p.CropRight, _ = strconv.Atoi(match[index+3])
-		p.CropBottom, _ = strconv.Atoi(match[index+4])
+		if match[index+2] == "0." {
+			p.CropLeftPercent, _ = strconv.ParseFloat(match[index+1], 64)
+		} else {
+			p.CropLeft, _ = strconv.Atoi(match[index+1])
+		}
+		if match[index+4] == "0." {
+			p.CropTopPercent, _ = strconv.ParseFloat(match[index+3], 64)
+		} else {
+			p.CropTop, _ = strconv.Atoi(match[index+3])
+		}
+		if match[index+6] == "0." {
+			p.CropRightPercent, _ = strconv.ParseFloat(match[index+5], 64)
+		} else {
+			p.CropRight, _ = strconv.Atoi(match[index+5])
+		}
+		if match[index+8] == "0." {
+			p.CropBottomPercent, _ = strconv.ParseFloat(match[index+7], 64)
+		} else {
+			p.CropBottom, _ = strconv.Atoi(match[index+7])
+		}
 	}
-	index += 5
+	index += 9
 	if match[index] != "" {
 		p.FitIn = true
 	}

@@ -20,6 +20,18 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	}
+	if p.CropLeftPercent != 0 {
+		p.CropLeft = int(p.CropLeftPercent * float64(img.Width()))
+	}
+	if p.CropTopPercent != 0 {
+		p.CropTop = int(p.CropTopPercent * float64(img.Height()))
+	}
+	if p.CropRightPercent != 0 {
+		p.CropRight = int(p.CropRightPercent * float64(img.Width()))
+	}
+	if p.CropBottomPercent != 0 {
+		p.CropBottom = int(p.CropBottomPercent * float64(img.Height()))
+	}
 	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
 		if err := crop(img, p.CropLeft, p.CropTop, p.CropRight, p.CropBottom); err != nil {
 			return err
