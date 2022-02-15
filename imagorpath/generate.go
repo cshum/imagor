@@ -24,7 +24,11 @@ func generate(p Params) string {
 	}
 	if p.CropTop > 0 || p.CropRight > 0 || p.CropLeft > 0 || p.CropBottom > 0 {
 		parts = append(parts, fmt.Sprintf(
-			"%dx%d:%dx%d", p.CropLeft, p.CropTop, p.CropRight, p.CropBottom))
+			"%sx%s:%sx%s",
+			strconv.FormatFloat(p.CropLeft, 'f', -1, 64),
+			strconv.FormatFloat(p.CropTop, 'f', -1, 64),
+			strconv.FormatFloat(p.CropRight, 'f', -1, 64),
+			strconv.FormatFloat(p.CropBottom, 'f', -1, 64)))
 	}
 	if p.FitIn {
 		parts = append(parts, "fit-in")

@@ -24,7 +24,7 @@ var paramsRegex = regexp.MustCompile(
 		// trim
 		"(trim(:(top-left|bottom-right))?(:(\\d+))?/)?" +
 		// crop
-		"((\\d+)x(\\d+):(\\d+)x(\\d+)/)?" +
+		"(((0?\\.)?\\d+)x((0?\\.)?\\d+):(([0-1]?\\.)?\\d+)x(([0-1]?\\.)?\\d+)/)?" +
 		// fit-in
 		"(fit-in/)?" +
 		// stretch
@@ -85,12 +85,12 @@ func Parse(path string) (p Params) {
 	}
 	index += 5
 	if match[index] != "" {
-		p.CropLeft, _ = strconv.Atoi(match[index+1])
-		p.CropTop, _ = strconv.Atoi(match[index+2])
-		p.CropRight, _ = strconv.Atoi(match[index+3])
-		p.CropBottom, _ = strconv.Atoi(match[index+4])
+		p.CropLeft, _ = strconv.ParseFloat(match[index+1], 64)
+		p.CropTop, _ = strconv.ParseFloat(match[index+3], 64)
+		p.CropRight, _ = strconv.ParseFloat(match[index+5], 64)
+		p.CropBottom, _ = strconv.ParseFloat(match[index+7], 64)
 	}
-	index += 5
+	index += 9
 	if match[index] != "" {
 		p.FitIn = true
 	}

@@ -172,7 +172,7 @@ func (v *VipsProcessor) Process(
 			break
 		}
 	}
-	if !hasGetPoint && p.CropBottom == 0 && p.CropTop == 0 && p.CropLeft == 0 && p.CropRight == 0 {
+	if !hasGetPoint && p.CropBottom == 0.0 && p.CropTop == 0.0 && p.CropLeft == 0.0 && p.CropRight == 0.0 {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {

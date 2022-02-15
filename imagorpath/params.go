@@ -29,10 +29,10 @@ type Params struct {
 	Trim          bool    `json:"trim,omitempty"`
 	TrimBy        string  `json:"trim_by,omitempty"`
 	TrimTolerance int     `json:"trim_tolerance,omitempty"`
-	CropLeft      int     `json:"crop_left,omitempty"`
-	CropTop       int     `json:"crop_top,omitempty"`
-	CropRight     int     `json:"crop_right,omitempty"`
-	CropBottom    int     `json:"crop_bottom,omitempty"`
+	CropLeft      float64 `json:"crop_left,omitempty"`
+	CropTop       float64 `json:"crop_top,omitempty"`
+	CropRight     float64 `json:"crop_right,omitempty"`
+	CropBottom    float64 `json:"crop_bottom,omitempty"`
 	FitIn         bool    `json:"fit_in,omitempty"`
 	Stretch       bool    `json:"stretch,omitempty"`
 	Width         int     `json:"width,omitempty"`
