@@ -298,19 +298,6 @@ func (v *VipsProcessor) padding(ctx context.Context, img *vips.ImageRef, _ imago
 	return v.fill(ctx, img, img.Width(), img.PageHeight(), left, top, right, bottom, color)
 }
 
-func cropFilter(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
-	if len(args) < 4 {
-		return
-	}
-	var (
-		left, _   = strconv.Atoi(args[0])
-		top, _    = strconv.Atoi(args[1])
-		right, _  = strconv.Atoi(args[2])
-		bottom, _ = strconv.Atoi(args[3])
-	)
-	return crop(img, left, top, right, bottom)
-}
-
 func backgroundColor(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
