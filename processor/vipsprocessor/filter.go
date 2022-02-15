@@ -85,6 +85,9 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		} else if args[1] == "repeat" {
 			x = 0
 			across = img.Width()/overlay.Width() + 1
+		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
+			pec, _ := strconv.ParseFloat(args[1], 64)
+			x = int(pec * float64(img.Width()))
 		} else if strings.HasSuffix(args[1], "p") {
 			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
 			x = x * img.Width() / 100
@@ -100,6 +103,9 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		} else if args[2] == "repeat" {
 			y = 0
 			down = img.PageHeight()/overlay.PageHeight() + 1
+		} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
+			pec, _ := strconv.ParseFloat(args[2], 64)
+			y = int(pec * float64(img.PageHeight()))
 		} else if strings.HasSuffix(args[2], "p") {
 			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
 			y = y * img.PageHeight() / 100
