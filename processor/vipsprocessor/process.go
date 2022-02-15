@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/image/colornames"
 	"image/color"
+	"math"
 	"strings"
 	"time"
 )
@@ -20,20 +21,14 @@ func (v *VipsProcessor) process(
 			return err
 		}
 	}
-	if p.CropLeftPercent != 0 {
-		p.CropLeft = int(p.CropLeftPercent * float64(img.Width()))
-	}
-	if p.CropTopPercent != 0 {
-		p.CropTop = int(p.CropTopPercent * float64(img.Height()))
-	}
-	if p.CropRightPercent != 0 {
-		p.CropRight = int(p.CropRightPercent * float64(img.Width()))
-	}
-	if p.CropBottomPercent != 0 {
-		p.CropBottom = int(p.CropBottomPercent * float64(img.Height()))
+	if p.CropLeft < 1.0 && p.CropTop < 1.0 && p.CropRight <= 1.0 && p.CropBottom <= 1.0 {
+		p.CropLeft = math.Round(p.CropLeft * float64(img.Width()))
+		p.CropTop = math.Round(p.CropTop * float64(img.Height()))
+		p.CropRight = math.Round(p.CropRight * float64(img.Width()))
+		p.CropBottom = math.Round(p.CropBottom * float64(img.Height()))
 	}
 	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
-		if err := crop(img, p.CropLeft, p.CropTop, p.CropRight, p.CropBottom); err != nil {
+		if err := crop(img, int(p.CropLeft), int(p.CropTop), int(p.CropRight), int(p.CropBottom)); err != nil {
 			return err
 		}
 	}
