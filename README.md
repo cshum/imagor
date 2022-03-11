@@ -238,7 +238,7 @@ Imagor also supports environment variables or `.env` file for the arguments equi
 ```bash
 # both are equivalent
 
-imagor -debug -imagor-secret=1234
+imagor -debug -imagor-secret 1234
 
 DEBUG=1 IMAGOR_SECRET=1234 imagor
 ```

@@ -293,16 +293,16 @@ func (app *Imagor) load(
 		// should not log expected error as of now, as it has not reached the end
 		err = e
 	}
-	if err == nil {
-		if app.Debug {
+	if err == ErrPass {
+		// pass till the end means not found
+		err = ErrNotFound
+	}
+	if app.Debug {
+		if err == nil {
 			app.Logger.Debug("loaded", zap.String("key", key))
+		} else {
+			app.Logger.Debug("load", zap.String("key", key), zap.Error(err))
 		}
-	} else if !errors.Is(err, context.Canceled) {
-		if err == ErrPass {
-			err = ErrNotFound
-		}
-		// log non user-initiated error finally
-		app.Logger.Warn("load", zap.String("key", key), zap.Error(err))
 	}
 	return
 }
