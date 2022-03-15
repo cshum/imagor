@@ -158,9 +158,9 @@ Imagor `Loader`, `Storage` and `Result Storage` are the building blocks for load
 
 Imagor provides built-in adaptors that support HTTP, proxy, file system, AWS S3 and Google Cloud Storage. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
 
-#### Docker Compose Example
+#### File System
 
-Imagor with file system, using mounted volume:
+Docker Compose example with file system, using mounted volume:
 ```yaml
 version: "3"
 services:
@@ -181,7 +181,9 @@ services:
       - "8000:8000"
 ```
 
-Imagor with AWS S3:
+#### AWS S3
+
+Docker Compose example with AWS S3:
 ```yaml
 version: "3"
 services:
@@ -206,7 +208,9 @@ services:
       - "8000:8000"
 ```
 
-Imagor with Google Cloud:
+#### Google Cloud Storage
+
+Docker Compose example with Google Cloud Storage:
 ```yaml
 version: "3"
 services:
