@@ -156,7 +156,7 @@ Imagor `Loader`, `Storage` and `Result Storage` are the building blocks for load
 - `Storage` loads and saves image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
 - `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
 
-Imagor provides built-in adaptors that support HTTP, proxy, file system, AWS S3 and Google Cloud Storage. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
+Imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS S3 and Google Cloud Storage. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
 
 #### File System
 
@@ -183,7 +183,7 @@ services:
 
 #### AWS S3
 
-Docker Compose example with AWS S3:
+Docker Compose example with AWS S3. Also works with S3 compatible storage such as MinIO, DigitalOcean Space.
 ```yaml
 version: "3"
 services:
@@ -204,6 +204,8 @@ services:
 
       S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
       S3_RESULT_STORAGE_BASE_DIR: images/result # optional
+
+      S3_ENDPOINT: ... # optional - alternative endpoint for S3 compatible, such as MinIO
     ports:
       - "8000:8000"
 ```
