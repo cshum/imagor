@@ -128,9 +128,6 @@ Imagor supports the following filters:
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
 - `sharpen(sigma)` sharpens the image
-- `trim([tolerance [, position]])` apply trim operation as part of the filter pipeline
-  - `tolerance` the euclidean distance between the colors to get trimmed within the tolerance, default 1
-  - `position` default using `top-left` pixel color unless specified `bottom-right`
 - `upscale()` upscale the image if `fit-in` is used
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for Imagor
@@ -183,7 +180,7 @@ services:
 
 #### AWS S3
 
-Docker Compose example with AWS S3. Also works with S3 compatible storage such as MinIO, DigitalOcean Space.
+Docker Compose example with AWS S3. Also works with S3 compatible such as MinIO, DigitalOcean Space.
 ```yaml
 version: "3"
 services:
