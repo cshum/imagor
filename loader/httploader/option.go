@@ -52,7 +52,7 @@ func WithForwardHeaders(headers ...string) Option {
 	}
 }
 
-func WithForwardAllHeaders(enabled bool) Option {
+func WithForwardClientHeaders(enabled bool) Option {
 	return func(h *HTTPLoader) {
 		if enabled {
 			h.ForwardHeaders = []string{"*"}

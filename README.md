@@ -318,8 +318,8 @@ Usage of imagor:
         HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. image/*
   -http-loader-forward-headers string
         Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
-  -http-loader-forward-all-headers
-        Forward all request headers to HTTP Loader request
+  -http-loader-forward-client-headers
+        Forward browser client request headers to HTTP Loader request
   -http-loader-insecure-skip-verify-transport
         HTTP Loader to use HTTP transport with InsecureSkipVerify true
   -http-loader-max-allowed-size int
@@ -340,18 +340,6 @@ Usage of imagor:
         Base directory for File Loader. Enable File Loader only if this value present
   -file-loader-path-prefix string
         Base path prefix for File Loader
-        
-  -file-storage-base-dir string
-        Base directory for File Storage. Enable File Storage only if this value present
-  -file-storage-path-prefix string
-        Base path prefix for File Storage
-  -file-storage-mkdir-permission string
-        File Storage mkdir permission (default "0755")
-  -file-storage-write-permission string
-        File Storage write permission (default "0666")
-  -file-storage-expiration duration
-        File Storage expiration duration e.g. 24h. Default no expiration
-
   -file-result-storage-base-dir string
         Base directory for File Result Storage. Enable File Result Storage only if this value present
   -file-result-storage-mkdir-permission string
@@ -362,6 +350,16 @@ Usage of imagor:
         File Storage write permission (default "0666")
   -file-result-storage-expiration duration
         File Result Storage expiration duration e.g. 24h. Default no expiration
+  -file-storage-base-dir string
+        Base directory for File Storage. Enable File Storage only if this value present
+  -file-storage-path-prefix string
+        Base path prefix for File Storage
+  -file-storage-mkdir-permission string
+        File Storage mkdir permission (default "0755")
+  -file-storage-write-permission string
+        File Storage write permission (default "0666")
+  -file-storage-expiration duration
+        File Storage expiration duration e.g. 24h. Default no expiration
 
   -gcloud-loader-base-dir string
         Base directory for Google Cloud Loader
@@ -411,18 +409,6 @@ Usage of imagor:
         Base directory for S3 Loader
   -s3-loader-path-prefix string
         Base path prefix for S3 Loader
-        
-  -s3-storage-bucket string
-        S3 Bucket for S3 Storage. Enable S3 Storage only if this value present
-  -s3-storage-base-dir string
-        Base directory for S3 Storage
-  -s3-storage-path-prefix string
-        Base path prefix for S3 Storage
-  -s3-storage-acl string
-        Upload ACL for S3 Storage (default "public-read")
-  -s3-storage-expiration duration
-        S3 Storage expiration duration e.g. 24h. Default no expiration
-
   -s3-result-storage-bucket string
         S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
   -s3-result-storage-base-dir string
@@ -433,6 +419,16 @@ Usage of imagor:
         Upload ACL for S3 Result Storage (default "public-read")
   -s3-result-storage-expiration duration
         S3 Result Storage expiration duration e.g. 24h. Default no expiration
+  -s3-storage-bucket string
+        S3 Bucket for S3 Storage. Enable S3 Storage only if this value present
+  -s3-storage-base-dir string
+        Base directory for S3 Storage
+  -s3-storage-path-prefix string
+        Base path prefix for S3 Storage
+  -s3-storage-acl string
+        Upload ACL for S3 Storage (default "public-read")
+  -s3-storage-expiration duration
+        S3 Storage expiration duration e.g. 24h. Default no expiration
 
   -vips-max-animation-frames int
         VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited.

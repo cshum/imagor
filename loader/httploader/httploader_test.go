@@ -246,7 +246,7 @@ func TestWithForwardAllHeaders(t *testing.T) {
 			}, nil
 		})),
 		WithUserAgent("foobar"),
-		WithForwardAllHeaders(true),
+		WithForwardClientHeaders(true),
 	), []test{
 		{
 			name:   "user agent",
@@ -290,7 +290,7 @@ func TestWithOverrideForwardHeaders(t *testing.T) {
 			}, nil
 		})),
 		WithUserAgent("foobar"),
-		WithForwardAllHeaders(true),
+		WithForwardClientHeaders(true),
 		WithOverrideHeader("x-Imagor-Foo", "Boom"),
 		WithOverrideHeader("User-Agent", "Ha"),
 	), []test{

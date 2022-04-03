@@ -95,8 +95,10 @@ func main() {
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
+		httpLoaderForwardClientHeaders = fs.Bool("http-loader-forward-client-headers", false,
+			"Forward browser client request headers to HTTP Loader request")
 		httpLoaderForwardAllHeaders = fs.Bool("http-loader-forward-all-headers", false,
-			"Forward all request headers to HTTP Loader request")
+			"Deprecated in flavour of -http-loader-forward-client-headers")
 		httpLoaderAllowedSources = fs.String("http-loader-allowed-sources", "",
 			"HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.")
 		httpLoaderMaxAllowedSize = fs.Int("http-loader-max-allowed-size", 0,
@@ -244,7 +246,7 @@ func main() {
 
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
-		storage := filestorage.New(
+		s := filestorage.New(
 			*fileStorageBaseDir,
 			filestorage.WithPathPrefix(*fileStoragePathPrefix),
 			filestorage.WithMkdirPermission(*fileStorageMkdirPermission),
@@ -252,8 +254,8 @@ func main() {
 			filestorage.WithSafeChars(*fileSafeChars),
 			filestorage.WithExpiration(*fileStorageExpiration),
 		)
-		loaders = append(loaders, storage)
-		savers = append(savers, storage)
+		loaders = append(loaders, s)
+		savers = append(savers, s)
 	}
 	if *fileLoaderBaseDir != "" {
 		// activate File Loader only if base dir config presents
@@ -292,15 +294,15 @@ func main() {
 		}
 		if *gcloudStorageBucket != "" {
 			// activate Google Cloud Storage only if bucket config presents
-			storage := gcloudstorage.New(gcloudClient, *gcloudStorageBucket,
+			s := gcloudstorage.New(gcloudClient, *gcloudStorageBucket,
 				gcloudstorage.WithPathPrefix(*gcloudStoragePathPrefix),
 				gcloudstorage.WithBaseDir(*gcloudStorageBaseDir),
 				gcloudstorage.WithACL(*gcloudStorageACL),
 				gcloudstorage.WithSafeChars(*gcloudSafeChars),
 				gcloudstorage.WithExpiration(*gcloudStorageExpiration),
 			)
-			loaders = append(loaders, storage)
-			savers = append(savers, storage)
+			loaders = append(loaders, s)
+			savers = append(savers, s)
 		}
 
 		if *gcloudLoaderBucket != "" {
@@ -350,15 +352,15 @@ func main() {
 		}
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
-			storage := s3storage.New(sess, *s3StorageBucket,
+			s := s3storage.New(sess, *s3StorageBucket,
 				s3storage.WithPathPrefix(*s3StoragePathPrefix),
 				s3storage.WithBaseDir(*s3StorageBaseDir),
 				s3storage.WithACL(*s3StorageACL),
 				s3storage.WithSafeChars(*s3SafeChars),
 				s3storage.WithExpiration(*s3StorageExpiration),
 			)
-			loaders = append(loaders, storage)
-			savers = append(savers, storage)
+			loaders = append(loaders, s)
+			savers = append(savers, s)
 		}
 		if *s3LoaderBucket != "" {
 			// activate S3 Loader only if bucket config presents
@@ -393,7 +395,8 @@ func main() {
 		// fallback with HTTP Loader unless explicitly disabled
 		loaders = append(loaders,
 			httploader.New(
-				httploader.WithForwardAllHeaders(*httpLoaderForwardAllHeaders),
+				httploader.WithForwardClientHeaders(
+					*httpLoaderForwardClientHeaders || *httpLoaderForwardAllHeaders),
 				httploader.WithAccept(*httpLoaderAccept),
 				httploader.WithForwardHeaders(*httpLoaderForwardHeaders),
 				httploader.WithAllowedSources(*httpLoaderAllowedSources),
