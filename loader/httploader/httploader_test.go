@@ -234,7 +234,7 @@ func TestWithForwardHeadersOverrideUserAgent(t *testing.T) {
 	})
 }
 
-func TestWithForwardAllHeaders(t *testing.T) {
+func TestWithForwardClientHeaders(t *testing.T) {
 	doTests(t, New(
 		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
 			assert.Equal(t, r.Header.Get("User-Agent"), "Test")
