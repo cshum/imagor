@@ -335,7 +335,6 @@ Usage of imagor:
 
   -file-safe-chars string
         File safe characters to be excluded from image key escape
-        
   -file-loader-base-dir string
         Base directory for File Loader. Enable File Loader only if this value present
   -file-loader-path-prefix string
@@ -361,35 +360,6 @@ Usage of imagor:
   -file-storage-expiration duration
         File Storage expiration duration e.g. 24h. Default no expiration
 
-  -gcloud-loader-base-dir string
-        Base directory for Google Cloud Loader
-  -gcloud-loader-bucket string
-        Bucket name for Google Cloud Storage Loader. Enable Google Cloud Loader only if this value present
-  -gcloud-loader-path-prefix string
-        Base path prefix for Google Cloud Loader
-  -gcloud-result-storage-acl string
-        Upload ACL for Google Cloud Result Storage
-  -gcloud-result-storage-base-dir string
-        Base directory for Google Cloud Result Storage
-  -gcloud-result-storage-bucket string
-        Bucket name for Google Cloud Result Storage. Enable Google Cloud Result Storage only if this value present
-  -gcloud-result-storage-expiration duration
-        Google Cloud Result Storage expiration duration e.g. 24h. Default no expiration
-  -gcloud-result-storage-path-prefix string
-        Base path prefix for Google Cloud Result Storage
-  -gcloud-safe-chars string
-        Google Cloud safe characters to be excluded from image key escape
-  -gcloud-storage-acl string
-        Upload ACL for Google Cloud Storage
-  -gcloud-storage-base-dir string
-        Base directory for Google Cloud
-  -gcloud-storage-bucket string
-        Bucket name for Google Cloud Storage. Enable Google Cloud Storage only if this value present
-  -gcloud-storage-expiration duration
-        Google Cloud Storage expiration duration e.g. 24h. Default no expiration
-  -gcloud-storage-path-prefix string
-        Base path prefix for Google Cloud Storage
-
   -aws-access-key-id string
         AWS Access Key ID. Required if using S3 Loader or S3 Storage
   -aws-region string
@@ -402,7 +372,6 @@ Usage of imagor:
         S3 safe characters to be excluded from image key escape
   -s3-force-path-style
         S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key
-
   -s3-loader-bucket string
         S3 Bucket for S3 Loader. Enable S3 Loader only if this value present
   -s3-loader-base-dir string
@@ -430,6 +399,35 @@ Usage of imagor:
   -s3-storage-expiration duration
         S3 Storage expiration duration e.g. 24h. Default no expiration
 
+  -gcloud-safe-chars string
+        Google Cloud safe characters to be excluded from image key escape
+  -gcloud-loader-base-dir string
+        Base directory for Google Cloud Loader
+  -gcloud-loader-bucket string
+        Bucket name for Google Cloud Storage Loader. Enable Google Cloud Loader only if this value present
+  -gcloud-loader-path-prefix string
+        Base path prefix for Google Cloud Loader
+  -gcloud-result-storage-acl string
+        Upload ACL for Google Cloud Result Storage
+  -gcloud-result-storage-base-dir string
+        Base directory for Google Cloud Result Storage
+  -gcloud-result-storage-bucket string
+        Bucket name for Google Cloud Result Storage. Enable Google Cloud Result Storage only if this value present
+  -gcloud-result-storage-expiration duration
+        Google Cloud Result Storage expiration duration e.g. 24h. Default no expiration
+  -gcloud-result-storage-path-prefix string
+        Base path prefix for Google Cloud Result Storage
+  -gcloud-storage-acl string
+        Upload ACL for Google Cloud Storage
+  -gcloud-storage-base-dir string
+        Base directory for Google Cloud
+  -gcloud-storage-bucket string
+        Bucket name for Google Cloud Storage. Enable Google Cloud Storage only if this value present
+  -gcloud-storage-expiration duration
+        Google Cloud Storage expiration duration e.g. 24h. Default no expiration
+  -gcloud-storage-path-prefix string
+        Base path prefix for Google Cloud Storage
+        
   -vips-max-animation-frames int
         VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited.
   -vips-disable-blur
