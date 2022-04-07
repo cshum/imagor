@@ -18,7 +18,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 )
 
 var testDataDir string
@@ -62,7 +61,6 @@ func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
-		imagor.WithRequestTimeout(time.Second*3),
 		imagor.WithProcessors(New(opts...)),
 		imagor.WithResultSavers(filestorage.New(
 			resultDir,
