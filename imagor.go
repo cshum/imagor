@@ -60,6 +60,7 @@ type Imagor struct {
 	ProcessTimeout     time.Duration
 	CacheHeaderTTL     time.Duration
 	ProcessConcurrency int64
+	AutoWebP           bool
 	Logger             *zap.Logger
 	Debug              bool
 
@@ -183,6 +184,23 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", imagorpath.Sign(p.Path, app.Secret)))
 		}
 		return
+	}
+	// auto WebP
+	if app.AutoWebP {
+		// todo handle prefix case?
+		if strings.Contains(r.Header.Get("Accept"), "image/webp") {
+			var filters []imagorpath.Filter
+			for _, f := range p.Filters {
+				if f.Name != "format" {
+					filters = append(filters, f)
+				}
+			}
+			p.Filters = append(filters, imagorpath.Filter{
+				Name: "format",
+				Args: "webp",
+			})
+			p.Path = imagorpath.GeneratePath(p)
+		}
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
 	load := func(image string) (*Blob, error) {

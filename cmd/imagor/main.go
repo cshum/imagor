@@ -46,6 +46,8 @@ func main() {
 			"Secret key for signing Imagor URL")
 		imagorUnsafe = fs.Bool("imagor-unsafe", false,
 			"Unsafe Imagor that does not require URL signature. Prone to URL tampering")
+		imagorAutoWebP = fs.Bool("imagor-auto-webp", false,
+			"Auto WebP conversion, based on request Accept header")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
 			time.Second*30, "Timeout for performing Imagor request")
 		imagorLoadTimeout = fs.Duration("imagor-load-timeout",
@@ -439,6 +441,7 @@ func main() {
 			imagor.WithProcessTimeout(*imagorProcessTimeout),
 			imagor.WithProcessConcurrency(*imagorProcessConcurrency),
 			imagor.WithCacheHeaderTTL(*imagorCacheHeaderTTL),
+			imagor.WithAutoWebP(*imagorAutoWebP),
 			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),
 			imagor.WithDebug(*debug),
