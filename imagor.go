@@ -49,6 +49,7 @@ type Processor interface {
 type Imagor struct {
 	Unsafe             bool
 	Secret             string
+	BasePathRedirect   string
 	Loaders            []Loader
 	Savers             []Saver
 	ResultLoaders      []Loader
@@ -113,9 +114,13 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
-		resJSON(w, json.RawMessage(fmt.Sprintf(
-			`{"imagor":{"version":"%s"}}`, Version,
-		)))
+		if app.BasePathRedirect == "" {
+			resJSON(w, json.RawMessage(fmt.Sprintf(
+				`{"imagor":{"version":"%s"}}`, Version,
+			)))
+		} else {
+			http.Redirect(w, r, app.BasePathRedirect, http.StatusPermanentRedirect)
+		}
 		return
 	}
 	p := imagorpath.Parse(path)
