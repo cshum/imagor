@@ -288,6 +288,8 @@ Usage of imagor:
         Secret key for signing Imagor URL
   -imagor-unsafe
         Unsafe Imagor that does not require URL signature. Prone to URL tampering
+  -imagor-base-path-redirect string
+        URL to redirect for Imagor / base path e.g. https://www.google.com
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
   -imagor-request-timeout duration
