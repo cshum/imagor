@@ -334,7 +334,6 @@ Usage of imagor:
         HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
   -http-loader-accept string
         HTTP Loader set request Accept header and validate response Content-Type header (default "image/*")
-        HTTP Loader default scheme if not specified by image path (default "https")
   -http-loader-disable
         Disable HTTP Loader
 
