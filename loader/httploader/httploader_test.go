@@ -19,7 +19,9 @@ func (t testTransport) RoundTrip(r *http.Request) (w *http.Response, err error) 
 		w = &http.Response{
 			StatusCode: http.StatusOK,
 			Body:       ioutil.NopCloser(strings.NewReader(res)),
+			Header:     map[string][]string{},
 		}
+		w.Header.Set("Content-Type", "image/jpeg")
 		return
 	}
 	w = &http.Response{
@@ -52,11 +54,13 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 			b, err := loader.Load(r, tt.target)
 			if tt.err == "" {
 				require.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.err)
+			}
+			if tt.result != "" {
 				buf, err := b.ReadAll()
 				require.NoError(t, err, tt.result)
 				assert.Equal(t, string(buf), tt.result)
-			} else {
-				assert.EqualError(t, err, tt.err)
 			}
 		})
 	}
@@ -175,10 +179,13 @@ func TestWithUserAgent(t *testing.T) {
 			assert.Equal(t, r.Header.Get("User-Agent"), "foobar")
 			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "")
 			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "")
-			return &http.Response{
+			res := &http.Response{
 				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
 				Body:       ioutil.NopCloser(strings.NewReader("ok")),
-			}, nil
+			}
+			res.Header.Set("Content-Type", "image/jpeg")
+			return res, nil
 		})),
 		WithUserAgent("foobar"),
 	), []test{
@@ -196,10 +203,13 @@ func TestWithForwardHeaders(t *testing.T) {
 			assert.Equal(t, r.Header.Get("User-Agent"), "foobar")
 			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Bar")
 			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "")
-			return &http.Response{
+			res := &http.Response{
 				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
 				Body:       ioutil.NopCloser(strings.NewReader("ok")),
-			}, nil
+			}
+			res.Header.Set("Content-Type", "image/jpeg")
+			return res, nil
 		})),
 		WithUserAgent("foobar"),
 		WithForwardHeaders("X-Imagor-Foo"),
@@ -218,10 +228,13 @@ func TestWithForwardHeadersOverrideUserAgent(t *testing.T) {
 			assert.Equal(t, r.Header.Get("User-Agent"), "Test")
 			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "")
 			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "Pong")
-			return &http.Response{
+			res := &http.Response{
 				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
 				Body:       ioutil.NopCloser(strings.NewReader("ok")),
-			}, nil
+			}
+			res.Header.Set("Content-Type", "image/jpeg")
+			return res, nil
 		})),
 		WithUserAgent("foobar"),
 		WithForwardHeaders("User-Agent, X-Imagor-Ping"),
@@ -240,10 +253,13 @@ func TestWithForwardClientHeaders(t *testing.T) {
 			assert.Equal(t, r.Header.Get("User-Agent"), "Test")
 			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Bar")
 			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "Pong")
-			return &http.Response{
+			res := &http.Response{
 				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
 				Body:       ioutil.NopCloser(strings.NewReader("ok")),
-			}, nil
+			}
+			res.Header.Set("Content-Type", "image/jpeg")
+			return res, nil
 		})),
 		WithUserAgent("foobar"),
 		WithForwardClientHeaders(true),
@@ -262,10 +278,13 @@ func TestWithOverrideHeaders(t *testing.T) {
 			assert.Equal(t, r.Header.Get("User-Agent"), "foobar")
 			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Boom")
 			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "")
-			return &http.Response{
+			res := &http.Response{
 				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
 				Body:       ioutil.NopCloser(strings.NewReader("ok")),
-			}, nil
+			}
+			res.Header.Set("Content-Type", "image/jpeg")
+			return res, nil
 		})),
 		WithUserAgent("foobar"),
 		WithOverrideHeader("x-Imagor-Foo", "Boom"),
@@ -284,10 +303,13 @@ func TestWithOverrideForwardHeaders(t *testing.T) {
 			assert.Equal(t, r.Header.Get("User-Agent"), "Ha")
 			assert.Equal(t, r.Header.Get("X-Imagor-Foo"), "Boom")
 			assert.Equal(t, r.Header.Get("X-Imagor-Ping"), "Pong")
-			return &http.Response{
+			res := &http.Response{
 				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
 				Body:       ioutil.NopCloser(strings.NewReader("ok")),
-			}, nil
+			}
+			res.Header.Set("Content-Type", "image/jpeg")
+			return res, nil
 		})),
 		WithUserAgent("foobar"),
 		WithForwardClientHeaders(true),
@@ -308,6 +330,7 @@ func TestWithMaxAllowedSize(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", "1024")
+		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write(test1024Bytes)
 	}))
 	defer ts.Close()
@@ -421,6 +444,7 @@ func TestWithAccept(t *testing.T) {
 			name:   "content type not ok",
 			target: "https://foo.bar/text/html",
 			err:    imagor.ErrUnsupportedFormat.Error(),
+			result: "ok",
 		},
 	})
 }

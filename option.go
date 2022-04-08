@@ -113,6 +113,12 @@ func WithSecret(secret string) Option {
 	}
 }
 
+func WithBasePathRedirect(url string) Option {
+	return func(o *Imagor) {
+		o.BasePathRedirect = url
+	}
+}
+
 func WithDebug(debug bool) Option {
 	return func(o *Imagor) {
 		o.Debug = debug

@@ -56,6 +56,8 @@ func main() {
 			time.Second*20, "Timeout for saving image to Imagor Storage")
 		imagorProcessTimeout = fs.Duration("imagor-process-timeout",
 			time.Second*20, "Timeout for image processing")
+		imagorBasePathRedirect = fs.String("imagor-base-path-redirect", "",
+			"URL to redirect for Imagor / base path e.g. https://www.google.com")
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
 			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
@@ -108,9 +110,9 @@ func main() {
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool("http-loader-insecure-skip-verify-transport", false,
 			"HTTP Loader to use HTTP transport with InsecureSkipVerify true")
 		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
-			"HTTP Loader default scheme if not specified by image path")
-		httpLoaderAccept = fs.String("http-loader-accept", "",
-			"HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. image/*")
+			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
+		httpLoaderAccept = fs.String("http-loader-accept", "image/*",
+			"HTTP Loader set request Accept header and validate response Content-Type header")
 		httpLoaderProxyURLs = fs.String("http-loader-proxy-urls", "",
 			"HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port")
 		httpLoaderProxyAllowedSources = fs.String("http-loader-proxy-allowed-sources", "",
@@ -435,6 +437,7 @@ func main() {
 			imagor.WithResultLoaders(resultLoaders...),
 			imagor.WithResultSavers(resultSavers...),
 			imagor.WithSecret(*imagorSecret),
+			imagor.WithBasePathRedirect(*imagorBasePathRedirect),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithLoadTimeout(*imagorLoadTimeout),
 			imagor.WithSaveTimeout(*imagorSaveTimeout),
