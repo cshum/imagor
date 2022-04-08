@@ -288,6 +288,8 @@ Usage of imagor:
         Secret key for signing Imagor URL
   -imagor-unsafe
         Unsafe Imagor that does not require URL signature. Prone to URL tampering
+  -imagor-auto-webp
+        Output WebP format automatically if browser supports
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
   -imagor-request-timeout duration
@@ -329,7 +331,7 @@ Usage of imagor:
   -http-loader-proxy-allowed-sources string
         HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-default-scheme string
-        HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
+        HTTP Loader default scheme if not specified by image path (default "https")
   -http-loader-disable
         Disable HTTP Loader
 

@@ -47,7 +47,7 @@ func main() {
 		imagorUnsafe = fs.Bool("imagor-unsafe", false,
 			"Unsafe Imagor that does not require URL signature. Prone to URL tampering")
 		imagorAutoWebP = fs.Bool("imagor-auto-webp", false,
-			"Auto WebP conversion, based on request Accept header")
+			"Output WebP format automatically if browser supports")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
 			time.Second*30, "Timeout for performing Imagor request")
 		imagorLoadTimeout = fs.Duration("imagor-load-timeout",
@@ -108,7 +108,7 @@ func main() {
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool("http-loader-insecure-skip-verify-transport", false,
 			"HTTP Loader to use HTTP transport with InsecureSkipVerify true")
 		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
-			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
+			"HTTP Loader default scheme if not specified by image path")
 		httpLoaderAccept = fs.String("http-loader-accept", "",
 			"HTTP Loader set request Accept header and validate response Content-Type header. Supports HTTP Accept header input e.g. image/*")
 		httpLoaderProxyURLs = fs.String("http-loader-proxy-urls", "",
