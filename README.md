@@ -288,8 +288,6 @@ Usage of imagor:
         Secret key for signing Imagor URL
   -imagor-unsafe
         Unsafe Imagor that does not require URL signature. Prone to URL tampering
-  -imagor-base-path-redirect string
-        URL to redirect for Imagor / base path e.g. https://www.google.com
   -imagor-auto-webp
         Output WebP format automatically if browser supports
   -imagor-cache-header-ttl duration
@@ -304,6 +302,8 @@ Usage of imagor:
         Timeout for image processing (default 20s)
   -imagor-process-concurrency int
         Imagor semaphore size for process concurrency control. Set -1 for no limit (default -1)
+  -imagor-base-path-redirect string
+        URL to redirect for Imagor / base path e.g. https://www.google.com
 
   -server-address string
         Server address
