@@ -429,23 +429,32 @@ func TestAutoWebP(t *testing.T) {
 			WithDebug(true))
 	}
 
-	t.Run("supported not image tag auto", func(t *testing.T) {
-		app := factory(true)
+	t.Run("supported auto img tag not enabled", func(t *testing.T) {
+		app := factory(false)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
-		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*")
+		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
+		assert.Equal(t, w.Body.String(), "abc.png")
 	})
-
 	t.Run("supported auto img tag", func(t *testing.T) {
 		app := factory(true)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
 		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
+	})
+	t.Run("supported not image tag auto", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
