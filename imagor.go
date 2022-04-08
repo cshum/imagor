@@ -187,19 +187,20 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	}
 	// auto WebP
 	if app.AutoWebP {
-		// todo handle prefix case?
 		if strings.Contains(r.Header.Get("Accept"), "image/webp") {
-			var filters []imagorpath.Filter
+			var hasFormat bool
 			for _, f := range p.Filters {
-				if f.Name != "format" {
-					filters = append(filters, f)
+				if f.Name == "format" {
+					hasFormat = true
 				}
 			}
-			p.Filters = append(filters, imagorpath.Filter{
-				Name: "format",
-				Args: "webp",
-			})
-			p.Path = imagorpath.GeneratePath(p)
+			if !hasFormat {
+				p.Filters = append(p.Filters, imagorpath.Filter{
+					Name: "format",
+					Args: "webp",
+				})
+				p.Path = imagorpath.GeneratePath(p)
+			}
 		}
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
