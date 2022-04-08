@@ -54,11 +54,13 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 			b, err := loader.Load(r, tt.target)
 			if tt.err == "" {
 				require.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.err)
+			}
+			if tt.result != "" {
 				buf, err := b.ReadAll()
 				require.NoError(t, err, tt.result)
 				assert.Equal(t, string(buf), tt.result)
-			} else {
-				assert.EqualError(t, err, tt.err)
 			}
 		})
 	}
@@ -442,6 +444,7 @@ func TestWithAccept(t *testing.T) {
 			name:   "content type not ok",
 			target: "https://foo.bar/text/html",
 			err:    imagor.ErrUnsupportedFormat.Error(),
+			result: "ok",
 		},
 	})
 }
