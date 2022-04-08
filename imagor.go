@@ -187,7 +187,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	}
 	// auto WebP
 	if app.AutoWebP {
-		if strings.Contains(r.Header.Get("Accept"), "image/webp") {
+		if accept := r.Header.Get("Accept"); strings.Contains(accept, "image/webp") {
 			var hasFormat bool
 			for _, f := range p.Filters {
 				if f.Name == "format" {
