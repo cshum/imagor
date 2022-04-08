@@ -290,6 +290,8 @@ Usage of imagor:
         Unsafe Imagor that does not require URL signature. Prone to URL tampering
   -imagor-base-path-redirect string
         URL to redirect for Imagor / base path e.g. https://www.google.com
+  -imagor-auto-webp
+        Output WebP format automatically if browser supports
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
   -imagor-request-timeout duration
@@ -332,6 +334,7 @@ Usage of imagor:
         HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
   -http-loader-accept string
         HTTP Loader set request Accept header and validate response Content-Type header (default "image/*")
+        HTTP Loader default scheme if not specified by image path (default "https")
   -http-loader-disable
         Disable HTTP Loader
 

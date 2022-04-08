@@ -211,7 +211,7 @@ func TestParseGenerate(t *testing.T) {
 					t.Errorf(" = %s, want = %s", uri, test.uri)
 				}
 			} else {
-				if uri := generate(test.params); uri != test.uri {
+				if uri := GeneratePath(test.params); uri != test.uri {
 					t.Errorf(" = %s, want = %s", uri, test.uri)
 				}
 			}

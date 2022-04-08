@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-func generate(p Params) string {
+// GeneratePath generate Imagor path by Params struct
+func GeneratePath(p Params) string {
 	var parts []string
 	if p.Meta {
 		parts = append(parts, "meta")
@@ -91,11 +92,11 @@ func generate(p Params) string {
 
 // GenerateUnsafe generate unsafe Imagor endpoint by Params struct
 func GenerateUnsafe(p Params) string {
-	return "unsafe/" + generate(p)
+	return "unsafe/" + GeneratePath(p)
 }
 
 // Generate Imagor endpoint with signature by Params struct with secret
 func Generate(p Params, secret string) string {
-	imgPath := generate(p)
+	imgPath := GeneratePath(p)
 	return Sign(imgPath, secret) + "/" + imgPath
 }

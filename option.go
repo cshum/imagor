@@ -101,6 +101,12 @@ func WithUnsafe(unsafe bool) Option {
 	}
 }
 
+func WithAutoWebP(enable bool) Option {
+	return func(o *Imagor) {
+		o.AutoWebP = enable
+	}
+}
+
 func WithSecret(secret string) Option {
 	return func(o *Imagor) {
 		o.Secret = secret

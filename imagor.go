@@ -61,6 +61,7 @@ type Imagor struct {
 	ProcessTimeout     time.Duration
 	CacheHeaderTTL     time.Duration
 	ProcessConcurrency int64
+	AutoWebP           bool
 	Logger             *zap.Logger
 	Debug              bool
 
@@ -188,6 +189,24 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", imagorpath.Sign(p.Path, app.Secret)))
 		}
 		return
+	}
+	// auto WebP
+	if app.AutoWebP {
+		if accept := r.Header.Get("Accept"); strings.Contains(accept, "image/webp") {
+			var hasFormat bool
+			for _, f := range p.Filters {
+				if f.Name == "format" {
+					hasFormat = true
+				}
+			}
+			if !hasFormat {
+				p.Filters = append(p.Filters, imagorpath.Filter{
+					Name: "format",
+					Args: "webp",
+				})
+				p.Path = imagorpath.GeneratePath(p)
+			}
+		}
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
 	load := func(image string) (*Blob, error) {

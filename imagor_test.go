@@ -414,6 +414,73 @@ func TestWithSameStore(t *testing.T) {
 	})
 }
 
+func TestAutoWebP(t *testing.T) {
+	factory := func(isAuto bool) *Imagor {
+		return New(
+			WithDebug(true),
+			WithUnsafe(true),
+			WithAutoWebP(isAuto),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobBytes([]byte("foo")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobBytes([]byte(p.Path)), nil
+			})),
+			WithDebug(true))
+	}
+
+	t.Run("supported auto img tag not enabled", func(t *testing.T) {
+		app := factory(false)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+	t.Run("supported auto img tag", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
+	})
+	t.Run("supported not image tag auto", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
+	})
+	t.Run("no supported no auto", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/apng,image/svg+xml,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+	t.Run("explicit format no auto", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/filters:format(jpg)/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "filters:format(jpg)/abc.png")
+	})
+}
+
 func TestWithLoadTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.String(), "sleep") {
