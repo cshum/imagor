@@ -54,6 +54,8 @@ func main() {
 			time.Second*20, "Timeout for saving image to Imagor Storage")
 		imagorProcessTimeout = fs.Duration("imagor-process-timeout",
 			time.Second*20, "Timeout for image processing")
+		imagorBasePathRedirect = fs.String("imagor-base-path-redirect", "",
+			"URL to redirect for Imagor / base path e.g. https://www.google.com")
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
 			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
@@ -433,6 +435,7 @@ func main() {
 			imagor.WithResultLoaders(resultLoaders...),
 			imagor.WithResultSavers(resultSavers...),
 			imagor.WithSecret(*imagorSecret),
+			imagor.WithBasePathRedirect(*imagorBasePathRedirect),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithLoadTimeout(*imagorLoadTimeout),
 			imagor.WithSaveTimeout(*imagorSaveTimeout),
