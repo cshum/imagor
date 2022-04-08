@@ -22,6 +22,7 @@ func TestWithLoadTimeout(t *testing.T) {
 		if strings.Contains(r.URL.String(), "sleep") {
 			time.Sleep(time.Millisecond * 50)
 		}
+		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write([]byte("ok"))
 	}))
 	defer ts.Close()
