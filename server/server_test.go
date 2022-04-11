@@ -108,7 +108,7 @@ func TestWithStripQueryString(t *testing.T) {
 
 	w = httptest.NewRecorder()
 	s.Handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/?a=1&b=2", nil))
-	assert.Equal(t, http.StatusPermanentRedirect, w.Code)
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
 	assert.Equal(t, "https://example.com/", w.Header().Get("Location"))
 }
 

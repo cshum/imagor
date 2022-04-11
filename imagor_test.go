@@ -174,6 +174,20 @@ func TestVersion(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf(`{"imagor":{"version":"%s"}}`, Version), w.Body.String())
 }
 
+func TestWithBasePathRedirect(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithBasePathRedirect("https://www.bar.com"),
+		WithLogger(zap.NewExample()),
+	)
+	r := httptest.NewRequest(
+		http.MethodGet, "https://foo.com/", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+	assert.Equal(t, "https://www.bar.com", w.Header().Get("Location"))
+}
+
 func TestParams(t *testing.T) {
 	app := New(
 		WithDebug(true),

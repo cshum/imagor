@@ -120,7 +120,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				`{"imagor":{"version":"%s"}}`, Version,
 			)))
 		} else {
-			http.Redirect(w, r, app.BasePathRedirect, http.StatusPermanentRedirect)
+			http.Redirect(w, r, app.BasePathRedirect, http.StatusTemporaryRedirect)
 		}
 		return
 	}
