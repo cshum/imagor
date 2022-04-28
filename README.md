@@ -205,7 +205,7 @@ services:
       - "8000:8000"
 ```
 
-##### Custom Endpoint
+##### Custom S3 Endpoint
 
 Configure Custom S3 Endpoint for S3 compatible such as MinIO, DigitalOcean Space:
 ```yaml
