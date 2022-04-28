@@ -207,17 +207,16 @@ services:
 
 ##### Custom S3 Endpoint
 
-Configure Custom S3 Endpoint for S3 compatible such as MinIO, DigitalOcean Space:
+Configure custom S3 endpoint for S3 compatible such as MinIO, DigitalOcean Space:
 ```yaml
       S3_ENDPOINT: http://minio:9000
       S3_FORCE_PATH_STYLE: 1
 ```
-
-By default, S3 prepends bucket name as subdomain to the request URL: 
+By default, S3 prepends bucket name as subdomain to the request URL:
 ```
 http://mybucket.minio:9000/image.jpg
 ```
-This may not be a desirable behaviour for a self-hosted endpoint such as MinIO. Switch to [path-style requests](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html#path-style-access) by setting `S3_FORCE_PATH_STYLE=1`, so that the request URL becomes compatible:
+this may not be desirable for a self-hosted endpoint. You can also switch to [path-style requests](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html#path-style-access) using `S3_FORCE_PATH_STYLE=1` such that the host remains unchanged:
 ```
 http://minio:9000/mybucket/image.jpg
 ```
