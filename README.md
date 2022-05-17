@@ -293,139 +293,63 @@ imagor -debug -imagor-secret 1234
 DEBUG=1 IMAGOR_SECRET=1234 imagor
 ```
 
-Available options:
+### Config file
+
+Configuration may be specified in a configuration file and referenced with the `-config` flag. The format of the config file is described in https://github.com/peterbourgon/ff#usage.
+
+```plain text
+port 8000
+imagor-secret mysecret
+aws-access-key-id ...
+aws-secret-access-key ...
+aws-region ...
+```
+
+```bash
+imagor -config path/to/config_file
+```
+
+#### Available options
 
 ```
 imagor -h
 Usage of imagor:
+  -aws-access-key-id string
+        AWS Access Key ID. Required if using S3 Loader or Storage
+  -aws-region string
+        AWS Region. Required if using S3 Loader or storage
+  -aws-secret-access-key string
+        AWS Secret Access Key. Required if using S3 Loader or Storage
+  -config string
+        Retrieve configuration from the given file
   -debug
         Debug mode
-  -port int
-        Sever port (default 8000)
-  -version
-        Imagor version
-
-  -imagor-secret string
-        Secret key for signing Imagor URL
-  -imagor-unsafe
-        Unsafe Imagor that does not require URL signature. Prone to URL tampering
-  -imagor-auto-webp
-        Output WebP format automatically if browser supports
-  -imagor-cache-header-ttl duration
-        Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
-  -imagor-request-timeout duration
-        Timeout for performing Imagor request (default 30s)
-  -imagor-load-timeout duration
-        Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
-  -imagor-save-timeout duration
-        Timeout for saving image to Imagor Storage (default 20s)
-  -imagor-process-timeout duration
-        Timeout for image processing (default 20s)
-  -imagor-process-concurrency int
-        Imagor semaphore size for process concurrency control. Set -1 for no limit (default -1)
-  -imagor-base-path-redirect string
-        URL to redirect for Imagor / base path e.g. https://www.google.com
-
-  -server-address string
-        Server address
-  -server-cors
-        Enable CORS
-  -server-strip-query-string
-        Enable strip query string redirection
-  -server-path-prefix string
-        Server path prefix
-  -server-access-log
-        Enable server access log
-
-  -http-loader-allowed-sources string
-        HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
-  -http-loader-forward-headers string
-        Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
-  -http-loader-forward-client-headers
-        Forward browser client request headers to HTTP Loader request
-  -http-loader-insecure-skip-verify-transport
-        HTTP Loader to use HTTP transport with InsecureSkipVerify true
-  -http-loader-max-allowed-size int
-        HTTP Loader maximum allowed size in bytes for loading images if set
-  -http-loader-proxy-urls string
-        HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port
-  -http-loader-proxy-allowed-sources string
-        HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
-  -http-loader-default-scheme string
-        HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
-  -http-loader-accept string
-        HTTP Loader set request Accept header and validate response Content-Type header (default "image/*")
-  -http-loader-disable
-        Disable HTTP Loader
-
-  -file-safe-chars string
-        File safe characters to be excluded from image key escape
   -file-loader-base-dir string
         Base directory for File Loader. Enable File Loader only if this value present
   -file-loader-path-prefix string
         Base path prefix for File Loader
   -file-result-storage-base-dir string
         Base directory for File Result Storage. Enable File Result Storage only if this value present
+  -file-result-storage-expiration duration
+        File Result Storage expiration duration e.g. 24h. Default no expiration
   -file-result-storage-mkdir-permission string
         File Result Storage mkdir permission (default "0755")
   -file-result-storage-path-prefix string
         Base path prefix for File Result Storage
   -file-result-storage-write-permission string
         File Storage write permission (default "0666")
-  -file-result-storage-expiration duration
-        File Result Storage expiration duration e.g. 24h. Default no expiration
+  -file-safe-chars string
+        File safe characters to be excluded from image key escape
   -file-storage-base-dir string
         Base directory for File Storage. Enable File Storage only if this value present
-  -file-storage-path-prefix string
-        Base path prefix for File Storage
-  -file-storage-mkdir-permission string
-        File Storage mkdir permission (default "0755")
-  -file-storage-write-permission string
-        File Storage write permission (default "0666")
   -file-storage-expiration duration
         File Storage expiration duration e.g. 24h. Default no expiration
-
-  -aws-access-key-id string
-        AWS Access Key ID. Required if using S3 Loader or S3 Storage
-  -aws-region string
-        AWS Region. Required if using S3 Loader or S3 Storage
-  -aws-secret-access-key string
-        AWS Secret Access Key. Required if using S3 Loader or S3 Storage
-  -s3-endpoint string
-        Optional S3 Endpoint to override default
-  -s3-safe-chars string
-        S3 safe characters to be excluded from image key escape
-  -s3-force-path-style
-        S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key
-  -s3-loader-bucket string
-        S3 Bucket for S3 Loader. Enable S3 Loader only if this value present
-  -s3-loader-base-dir string
-        Base directory for S3 Loader
-  -s3-loader-path-prefix string
-        Base path prefix for S3 Loader
-  -s3-result-storage-bucket string
-        S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
-  -s3-result-storage-base-dir string
-        Base directory for S3 Result Storage
-  -s3-result-storage-path-prefix string
-        Base path prefix for S3 Result Storage
-  -s3-result-storage-acl string
-        Upload ACL for S3 Result Storage (default "public-read")
-  -s3-result-storage-expiration duration
-        S3 Result Storage expiration duration e.g. 24h. Default no expiration
-  -s3-storage-bucket string
-        S3 Bucket for S3 Storage. Enable S3 Storage only if this value present
-  -s3-storage-base-dir string
-        Base directory for S3 Storage
-  -s3-storage-path-prefix string
-        Base path prefix for S3 Storage
-  -s3-storage-acl string
-        Upload ACL for S3 Storage (default "public-read")
-  -s3-storage-expiration duration
-        S3 Storage expiration duration e.g. 24h. Default no expiration
-
-  -gcloud-safe-chars string
-        Google Cloud safe characters to be excluded from image key escape
+  -file-storage-mkdir-permission string
+        File Storage mkdir permission (default "0755")
+  -file-storage-path-prefix string
+        Base path prefix for File Storage
+  -file-storage-write-permission string
+        File Storage write permission (default "0666")
   -gcloud-loader-base-dir string
         Base directory for Google Cloud Loader
   -gcloud-loader-bucket string
@@ -442,6 +366,8 @@ Usage of imagor:
         Google Cloud Result Storage expiration duration e.g. 24h. Default no expiration
   -gcloud-result-storage-path-prefix string
         Base path prefix for Google Cloud Result Storage
+  -gcloud-safe-chars string
+        Google Cloud safe characters to be excluded from image key escape
   -gcloud-storage-acl string
         Upload ACL for Google Cloud Storage
   -gcloud-storage-base-dir string
@@ -452,27 +378,116 @@ Usage of imagor:
         Google Cloud Storage expiration duration e.g. 24h. Default no expiration
   -gcloud-storage-path-prefix string
         Base path prefix for Google Cloud Storage
-        
-  -vips-max-animation-frames int
-        VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited.
+  -gomaxprocs int
+        GOMAXPROCS
+  -http-loader-accept string
+        HTTP Loader set request Accept header and validate response Content-Type header (default "image/*")
+  -http-loader-allowed-sources string
+        HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
+  -http-loader-default-scheme string
+        HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
+  -http-loader-disable
+        Disable HTTP Loader
+  -http-loader-forward-all-headers
+        Deprecated in flavour of -http-loader-forward-client-headers
+  -http-loader-forward-client-headers
+        Forward browser client request headers to HTTP Loader request
+  -http-loader-forward-headers string
+        Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
+  -http-loader-insecure-skip-verify-transport
+        HTTP Loader to use HTTP transport with InsecureSkipVerify true
+  -http-loader-max-allowed-size int
+        HTTP Loader maximum allowed size in bytes for loading images if set
+  -http-loader-proxy-allowed-sources string
+        HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
+  -http-loader-proxy-urls string
+        HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port
+  -imagor-auto-webp
+        Output WebP format automatically if browser supports
+  -imagor-base-path-redirect string
+        URL to redirect for Imagor / base path e.g. https://www.google.com
+  -imagor-cache-header-ttl duration
+        Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
+  -imagor-load-timeout duration
+        Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
+  -imagor-process-concurrency int
+        Imagor semaphore size for process concurrency control. Set -1 for no limit (default -1)
+  -imagor-process-timeout duration
+        Timeout for image processing (default 20s)
+  -imagor-request-timeout duration
+        Timeout for performing Imagor request (default 30s)
+  -imagor-save-timeout duration
+        Timeout for saving image to Imagor Storage (default 20s)
+  -imagor-secret string
+        Secret key for signing Imagor URL
+  -imagor-unsafe
+        Unsafe Imagor that does not require URL signature. Prone to URL tampering
+  -port int
+        Sever port (default 8000)
+  -s3-endpoint string
+        Optional S3 Endpoint to override default
+  -s3-force-path-style
+        S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key
+  -s3-loader-base-dir string
+        Base directory for S3 Loader
+  -s3-loader-bucket string
+        S3 Bucket for S3 Loader. Enable S3 Loader only if this value present
+  -s3-loader-path-prefix string
+        Base path prefix for S3 Loader
+  -s3-result-storage-acl string
+        Upload ACL for S3 Result Storage (default "public-read")
+  -s3-result-storage-base-dir string
+        Base directory for S3 Result Storage
+  -s3-result-storage-bucket string
+        S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
+  -s3-result-storage-expiration duration
+        S3 Result Storage expiration duration e.g. 24h. Default no expiration
+  -s3-result-storage-path-prefix string
+        Base path prefix for S3 Result Storage
+  -s3-safe-chars string
+        S3 safe characters to be excluded from image key escape
+  -s3-storage-acl string
+        Upload ACL for S3 Storage (default "public-read")
+  -s3-storage-base-dir string
+        Base directory for S3 Storage
+  -s3-storage-bucket string
+        S3 Bucket for S3 Storage. Enable S3 Storage only if this value present
+  -s3-storage-expiration duration
+        S3 Storage expiration duration e.g. 24h. Default no expiration
+  -s3-storage-path-prefix string
+        Base path prefix for S3 Storage
+  -server-access-log
+        Enable server access log
+  -server-address string
+        Server address
+  -server-cors
+        Enable CORS
+  -server-path-prefix string
+        Server path prefix
+  -server-strip-query-string
+        Enable strip query string redirection
+  -version
+        Imagor version
+  -vips-concurrency int
+        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string
         VIPS disable filters by csv e.g. blur,watermark,rgb
-  -vips-max-filter-ops int
-        VIPS maximum number of filter operations allowed (default 10)
-  -vips-max-height int
-        VIPS max image height
-  -vips-max-width int
-        VIPS max image width
-  -vips-concurrency int
-        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
+  -vips-max-animation-frames int
+        VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited. (default -1)
   -vips-max-cache-files int
         VIPS max cache files
   -vips-max-cache-mem int
         VIPS max cache mem
   -vips-max-cache-size int
         VIPS max cache size
+  -vips-max-filter-ops int
+        VIPS maximum number of filter operations allowed (default 10)
+  -vips-max-height int
+        VIPS max image height
+  -vips-max-width int
+        VIPS max image width
   -vips-mozjpeg
-        VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
+        VIPS enable maximum compression with MozJPEG for JPEG export
 ```

@@ -1,10 +1,14 @@
 package main
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"runtime"
+	"time"
+
+	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -18,9 +22,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
-	"os"
-	"runtime"
-	"time"
 )
 
 func main() {
@@ -41,6 +42,8 @@ func main() {
 		version      = fs.Bool("version", false, "Imagor version")
 		port         = fs.Int("port", 8000, "Sever port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
+
+		_ = fs.String("config", "", "Retrieve configuration from the given file")
 
 		imagorSecret = fs.String("imagor-secret", "",
 			"Secret key for signing Imagor URL")
@@ -224,7 +227,13 @@ func main() {
 			"File Result Storage expiration duration e.g. 24h. Default no expiration")
 	)
 
-	if err = ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
+	ffOpts := []ff.Option{
+		ff.WithEnvVarNoPrefix(),
+		ff.WithConfigFileFlag("config"),
+		ff.WithConfigFileParser(ff.PlainParser),
+	}
+
+	if err = ff.Parse(fs, os.Args[1:], ffOpts...); err != nil {
 		panic(err)
 	}
 
