@@ -63,6 +63,7 @@ type Imagor struct {
 	CacheHeaderTTL     time.Duration
 	ProcessConcurrency int64
 	AutoWebP           bool
+	AutoAvif           bool
 	Logger             *zap.Logger
 	Debug              bool
 
@@ -198,16 +199,23 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return
 	}
-	// auto WebP
-	if app.AutoWebP {
-		if accept := r.Header.Get("Accept"); strings.Contains(accept, "image/webp") {
-			var hasFormat bool
-			for _, f := range p.Filters {
-				if f.Name == "format" {
-					hasFormat = true
-				}
+	// auto WebP / Avif
+	if app.AutoWebP || app.AutoAvif {
+		var hasFormat bool
+		for _, f := range p.Filters {
+			if f.Name == "format" {
+				hasFormat = true
 			}
-			if !hasFormat {
+		}
+		if !hasFormat {
+			accept := r.Header.Get("Accept")
+			if strings.Contains(accept, "image/avif") && app.AutoAvif {
+				p.Filters = append(p.Filters, imagorpath.Filter{
+					Name: "format",
+					Args: "avif",
+				})
+				p.Path = imagorpath.GeneratePath(p)
+			} else if strings.Contains(accept, "image/webp") && app.AutoWebP {
 				p.Filters = append(p.Filters, imagorpath.Filter{
 					Name: "format",
 					Args: "webp",

@@ -107,6 +107,12 @@ func WithAutoWebP(enable bool) Option {
 	}
 }
 
+func WithAutoAvif(enable bool) Option {
+	return func(o *Imagor) {
+		o.AutoAvif = enable
+	}
+}
+
 func WithSecret(secret string) Option {
 	return func(o *Imagor) {
 		o.Secret = secret
