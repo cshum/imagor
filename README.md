@@ -293,7 +293,7 @@ imagor -debug -imagor-secret 1234
 DEBUG=1 IMAGOR_SECRET=1234 imagor
 ```
 
-### Config file
+#### Config file
 
 Configuration may be specified in a configuration file and referenced with the `-config` flag. The format of the config file is described in https://github.com/peterbourgon/ff#usage.
 
