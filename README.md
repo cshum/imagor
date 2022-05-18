@@ -109,7 +109,7 @@ Imagor supports the following filters:
     - If color is "blur" - missing parts are filled with blurred original image.
     - If color is "auto" - the top left image pixel will be chosen as the filling color
 - `format(format)` specifies the output format of the image
-  - `format` accepts jpeg, png, gif, webp, jp2, tiff
+  - `format` accepts jpeg, png, gif, webp, jp2, tiff, avif
 - `frames(n[, delay])` set the number of frames to repeat for animation with gif or webp. Otherwise, stack all the frames vertically
   - `n` number of frames to repeat
   - `delay` frames delay in milliseconds, default 100
@@ -311,6 +311,8 @@ Usage of imagor:
         Unsafe Imagor that does not require URL signature. Prone to URL tampering
   -imagor-auto-webp
         Output WebP format automatically if browser supports
+  -imagor-auto-avif
+        Output Avif format automatically if browser supports
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
   -imagor-request-timeout duration
