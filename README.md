@@ -1,6 +1,6 @@
 # Imagor
 
-[![Build Status](https://github.com/cshum/imagor/workflows/build/badge.svg)](https://github.com/cshum/imagor/actions)
+[![Build Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions)
 [![Docker](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 
 Imagor is a fast, Docker-ready image processing server written in Go.

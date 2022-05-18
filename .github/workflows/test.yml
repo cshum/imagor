@@ -1,10 +1,10 @@
-name: build
+name: test
 
 on: [push, pull_request]
 
 jobs:
   build:
-    name: Build
+    name: Test
     runs-on: ${{ matrix.os }}
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
