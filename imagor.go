@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/davidbyttow/govips/v2/vips"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
@@ -148,7 +147,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			contentType := http.DetectContentType(buf)
 			// mimesniff can't detect avif images
 			if contentType == "application/octet-stream" {
-				if t := vips.DetermineImageType(buf); t == vips.ImageTypeAVIF {
+				if file.IsAVIF() {
 					contentType = "image/avif"
 				}
 			}
