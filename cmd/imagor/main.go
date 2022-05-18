@@ -49,7 +49,7 @@ func main() {
 		imagorAutoWebP = fs.Bool("imagor-auto-webp", false,
 			"Output WebP format automatically if browser supports")
 		imagorAutoAvif = fs.Bool("imagor-auto-avif", false,
-			"Output Avif format automatically if browser supports")
+			"Output Avif format automatically if browser supports (experimental)")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
 			time.Second*30, "Timeout for performing Imagor request")
 		imagorLoadTimeout = fs.Duration("imagor-load-timeout",
@@ -97,7 +97,7 @@ func main() {
 		vipsMaxHeight = fs.Int("vips-max-height", 0,
 			"VIPS max image height")
 		vipsMozJPEG = fs.Bool("vips-mozjpeg", false,
-			"VIPS enable maximum compression with MozJPEG for JPEG export")
+			"VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed")
 
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
