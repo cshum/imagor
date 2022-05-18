@@ -3,8 +3,7 @@ FROM golang:${GOLANG_VERSION}-bullseye as builder
 
 ARG VIPS_VERSION=8.12.2
 
-ARG TARGETPLATFORM
-ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
+ARG RUN_TEST
 
 # libaom3 is in Debian bullseye-backports 
 RUN echo 'deb http://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list
@@ -45,7 +44,7 @@ RUN go mod download
 
 COPY . .
 
-RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then go test ./...; fi
+RUN if [ "$RUN_TEST" = 1 ]; then go test ./...; fi
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
 FROM debian:bullseye-slim
