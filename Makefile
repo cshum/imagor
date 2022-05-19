@@ -14,7 +14,7 @@ get:
 	go get -v -t -d ./...
 
 docker-dev-build:
-	docker build -t shumc/imagor:dev .
+	docker build --build-arg RUN_TEST=1 -t shumc/imagor:dev .
 
 docker-dev-run:
 	touch .env
@@ -25,7 +25,7 @@ docker-dev: docker-dev-build docker-dev-run
 %-tag: VERSION:=$(if $(VERSION),$(VERSION),$$(./bin/imagor -version))
 
 docker-build-tag:
-	docker build --no-cache=true -t shumc/imagor:$(VERSION) .
+	docker build --no-cache=true --build-arg RUN_TEST=1 -t shumc/imagor:$(VERSION) .
 
 docker-push-tag:
 	docker push shumc/imagor:$(VERSION)

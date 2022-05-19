@@ -1,6 +1,6 @@
 # Imagor
 
-[![Build Status](https://github.com/cshum/imagor/workflows/build/badge.svg)](https://github.com/cshum/imagor/actions)
+[![Build Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions)
 [![Docker](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 
 Imagor is a fast, Docker-ready image processing server written in Go.
@@ -10,7 +10,7 @@ Imagor uses one of the most efficient image processing library
 
 Imagor is a Go application that is highly optimized for concurrent requests. It is ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
 
-Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the web image processing use cases. If these fit your requirements, Imagor would be a lightweight, high performance drop-in replacement.
+Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and covers most of the web image processing cases representing a lightweight, high-performance drop-in replacement.
 
 ### Quick Start
 
@@ -109,7 +109,7 @@ Imagor supports the following filters:
     - If color is "blur" - missing parts are filled with blurred original image.
     - If color is "auto" - the top left image pixel will be chosen as the filling color
 - `format(format)` specifies the output format of the image
-  - `format` accepts jpeg, png, gif, webp, jp2, tiff
+  - `format` accepts jpeg, png, gif, webp, jp2, tiff, avif
 - `frames(n[, delay])` set the number of frames to repeat for animation with gif or webp. Otherwise, stack all the frames vertically
   - `n` number of frames to repeat
   - `delay` frames delay in milliseconds, default 100
@@ -324,6 +324,68 @@ Usage of imagor:
         Retrieve configuration from the given file
   -debug
         Debug mode
+  -port int
+        Sever port (default 8000)
+  -version
+        Imagor version
+
+  -imagor-secret string
+        Secret key for signing Imagor URL
+  -imagor-unsafe
+        Unsafe Imagor that does not require URL signature. Prone to URL tampering
+  -imagor-auto-webp
+        Output WebP format automatically if browser supports
+  -imagor-auto-avif
+        Output Avif format automatically if browser supports (experimental)
+  -imagor-cache-header-ttl duration
+        Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
+  -imagor-request-timeout duration
+        Timeout for performing Imagor request (default 30s)
+  -imagor-load-timeout duration
+        Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
+  -imagor-save-timeout duration
+        Timeout for saving image to Imagor Storage (default 20s)
+  -imagor-process-timeout duration
+        Timeout for image processing (default 20s)
+  -imagor-process-concurrency int
+        Imagor semaphore size for process concurrency control. Set -1 for no limit (default -1)
+  -imagor-base-path-redirect string
+        URL to redirect for Imagor / base path e.g. https://www.google.com
+
+  -server-address string
+        Server address
+  -server-cors
+        Enable CORS
+  -server-strip-query-string
+        Enable strip query string redirection
+  -server-path-prefix string
+        Server path prefix
+  -server-access-log
+        Enable server access log
+
+  -http-loader-allowed-sources string
+        HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
+  -http-loader-forward-headers string
+        Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
+  -http-loader-forward-client-headers
+        Forward browser client request headers to HTTP Loader request
+  -http-loader-insecure-skip-verify-transport
+        HTTP Loader to use HTTP transport with InsecureSkipVerify true
+  -http-loader-max-allowed-size int
+        HTTP Loader maximum allowed size in bytes for loading images if set
+  -http-loader-proxy-urls string
+        HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port
+  -http-loader-proxy-allowed-sources string
+        HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
+  -http-loader-default-scheme string
+        HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
+  -http-loader-accept string
+        HTTP Loader set request Accept header and validate response Content-Type header (default "image/*")
+  -http-loader-disable
+        Disable HTTP Loader
+
+  -file-safe-chars string
+        File safe characters to be excluded from image key escape
   -file-loader-base-dir string
         Base directory for File Loader. Enable File Loader only if this value present
   -file-loader-path-prefix string

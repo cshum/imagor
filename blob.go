@@ -15,6 +15,7 @@ type Blob struct {
 
 	supportsAnimation bool
 	isPNG             bool
+	isAVIF            bool
 
 	Meta *Meta
 }
@@ -45,6 +46,14 @@ var gifHeader = []byte("\x47\x49\x46")
 var webpHeader = []byte("\x57\x45\x42\x50")
 var pngHeader = []byte("\x89\x50\x4E\x47")
 
+// https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
+var ftyp = []byte("ftyp")
+var avif = []byte("avif")
+
+//var heic = []byte("heic")
+//var mif1 = []byte("mif1")
+//var msf1 = []byte("msf1")
+
 func (b *Blob) readAllOnce() {
 	b.once.Do(func() {
 		if len(b.buf) == 0 {
@@ -62,6 +71,8 @@ func (b *Blob) readAllOnce() {
 				b.supportsAnimation = true
 			} else if bytes.HasPrefix(b.buf, pngHeader) {
 				b.isPNG = true
+			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
+				b.isAVIF = true
 			}
 		}
 	})
@@ -80,6 +91,11 @@ func (b *Blob) SupportsAnimation() bool {
 func (b *Blob) IsPNG() bool {
 	b.readAllOnce()
 	return b.isPNG
+}
+
+func (b *Blob) IsAVIF() bool {
+	b.readAllOnce()
+	return b.isAVIF
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {

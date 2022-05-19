@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-const Version = "0.8.16"
+const Version = "0.8.17"
 
 // Loader load image from source
 type Loader interface {
@@ -62,6 +62,7 @@ type Imagor struct {
 	CacheHeaderTTL     time.Duration
 	ProcessConcurrency int64
 	AutoWebP           bool
+	AutoAvif           bool
 	Logger             *zap.Logger
 	Debug              bool
 
@@ -143,7 +144,14 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", file.Meta.ContentType)
 			}
 		} else if ln > 0 {
-			w.Header().Set("Content-Type", http.DetectContentType(buf))
+			contentType := http.DetectContentType(buf)
+			// mimesniff can't detect avif images
+			if contentType == "application/octet-stream" {
+				if file.IsAVIF() {
+					contentType = "image/avif"
+				}
+			}
+			w.Header().Set("Content-Type", contentType)
 		}
 	}
 	if err != nil {
@@ -190,16 +198,23 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return
 	}
-	// auto WebP
-	if app.AutoWebP {
-		if accept := r.Header.Get("Accept"); strings.Contains(accept, "image/webp") {
-			var hasFormat bool
-			for _, f := range p.Filters {
-				if f.Name == "format" {
-					hasFormat = true
-				}
+	// auto WebP / Avif
+	if app.AutoWebP || app.AutoAvif {
+		var hasFormat bool
+		for _, f := range p.Filters {
+			if f.Name == "format" {
+				hasFormat = true
 			}
-			if !hasFormat {
+		}
+		if !hasFormat {
+			accept := r.Header.Get("Accept")
+			if strings.Contains(accept, "image/avif") && app.AutoAvif {
+				p.Filters = append(p.Filters, imagorpath.Filter{
+					Name: "format",
+					Args: "avif",
+				})
+				p.Path = imagorpath.GeneratePath(p)
+			} else if strings.Contains(accept, "image/webp") && app.AutoWebP {
 				p.Filters = append(p.Filters, imagorpath.Filter{
 					Name: "format",
 					Args: "webp",
