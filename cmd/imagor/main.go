@@ -19,7 +19,6 @@ import (
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/cshum/imagor/storage/gcloudstorage"
 	"github.com/cshum/imagor/storage/s3storage"
-	"github.com/joho/godotenv"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
 )
@@ -34,8 +33,6 @@ func main() {
 		resultLoaders []imagor.Loader
 		resultSavers  []imagor.Saver
 	)
-
-	_ = godotenv.Load()
 
 	var (
 		debug        = fs.Bool("debug", false, "Debug mode")
@@ -232,7 +229,7 @@ func main() {
 	ffOpts := []ff.Option{
 		ff.WithEnvVarNoPrefix(),
 		ff.WithConfigFileFlag("config"),
-		ff.WithConfigFileParser(ff.PlainParser),
+		ff.WithConfigFileParser(ff.EnvParser),
 	}
 
 	if err = ff.Parse(fs, os.Args[1:], ffOpts...); err != nil {
