@@ -295,18 +295,18 @@ DEBUG=1 IMAGOR_SECRET=1234 imagor
 
 #### Config file
 
-Configuration may be specified in a configuration file and referenced with the `-config` flag. The format of the config file is described in https://github.com/peterbourgon/ff#usage.
+Configuration may be specified in a .env configuration file and referenced with the `-config` flag. The format of the config file is described in https://pkg.go.dev/github.com/peterbourgon/ff/v3@v3.2.0-rc.1#EnvParser
 
 ```plain text
-port 8000
-imagor-secret mysecret
-aws-access-key-id ...
-aws-secret-access-key ...
-aws-region ...
+PORT=8000
+IMAGOR_SECRET=mysecret
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=...
 ```
 
 ```bash
-imagor -config path/to/config_file
+imagor -config path/to/config.env
 ```
 
 #### Available options
