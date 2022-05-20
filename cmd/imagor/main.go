@@ -227,7 +227,7 @@ func main() {
 	)
 
 	ffOpts := []ff.Option{
-		ff.WithEnvVarNoPrefix(),
+		ff.WithEnvVars(),
 		ff.WithConfigFileFlag("config"),
 		ff.WithConfigFileParser(ff.EnvParser),
 	}
