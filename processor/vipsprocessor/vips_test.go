@@ -113,7 +113,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
 		{"resize smart", "100x100/smart/filters:autojpg()/gopher.png"},
 		{"resize top", "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
-		{"resize top", "200x100/right/top/filters:quality(70):format(webp)/gopher.png"},
+		{"resize top", "200x100/right/top/gopher.png"},
 		{"resize bottom", "200x100/bottom/gopher.png"},
 		{"resize bottom", "200x100/left/bottom/gopher.png"},
 		{"resize left", "100x200/left/gopher.png"},
