@@ -6,8 +6,7 @@ require (
 	cloud.google.com/go/storage v1.21.0
 	github.com/aws/aws-sdk-go v1.42.15
 	github.com/davidbyttow/govips/v2 v2.10.1-0.20220204170604-2bff6b1f9584
-	github.com/joho/godotenv v1.4.0
-	github.com/peterbourgon/ff/v3 v3.1.2
+	github.com/peterbourgon/ff/v3 v3.2.0-rc.1
 	github.com/rs/cors v1.8.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.19.1
