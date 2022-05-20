@@ -9,15 +9,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"image"
 	"net/http"
 	"net/http/httptest"
-	"os/exec"
+	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
-	"strings"
 	"testing"
+
+	_ "golang.org/x/image/tiff"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 )
 
 var testDataDir string
@@ -27,27 +30,30 @@ func init() {
 	testDataDir = filepath.Join(filepath.Dir(b), "../../testdata")
 }
 
-func getEnvironment() string {
-	switch runtime.GOOS {
-	case "windows":
-		return "windows"
-	case "darwin":
-		out, err := exec.Command("sw_vers", "-productVersion").Output()
-		if err != nil {
-			return "macos-unknown"
+func pixelCompare(img1, img2 image.Image) (accuErr int64) {
+	b := img1.Bounds()
+	for i := 0; i < b.Dx(); i++ {
+		for j := 0; j < b.Dy(); j++ {
+			r1, g1, b1, a1 := img1.At(i, j).RGBA()
+			r2, g2, b2, a2 := img2.At(i, j).RGBA()
+			dr, dg, db, da := r1-r2, g1-g2, b1-b2, a1-a2
+			if dr < 0 {
+				dr = -dr
+			}
+			if dg < 0 {
+				dg = -dg
+			}
+			if db < 0 {
+				db = -db
+			}
+			if da < 0 {
+				da = -da
+			}
+			accuErr += int64(dr + dg + db + da)
 		}
-		majorVersion := strings.Split(strings.TrimSpace(string(out)), ".")[0]
-		return "macos-" + majorVersion
-	case "linux":
-		out, err := exec.Command("lsb_release", "-cs").Output()
-		if err != nil {
-			return "linux"
-		}
-		strout := strings.TrimSuffix(string(out), "\n")
-		return "linux-" + strout
 	}
-	// default to linux assets otherwise
-	return "linux"
+	fmt.Println(accuErr)
+	return
 }
 
 type test struct {
@@ -76,21 +82,23 @@ func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 			assert.Equal(t, 200, w.Code)
 			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
-			buf, err := ioutil.ReadFile(path)
+			//buf, err := ioutil.ReadFile(path)
+			existingImageFile, err := os.Open(path)
 			require.NoError(t, err)
-			if b := w.Body.Bytes(); !reflect.DeepEqual(buf, b) {
-				if len(b) < 512 {
-					t.Error(string(b))
-				} else {
-					t.Errorf("%s: not equal", path)
-				}
-			}
+			defer existingImageFile.Close()
+			img1, imageType, err := image.Decode(existingImageFile)
+			require.NoError(t, err)
+			img2, imageType2, err := image.Decode(w.Body)
+			require.NoError(t, err)
+			assert.Equal(t, imageType, imageType2, "%s %s", imageType, imageType2)
+			assert.Equalf(t, img1.Bounds(), img2.Bounds(), "image bounds not equal: %+v, %+v", img1.Bounds(), img2.Bounds())
+			assert.True(t, pixelCompare(img1, img2) < 10, "image pixel mismatch")
 		})
 	}
 }
 
 func TestVipsProcessor(t *testing.T) {
-	var resultDir = filepath.Join(testDataDir, "result", getEnvironment())
+	var resultDir = filepath.Join(testDataDir, "result")
 	var tests = []test{
 		{"original", "gopher-front.png"},
 		{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
@@ -162,7 +170,7 @@ func TestVipsProcessor(t *testing.T) {
 }
 
 func TestVipsProcessor_MaxFrames(t *testing.T) {
-	var resultDir = filepath.Join(testDataDir, "result-max-frames", getEnvironment())
+	var resultDir = filepath.Join(testDataDir, "result-max-frames")
 	var tests = []test{
 		{"original", "gopher-front.png"},
 		{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
@@ -176,7 +184,7 @@ func TestVipsProcessor_MaxFrames(t *testing.T) {
 }
 
 func TestVipsProcessor_MaxFramesLimited(t *testing.T) {
-	var resultDir = filepath.Join(testDataDir, "result-max-frames-limited", getEnvironment())
+	var resultDir = filepath.Join(testDataDir, "result-max-frames-limited")
 	var tests = []test{
 		{"original", "gopher-front.png"},
 		{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
