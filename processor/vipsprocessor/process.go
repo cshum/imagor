@@ -95,7 +95,7 @@ func (v *VipsProcessor) process(
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if i >= v.MaxFilterOps {
+		if v.MaxFilterOps > 0 && i >= v.MaxFilterOps {
 			if v.Debug {
 				v.Logger.Debug("max-filter-ops-exceeded",
 					zap.String("name", filter.Name), zap.String("args", filter.Args))

@@ -374,7 +374,7 @@ Usage of imagor:
   -http-loader-default-scheme string
         HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
   -http-loader-accept string
-        HTTP Loader set request Accept header and validate response Content-Type header (default "image/*")
+        HTTP Loader set request Accept header and validate response Content-Type header (default "image/*,application/pdf") 
   -http-loader-disable
         Disable HTTP Loader
 
@@ -474,13 +474,13 @@ Usage of imagor:
         Base path prefix for Google Cloud Storage
         
   -vips-max-animation-frames int
-        VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited.
+        VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited
   -vips-disable-blur
         VIPS disable blur operations for vips processor
   -vips-disable-filters string
         VIPS disable filters by csv e.g. blur,watermark,rgb
   -vips-max-filter-ops int
-        VIPS maximum number of filter operations allowed (default 10)
+        VIPS maximum number of filter operations allowed. Set -1 for unlimited (default -1)
   -vips-max-height int
         VIPS max image height
   -vips-max-width int

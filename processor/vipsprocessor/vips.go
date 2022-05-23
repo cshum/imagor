@@ -36,8 +36,8 @@ func New(options ...Option) *VipsProcessor {
 	v := &VipsProcessor{
 		MaxWidth:           9999,
 		MaxHeight:          9999,
-		MaxFilterOps:       10,
 		Concurrency:        1,
+		MaxFilterOps:       -1,
 		MaxAnimationFrames: -1,
 		Logger:             zap.NewNop(),
 	}
