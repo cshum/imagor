@@ -48,8 +48,8 @@ func main() {
 			"Unsafe Imagor that does not require URL signature. Prone to URL tampering")
 		imagorAutoWebP = fs.Bool("imagor-auto-webp", false,
 			"Output WebP format automatically if browser supports")
-		imagorAutoAvif = fs.Bool("imagor-auto-avif", false,
-			"Output Avif format automatically if browser supports (experimental)")
+		imagorAutoAVIF = fs.Bool("imagor-auto-avif", false,
+			"Output AVIF format automatically if browser supports (experimental)")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
 			time.Second*30, "Timeout for performing Imagor request")
 		imagorLoadTimeout = fs.Duration("imagor-load-timeout",
@@ -453,7 +453,7 @@ func main() {
 			imagor.WithProcessConcurrency(*imagorProcessConcurrency),
 			imagor.WithCacheHeaderTTL(*imagorCacheHeaderTTL),
 			imagor.WithAutoWebP(*imagorAutoWebP),
-			imagor.WithAutoAvif(*imagorAutoAvif),
+			imagor.WithAutoAVIF(*imagorAutoAVIF),
 			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),
 			imagor.WithDebug(*debug),

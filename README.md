@@ -330,7 +330,7 @@ Usage of imagor:
   -imagor-auto-webp
         Output WebP format automatically if browser supports
   -imagor-auto-avif
-        Output Avif format automatically if browser supports (experimental)
+        Output AVIF format automatically if browser supports (experimental)
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
   -imagor-request-timeout duration

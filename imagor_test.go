@@ -495,12 +495,12 @@ func TestAutoWebP(t *testing.T) {
 	})
 }
 
-func TestAutoAvif(t *testing.T) {
+func TestAutoAVIF(t *testing.T) {
 	factory := func(isAuto bool) *Imagor {
 		return New(
 			WithDebug(true),
 			WithUnsafe(true),
-			WithAutoAvif(isAuto),
+			WithAutoAVIF(isAuto),
 			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				return NewBlobBytes([]byte("foo")), nil
 			})),

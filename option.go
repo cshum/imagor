@@ -107,9 +107,9 @@ func WithAutoWebP(enable bool) Option {
 	}
 }
 
-func WithAutoAvif(enable bool) Option {
+func WithAutoAVIF(enable bool) Option {
 	return func(o *Imagor) {
-		o.AutoAvif = enable
+		o.AutoAVIF = enable
 	}
 }
 
