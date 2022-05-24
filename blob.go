@@ -40,15 +40,15 @@ type Meta struct {
 }
 
 func NewBlobFilePath(filepath string) *Blob {
-	return &Blob{path: filepath}
+	return &Blob{path: filepath, blobType: BlobTypeUnknown}
 }
 
 func NewBlobBytes(bytes []byte) *Blob {
-	return &Blob{buf: bytes}
+	return &Blob{buf: bytes, blobType: BlobTypeUnknown}
 }
 
 func NewBlobBytesWithMeta(bytes []byte, meta *Meta) *Blob {
-	return &Blob{buf: bytes, Meta: meta}
+	return &Blob{buf: bytes, Meta: meta, blobType: BlobTypeUnknown}
 }
 
 var jpegHeader = []byte("\xFF\xD8\xFF")
