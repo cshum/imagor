@@ -6,7 +6,7 @@ ARG CGIF_VERSION=0.3.0
 
 ARG RUN_TEST
 
-ARG PREFIX=/usr/local
+ENV PREFIX=/usr/local
 ENV PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 
 # libaom3 is in Debian bullseye-backports 
@@ -21,7 +21,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
   python3-pip ninja-build pkg-config \
   gobject-introspection gtk-doc-tools libglib2.0-dev libjpeg62-turbo-dev libpng-dev \
   libwebp-dev libtiff5-dev libexif-dev libxml2-dev libpoppler-glib-dev \
-  swig libmagickwand-dev libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev \
+  swig libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev \
   libgsf-1-dev fftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev/bullseye-backports libheif-dev && \
   pip3 install meson && \
   cd /tmp && \
@@ -74,7 +74,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
   apt-get install --no-install-recommends -y \
   procps libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr25 \
   libwebp6 libwebpmux3 libwebpdemux2 libtiff5 libexif12 libxml2 libpoppler-glib8 \
-  libmagickwand-6.q16-6 libpango1.0-0 libmatio11 libopenslide0 \
+  libpango1.0-0 libmatio11 libopenslide0 \
   libgsf-1-114 fftw3 liborc-0.4-0 librsvg2-2 libcfitsio9 libimagequant0 libaom3 libheif1 && \
   apt-get autoremove -y && \
   apt-get autoclean && \
