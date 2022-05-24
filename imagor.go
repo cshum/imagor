@@ -130,26 +130,34 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		resJSONIndent(w, p)
 		return
 	}
-	file, err := app.Do(r, p)
+	blob, err := app.Do(r, p)
 	var buf []byte
 	var ln int
-	if !IsBlobEmpty(file) {
-		buf, _ = file.ReadAll()
+	if !IsBlobEmpty(blob) {
+		buf, _ = blob.ReadAll()
 		ln = len(buf)
-		if file.Meta != nil {
+		if blob.Meta != nil {
 			if p.Meta {
-				resJSON(w, file.Meta)
+				resJSON(w, blob.Meta)
 				return
 			} else {
-				w.Header().Set("Content-Type", file.Meta.ContentType)
+				w.Header().Set("Content-Type", blob.Meta.ContentType)
 			}
 		} else if ln > 0 {
-			contentType := http.DetectContentType(buf)
-			// mimesniff can't detect avif images
-			if contentType == "application/octet-stream" {
-				if file.IsAVIF() {
-					contentType = "image/avif"
-				}
+			contentType := "application/octet-stream"
+			switch blob.BlobType() {
+			case BlobTypeJPEG:
+				contentType = "image/jpeg"
+			case BlobTypePNG:
+				contentType = "image/png"
+			case BlobTypeGIF:
+				contentType = "image/gif"
+			case BlobTypeWEBP:
+				contentType = "image/webp"
+			case BlobTypeAVIF:
+				contentType = "image/avif"
+			default:
+				contentType = http.DetectContentType(buf)
 			}
 			w.Header().Set("Content-Type", contentType)
 		}

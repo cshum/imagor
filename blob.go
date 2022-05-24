@@ -6,6 +6,17 @@ import (
 	"sync"
 )
 
+type BlobType int
+
+const (
+	BlobTypeUnknown BlobType = iota
+	BlobTypeJPEG
+	BlobTypePNG
+	BlobTypeGIF
+	BlobTypeWEBP
+	BlobTypeAVIF
+)
+
 // Blob abstraction for file path, bytes data and meta attributes
 type Blob struct {
 	path string
@@ -14,8 +25,7 @@ type Blob struct {
 	err  error
 
 	supportsAnimation bool
-	isPNG             bool
-	isAVIF            bool
+	blobType          BlobType
 
 	Meta *Meta
 }
@@ -50,10 +60,6 @@ var pngHeader = []byte("\x89\x50\x4E\x47")
 var ftyp = []byte("ftyp")
 var avif = []byte("avif")
 
-//var heic = []byte("heic")
-//var mif1 = []byte("mif1")
-//var msf1 = []byte("msf1")
-
 func (b *Blob) readAllOnce() {
 	b.once.Do(func() {
 		if len(b.buf) == 0 {
@@ -66,13 +72,19 @@ func (b *Blob) readAllOnce() {
 				return
 			}
 		}
-		if len(b.buf) > 24 && !bytes.HasPrefix(b.buf, jpegHeader) {
-			if bytes.HasPrefix(b.buf, gifHeader) || bytes.Equal(b.buf[8:12], webpHeader) {
-				b.supportsAnimation = true
+		if len(b.buf) > 24 {
+			if bytes.HasPrefix(b.buf, jpegHeader) {
+				b.blobType = BlobTypeJPEG
 			} else if bytes.HasPrefix(b.buf, pngHeader) {
-				b.isPNG = true
+				b.blobType = BlobTypePNG
+			} else if bytes.HasPrefix(b.buf, gifHeader) {
+				b.supportsAnimation = true
+				b.blobType = BlobTypeGIF
+			} else if bytes.Equal(b.buf[8:12], webpHeader) {
+				b.supportsAnimation = true
+				b.blobType = BlobTypeWEBP
 			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
-				b.isAVIF = true
+				b.blobType = BlobTypeAVIF
 			}
 		}
 	})
@@ -88,14 +100,9 @@ func (b *Blob) SupportsAnimation() bool {
 	return b.supportsAnimation
 }
 
-func (b *Blob) IsPNG() bool {
+func (b *Blob) BlobType() BlobType {
 	b.readAllOnce()
-	return b.isPNG
-}
-
-func (b *Blob) IsAVIF() bool {
-	b.readAllOnce()
-	return b.isAVIF
+	return b.blobType
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {
