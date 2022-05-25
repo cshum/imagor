@@ -61,6 +61,8 @@ COPY . .
 RUN if [ "$RUN_TEST" = 1 ]; then go test ./...; fi
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
+RUN rm -rf /usr/local/lib/python* /usr/local/lib/pkgconfig
+
 FROM debian:bullseye-slim
 LABEL maintainer="adrian@cshum.com"
 
@@ -74,8 +76,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
   apt-get install --no-install-recommends -y \
   procps libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr25 \
   libwebp6 libwebpmux3 libwebpdemux2 libtiff5 libexif12 libxml2 libpoppler-glib8 \
-  libpango1.0-0 libmatio11 libopenslide0 \
+  libpango1.0-0 libmatio11 libopenslide0 libjemalloc2 \
   libgsf-1-114 fftw3 liborc-0.4-0 librsvg2-2 libcfitsio9 libimagequant0 libaom3 libheif1 && \
+  ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
   apt-get autoclean && \
   apt-get clean && \
@@ -85,6 +88,7 @@ COPY --from=builder /go/bin/imagor /usr/local/bin/imagor
 
 ENV VIPS_WARNING=0
 ENV MALLOC_ARENA_MAX=2
+ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
 
 ENV PORT 8000
 
