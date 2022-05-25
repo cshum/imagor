@@ -287,7 +287,7 @@ Whitelist specific hosts to restrict loading images only from the allowed source
 HTTP_LOADER_ALLOWED_SOURCES: "*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com"
 ```
 
-### Configurations
+### Configuration
 
 Imagor supports command-line arguments, see available options `imagor -h`. You may check [main.go](https://github.com/cshum/imagor/blob/master/cmd/imagor/main.go) for better understanding the initialization sequences.
 
@@ -301,16 +301,14 @@ imagor -debug -imagor-secret 1234
 DEBUG=1 IMAGOR_SECRET=1234 imagor
 ```
 
-#### Config File
-
-Configuration may be specified in a .env configuration file and referenced with the `-config` flag:
+Configuration can also be specified in a `.env` environment variable file and referenced with the `-config` flag:
 
 ```bash
 imagor -config path/to/config.env
 ```
 
 config.env:
-```plain text
+```dotenv
 PORT=8000
 IMAGOR_SECRET=mysecret
 DEBUG=1
