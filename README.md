@@ -109,7 +109,7 @@ Imagor supports the following filters:
     - If color is "blur" - missing parts are filled with blurred original image.
     - If color is "auto" - the top left image pixel will be chosen as the filling color
 - `format(format)` specifies the output format of the image
-  - `format` accepts jpeg, png, gif, webp, jp2, tiff, avif
+  - `format` accepts jpeg, png, gif, webp, tiff, avif
 - `frames(n[, delay])` set the number of frames to repeat for animation with gif or webp. Otherwise, stack all the frames vertically
   - `n` number of frames to repeat
   - `delay` frames delay in milliseconds, default 100
@@ -172,8 +172,13 @@ services:
       FILE_LOADER_BASE_DIR: /mnt/data # enable file loader by specifying base dir
 
       FILE_STORAGE_BASE_DIR: /mnt/data # enable file storage by specifying base dir
+      FILE_STORAGE_MKDIR_PERMISSION: 0755 # optional
+      FILE_STORAGE_WRITE_PERMISSION: 0666 # optional
 
       FILE_RESULT_STORAGE_BASE_DIR: /mnt/data/result # enable file result storage by specifying base dir
+      FILE_RESULT_STORAGE_MKDIR_PERMISSION: 0755 # optional
+      FILE_RESULT_STORAGE_WRITE_PERMISSION: 0666 # optional
+      
     ports:
       - "8000:8000"
 ```
@@ -198,9 +203,11 @@ services:
 
       S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying bucket
       S3_STORAGE_BASE_DIR: images # optional
+      S3_STORAGE_ACL: public-read # optional - see https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
 
       S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
       S3_RESULT_STORAGE_BASE_DIR: images/result # optional
+      S3_RESULT_STORAGE_ACL: public-read # optional
     ports:
       - "8000:8000"
 ```
@@ -241,10 +248,11 @@ services:
 
       GCLOUD_STORAGE_BUCKET: mybucket # enable storage by specifying bucket
       GCLOUD_STORAGE_BASE_DIR: images # optional
+      GCLOUD_STORAGE_ACL: publicRead # optional - see https://cloud.google.com/storage/docs/json_api/v1/objects/insert
 
       GCLOUD_RESULT_STORAGE_BUCKET: mybucket # enable result storage by specifying bucket
       GCLOUD_RESULT_STORAGE_BASE_DIR: images/result # optional
-      GCLOUD_RESULT_STORAGE_ACL: publicRead # optional - see https://cloud.google.com/storage/docs/json_api/v1/objects/insert
+      GCLOUD_RESULT_STORAGE_ACL: publicRead # optional
     ports:
       - "8000:8000"
 ```
@@ -283,7 +291,7 @@ HTTP_LOADER_ALLOWED_SOURCES: "*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.c
 
 Imagor supports command-line arguments, see available options `imagor -h`. You may check [main.go](https://github.com/cshum/imagor/blob/master/cmd/imagor/main.go) for better understanding the initialization sequences.
 
-Imagor also supports environment variables or `.env` file for the arguments equivalent in capitalized snake case. For instances `-imagor-secret` would become `IMAGOR_SECRET`:
+Imagor also supports environment variables for the arguments equivalent in capitalized snake case. For instances `-imagor-secret` would become `IMAGOR_SECRET`:
 
 ```bash
 # both are equivalent
@@ -293,20 +301,19 @@ imagor -debug -imagor-secret 1234
 DEBUG=1 IMAGOR_SECRET=1234 imagor
 ```
 
-#### Config file
+#### Config File
 
-Configuration may be specified in a .env configuration file and referenced with the `-config` flag. The format of the config file is described in https://pkg.go.dev/github.com/peterbourgon/ff/v3@v3.2.0-rc.1#EnvParser
-
-```plain text
-PORT=8000
-IMAGOR_SECRET=mysecret
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=...
-```
+Configuration may be specified in a .env configuration file and referenced with the `-config` flag:
 
 ```bash
 imagor -config path/to/config.env
+```
+
+config.env:
+```plain text
+PORT=8000
+IMAGOR_SECRET=mysecret
+DEBUG=1
 ```
 
 #### Available options
