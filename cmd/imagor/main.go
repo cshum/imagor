@@ -40,7 +40,7 @@ func main() {
 		port         = fs.Int("port", 8000, "Sever port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
-		_ = fs.String("config", "", "Retrieve configuration from the given file")
+		_ = fs.String("config", ".env", "Retrieve configuration from the given file")
 
 		imagorSecret = fs.String("imagor-secret", "",
 			"Secret key for signing Imagor URL")
@@ -229,6 +229,8 @@ func main() {
 	ffOpts := []ff.Option{
 		ff.WithEnvVars(),
 		ff.WithConfigFileFlag("config"),
+		ff.WithIgnoreUndefined(true),
+		ff.WithAllowMissingConfigFile(true),
 		ff.WithConfigFileParser(ff.EnvParser),
 	}
 

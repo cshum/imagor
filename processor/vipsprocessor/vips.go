@@ -128,6 +128,7 @@ func (v *VipsProcessor) Process(
 		img         *vips.ImageRef
 		format      = vips.ImageTypeUnknown
 		maxN        = v.MaxAnimationFrames
+		maxBytes    int
 		err         error
 	)
 	ctx = WithInitImageRefs(ctx)
@@ -164,6 +165,11 @@ func (v *VipsProcessor) Process(
 		case "fill", "background_color":
 			if args := strings.Split(p.Args, ","); args[0] == "auto" {
 				hasGetPoint = true
+			}
+			break
+		case "max_bytes":
+			if n, _ := strconv.Atoi(p.Args); n > 0 {
+				maxBytes = n
 			}
 			break
 		case "trim":
@@ -294,11 +300,40 @@ func (v *VipsProcessor) Process(
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale); err != nil {
 		return nil, wrapErr(err)
 	}
-	buf, meta, err := v.export(img, format, quality)
-	if err != nil {
-		return nil, wrapErr(err)
+	for {
+		buf, meta, err := v.export(img, format, quality)
+		if err != nil {
+			return nil, wrapErr(err)
+		}
+		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePNG {
+			ln := len(buf)
+			if v.Debug {
+				v.Logger.Debug("max_bytes",
+					zap.Int("bytes", ln),
+					zap.Int("quality", quality),
+				)
+			}
+			if ln > maxBytes {
+				if quality == 0 {
+					quality = 80
+				}
+				delta := float64(ln) / float64(maxBytes)
+				switch {
+				case delta > 3:
+					quality = quality * 25 / 100
+				case delta > 1.5:
+					quality = quality * 50 / 100
+				default:
+					quality = quality * 75 / 100
+				}
+				if err := ctx.Err(); err != nil {
+					return nil, wrapErr(err)
+				}
+				continue
+			}
+		}
+		return imagor.NewBlobBytesWithMeta(buf, getMeta(meta)), nil
 	}
-	return imagor.NewBlobBytesWithMeta(buf, getMeta(meta)), nil
 }
 
 func getMeta(meta *vips.ImageMetadata) *imagor.Meta {

@@ -110,12 +110,10 @@ Imagor supports the following filters:
     - If color is "auto" - the top left image pixel will be chosen as the filling color
 - `format(format)` specifies the output format of the image
   - `format` accepts jpeg, png, gif, webp, tiff, avif
-- `frames(n[, delay])` set the number of frames to repeat for animation with gif or webp. Otherwise, stack all the frames vertically
-  - `n` number of frames to repeat
-  - `delay` frames delay in milliseconds, default 100
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
+- `max_bytes(amount)` automatically degrades the quality of the image until the image is under the specified `amount` of bytes
 - `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
@@ -326,7 +324,7 @@ Usage of imagor:
   -version
         Imagor version
   -config string
-        Retrieve configuration from the given file
+        Retrieve configuration from the given file (default ".env")
 
   -imagor-secret string
         Secret key for signing Imagor URL
