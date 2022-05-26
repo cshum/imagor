@@ -132,6 +132,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"resize padding", "100x100/10x5/top/filters:fill(white)/gopher.png"},
 		{"stretch padding", "stretch/100x100/10x5/filters:fill(white)/gopher.png"},
 		{"padding", "0x0/40x50/filters:fill(white)/gopher-front.png"},
+		{"max_bytes", "filters:max_bytes(60000):format(jpg):fill(white)/gopher.png"},
 		{"fill auto", "fit-in/400x400/filters:fill(auto)/find_trim.png"},
 		{"fill auto bottom-right", "fit-in/400x400/filters:fill(auto,bottom-right)/find_trim.png"},
 		{"resize top flip blur", "200x-210/top/filters:blur(5):sharpen(5):background_color(ffff00):format(jpeg):quality(70)/gopher.png"},
