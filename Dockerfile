@@ -59,7 +59,7 @@ COPY . .
 RUN if [ "$RUN_TEST" = 1 ]; then go test ./...; fi
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
-RUN rm -rf /usr/local/lib/python* /usr/local/lib/pkgconfig
+RUN rm -rf /usr/local/lib/python*
 
 FROM debian:bullseye-slim
 LABEL maintainer="adrian@cshum.com"
