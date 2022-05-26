@@ -3,11 +3,9 @@ FROM golang:${GOLANG_VERSION}-bullseye as builder
 
 ARG VIPS_VERSION=8.12.2
 ARG CGIF_VERSION=0.3.0
-
 ARG RUN_TEST
 
-ENV PREFIX=/usr/local
-ENV PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 # libaom3 is in Debian bullseye-backports 
 RUN echo 'deb http://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list
@@ -28,7 +26,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
   curl -fsSLO https://github.com/dloebl/cgif/archive/refs/tags/V${CGIF_VERSION}.tar.gz && \
   tar xf V${CGIF_VERSION}.tar.gz && \
   cd cgif-${CGIF_VERSION} && \
-  meson build --prefix=${PREFIX} --libdir=${PREFIX}/lib && \
+  meson build --prefix=/usr/local --libdir=/usr/local/lib && \
   cd build && \
   ninja && \
   ninja install && \
