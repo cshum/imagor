@@ -121,20 +121,20 @@ func (v *VipsProcessor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
 	var (
-		hasGetPoint = false
-		upscale     = true
-		stretch     = p.Stretch
-		thumbnail   = false
-		img         *vips.ImageRef
-		format      = vips.ImageTypeUnknown
-		maxN        = v.MaxAnimationFrames
-		maxBytes    int
-		err         error
+		thumbnailNotSupported bool
+		upscale               = true
+		stretch               = p.Stretch
+		thumbnail             = false
+		img                   *vips.ImageRef
+		format                = vips.ImageTypeUnknown
+		maxN                  = v.MaxAnimationFrames
+		maxBytes              int
+		err                   error
 	)
 	ctx = WithInitImageRefs(ctx)
 	defer CloseImageRefs(ctx)
 	if p.Trim {
-		hasGetPoint = true
+		thumbnailNotSupported = true
 	}
 	if p.FitIn {
 		upscale = false
@@ -164,20 +164,22 @@ func (v *VipsProcessor) Process(
 			break
 		case "fill", "background_color":
 			if args := strings.Split(p.Args, ","); args[0] == "auto" {
-				hasGetPoint = true
+				thumbnailNotSupported = true
 			}
 			break
 		case "max_bytes":
 			if n, _ := strconv.Atoi(p.Args); n > 0 {
 				maxBytes = n
+				thumbnailNotSupported = true
 			}
 			break
 		case "trim":
-			hasGetPoint = true
+			thumbnailNotSupported = true
 			break
 		}
 	}
-	if !hasGetPoint && p.CropBottom == 0.0 && p.CropTop == 0.0 && p.CropLeft == 0.0 && p.CropRight == 0.0 {
+	if !thumbnailNotSupported &&
+		p.CropBottom == 0.0 && p.CropTop == 0.0 && p.CropLeft == 0.0 && p.CropRight == 0.0 {
 		// apply shrink-on-load where possible
 		if p.FitIn {
 			if p.Width > 0 || p.Height > 0 {
@@ -257,8 +259,7 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if !thumbnail {
-		if hasGetPoint {
-			// create by thumbnail does not support get_point
+		if thumbnailNotSupported {
 			if img, err = v.newImage(blob, maxN); err != nil {
 				return nil, err
 			}
