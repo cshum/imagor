@@ -116,3 +116,21 @@ func (s *FileStorage) Save(_ context.Context, image string, blob *imagor.Bytes) 
 	}
 	return
 }
+
+func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, err error) {
+	image, ok := s.Path(image)
+	if !ok {
+		return nil, imagor.ErrPass
+	}
+	stats, err := os.Stat(image)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, imagor.ErrNotFound
+		}
+		return nil, err
+	}
+	return &imagor.Stat{
+		Size:         stats.Size(),
+		ModifiedTime: stats.ModTime(),
+	}, nil
+}

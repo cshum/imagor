@@ -134,3 +134,24 @@ func (s *S3Storage) Save(ctx context.Context, image string, blob *imagor.Bytes) 
 	_, err = s.Uploader.UploadWithContext(ctx, input)
 	return err
 }
+
+func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	image, ok := s.Path(image)
+	if !ok {
+		return nil, imagor.ErrPass
+	}
+	input := &s3.HeadObjectInput{
+		Bucket: aws.String(s.Bucket),
+		Key:    aws.String(image),
+	}
+	out, err := s.S3.HeadObjectWithContext(ctx, input)
+	if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
+		return nil, imagor.ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	return &imagor.Stat{
+		Size:         *out.ContentLength,
+		ModifiedTime: *out.LastModified,
+	}, nil
+}

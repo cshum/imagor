@@ -128,3 +128,23 @@ func (s *GCloudStorage) escapeByte(c byte) bool {
 	// Anything else - use defaults
 	return imagorpath.DefaultEscapeByte(c)
 }
+
+func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	image, ok := s.Path(image)
+	if !ok {
+		return nil, imagor.ErrPass
+	}
+	object := s.client.Bucket(s.bucket).Object(image)
+
+	attrs, err := object.Attrs(ctx)
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotExist) {
+			return nil, imagor.ErrNotFound
+		}
+		return nil, err
+	}
+	return &imagor.Stat{
+		Size:         attrs.Size,
+		ModifiedTime: attrs.Updated,
+	}, nil
+}

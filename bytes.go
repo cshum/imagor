@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"sync"
+	"time"
 )
 
 type BytesType int
@@ -28,6 +29,11 @@ type Bytes struct {
 	bytesType         BytesType
 
 	Meta *Meta
+}
+
+type Stat struct {
+	ModifiedTime time.Time
+	Size         int64
 }
 
 // Meta image attributes

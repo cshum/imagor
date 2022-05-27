@@ -28,6 +28,7 @@ type Loader interface {
 type Storage interface {
 	Load(r *http.Request, image string) (*Bytes, error)
 	Save(ctx context.Context, image string, blob *Bytes) error
+	Stat(ctx context.Context, image string) (*Stat, error)
 }
 
 // LoadFunc load function for Processor

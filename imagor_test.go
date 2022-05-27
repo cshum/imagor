@@ -37,6 +37,11 @@ func (f saverFunc) Load(r *http.Request, image string) (*Bytes, error) {
 	return nil, ErrNotFound
 }
 
+func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
+	// dummy
+	return nil, ErrNotFound
+}
+
 func (f saverFunc) Save(ctx context.Context, image string, blob *Bytes) error {
 	return f(ctx, image, blob)
 }
@@ -234,6 +239,11 @@ func (s *mapStore) Save(ctx context.Context, image string, blob *Bytes) error {
 	s.Map[image] = blob
 	s.SaveCnt[image] = s.SaveCnt[image] + 1
 	return nil
+}
+
+func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
+	// dummy
+	return nil, ErrNotFound
 }
 
 func TestWithLoadersStoragesProcessors(t *testing.T) {
