@@ -47,7 +47,7 @@ func (v *VipsProcessor) newThumbnail(
 				return nil, wrapErr(err)
 			}
 		}
-	} else if blob.BlobType() == imagor.BytesTypePNG {
+	} else if blob.BytesType() == imagor.BytesTypePNG {
 		// avoid vips pngload error
 		return newThumbnailFix(buf, width, height, crop, size)
 	} else {

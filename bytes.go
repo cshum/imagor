@@ -100,7 +100,7 @@ func (b *Bytes) SupportsAnimation() bool {
 	return b.supportsAnimation
 }
 
-func (b *Bytes) BlobType() BytesType {
+func (b *Bytes) BytesType() BytesType {
 	b.readAllOnce()
 	return b.bytesType
 }

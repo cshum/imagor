@@ -145,7 +145,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		} else if ln > 0 {
 			contentType := "application/octet-stream"
-			switch blob.BlobType() {
+			switch blob.BytesType() {
 			case BytesTypeJPEG:
 				contentType = "image/jpeg"
 			case BytesTypePNG:
