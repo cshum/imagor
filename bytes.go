@@ -6,26 +6,26 @@ import (
 	"sync"
 )
 
-type BlobType int
+type BytesType int
 
 const (
-	BlobTypeUnknown BlobType = iota
-	BlobTypeJPEG
-	BlobTypePNG
-	BlobTypeGIF
-	BlobTypeWEBP
-	BlobTypeAVIF
+	BytesTypeUnknown BytesType = iota
+	BytesTypeJPEG
+	BytesTypePNG
+	BytesTypeGIF
+	BytesTypeWEBP
+	BytesTypeAVIF
 )
 
-// Blob abstraction for file path, bytes data and meta attributes
-type Blob struct {
+// Bytes abstraction for file path, bytes data and meta attributes
+type Bytes struct {
 	path string
 	buf  []byte
 	once sync.Once
 	err  error
 
 	supportsAnimation bool
-	blobType          BlobType
+	bytesType         BytesType
 
 	Meta *Meta
 }
@@ -39,16 +39,16 @@ type Meta struct {
 	Orientation int    `json:"orientation"`
 }
 
-func NewBlobFilePath(filepath string) *Blob {
-	return &Blob{path: filepath, blobType: BlobTypeUnknown}
+func NewBytesFilePath(filepath string) *Bytes {
+	return &Bytes{path: filepath, bytesType: BytesTypeUnknown}
 }
 
-func NewBlobBytes(bytes []byte) *Blob {
-	return &Blob{buf: bytes, blobType: BlobTypeUnknown}
+func NewBytes(bytes []byte) *Bytes {
+	return &Bytes{buf: bytes, bytesType: BytesTypeUnknown}
 }
 
-func NewBlobBytesWithMeta(bytes []byte, meta *Meta) *Blob {
-	return &Blob{buf: bytes, Meta: meta, blobType: BlobTypeUnknown}
+func NewBytesWithMeta(bytes []byte, meta *Meta) *Bytes {
+	return &Bytes{buf: bytes, Meta: meta, bytesType: BytesTypeUnknown}
 }
 
 var jpegHeader = []byte("\xFF\xD8\xFF")
@@ -60,7 +60,7 @@ var pngHeader = []byte("\x89\x50\x4E\x47")
 var ftyp = []byte("ftyp")
 var avif = []byte("avif")
 
-func (b *Blob) readAllOnce() {
+func (b *Bytes) readAllOnce() {
 	b.once.Do(func() {
 		if len(b.buf) == 0 {
 			if b.path != "" {
@@ -74,42 +74,42 @@ func (b *Blob) readAllOnce() {
 		}
 		if len(b.buf) > 24 {
 			if bytes.HasPrefix(b.buf, jpegHeader) {
-				b.blobType = BlobTypeJPEG
+				b.bytesType = BytesTypeJPEG
 			} else if bytes.HasPrefix(b.buf, pngHeader) {
-				b.blobType = BlobTypePNG
+				b.bytesType = BytesTypePNG
 			} else if bytes.HasPrefix(b.buf, gifHeader) {
 				b.supportsAnimation = true
-				b.blobType = BlobTypeGIF
+				b.bytesType = BytesTypeGIF
 			} else if bytes.Equal(b.buf[8:12], webpHeader) {
 				b.supportsAnimation = true
-				b.blobType = BlobTypeWEBP
+				b.bytesType = BytesTypeWEBP
 			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
-				b.blobType = BlobTypeAVIF
+				b.bytesType = BytesTypeAVIF
 			}
 		}
 	})
 }
 
-func (b *Blob) IsEmpty() bool {
+func (b *Bytes) IsEmpty() bool {
 	b.readAllOnce()
 	return b.path == "" && len(b.buf) == 0
 }
 
-func (b *Blob) SupportsAnimation() bool {
+func (b *Bytes) SupportsAnimation() bool {
 	b.readAllOnce()
 	return b.supportsAnimation
 }
 
-func (b *Blob) BlobType() BlobType {
+func (b *Bytes) BlobType() BytesType {
 	b.readAllOnce()
-	return b.blobType
+	return b.bytesType
 }
 
-func (b *Blob) ReadAll() ([]byte, error) {
+func (b *Bytes) ReadAll() ([]byte, error) {
 	b.readAllOnce()
 	return b.buf, b.err
 }
 
-func IsBlobEmpty(f *Blob) bool {
+func IsBlobEmpty(f *Bytes) bool {
 	return f == nil || f.IsEmpty()
 }

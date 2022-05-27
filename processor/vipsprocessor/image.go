@@ -6,7 +6,7 @@ import (
 )
 
 func (v *VipsProcessor) newThumbnail(
-	blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size, n int,
+	blob *imagor.Bytes, width, height int, crop vips.Interesting, size vips.Size, n int,
 ) (*vips.ImageRef, error) {
 	if imagor.IsBlobEmpty(blob) {
 		return nil, imagor.ErrNotFound
@@ -47,7 +47,7 @@ func (v *VipsProcessor) newThumbnail(
 				return nil, wrapErr(err)
 			}
 		}
-	} else if blob.BlobType() == imagor.BlobTypePNG {
+	} else if blob.BlobType() == imagor.BytesTypePNG {
 		// avoid vips pngload error
 		return newThumbnailFix(buf, width, height, crop, size)
 	} else {
@@ -70,7 +70,7 @@ func newThumbnailFix(
 	return
 }
 
-func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, error) {
+func (v *VipsProcessor) newImage(blob *imagor.Bytes, n int) (*vips.ImageRef, error) {
 	if imagor.IsBlobEmpty(blob) {
 		return nil, imagor.ErrNotFound
 	}
@@ -142,6 +142,6 @@ func (v *VipsProcessor) animatedThumbnailWithCrop(
 	return img.ExtractArea(left, top, w, h)
 }
 
-func isAnimated(blob *imagor.Blob, n int) bool {
+func isAnimated(blob *imagor.Bytes, n int) bool {
 	return blob != nil && blob.SupportsAnimation() && n != 1 && n != 0
 }

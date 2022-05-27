@@ -88,7 +88,7 @@ func (s *S3Storage) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *S3Storage) Load(r *http.Request, image string) (*imagor.Blob, error) {
+func (s *S3Storage) Load(r *http.Request, image string) (*imagor.Bytes, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -112,10 +112,10 @@ func (s *S3Storage) Load(r *http.Request, image string) (*imagor.Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return imagor.NewBlobBytes(buf), err
+	return imagor.NewBytes(buf), err
 }
 
-func (s *S3Storage) Save(ctx context.Context, image string, blob *imagor.Blob) error {
+func (s *S3Storage) Save(ctx context.Context, image string, blob *imagor.Bytes) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

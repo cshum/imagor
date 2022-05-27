@@ -21,12 +21,12 @@ const Version = "0.8.22"
 
 // Loader load image from source
 type Loader interface {
-	Load(r *http.Request, image string) (*Blob, error)
+	Load(r *http.Request, image string) (*Bytes, error)
 }
 
 // Saver saves image
 type Saver interface {
-	Save(ctx context.Context, image string, blob *Blob) error
+	Save(ctx context.Context, image string, blob *Bytes) error
 }
 
 // Storage implements Loader and Saver
@@ -36,12 +36,12 @@ type Storage interface {
 }
 
 // LoadFunc imagor load function for Processor
-type LoadFunc func(string) (*Blob, error)
+type LoadFunc func(string) (*Bytes, error)
 
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
+	Process(ctx context.Context, blob *Bytes, p imagorpath.Params, load LoadFunc) (*Bytes, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -146,15 +146,15 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else if ln > 0 {
 			contentType := "application/octet-stream"
 			switch blob.BlobType() {
-			case BlobTypeJPEG:
+			case BytesTypeJPEG:
 				contentType = "image/jpeg"
-			case BlobTypePNG:
+			case BytesTypePNG:
 				contentType = "image/png"
-			case BlobTypeGIF:
+			case BytesTypeGIF:
 				contentType = "image/gif"
-			case BlobTypeWEBP:
+			case BytesTypeWEBP:
 				contentType = "image/webp"
-			case BlobTypeAVIF:
+			case BytesTypeAVIF:
 				contentType = "image/avif"
 			default:
 				contentType = http.DetectContentType(buf)
@@ -191,7 +191,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Do executes Imagor operations
-func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
+func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if app.RequestTimeout > 0 {
@@ -232,10 +232,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	resultKey := strings.TrimPrefix(p.Path, "meta/")
-	load := func(image string) (*Blob, error) {
+	load := func(image string) (*Bytes, error) {
 		return app.loadStorage(r, image)
 	}
-	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
+	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Bytes, error) {
 		if blob, err = app.loadResult(r, resultKey); err == nil && !IsBlobEmpty(blob) {
 			return blob, err
 		}
@@ -292,8 +292,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	})
 }
 
-func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
-	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
+func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
+	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Bytes, err error) {
 		var origin Saver
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key)
@@ -307,7 +307,7 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
 	})
 }
 
-func (app *Imagor) loadResult(r *http.Request, key string) (blob *Blob, err error) {
+func (app *Imagor) loadResult(r *http.Request, key string) (blob *Bytes, err error) {
 	if len(app.ResultLoaders) == 0 {
 		return
 	}
@@ -317,7 +317,7 @@ func (app *Imagor) loadResult(r *http.Request, key string) (blob *Blob, err erro
 
 func (app *Imagor) load(
 	r *http.Request, loaders []Loader, key string,
-) (blob *Blob, origin Saver, err error) {
+) (blob *Bytes, origin Saver, err error) {
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
@@ -355,7 +355,7 @@ func (app *Imagor) load(
 }
 
 func (app *Imagor) save(
-	ctx context.Context, origin Saver, savers []Saver, key string, blob *Blob,
+	ctx context.Context, origin Saver, savers []Saver, key string, blob *Bytes,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -391,8 +391,8 @@ type suppressKey struct {
 
 func (app *Imagor) suppress(
 	ctx context.Context,
-	key string, fn func(ctx context.Context) (*Blob, error),
-) (blob *Blob, err error) {
+	key string, fn func(ctx context.Context) (*Bytes, error),
+) (blob *Bytes, err error) {
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
@@ -416,7 +416,7 @@ func (app *Imagor) suppress(
 			return app.suppress(ctx, key, fn)
 		}
 		if res.Val != nil {
-			return res.Val.(*Blob), res.Err
+			return res.Val.(*Bytes), res.Err
 		}
 		return nil, res.Err
 	case <-ctx.Done():

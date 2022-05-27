@@ -21,7 +21,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	if unescape, e := url.QueryUnescape(args[0]); e == nil {
 		image = unescape
 	}
-	var blob *imagor.Blob
+	var blob *imagor.Bytes
 	if blob, err = load(image); err != nil {
 		return
 	}

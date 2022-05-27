@@ -72,7 +72,7 @@ func (s *FileStorage) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *FileStorage) Load(_ *http.Request, image string) (*imagor.Blob, error) {
+func (s *FileStorage) Load(_ *http.Request, image string) (*imagor.Bytes, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -87,10 +87,10 @@ func (s *FileStorage) Load(_ *http.Request, image string) (*imagor.Blob, error) 
 	if s.Expiration > 0 && time.Now().Sub(stats.ModTime()) > s.Expiration {
 		return nil, imagor.ErrExpired
 	}
-	return imagor.NewBlobFilePath(image), nil
+	return imagor.NewBytesFilePath(image), nil
 }
 
-func (s *FileStorage) Save(_ context.Context, image string, blob *imagor.Blob) (err error) {
+func (s *FileStorage) Save(_ context.Context, image string, blob *imagor.Bytes) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

@@ -118,8 +118,8 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 }
 
 func (v *VipsProcessor) Process(
-	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
-) (*imagor.Blob, error) {
+	ctx context.Context, blob *imagor.Bytes, p imagorpath.Params, load imagor.LoadFunc,
+) (*imagor.Bytes, error) {
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
@@ -333,7 +333,7 @@ func (v *VipsProcessor) Process(
 				continue
 			}
 		}
-		return imagor.NewBlobBytesWithMeta(buf, getMeta(meta)), nil
+		return imagor.NewBytesWithMeta(buf, getMeta(meta)), nil
 	}
 }
 
