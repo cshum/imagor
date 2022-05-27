@@ -71,7 +71,7 @@ func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
 		imagor.WithProcessors(New(opts...)),
-		imagor.WithResultSavers(filestorage.New(
+		imagor.WithResultStorages(filestorage.New(
 			resultDir,
 			filestorage.WithSaveErrIfExists(true),
 		)),

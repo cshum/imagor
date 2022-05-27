@@ -21,21 +21,15 @@ func WithLoaders(loaders ...Loader) Option {
 	}
 }
 
-func WithSavers(savers ...Saver) Option {
+func WithStorages(savers ...Storage) Option {
 	return func(o *Imagor) {
-		o.Savers = append(o.Savers, savers...)
+		o.Storages = append(o.Storages, savers...)
 	}
 }
 
-func WithResultLoaders(loaders ...Loader) Option {
+func WithResultStorages(savers ...Storage) Option {
 	return func(o *Imagor) {
-		o.ResultLoaders = append(o.ResultLoaders, loaders...)
-	}
-}
-
-func WithResultSavers(savers ...Saver) Option {
-	return func(o *Imagor) {
-		o.ResultSavers = append(o.ResultSavers, savers...)
+		o.ResultStorages = append(o.ResultStorages, savers...)
 	}
 }
 

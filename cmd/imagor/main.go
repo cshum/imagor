@@ -25,13 +25,12 @@ import (
 
 func main() {
 	var (
-		fs            = flag.NewFlagSet("imagor", flag.ExitOnError)
-		logger        *zap.Logger
-		err           error
-		loaders       []imagor.Loader
-		savers        []imagor.Saver
-		resultLoaders []imagor.Loader
-		resultSavers  []imagor.Saver
+		fs             = flag.NewFlagSet("imagor", flag.ExitOnError)
+		logger         *zap.Logger
+		err            error
+		loaders        []imagor.Loader
+		storages       []imagor.Storage
+		resultStorages []imagor.Storage
 	)
 
 	var (
@@ -260,16 +259,16 @@ func main() {
 
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
-		s := filestorage.New(
-			*fileStorageBaseDir,
-			filestorage.WithPathPrefix(*fileStoragePathPrefix),
-			filestorage.WithMkdirPermission(*fileStorageMkdirPermission),
-			filestorage.WithWritePermission(*fileStorageWritePermission),
-			filestorage.WithSafeChars(*fileSafeChars),
-			filestorage.WithExpiration(*fileStorageExpiration),
+		storages = append(storages,
+			filestorage.New(
+				*fileStorageBaseDir,
+				filestorage.WithPathPrefix(*fileStoragePathPrefix),
+				filestorage.WithMkdirPermission(*fileStorageMkdirPermission),
+				filestorage.WithWritePermission(*fileStorageWritePermission),
+				filestorage.WithSafeChars(*fileSafeChars),
+				filestorage.WithExpiration(*fileStorageExpiration),
+			),
 		)
-		loaders = append(loaders, s)
-		savers = append(savers, s)
 	}
 	if *fileLoaderBaseDir != "" {
 		// activate File Loader only if base dir config presents
@@ -287,16 +286,16 @@ func main() {
 	}
 	if *fileResultStorageBaseDir != "" {
 		// activate File Result Storage only if base dir config presents
-		resultStorage := filestorage.New(
-			*fileResultStorageBaseDir,
-			filestorage.WithPathPrefix(*fileResultStoragePathPrefix),
-			filestorage.WithMkdirPermission(*fileResultStorageMkdirPermission),
-			filestorage.WithWritePermission(*fileResultStorageWritePermission),
-			filestorage.WithSafeChars(*fileSafeChars),
-			filestorage.WithExpiration(*fileResultStorageExpiration),
+		resultStorages = append(resultStorages,
+			filestorage.New(
+				*fileResultStorageBaseDir,
+				filestorage.WithPathPrefix(*fileResultStoragePathPrefix),
+				filestorage.WithMkdirPermission(*fileResultStorageMkdirPermission),
+				filestorage.WithWritePermission(*fileResultStorageWritePermission),
+				filestorage.WithSafeChars(*fileSafeChars),
+				filestorage.WithExpiration(*fileResultStorageExpiration),
+			),
 		)
-		resultLoaders = append(resultLoaders, resultStorage)
-		resultSavers = append(resultSavers, resultStorage)
 	}
 
 	if *gcloudStorageBucket != "" || *gcloudLoaderBucket != "" || *gcloudResultStorageBucket != "" {
@@ -308,15 +307,15 @@ func main() {
 		}
 		if *gcloudStorageBucket != "" {
 			// activate Google Cloud Storage only if bucket config presents
-			s := gcloudstorage.New(gcloudClient, *gcloudStorageBucket,
-				gcloudstorage.WithPathPrefix(*gcloudStoragePathPrefix),
-				gcloudstorage.WithBaseDir(*gcloudStorageBaseDir),
-				gcloudstorage.WithACL(*gcloudStorageACL),
-				gcloudstorage.WithSafeChars(*gcloudSafeChars),
-				gcloudstorage.WithExpiration(*gcloudStorageExpiration),
+			storages = append(storages,
+				gcloudstorage.New(gcloudClient, *gcloudStorageBucket,
+					gcloudstorage.WithPathPrefix(*gcloudStoragePathPrefix),
+					gcloudstorage.WithBaseDir(*gcloudStorageBaseDir),
+					gcloudstorage.WithACL(*gcloudStorageACL),
+					gcloudstorage.WithSafeChars(*gcloudSafeChars),
+					gcloudstorage.WithExpiration(*gcloudStorageExpiration),
+				),
 			)
-			loaders = append(loaders, s)
-			savers = append(savers, s)
 		}
 
 		if *gcloudLoaderBucket != "" {
@@ -337,15 +336,15 @@ func main() {
 
 		if *gcloudResultStorageBucket != "" {
 			// activate Google Cloud ResultStorage only if bucket config presents
-			resultStorage := gcloudstorage.New(gcloudClient, *gcloudResultStorageBucket,
-				gcloudstorage.WithPathPrefix(*gcloudResultStoragePathPrefix),
-				gcloudstorage.WithBaseDir(*gcloudResultStorageBaseDir),
-				gcloudstorage.WithACL(*gcloudResultStorageACL),
-				gcloudstorage.WithSafeChars(*gcloudSafeChars),
-				gcloudstorage.WithExpiration(*gcloudResultStorageExpiration),
+			resultStorages = append(resultStorages,
+				gcloudstorage.New(gcloudClient, *gcloudResultStorageBucket,
+					gcloudstorage.WithPathPrefix(*gcloudResultStoragePathPrefix),
+					gcloudstorage.WithBaseDir(*gcloudResultStorageBaseDir),
+					gcloudstorage.WithACL(*gcloudResultStorageACL),
+					gcloudstorage.WithSafeChars(*gcloudSafeChars),
+					gcloudstorage.WithExpiration(*gcloudResultStorageExpiration),
+				),
 			)
-			resultLoaders = append(resultLoaders, resultStorage)
-			resultSavers = append(resultSavers, resultStorage)
 		}
 	}
 
@@ -366,15 +365,15 @@ func main() {
 		}
 		if *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
-			s := s3storage.New(sess, *s3StorageBucket,
-				s3storage.WithPathPrefix(*s3StoragePathPrefix),
-				s3storage.WithBaseDir(*s3StorageBaseDir),
-				s3storage.WithACL(*s3StorageACL),
-				s3storage.WithSafeChars(*s3SafeChars),
-				s3storage.WithExpiration(*s3StorageExpiration),
+			storages = append(storages,
+				s3storage.New(sess, *s3StorageBucket,
+					s3storage.WithPathPrefix(*s3StoragePathPrefix),
+					s3storage.WithBaseDir(*s3StorageBaseDir),
+					s3storage.WithACL(*s3StorageACL),
+					s3storage.WithSafeChars(*s3SafeChars),
+					s3storage.WithExpiration(*s3StorageExpiration),
+				),
 			)
-			loaders = append(loaders, s)
-			savers = append(savers, s)
 		}
 		if *s3LoaderBucket != "" {
 			// activate S3 Loader only if bucket config presents
@@ -393,15 +392,15 @@ func main() {
 		}
 		if *s3ResultStorageBucket != "" {
 			// activate S3 ResultStorage only if bucket config presents
-			resultStorage := s3storage.New(sess, *s3ResultStorageBucket,
-				s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
-				s3storage.WithBaseDir(*s3ResultStorageBaseDir),
-				s3storage.WithACL(*s3ResultStorageACL),
-				s3storage.WithSafeChars(*s3SafeChars),
-				s3storage.WithExpiration(*s3ResultStorageExpiration),
+			resultStorages = append(resultStorages,
+				s3storage.New(sess, *s3ResultStorageBucket,
+					s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
+					s3storage.WithBaseDir(*s3ResultStorageBaseDir),
+					s3storage.WithACL(*s3ResultStorageACL),
+					s3storage.WithSafeChars(*s3SafeChars),
+					s3storage.WithExpiration(*s3ResultStorageExpiration),
+				),
 			)
-			resultLoaders = append(resultLoaders, resultStorage)
-			resultSavers = append(resultSavers, resultStorage)
 		}
 	}
 
@@ -426,7 +425,8 @@ func main() {
 	server.New(
 		imagor.New(
 			imagor.WithLoaders(loaders...),
-			imagor.WithSavers(savers...),
+			imagor.WithStorages(storages...),
+			imagor.WithResultStorages(resultStorages...),
 			imagor.WithProcessors(
 				vipsprocessor.New(
 					vipsprocessor.WithMaxAnimationFrames(*vipsMaxAnimationFrames),
@@ -444,8 +444,6 @@ func main() {
 					vipsprocessor.WithDebug(*debug),
 				),
 			),
-			imagor.WithResultLoaders(resultLoaders...),
-			imagor.WithResultSavers(resultSavers...),
 			imagor.WithSecret(*imagorSecret),
 			imagor.WithBasePathRedirect(*imagorBasePathRedirect),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
