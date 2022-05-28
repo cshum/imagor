@@ -113,6 +113,9 @@ func (b *Bytes) BytesType() BytesType {
 }
 
 func (b *Bytes) ContentType() string {
+	if b.Meta != nil && b.Meta.ContentType != "" {
+		return b.Meta.ContentType
+	}
 	b.readAllOnce()
 	contentType := "application/octet-stream"
 	switch b.BytesType() {
@@ -137,6 +140,6 @@ func (b *Bytes) ReadAll() ([]byte, error) {
 	return b.buf, b.err
 }
 
-func IsBlobEmpty(f *Bytes) bool {
+func IsBytesEmpty(f *Bytes) bool {
 	return f == nil || f.IsEmpty()
 }
