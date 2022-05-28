@@ -32,6 +32,7 @@ type Bytes struct {
 	Meta *Meta
 }
 
+// Stat image attributes
 type Stat struct {
 	ModifiedTime time.Time
 	Size         int64

@@ -135,14 +135,11 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !IsBytesEmpty(blob) {
 		buf, _ = blob.ReadAll()
 		ln = len(buf)
-		if blob.Meta != nil {
-			if p.Meta {
-				resJSON(w, blob.Meta)
-				return
-			} else {
-				w.Header().Set("Content-Type", blob.Meta.ContentType)
-			}
-		} else if ln > 0 {
+		if blob.Meta != nil && p.Meta {
+			resJSON(w, blob.Meta)
+			return
+		}
+		if ln > 0 {
 			w.Header().Set("Content-Type", blob.ContentType())
 		}
 	}
