@@ -348,6 +348,8 @@ Usage of imagor:
         Imagor semaphore size for process concurrency control. Set -1 for no limit (default -1)
   -imagor-base-path-redirect string
         URL to redirect for Imagor / base path e.g. https://www.google.com
+  -imagor-modified-time-check
+        Check modified time of result image against the source image. This eliminates stale result but require more lookups
 
   -server-address string
         Server address

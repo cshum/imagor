@@ -63,6 +63,8 @@ func main() {
 			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
 			time.Hour*24, "Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache")
+		imagorModifiedTimeCheck = fs.Bool("imagor-modified-time-check", false,
+			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
 
 		serverAddress = fs.String("server-address", "",
 			"Server address")
@@ -454,6 +456,7 @@ func main() {
 			imagor.WithCacheHeaderTTL(*imagorCacheHeaderTTL),
 			imagor.WithAutoWebP(*imagorAutoWebP),
 			imagor.WithAutoAVIF(*imagorAutoAVIF),
+			imagor.WithModifiedTimeCheck(*imagorModifiedTimeCheck),
 			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),
 			imagor.WithDebug(*debug),

@@ -59,6 +59,7 @@ type Imagor struct {
 	ProcessConcurrency int64
 	AutoWebP           bool
 	AutoAVIF           bool
+	ModifiedTimeCheck  bool
 	Logger             *zap.Logger
 	Debug              bool
 
@@ -85,9 +86,9 @@ func New(options ...Option) *Imagor {
 	if app.Debug {
 		app.debugLog()
 	}
-	// cast storages into loaders pipeline
-	app.ResultLoaders = castLoaders(app.ResultStorages)
-	app.Loaders = append(castLoaders(app.Storages), app.Loaders...)
+	// cast storages into loaders
+	app.ResultLoaders = loaderSlice(app.ResultStorages)
+	app.Loaders = append(loaderSlice(app.Storages), app.Loaders...)
 	return app
 }
 
@@ -217,8 +218,20 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		return app.loadStorage(r, image)
 	}
 	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Bytes, error) {
-		if blob, _, err = app.load(r, app.ResultLoaders, resultKey); err == nil && !isEmpty(blob) {
-			return blob, nil
+		if blob, resOrigin, err := app.load(
+			r, app.ResultLoaders, resultKey,
+		); err == nil && !isEmpty(blob) {
+			if app.ModifiedTimeCheck && resOrigin != nil {
+				if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
+					if sourceStat, err2 := app.storageStat(ctx, p.Image); sourceStat != nil && err2 == nil {
+						if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
+							return blob, nil
+						}
+					}
+				}
+			} else {
+				return blob, nil
+			}
 		}
 		if app.sema != nil {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
@@ -330,8 +343,20 @@ func (app *Imagor) load(
 	return
 }
 
+func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err error) {
+	if len(app.Storages) == 0 {
+		return
+	}
+	for _, storage := range app.Storages {
+		if stat, err = storage.Stat(ctx, key); stat != nil && err == nil {
+			return
+		}
+	}
+	return
+}
+
 func (app *Imagor) save(
-	ctx context.Context, origin Storage, savers []Storage, key string, blob *Bytes,
+	ctx context.Context, origin Storage, storages []Storage, key string, blob *Bytes,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -339,8 +364,8 @@ func (app *Imagor) save(
 	}
 	defer cancel()
 	var wg sync.WaitGroup
-	for _, saver := range savers {
-		if saver == origin {
+	for _, storage := range storages {
+		if storage == origin {
 			// loaded from the same store, no need save again
 			if app.Debug {
 				app.Logger.Debug("skip-save", zap.String("key", key))
@@ -348,14 +373,14 @@ func (app *Imagor) save(
 			continue
 		}
 		wg.Add(1)
-		go func(saver Storage) {
+		go func(storage Storage) {
 			defer wg.Done()
-			if err := saver.Save(ctx, key, blob); err != nil {
+			if err := storage.Save(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
 			}
-		}(saver)
+		}(storage)
 	}
 	wg.Wait()
 	return
@@ -472,7 +497,7 @@ func getType(v interface{}) string {
 	}
 }
 
-func castLoaders(storages []Storage) (loaders []Loader) {
+func loaderSlice(storages []Storage) (loaders []Loader) {
 	for _, storage := range storages {
 		loaders = append(loaders, storage)
 	}

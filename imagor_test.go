@@ -221,10 +221,20 @@ func TestParams(t *testing.T) {
 	assert.Equal(t, string(buf), w.Body.String())
 }
 
+var clock time.Time
+
 type mapStore struct {
 	Map     map[string]*Bytes
+	ModTime map[string]time.Time
 	LoadCnt map[string]int
 	SaveCnt map[string]int
+}
+
+func newMapStore() *mapStore {
+	return &mapStore{
+		Map: map[string]*Bytes{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
+		ModTime: map[string]time.Time{},
+	}
 }
 
 func (s *mapStore) Load(r *http.Request, image string) (*Bytes, error) {
@@ -236,23 +246,26 @@ func (s *mapStore) Load(r *http.Request, image string) (*Bytes, error) {
 	return buf, nil
 }
 func (s *mapStore) Save(ctx context.Context, image string, blob *Bytes) error {
+	clock = clock.Add(1)
 	s.Map[image] = blob
 	s.SaveCnt[image] = s.SaveCnt[image] + 1
+	s.ModTime[image] = clock
 	return nil
 }
 
 func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
-	// dummy
-	return nil, ErrNotFound
+	t, ok := s.ModTime[image]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return &Stat{
+		ModifiedTime: t,
+	}, nil
 }
 
 func TestWithLoadersStoragesProcessors(t *testing.T) {
-	store := &mapStore{
-		Map: map[string]*Bytes{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
-	}
-	resultStore := &mapStore{
-		Map: map[string]*Bytes{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
-	}
+	store := newMapStore()
+	resultStore := newMapStore()
 	fakeMeta := &Meta{Format: "a", ContentType: "b", Width: 167, Height: 167}
 	fakeMetaBuf, _ := json.Marshal(fakeMeta)
 	fakeMetaStr := string(fakeMetaBuf)
@@ -304,6 +317,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 		),
 		WithProcessConcurrency(1000),
+		WithModifiedTimeCheck(true),
 		WithResultStorages(resultStore),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, blob *Bytes, p imagorpath.Params, load LoadFunc) (*Bytes, error) {
@@ -409,9 +423,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 	})
 }
 func TestWithSameStore(t *testing.T) {
-	store := &mapStore{
-		Map: map[string]*Bytes{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
-	}
+	store := newMapStore()
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
