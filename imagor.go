@@ -227,8 +227,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 						if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
 							return blob, nil
 						}
-					} else {
-						return blob, nil
 					}
 				}
 			} else {
