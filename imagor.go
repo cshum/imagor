@@ -143,22 +143,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", blob.Meta.ContentType)
 			}
 		} else if ln > 0 {
-			contentType := "application/octet-stream"
-			switch blob.BytesType() {
-			case BytesTypeJPEG:
-				contentType = "image/jpeg"
-			case BytesTypePNG:
-				contentType = "image/png"
-			case BytesTypeGIF:
-				contentType = "image/gif"
-			case BytesTypeWEBP:
-				contentType = "image/webp"
-			case BytesTypeAVIF:
-				contentType = "image/avif"
-			default:
-				contentType = http.DetectContentType(buf)
-			}
-			w.Header().Set("Content-Type", contentType)
+			w.Header().Set("Content-Type", blob.ContentType())
 		}
 	}
 	if err != nil {

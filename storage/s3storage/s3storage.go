@@ -11,7 +11,6 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"io"
-	"mime"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -128,7 +127,7 @@ func (s *S3Storage) Save(ctx context.Context, image string, blob *imagor.Bytes) 
 		ACL:         aws.String(s.ACL),
 		Body:        bytes.NewReader(buf),
 		Bucket:      aws.String(s.Bucket),
-		ContentType: aws.String(mime.TypeByExtension(filepath.Ext(image))),
+		ContentType: aws.String(blob.ContentType()),
 		Key:         aws.String(image),
 	}
 	_, err = s.Uploader.UploadWithContext(ctx, input)

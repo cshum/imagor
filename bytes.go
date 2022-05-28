@@ -3,6 +3,7 @@ package imagor
 import (
 	"bytes"
 	"io/ioutil"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -109,6 +110,26 @@ func (b *Bytes) SupportsAnimation() bool {
 func (b *Bytes) BytesType() BytesType {
 	b.readAllOnce()
 	return b.bytesType
+}
+
+func (b *Bytes) ContentType() string {
+	b.readAllOnce()
+	contentType := "application/octet-stream"
+	switch b.BytesType() {
+	case BytesTypeJPEG:
+		contentType = "image/jpeg"
+	case BytesTypePNG:
+		contentType = "image/png"
+	case BytesTypeGIF:
+		contentType = "image/gif"
+	case BytesTypeWEBP:
+		contentType = "image/webp"
+	case BytesTypeAVIF:
+		contentType = "image/avif"
+	default:
+		contentType = http.DetectContentType(b.buf)
+	}
+	return contentType
 }
 
 func (b *Bytes) ReadAll() ([]byte, error) {
