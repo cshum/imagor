@@ -132,7 +132,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	blob, err := app.Do(r, p)
 	var buf []byte
 	var ln int
-	if !IsBytesEmpty(blob) {
+	if !isEmpty(blob) {
 		buf, _ = blob.ReadAll()
 		ln = len(buf)
 		if blob.Meta != nil && p.Meta {
@@ -217,8 +217,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		return app.loadStorage(r, image)
 	}
 	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Bytes, error) {
-		if blob, err = app.loadResult(r, resultKey); err == nil && !IsBytesEmpty(blob) {
-			return blob, err
+		if blob, _, err = app.load(r, app.ResultLoaders, resultKey); err == nil && !isEmpty(blob) {
+			return blob, nil
 		}
 		if app.sema != nil {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
@@ -231,7 +231,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 			return blob, err
 		}
-		if IsBytesEmpty(blob) {
+		if isEmpty(blob) {
 			return blob, err
 		}
 		var cancel func()
@@ -250,7 +250,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 				break
 			} else {
 				if e == ErrPass {
-					if !IsBytesEmpty(f) {
+					if !isEmpty(f) {
 						// pass to next processor
 						blob = f
 					}
@@ -278,7 +278,7 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
 		var origin Storage
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key)
-		if err != nil || IsBytesEmpty(blob) {
+		if err != nil || isEmpty(blob) {
 			return
 		}
 		if len(app.Storages) > 0 {
@@ -288,17 +288,12 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
 	})
 }
 
-func (app *Imagor) loadResult(r *http.Request, key string) (blob *Bytes, err error) {
-	if len(app.ResultLoaders) == 0 {
-		return
-	}
-	blob, _, err = app.load(r, app.ResultLoaders, key)
-	return
-}
-
 func (app *Imagor) load(
 	r *http.Request, loaders []Loader, key string,
 ) (blob *Bytes, origin Storage, err error) {
+	if len(loaders) == 0 {
+		return
+	}
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
@@ -310,7 +305,7 @@ func (app *Imagor) load(
 	}
 	for _, loader := range loaders {
 		f, e := loader.Load(loadReq, key)
-		if !IsBytesEmpty(f) {
+		if !isEmpty(f) {
 			blob = f
 		}
 		if e == nil {

@@ -8,7 +8,7 @@ import (
 func (v *VipsProcessor) newThumbnail(
 	blob *imagor.Bytes, width, height int, crop vips.Interesting, size vips.Size, n int,
 ) (*vips.ImageRef, error) {
-	if imagor.IsBytesEmpty(blob) {
+	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
 	buf, err := blob.ReadAll()
@@ -71,7 +71,7 @@ func newThumbnailFix(
 }
 
 func (v *VipsProcessor) newImage(blob *imagor.Bytes, n int) (*vips.ImageRef, error) {
-	if imagor.IsBytesEmpty(blob) {
+	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
 	buf, err := blob.ReadAll()

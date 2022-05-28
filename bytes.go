@@ -141,6 +141,6 @@ func (b *Bytes) ReadAll() ([]byte, error) {
 	return b.buf, b.err
 }
 
-func IsBytesEmpty(f *Bytes) bool {
+func isEmpty(f *Bytes) bool {
 	return f == nil || f.IsEmpty()
 }
