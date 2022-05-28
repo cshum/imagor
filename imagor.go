@@ -86,9 +86,9 @@ func New(options ...Option) *Imagor {
 	if app.Debug {
 		app.debugLog()
 	}
-	// cast storages into loaders pipeline
-	app.ResultLoaders = castLoaders(app.ResultStorages)
-	app.Loaders = append(castLoaders(app.Storages), app.Loaders...)
+	// cast storages into loaders
+	app.ResultLoaders = loaderSlice(app.ResultStorages)
+	app.Loaders = append(loaderSlice(app.Storages), app.Loaders...)
 	return app
 }
 
@@ -499,7 +499,7 @@ func getType(v interface{}) string {
 	}
 }
 
-func castLoaders(storages []Storage) (loaders []Loader) {
+func loaderSlice(storages []Storage) (loaders []Loader) {
 	for _, storage := range storages {
 		loaders = append(loaders, storage)
 	}

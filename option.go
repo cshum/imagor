@@ -119,6 +119,12 @@ func WithBasePathRedirect(url string) Option {
 	}
 }
 
+func WithModifiedTimeCheck(enabled bool) Option {
+	return func(o *Imagor) {
+		o.ModifiedTimeCheck = enabled
+	}
+}
+
 func WithDebug(debug bool) Option {
 	return func(o *Imagor) {
 		o.Debug = debug
