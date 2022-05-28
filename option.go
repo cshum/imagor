@@ -1,6 +1,7 @@
 package imagor
 
 import (
+	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
 	"time"
 )
@@ -128,5 +129,11 @@ func WithModifiedTimeCheck(enabled bool) Option {
 func WithDebug(debug bool) Option {
 	return func(o *Imagor) {
 		o.Debug = debug
+	}
+}
+
+func WithResultKeyFunc(fn func(p imagorpath.Params) string) Option {
+	return func(o *Imagor) {
+		o.ResultKeyFunc = fn
 	}
 }

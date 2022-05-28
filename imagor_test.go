@@ -319,6 +319,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithProcessConcurrency(1000),
 		WithModifiedTimeCheck(true),
 		WithResultStorages(resultStore),
+		WithResultKeyFunc(func(p imagorpath.Params) string {
+			return "asdf:" + strings.TrimPrefix(p.Path, "meta/")
+		}),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, blob *Bytes, p imagorpath.Params, load LoadFunc) (*Bytes, error) {
 				buf, _ := blob.ReadAll()
@@ -356,72 +359,75 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 	assert.Equal(t, time.Second, app.ProcessTimeout)
 	assert.Equal(t, time.Millisecond, app.SaveTimeout)
 	defer require.NoError(t, app.Shutdown(context.Background()))
-	t.Run("consistent", func(t *testing.T) {
-		t.Parallel()
-		for i := 0; i < 2; i++ {
-			t.Run(fmt.Sprintf("ok %d", i), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/foo", nil))
-				assert.Equal(t, 200, w.Code)
-				assert.Equal(t, "bark", w.Body.String())
-
-				w = httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/bar", nil))
-				assert.Equal(t, 200, w.Code)
-				assert.Equal(t, "bar", w.Body.String())
-
-				w = httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/meta/foo", nil))
-				assert.Equal(t, 200, w.Code)
-				assert.Equal(t, fakeMetaStr, w.Body.String())
-
-				w = httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/ping", nil))
-				assert.Equal(t, 200, w.Code)
-				assert.Equal(t, "pong", w.Body.String())
-			})
-			t.Run(fmt.Sprintf("empty %d", i), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/empty", nil))
-				assert.Equal(t, 200, w.Code)
-				assert.Equal(t, "", w.Body.String())
-			})
-			t.Run(fmt.Sprintf("not found on pass %d", i), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/boooo", nil))
-				assert.Equal(t, 404, w.Code)
-				assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
-			})
-			t.Run(fmt.Sprintf("unexpected error %d", i), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/boom", nil))
-				assert.Equal(t, 500, w.Code)
-				assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
-			})
-			t.Run(fmt.Sprintf("error with value %d", i), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/dood", nil))
-				assert.Equal(t, 500, w.Code)
-				assert.Equal(t, "dood", w.Body.String())
-			})
-			t.Run(fmt.Sprintf("processor error return original %d", i), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, "https://example.com/unsafe/poop", nil))
-				assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
-				assert.Equal(t, "poop", w.Body.String())
-			})
-		}
+	t.Parallel()
+	t.Cleanup(func() {
+		assert.Equal(t, store.LoadCnt["foo"], 1)
+		assert.Equal(t, resultStore.LoadCnt["asdf:foo"], 3)
 	})
+	for i := 0; i < 2; i++ {
+		t.Run(fmt.Sprintf("ok %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/foo", nil))
+			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, "bark", w.Body.String())
+
+			w = httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/bar", nil))
+			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, "bar", w.Body.String())
+
+			w = httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/meta/foo", nil))
+			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, fakeMetaStr, w.Body.String())
+
+			w = httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/ping", nil))
+			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, "pong", w.Body.String())
+		})
+		t.Run(fmt.Sprintf("empty %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/empty", nil))
+			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, "", w.Body.String())
+		})
+		t.Run(fmt.Sprintf("not found on pass %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/boooo", nil))
+			assert.Equal(t, 404, w.Code)
+			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+		})
+		t.Run(fmt.Sprintf("unexpected error %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/boom", nil))
+			assert.Equal(t, 500, w.Code)
+			assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
+		})
+		t.Run(fmt.Sprintf("error with value %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/dood", nil))
+			assert.Equal(t, 500, w.Code)
+			assert.Equal(t, "dood", w.Body.String())
+		})
+		t.Run(fmt.Sprintf("processor error return original %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/poop", nil))
+			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
+			assert.Equal(t, "poop", w.Body.String())
+		})
+	}
 }
+
 func TestWithSameStore(t *testing.T) {
 	store := newMapStore()
 	app := New(

@@ -62,6 +62,7 @@ type Imagor struct {
 	ModifiedTimeCheck  bool
 	Logger             *zap.Logger
 	Debug              bool
+	ResultKeyFunc      func(p imagorpath.Params) string
 
 	g    singleflight.Group
 	sema *semaphore.Weighted
@@ -213,7 +214,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 			}
 		}
 	}
-	resultKey := strings.TrimPrefix(p.Path, "meta/")
+	var resultKey string
+	if app.ResultKeyFunc != nil {
+		resultKey = app.ResultKeyFunc(p)
+	} else {
+		resultKey = strings.TrimPrefix(p.Path, "meta/")
+	}
 	load := func(image string) (*Bytes, error) {
 		return app.loadStorage(r, image)
 	}
