@@ -127,22 +127,22 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 	t.Run("blacklisted path", func(t *testing.T) {
 		s := New(dir)
-		_, err = s.Load(&http.Request{}, "/abc/.git")
+		_, err = s.Get(&http.Request{}, "/abc/.git")
 		assert.Equal(t, imagor.ErrPass, err)
-		assert.Equal(t, imagor.ErrPass, s.Save(ctx, "/abc/.git", imagor.NewBytes([]byte("boo"))))
+		assert.Equal(t, imagor.ErrPass, s.Put(ctx, "/abc/.git", imagor.NewBytes([]byte("boo"))))
 	})
 	t.Run("save and load", func(t *testing.T) {
 		s := New(dir, WithMkdirPermission("0755"), WithWritePermission("0666"))
 
-		_, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
+		_, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
 		_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
-		require.NoError(t, s.Save(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
+		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
 
-		b, err := s.Load(&http.Request{}, "/foo/fooo/asdf")
+		b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
@@ -155,9 +155,9 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 	t.Run("save err if exists", func(t *testing.T) {
 		s := New(dir, WithSaveErrIfExists(true))
-		require.NoError(t, s.Save(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
-		assert.Error(t, s.Save(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("boo"))))
-		b, err := s.Load(&http.Request{}, "/foo/bar/asdf")
+		require.NoError(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
+		assert.Error(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("boo"))))
+		b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
@@ -166,13 +166,13 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 	t.Run("expiration", func(t *testing.T) {
 		s := New(dir, WithExpiration(time.Millisecond*10))
-		b, err := s.Load(&http.Request{}, "/foo/bar/asdf")
+		b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
 		time.Sleep(time.Millisecond * 10)
-		_, err = s.Load(&http.Request{}, "/foo/bar/asdf")
+		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 		require.ErrorIs(t, err, imagor.ErrExpired)
 	})
 }

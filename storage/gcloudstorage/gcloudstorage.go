@@ -35,7 +35,7 @@ func New(client *storage.Client, bucket string, options ...Option) *GCloudStorag
 	return s
 }
 
-func (s *GCloudStorage) Load(r *http.Request, image string) (imageData *imagor.Bytes, err error) {
+func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bytes, err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -76,7 +76,7 @@ func (s *GCloudStorage) Load(r *http.Request, image string) (imageData *imagor.B
 	return imagor.NewBytes(buf), err
 }
 
-func (s *GCloudStorage) Save(ctx context.Context, image string, blob *imagor.Bytes) (err error) {
+func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Bytes) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

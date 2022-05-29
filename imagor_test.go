@@ -26,13 +26,13 @@ func jsonStr(v interface{}) string {
 
 type loaderFunc func(r *http.Request, image string) (blob *Bytes, err error)
 
-func (f loaderFunc) Load(r *http.Request, image string) (*Bytes, error) {
+func (f loaderFunc) Get(r *http.Request, image string) (*Bytes, error) {
 	return f(r, image)
 }
 
 type saverFunc func(ctx context.Context, image string, blob *Bytes) error
 
-func (f saverFunc) Load(r *http.Request, image string) (*Bytes, error) {
+func (f saverFunc) Get(r *http.Request, image string) (*Bytes, error) {
 	// dummy
 	return nil, ErrNotFound
 }
@@ -42,7 +42,7 @@ func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
 	return nil, ErrNotFound
 }
 
-func (f saverFunc) Save(ctx context.Context, image string, blob *Bytes) error {
+func (f saverFunc) Put(ctx context.Context, image string, blob *Bytes) error {
 	return f(ctx, image, blob)
 }
 
@@ -237,7 +237,7 @@ func newMapStore() *mapStore {
 	}
 }
 
-func (s *mapStore) Load(r *http.Request, image string) (*Bytes, error) {
+func (s *mapStore) Get(r *http.Request, image string) (*Bytes, error) {
 	buf, ok := s.Map[image]
 	if !ok {
 		return nil, ErrNotFound
@@ -245,7 +245,7 @@ func (s *mapStore) Load(r *http.Request, image string) (*Bytes, error) {
 	s.LoadCnt[image] = s.LoadCnt[image] + 1
 	return buf, nil
 }
-func (s *mapStore) Save(ctx context.Context, image string, blob *Bytes) error {
+func (s *mapStore) Put(ctx context.Context, image string, blob *Bytes) error {
 	clock = clock.Add(1)
 	s.Map[image] = blob
 	s.SaveCnt[image] = s.SaveCnt[image] + 1

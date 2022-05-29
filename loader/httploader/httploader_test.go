@@ -51,7 +51,7 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 			r.Header.Set("User-Agent", "Test")
 			r.Header.Set("X-Imagor-Foo", "Bar")
 			r.Header.Set("X-Imagor-Ping", "Pong")
-			b, err := loader.Load(r, tt.target)
+			b, err := loader.Get(r, tt.target)
 			if tt.err == "" {
 				require.NoError(t, err)
 			} else {

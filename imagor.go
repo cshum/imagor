@@ -21,13 +21,13 @@ const Version = "0.8.22"
 
 // Loader load image from source
 type Loader interface {
-	Load(r *http.Request, image string) (*Bytes, error)
+	Get(r *http.Request, image string) (*Bytes, error)
 }
 
 // Storage load and save image
 type Storage interface {
-	Load(r *http.Request, image string) (*Bytes, error)
-	Save(ctx context.Context, image string, blob *Bytes) error
+	Get(r *http.Request, image string) (*Bytes, error)
+	Put(ctx context.Context, image string, blob *Bytes) error
 	Stat(ctx context.Context, image string) (*Stat, error)
 }
 
@@ -323,7 +323,7 @@ func (app *Imagor) load(
 		loadReq = r.WithContext(loadCtx)
 	}
 	for _, loader := range loaders {
-		f, e := loader.Load(loadReq, key)
+		f, e := loader.Get(loadReq, key)
 		if !isEmpty(f) {
 			blob = f
 		}
@@ -381,7 +381,7 @@ func (app *Imagor) save(
 		wg.Add(1)
 		go func(storage Storage) {
 			defer wg.Done()
-			if err := storage.Save(ctx, key, blob); err != nil {
+			if err := storage.Put(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
