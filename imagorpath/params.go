@@ -1,12 +1,5 @@
 package imagorpath
 
-import (
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"strings"
-)
-
 const (
 	TrimByTopLeft     = "top-left"
 	TrimByBottomRight = "bottom-right"
@@ -52,12 +45,4 @@ type Params struct {
 type Filter struct {
 	Name string `json:"name,omitempty"`
 	Args string `json:"args,omitempty"`
-}
-
-// Sign an Imagor endpoint with secret key
-func Sign(path, secret string) string {
-	h := hmac.New(sha1.New, []byte(secret))
-	h.Write([]byte(strings.TrimPrefix(path, "/")))
-	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
-	return hash
 }
