@@ -24,7 +24,7 @@ func Test(t *testing.T) {
 	}
 
 	// generate signed Imagor endpoint from Params struct with secret
-	path := imagorpath.Generate(params, "mysecret")
+	path := imagorpath.Generate(params, imagorpath.NewDefaultSigner("mysecret"))
 
 	assert.Equal(t, path, "OyGJyvfYJw8xNkYDmXU-4NPA2U0=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 
