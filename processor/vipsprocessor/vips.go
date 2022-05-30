@@ -133,7 +133,7 @@ func (v *VipsProcessor) Process(
 		format                = vips.ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
-		focalRects            []Focal
+		focalRects            []focal
 		err                   error
 	)
 	ctx = WithInitImageRefs(ctx)
@@ -308,7 +308,7 @@ func (v *VipsProcessor) Process(
 			break
 		case "focal":
 			if args := strings.FieldsFunc(p.Args, focalSplit); len(args) == 4 {
-				f := Focal{}
+				f := focal{}
 				f.Left, _ = strconv.ParseFloat(args[0], 64)
 				f.Top, _ = strconv.ParseFloat(args[1], 64)
 				f.Right, _ = strconv.ParseFloat(args[2], 64)
