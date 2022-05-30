@@ -1,6 +1,7 @@
 package imagorpath
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"reflect"
@@ -199,11 +200,12 @@ func TestParseGenerate(t *testing.T) {
 			if !reflect.DeepEqual(resp, test.params) {
 				t.Errorf(" = %s, want %s", string(respJSON), string(expectedJSON))
 			}
-			if test.secret != "" && Sign(resp.Path, test.secret) != resp.Hash {
-				t.Errorf("signature mismatch = %s, want %s", resp.Hash, Sign(resp.Path, test.secret))
+			signer := NewDefaultSigner(test.secret)
+			if test.secret != "" && signer.Sign(resp.Path) != resp.Hash {
+				t.Errorf("signature mismatch = %s, want %s", resp.Hash, signer.Sign(resp.Path))
 			}
 			if test.params.Hash != "" {
-				if uri := Generate(test.params, test.secret); uri != test.uri {
+				if uri := Generate(test.params, signer); uri != test.uri {
 					t.Errorf(" = %s, want = %s", uri, test.uri)
 				}
 			} else if test.params.Unsafe {
@@ -232,4 +234,9 @@ func TestClean(t *testing.T) {
 		}),
 		"should exclude escape space",
 	)
+}
+
+func TestSignerTruncate(t *testing.T) {
+	signer := NewHMACSigner(sha256.New, 28, "abcd")
+	assert.Equal(t, signer.Sign("assfasf"), "zb6uWXQxwJDOe_zOgxkuj96Etrsz")
 }

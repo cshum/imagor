@@ -92,11 +92,15 @@ func GeneratePath(p Params) string {
 
 // GenerateUnsafe generate unsafe Imagor endpoint by Params struct
 func GenerateUnsafe(p Params) string {
-	return "unsafe/" + GeneratePath(p)
+	return Generate(p, nil)
 }
 
-// Generate Imagor endpoint with signature by Params struct with secret
-func Generate(p Params, secret string) string {
+// Generate Imagor endpoint with signature by Params struct with signer
+func Generate(p Params, signer Signer) string {
 	imgPath := GeneratePath(p)
-	return Sign(imgPath, secret) + "/" + imgPath
+	if signer != nil {
+		return signer.Sign(imgPath) + "/" + imgPath
+	} else {
+		return "unsafe/" + imgPath
+	}
 }

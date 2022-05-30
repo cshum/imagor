@@ -45,6 +45,7 @@ type Processor interface {
 type Imagor struct {
 	Unsafe             bool
 	Secret             string
+	Signer             imagorpath.Signer
 	BasePathRedirect   string
 	Loaders            []Loader
 	Storages           []Storage
@@ -86,6 +87,9 @@ func New(options ...Option) *Imagor {
 	}
 	if app.Debug {
 		app.debugLog()
+	}
+	if app.Signer == nil {
+		app.Signer = imagorpath.NewDefaultSigner(app.Secret)
 	}
 	// cast storages into loaders
 	app.ResultLoaders = loaderSlice(app.ResultStorages)
@@ -182,10 +186,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		defer cancel()
 		r = r.WithContext(ctx)
 	}
-	if !(app.Unsafe && p.Unsafe) && imagorpath.Sign(p.Path, app.Secret) != p.Hash {
+	if !(app.Unsafe && p.Unsafe) && app.Signer != nil && app.Signer.Sign(p.Path) != p.Hash {
 		err = ErrSignatureMismatch
 		if app.Debug {
-			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", imagorpath.Sign(p.Path, app.Secret)))
+			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", app.Signer.Sign(p.Path)))
 		}
 		return
 	}
