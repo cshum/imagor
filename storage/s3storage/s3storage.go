@@ -28,7 +28,7 @@ type S3Storage struct {
 	SafeChars  string
 	Expiration time.Duration
 
-	safeChars map[byte]bool
+	safeChars imagorpath.SafeChars
 }
 
 func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
@@ -45,42 +45,18 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 		BaseDir:    baseDir,
 		PathPrefix: "/",
 		ACL:        s3.ObjectCannedACLPublicRead,
-
-		safeChars: map[byte]bool{},
 	}
 	for _, option := range options {
 		option(s)
 	}
-	for _, c := range s.SafeChars {
-		s.safeChars[byte(c)] = true
-	}
+	s.safeChars = imagorpath.NewSafeChars("!\"()*" + s.SafeChars)
+	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters
+
 	return s
 }
 
-func (s *S3Storage) escapeByte(c byte) bool {
-	// alphanum
-	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
-		return false
-	}
-	switch c {
-	case '/': // should not escape path segment
-		return false
-	case '-', '_', '.', '~': // Unreserved characters
-		return false
-	case '!', '\'', '(', ')', '*':
-		// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters
-		return false
-	}
-	if len(s.safeChars) > 0 && s.safeChars[c] {
-		// safe chars from config
-		return false
-	}
-	// Everything else must be escaped.
-	return true
-}
-
 func (s *S3Storage) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image, s.escapeByte)
+	image = "/" + imagorpath.Normalize(image, s.safeChars)
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}

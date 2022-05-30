@@ -36,9 +36,9 @@ func TestS3Store_Path(t *testing.T) {
 		{
 			name:           "escape safe chars",
 			bucket:         "mybucket",
-			image:          "/foo/b{:}ar",
+			image:          "/foo/b{:}\"ar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/foo/b{%3A}ar",
+			expectedPath:   "/foo/b{%3A}\"ar",
 			safeChars:      "{}",
 			expectedOk:     true,
 		},

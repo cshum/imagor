@@ -21,17 +21,16 @@ type GCloudStorage struct {
 	Expiration time.Duration
 	client     *storage.Client
 	bucket     string
-	safeChars  map[byte]bool
+
+	safeChars imagorpath.SafeChars
 }
 
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
-	s := &GCloudStorage{client: client, bucket: bucket, safeChars: map[byte]bool{}}
+	s := &GCloudStorage{client: client, bucket: bucket}
 	for _, option := range options {
 		option(s)
 	}
-	for _, c := range s.SafeChars {
-		s.safeChars[byte(c)] = true
-	}
+	s.safeChars = imagorpath.NewSafeChars(s.SafeChars)
 	return s
 }
 
@@ -105,7 +104,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Byte
 }
 
 func (s *GCloudStorage) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image, s.escapeByte)
+	image = "/" + imagorpath.Normalize(image, s.safeChars)
 
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
@@ -113,20 +112,6 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 	joinedPath := filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
 	// Google cloud paths don't need to start with "/"
 	return strings.Trim(joinedPath, "/"), true
-}
-
-func (s *GCloudStorage) escapeByte(c byte) bool {
-	switch c {
-	// Escape google recommendation: https://cloud.google.com/storage/docs/naming-objects
-	case '#', '[', ']', '*', '?':
-		return true
-	}
-	if len(s.safeChars) > 0 && s.safeChars[c] {
-		// safe chars from config
-		return false
-	}
-	// Anything else - use defaults
-	return imagorpath.DefaultEscapeByte(c)
 }
 
 func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {

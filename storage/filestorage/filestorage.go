@@ -24,7 +24,7 @@ type FileStorage struct {
 	SafeChars       string
 	Expiration      time.Duration
 
-	safeChars map[byte]bool
+	safeChars imagorpath.SafeChars
 }
 
 func New(baseDir string, options ...Option) *FileStorage {
@@ -34,33 +34,16 @@ func New(baseDir string, options ...Option) *FileStorage {
 		Blacklists:      []*regexp.Regexp{dotFileRegex},
 		MkdirPermission: 0755,
 		WritePermission: 0666,
-
-		safeChars: map[byte]bool{},
 	}
 	for _, option := range options {
 		option(s)
 	}
-	for _, c := range s.SafeChars {
-		s.safeChars[byte(c)] = true
-	}
+	s.safeChars = imagorpath.NewSafeChars(s.SafeChars)
 	return s
 }
 
-func (s *FileStorage) escapeByte(c byte) bool {
-	if !imagorpath.DefaultEscapeByte(c) {
-		// based on default escape char
-		return false
-	}
-	if len(s.safeChars) > 0 && s.safeChars[c] {
-		// safe chars from config
-		return false
-	}
-	// Everything else must be escaped.
-	return true
-}
-
 func (s *FileStorage) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image, s.escapeByte)
+	image = "/" + imagorpath.Normalize(image, s.safeChars)
 	for _, blacklist := range s.Blacklists {
 		if blacklist.MatchString(image) {
 			return "", false
