@@ -137,3 +137,11 @@ func WithResultKeyFunc(fn func(p imagorpath.Params) string) Option {
 		o.ResultKeyFunc = fn
 	}
 }
+
+func WithSigner(signer imagorpath.Signer) Option {
+	return func(o *Imagor) {
+		if signer != nil {
+			o.Signer = signer
+		}
+	}
+}
