@@ -115,13 +115,28 @@ func (v *VipsProcessor) thumbnail(
 	return v.animatedThumbnailWithCrop(img, width, height, crop, size)
 }
 
+func (v *VipsProcessor) focalThumbnail(img *vips.ImageRef, w, h int, focalX, focalY float64) (err error) {
+	var top, left int
+	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
+		if err = img.Thumbnail(w, v.MaxHeight, vips.InterestingNone); err != nil {
+			return
+		}
+	} else {
+		if err = img.Thumbnail(v.MaxWidth, h, vips.InterestingNone); err != nil {
+			return
+		}
+	}
+	left = int(float64(img.Width()-w) * focalX)
+	top = int(float64(img.PageHeight()-h) * focalY)
+	return img.ExtractArea(left, top, w, h)
+}
+
 func (v *VipsProcessor) animatedThumbnailWithCrop(
 	img *vips.ImageRef, w, h int, crop vips.Interesting, size vips.Size,
 ) (err error) {
 	if size == vips.SizeDown && img.Width() < w && img.PageHeight() < h {
 		return
 	}
-	// use ExtractArea for animated cropping
 	var top, left int
 	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 		if err = img.ThumbnailWithSize(w, v.MaxHeight, vips.InterestingNone, size); err != nil {

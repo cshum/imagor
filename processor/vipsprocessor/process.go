@@ -14,7 +14,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool,
+	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []Focal,
 ) error {
 	if p.Trim {
 		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {
@@ -76,8 +76,15 @@ func (v *VipsProcessor) process(
 					interest = vips.InterestingHigh
 				}
 			}
-			if err := v.thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
-				return err
+			if p.Smart && len(focalRects) > 0 {
+				focalX, focalY := ParseFocalPoint(img.Width(), img.Height(), focalRects...)
+				if err := v.focalThumbnail(img, w, h, focalX, focalY); err != nil {
+					return err
+				}
+			} else {
+				if err := v.thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
+					return err
+				}
 			}
 		}
 	}

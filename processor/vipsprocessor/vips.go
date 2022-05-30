@@ -117,6 +117,10 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 	return nil
 }
 
+func focalSplit(r rune) bool {
+	return r == 'x' || r == ',' || r == ':'
+}
+
 func (v *VipsProcessor) Process(
 	ctx context.Context, blob *imagor.Bytes, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Bytes, error) {
@@ -129,6 +133,7 @@ func (v *VipsProcessor) Process(
 		format                = vips.ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
+		focalRects            []Focal
 		err                   error
 	)
 	ctx = WithInitImageRefs(ctx)
@@ -173,6 +178,18 @@ func (v *VipsProcessor) Process(
 				thumbnailNotSupported = true
 			}
 			break
+		case "focal":
+			if args := strings.FieldsFunc(p.Args, focalSplit); len(args) == 4 {
+				f := Focal{}
+				f.Left, _ = strconv.ParseFloat(args[0], 64)
+				f.Right, _ = strconv.ParseFloat(args[1], 64)
+				f.Top, _ = strconv.ParseFloat(args[2], 64)
+				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
+				if f.Right > f.Left && f.Bottom > f.Top {
+					thumbnailNotSupported = true
+					focalRects = append(focalRects, f)
+				}
+			}
 		case "trim":
 			thumbnailNotSupported = true
 			break
@@ -298,7 +315,7 @@ func (v *VipsProcessor) Process(
 			break
 		}
 	}
-	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale); err != nil {
+	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, wrapErr(err)
 	}
 	for {
