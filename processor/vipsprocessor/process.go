@@ -14,7 +14,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []Focal,
+	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []*Focal,
 ) error {
 	if p.Trim {
 		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {

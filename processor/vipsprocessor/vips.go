@@ -133,7 +133,7 @@ func (v *VipsProcessor) Process(
 		format                = vips.ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
-		focalRects            []Focal
+		focalRects            []*Focal
 		err                   error
 	)
 	ctx = WithInitImageRefs(ctx)
@@ -180,16 +180,17 @@ func (v *VipsProcessor) Process(
 			break
 		case "focal":
 			if args := strings.FieldsFunc(p.Args, focalSplit); len(args) == 4 {
-				f := Focal{}
+				f := &Focal{}
 				f.Left, _ = strconv.ParseFloat(args[0], 64)
-				f.Right, _ = strconv.ParseFloat(args[1], 64)
-				f.Top, _ = strconv.ParseFloat(args[2], 64)
+				f.Top, _ = strconv.ParseFloat(args[1], 64)
+				f.Right, _ = strconv.ParseFloat(args[2], 64)
 				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
 				if f.Right > f.Left && f.Bottom > f.Top {
 					thumbnailNotSupported = true
 					focalRects = append(focalRects, f)
 				}
 			}
+			break
 		case "trim":
 			thumbnailNotSupported = true
 			break
