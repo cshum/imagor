@@ -95,8 +95,7 @@ func New(options ...Option) *Imagor {
 	if app.Signer == nil {
 		app.Signer = imagorpath.NewDefaultSigner("")
 	}
-	// cast storages into loaders
-	app.ResultLoaders = loaderSlice(app.ResultStorages)
+	app.ResultLoaders = append(loaderSlice(app.ResultStorages), app.ResultLoaders...)
 	app.Loaders = append(loaderSlice(app.Storages), app.Loaders...)
 	return app
 }

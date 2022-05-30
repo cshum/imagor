@@ -3,6 +3,7 @@ package vipsprocessor
 import (
 	"github.com/cshum/imagor"
 	"github.com/davidbyttow/govips/v2/vips"
+	"math"
 )
 
 func (v *VipsProcessor) newThumbnail(
@@ -116,7 +117,6 @@ func (v *VipsProcessor) thumbnail(
 }
 
 func (v *VipsProcessor) focalThumbnail(img *vips.ImageRef, w, h int, fx, fy float64) (err error) {
-	var top, left int
 	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 		if err = img.Thumbnail(w, v.MaxHeight, vips.InterestingNone); err != nil {
 			return
@@ -126,9 +126,12 @@ func (v *VipsProcessor) focalThumbnail(img *vips.ImageRef, w, h int, fx, fy floa
 			return
 		}
 	}
-	left = int(float64(img.Width()-w) * fx)
-	top = int(float64(img.PageHeight()-h) * fy)
-	return img.ExtractArea(left, top, w, h)
+	var top, left float64
+	left = float64(img.Width())*fx - float64(w)/2
+	top = float64(img.PageHeight())*fy - float64(h)/2
+	left = math.Max(0, math.Min(left, float64(img.Width()-w)))
+	top = math.Max(0, math.Min(top, float64(img.PageHeight()-h)))
+	return img.ExtractArea(int(left), int(top), w, h)
 }
 
 func (v *VipsProcessor) animatedThumbnailWithCrop(

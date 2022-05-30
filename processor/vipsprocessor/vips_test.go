@@ -65,16 +65,16 @@ type test struct {
 }
 
 func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
+	resStorage := filestorage.New(
+		resultDir,
+		filestorage.WithSaveErrIfExists(true),
+	)
 	app := imagor.New(
 		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
 		imagor.WithProcessors(New(opts...)),
-		imagor.WithResultStorages(filestorage.New(
-			resultDir,
-			filestorage.WithSaveErrIfExists(true),
-		)),
 	)
 	require.NoError(t, app.Startup(context.Background()))
 	t.Parallel()
@@ -84,6 +84,7 @@ func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 			assert.Equal(t, 200, w.Code)
+			_ = resStorage.Put(context.Background(), tt.path, imagor.NewBytes(w.Body.Bytes()))
 			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
 
 			buf, err := ioutil.ReadFile(path)
@@ -112,6 +113,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"original", "gopher-front.png"},
 		{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
 		{"resize smart", "100x100/smart/filters:autojpg()/gopher.png"},
+		{"resize smart focal", "300x100/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},
 		{"resize top", "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
 		{"resize top", "200x100/right/top/gopher.png"},
 		{"resize bottom", "200x100/bottom/gopher.png"},
