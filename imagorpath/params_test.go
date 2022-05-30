@@ -236,7 +236,7 @@ func TestClean(t *testing.T) {
 	)
 }
 
-func TestSignerTruncate(t *testing.T) {
+func TestHMACSigner(t *testing.T) {
 	signer := NewHMACSigner(sha256.New, 28, "abcd")
 	assert.Equal(t, signer.Sign("assfasf"), "zb6uWXQxwJDOe_zOgxkuj96Etrsz")
 }
