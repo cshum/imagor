@@ -5,11 +5,29 @@ import (
 	"strings"
 )
 
-const upperhex = "0123456789ABCDEF"
+const upperHex = "0123456789ABCDEF"
 
-type EscapeByte func(byte) bool
+type SafeChars interface {
+	ShouldEscape(c byte) bool
+}
 
-func DefaultEscapeByte(c byte) bool {
+var defaultSafeChars = NewSafeChars("")
+
+func NewSafeChars(safechars string) SafeChars {
+	s := &safeChars{safeChars: map[byte]bool{}}
+	for _, c := range safechars {
+		s.safeChars[byte(c)] = true
+		s.hasCustom = true
+	}
+	return s
+}
+
+type safeChars struct {
+	hasCustom bool
+	safeChars map[byte]bool
+}
+
+func (s *safeChars) ShouldEscape(c byte) bool {
 	// alphanum
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
 		return false
@@ -18,6 +36,10 @@ func DefaultEscapeByte(c byte) bool {
 	case '/': // should not escape path segment
 		return false
 	case '-', '_', '.', '~': // Unreserved characters
+		return false
+	}
+	if s.hasCustom && s.safeChars[c] {
+		// safe chars from config
 		return false
 	}
 	// Everything else must be escaped.
@@ -66,8 +88,8 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 		if shouldEscape(c) {
 			if c != ' ' {
 				t[j] = '%'
-				t[j+1] = upperhex[c>>4]
-				t[j+2] = upperhex[c&15]
+				t[j+1] = upperHex[c>>4]
+				t[j+2] = upperHex[c&15]
 				j += 3
 			} else {
 				t[j] = '+'
@@ -82,13 +104,13 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 }
 
 // Normalize imagor path to be file path friendly,
-// optional escapeByte func for custom safe characters
-func Normalize(image string, escapeByte EscapeByte) string {
+// optional escapeByte func for custom SafeChars
+func Normalize(image string, safeChars SafeChars) string {
 	image = path.Clean(image)
 	image = strings.Trim(image, "/")
-	if escapeByte == nil {
-		return escape(image, DefaultEscapeByte)
+	if safeChars == nil {
+		return escape(image, defaultSafeChars.ShouldEscape)
 	} else {
-		return escape(image, escapeByte)
+		return escape(image, safeChars.ShouldEscape)
 	}
 }
