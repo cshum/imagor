@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/cshum/imagor/imagorpath"
 	"os"
 	"runtime"
 	"time"
@@ -446,7 +447,7 @@ func main() {
 					vipsprocessor.WithDebug(*debug),
 				),
 			),
-			imagor.WithSecret(*imagorSecret),
+			imagor.WithSigner(imagorpath.NewDefaultSigner(*imagorSecret)),
 			imagor.WithBasePathRedirect(*imagorBasePathRedirect),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithLoadTimeout(*imagorLoadTimeout),

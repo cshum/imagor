@@ -131,7 +131,7 @@ func TestWithSecret(t *testing.T) {
 	app := New(
 		WithDebug(true),
 		WithLogger(zap.NewExample()),
-		WithSecret("1234"))
+		WithSigner(imagorpath.NewDefaultSigner("1234")))
 	assert.Equal(t, true, app.Debug)
 
 	w := httptest.NewRecorder()
@@ -202,7 +202,7 @@ func TestParams(t *testing.T) {
 	app := New(
 		WithDebug(true),
 		WithLogger(zap.NewExample()),
-		WithSecret("1234"))
+		WithSigner(imagorpath.NewDefaultSigner("1234")))
 
 	r := httptest.NewRequest(
 		http.MethodGet, "https://example.com/params/_-19cQt1szHeUV0WyWFntvTImDI=/foo.jpg", nil)

@@ -108,12 +108,6 @@ func WithAutoAVIF(enable bool) Option {
 	}
 }
 
-func WithSecret(secret string) Option {
-	return func(o *Imagor) {
-		o.Secret = secret
-	}
-}
-
 func WithBasePathRedirect(url string) Option {
 	return func(o *Imagor) {
 		o.BasePathRedirect = url

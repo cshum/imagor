@@ -44,7 +44,6 @@ type Processor interface {
 // Imagor image resize HTTP handler
 type Imagor struct {
 	Unsafe             bool
-	Secret             string
 	Signer             imagorpath.Signer
 	BasePathRedirect   string
 	Loaders            []Loader
@@ -89,7 +88,7 @@ func New(options ...Option) *Imagor {
 		app.debugLog()
 	}
 	if app.Signer == nil {
-		app.Signer = imagorpath.NewDefaultSigner(app.Secret)
+		app.Signer = imagorpath.NewDefaultSigner("")
 	}
 	// cast storages into loaders
 	app.ResultLoaders = loaderSlice(app.ResultStorages)
