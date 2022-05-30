@@ -7,17 +7,11 @@ type Focal struct {
 	Bottom float64
 }
 
-func ParseFocalPoint(width, height int, focalRects ...*Focal) (focalX, focalY float64) {
+func ParseFocalPoint(width, height int, focalRects ...Focal) (focalX, focalY float64) {
 	var sumWeight float64
 	var dw = float64(width)
 	var dh = float64(height)
 	for _, f := range focalRects {
-		if f.Left < 1 && f.Top < 1 && f.Right <= 1 && f.Bottom <= 1 {
-			f.Left *= dw
-			f.Right *= dw
-			f.Top *= dh
-			f.Bottom *= dh
-		}
 		sumWeight += (f.Right - f.Left) * (f.Bottom - f.Top)
 	}
 	for _, f := range focalRects {
