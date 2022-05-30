@@ -14,7 +14,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool,
+	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	if p.Trim {
 		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {
@@ -76,8 +76,19 @@ func (v *VipsProcessor) process(
 					interest = vips.InterestingHigh
 				}
 			}
-			if err := v.thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
-				return err
+			if p.Smart && len(focalRects) > 0 {
+				focalX, focalY := parseFocalPoint(focalRects...)
+				if err := v.focalThumbnail(
+					img, w, h,
+					focalX/float64(img.Width()),
+					focalY/float64(img.PageHeight()),
+				); err != nil {
+					return err
+				}
+			} else {
+				if err := v.thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -122,6 +133,26 @@ func (v *VipsProcessor) process(
 		}
 	}
 	return nil
+}
+
+type focal struct {
+	Left   float64
+	Right  float64
+	Top    float64
+	Bottom float64
+}
+
+func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
+	var sumWeight float64
+	for _, f := range focalRects {
+		sumWeight += (f.Right - f.Left) * (f.Bottom - f.Top)
+	}
+	for _, f := range focalRects {
+		r := (f.Right - f.Left) * (f.Bottom - f.Top) / sumWeight
+		focalX += (f.Left + f.Right) / 2 * r
+		focalY += (f.Top + f.Bottom) / 2 * r
+	}
+	return
 }
 
 func trim(ctx context.Context, img *vips.ImageRef, pos string, tolerance int) error {

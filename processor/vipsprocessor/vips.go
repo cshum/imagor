@@ -117,6 +117,10 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 	return nil
 }
 
+func focalSplit(r rune) bool {
+	return r == 'x' || r == ',' || r == ':'
+}
+
 func (v *VipsProcessor) Process(
 	ctx context.Context, blob *imagor.Bytes, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Bytes, error) {
@@ -129,6 +133,7 @@ func (v *VipsProcessor) Process(
 		format                = vips.ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
+		focalRects            []focal
 		err                   error
 	)
 	ctx = WithInitImageRefs(ctx)
@@ -172,6 +177,9 @@ func (v *VipsProcessor) Process(
 				maxBytes = n
 				thumbnailNotSupported = true
 			}
+			break
+		case "focal":
+			thumbnailNotSupported = true
 			break
 		case "trim":
 			thumbnailNotSupported = true
@@ -276,6 +284,8 @@ func (v *VipsProcessor) Process(
 	var (
 		quality int
 		pageN   = img.Height() / img.PageHeight()
+		dw      = float64(img.Width())
+		dh      = float64(img.PageHeight())
 	)
 	if format == vips.ImageTypeUnknown {
 		format = img.Format()
@@ -296,9 +306,27 @@ func (v *VipsProcessor) Process(
 		case "autojpg":
 			format = vips.ImageTypeJPEG
 			break
+		case "focal":
+			if args := strings.FieldsFunc(p.Args, focalSplit); len(args) == 4 {
+				f := focal{}
+				f.Left, _ = strconv.ParseFloat(args[0], 64)
+				f.Top, _ = strconv.ParseFloat(args[1], 64)
+				f.Right, _ = strconv.ParseFloat(args[2], 64)
+				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
+				if f.Left < 1 && f.Top < 1 && f.Right <= 1 && f.Bottom <= 1 {
+					f.Left *= dw
+					f.Right *= dw
+					f.Top *= dh
+					f.Bottom *= dh
+				}
+				if f.Right > f.Left && f.Bottom > f.Top {
+					focalRects = append(focalRects, f)
+				}
+			}
+			break
 		}
 	}
-	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale); err != nil {
+	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, wrapErr(err)
 	}
 	for {
