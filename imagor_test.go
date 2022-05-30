@@ -278,7 +278,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
-			store,
 			loaderFunc(func(r *http.Request, image string) (*Bytes, error) {
 				if image == "foo" {
 					return NewBytes([]byte("bar")), nil
@@ -323,11 +322,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 		),
 		WithProcessConcurrency(1000),
-		WithModifiedTimeCheck(true),
 		WithResultStorages(resultStore),
-		WithResultKeyFunc(func(p imagorpath.Params) string {
-			return "asdf:" + strings.TrimPrefix(p.Path, "meta/")
-		}),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, blob *Bytes, p imagorpath.Params, load LoadFunc) (*Bytes, error) {
 				buf, _ := blob.ReadAll()
@@ -366,10 +361,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 	assert.Equal(t, time.Millisecond, app.SaveTimeout)
 	defer require.NoError(t, app.Shutdown(context.Background()))
 	t.Parallel()
-	t.Cleanup(func() {
-		assert.Equal(t, store.LoadCnt["foo"], 1)
-		assert.Equal(t, resultStore.LoadCnt["asdf:foo"], 3)
-	})
 	for i := 0; i < 2; i++ {
 		t.Run(fmt.Sprintf("ok %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -432,6 +423,92 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			assert.Equal(t, "poop", w.Body.String())
 		})
 	}
+}
+
+type resultKeyFunc func(p imagorpath.Params) string
+
+func (fn resultKeyFunc) Generate(p imagorpath.Params) string {
+	return fn(p)
+}
+
+func TestWithResultKey(t *testing.T) {
+	store := newMapStore()
+	resultStore := newMapStore()
+	app := New(
+		WithDebug(true), WithLogger(zap.NewExample()),
+		WithStorages(store),
+		WithResultStorages(resultStore),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Bytes, error) {
+			return NewBytes([]byte(image)), nil
+		})),
+		WithResultKey(resultKeyFunc(func(p imagorpath.Params) string {
+			return "prefix:" + strings.TrimPrefix(p.Path, "meta/")
+		})),
+		WithUnsafe(true),
+		WithModifiedTimeCheck(true),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	assert.Equal(t, 0, store.LoadCnt["foo"])
+	assert.Equal(t, 1, store.SaveCnt["foo"])
+	assert.Equal(t, 1, resultStore.LoadCnt["prefix:foo"])
+	assert.Equal(t, 1, resultStore.SaveCnt["prefix:foo"])
+}
+
+func TestWithModifiedTimeCheck(t *testing.T) {
+	store := newMapStore()
+	resultStore := newMapStore()
+	app := New(
+		WithDebug(true), WithLogger(zap.NewExample()),
+		WithStorages(store),
+		WithResultStorages(resultStore),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Bytes, error) {
+			return NewBytes([]byte(image)), nil
+		})),
+		WithUnsafe(true),
+		WithModifiedTimeCheck(true),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	assert.Equal(t, 0, store.LoadCnt["foo"])
+	assert.Equal(t, 1, store.SaveCnt["foo"])
+	assert.Equal(t, 0, resultStore.LoadCnt["foo"])
+	assert.Equal(t, 1, resultStore.SaveCnt["foo"])
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	assert.Equal(t, 0, store.LoadCnt["foo"])
+	assert.Equal(t, 1, store.SaveCnt["foo"])
+	assert.Equal(t, 1, resultStore.LoadCnt["foo"])
+	assert.Equal(t, 1, resultStore.SaveCnt["foo"])
+
+	clock = clock.Add(1)
+	store.ModTime["foo"] = clock
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, 1, store.LoadCnt["foo"])
+	assert.Equal(t, 1, store.SaveCnt["foo"])
+	assert.Equal(t, 2, resultStore.LoadCnt["foo"])
+	assert.Equal(t, 2, resultStore.SaveCnt["foo"])
 }
 
 func TestWithSameStore(t *testing.T) {

@@ -41,6 +41,11 @@ type Processor interface {
 	Shutdown(ctx context.Context) error
 }
 
+// ResultKey generator
+type ResultKey interface {
+	Generate(p imagorpath.Params) string
+}
+
 // Imagor image resize HTTP handler
 type Imagor struct {
 	Unsafe             bool
@@ -62,7 +67,7 @@ type Imagor struct {
 	ModifiedTimeCheck  bool
 	Logger             *zap.Logger
 	Debug              bool
-	ResultKeyFunc      func(p imagorpath.Params) string
+	ResultKey          ResultKey
 
 	g    singleflight.Group
 	sema *semaphore.Weighted
@@ -218,8 +223,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		}
 	}
 	var resultKey string
-	if app.ResultKeyFunc != nil {
-		resultKey = app.ResultKeyFunc(p)
+	if app.ResultKey != nil {
+		resultKey = app.ResultKey.Generate(p)
 	} else {
 		resultKey = strings.TrimPrefix(p.Path, "meta/")
 	}

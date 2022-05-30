@@ -126,9 +126,9 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-func WithResultKeyFunc(fn func(p imagorpath.Params) string) Option {
+func WithResultKey(resultKey ResultKey) Option {
 	return func(o *Imagor) {
-		o.ResultKeyFunc = fn
+		o.ResultKey = resultKey
 	}
 }
 
