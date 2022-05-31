@@ -66,7 +66,7 @@ func New(options ...Option) *HTTPLoader {
 }
 
 func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Bytes, error) {
-	if r.Method != http.MethodGet || image == "" {
+	if image == "" {
 		return nil, imagor.ErrPass
 	}
 	u, err := url.Parse(image)
