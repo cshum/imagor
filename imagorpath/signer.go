@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"hash"
-	"strings"
 )
 
 // Signer Imagor URL signature signer
@@ -35,7 +34,7 @@ type hmacSigner struct {
 
 func (s *hmacSigner) Sign(path string) string {
 	h := hmac.New(s.alg, s.secret)
-	h.Write([]byte(strings.TrimPrefix(path, "/")))
+	h.Write([]byte(path))
 	sig := base64.URLEncoding.EncodeToString(h.Sum(nil))
 	if s.truncate > 0 && len(sig) > s.truncate {
 		return sig[:s.truncate]
