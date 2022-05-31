@@ -122,6 +122,10 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 
 // ServeHTTP implements http.Handler for Imagor operations
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		if app.BasePathRedirect == "" {
@@ -176,7 +180,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	setCacheHeaders(w, app.CacheHeaderTTL)
 	w.Header().Set("Content-Length", strconv.Itoa(ln))
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(buf)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(buf)
+	}
 	return
 }
 

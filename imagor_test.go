@@ -71,6 +71,12 @@ func TestWithUnsafe(t *testing.T) {
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodPost, "https://example.com/unsafe/foo.jpg", nil))
+	assert.Equal(t, 405, w.Code)
+	assert.Equal(t, "", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/foo.jpg", nil))
 	assert.Equal(t, 403, w.Code)
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
