@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type FilterFunc func(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
@@ -30,6 +31,9 @@ type VipsProcessor struct {
 	MaxAnimationFrames int
 	MozJPEG            bool
 	Debug              bool
+
+	l   sync.RWMutex
+	cnt int
 }
 
 func New(options ...Option) *VipsProcessor {
@@ -78,6 +82,12 @@ func New(options ...Option) *VipsProcessor {
 }
 
 func (v *VipsProcessor) Startup(_ context.Context) error {
+	v.l.Lock()
+	defer v.l.Unlock()
+	v.cnt++
+	if v.cnt > 1 {
+		return nil
+	}
 	if v.Debug {
 		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
 			switch level {
@@ -113,7 +123,15 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 }
 
 func (v *VipsProcessor) Shutdown(_ context.Context) error {
-	vips.Shutdown()
+	v.l.Lock()
+	defer v.l.Unlock()
+	if v.cnt <= 0 {
+		return nil
+	}
+	v.cnt--
+	if v.cnt == 0 {
+		vips.Shutdown()
+	}
 	return nil
 }
 
