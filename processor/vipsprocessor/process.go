@@ -19,42 +19,54 @@ func (v *VipsProcessor) process(
 	var (
 		origWidth  = float64(img.Width())
 		origHeight = float64(img.PageHeight())
-		cropLeft   = p.CropLeft
-		cropRight  = p.CropRight
-		cropTop    = p.CropTop
-		cropBottom = p.CropBottom
+		cropLeft,
+		cropTop,
+		cropRight,
+		cropBottom float64
 	)
-	if cropLeft < 0 {
-		cropLeft = 0
-	}
-	if cropTop < 0 {
-		cropTop = 0
-	}
-	if cropRight-cropLeft > 0 && cropBottom-cropTop > 0 {
+	if p.CropRight > 0 || p.CropLeft > 0 || p.CropBottom > 0 || p.CropTop > 0 {
 		// percentage
-		if cropLeft < 1.0 && cropTop < 1.0 && cropRight <= 1.0 && cropBottom <= 1.0 {
+		cropLeft = math.Max(p.CropLeft, 0)
+		cropTop = math.Max(p.CropTop, 0)
+		cropRight = p.CropRight
+		cropBottom = p.CropBottom
+		if p.CropLeft < 1 && p.CropTop < 1 && p.CropRight <= 1 && p.CropBottom <= 1 {
 			cropLeft = math.Round(cropLeft * origWidth)
 			cropTop = math.Round(cropTop * origHeight)
 			cropRight = math.Round(cropRight * origWidth)
 			cropBottom = math.Round(cropBottom * origHeight)
 		}
-		if cropRight > origWidth {
-			cropRight = origWidth
+		if cropRight == 0 {
+			cropRight = origWidth - 1
 		}
-		if cropBottom > origHeight {
-			cropBottom = origHeight
+		if cropBottom == 0 {
+			cropBottom = origHeight - 1
 		}
-		if err := img.ExtractArea(int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop)); err != nil {
-			return err
-		}
-	} else {
-		cropTop = 0
-		cropBottom = 0
-		cropRight = 0
-		cropLeft = 0
+		cropRight = math.Min(cropRight, origWidth-1)
+		cropBottom = math.Min(cropBottom, origHeight-1)
 	}
 	if p.Trim {
-		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {
+		l, t, w, h, err := findTrim(ctx, img, p.TrimBy, p.TrimTolerance)
+		if err != nil {
+			return err
+		}
+		cropLeft = math.Max(cropLeft, float64(l))
+		cropTop = math.Max(cropTop, float64(t))
+		if cropRight > 0 {
+			cropRight = math.Min(cropRight, float64(l+w))
+		} else {
+			cropRight = float64(l + w)
+		}
+		if cropBottom > 0 {
+			cropBottom = math.Min(cropBottom, float64(t+h))
+		} else {
+			cropBottom = float64(t + h)
+		}
+	}
+	if cropRight > cropLeft && cropBottom > cropTop {
+		if err := img.ExtractArea(
+			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
+		); err != nil {
 			return err
 		}
 	}
@@ -187,10 +199,12 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 	return
 }
 
-func trim(ctx context.Context, img *vips.ImageRef, pos string, tolerance int) error {
+func findTrim(
+	ctx context.Context, img *vips.ImageRef, pos string, tolerance int,
+) (l, t, w, h int, err error) {
 	if IsAnimated(ctx) {
 		// skip animation support
-		return nil
+		return
 	}
 	var x, y int
 	if pos == imagorpath.TrimByBottomRight {
@@ -202,48 +216,12 @@ func trim(ctx context.Context, img *vips.ImageRef, pos string, tolerance int) er
 	}
 	p, err := img.GetPoint(x, y)
 	if err != nil {
-		return err
+		return
 	}
-	l, t, w, h, err := img.FindTrim(float64(tolerance), &vips.Color{
+	l, t, w, h, err = img.FindTrim(float64(tolerance), &vips.Color{
 		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
 	})
-	if err != nil {
-		return err
-	}
-	if err = img.ExtractArea(l, t, w, h); err != nil {
-		return err
-	}
-	return nil
-}
-
-func crop(img *vips.ImageRef, left, top, right, bottom float64) (err error) {
-	var (
-		dw = float64(img.Width())
-		dh = float64(img.PageHeight())
-	)
-	if left < 0 {
-		left = 0
-	}
-	if top < 0 {
-		top = 0
-	}
-	if right-left <= 0 || bottom-top <= 0 {
-		return // no-ops
-	}
-	// percentage
-	if left < 1.0 && top < 1.0 && right <= 1.0 && bottom <= 1.0 {
-		left = math.Round(left * dw)
-		top = math.Round(top * dh)
-		right = math.Round(right * dw)
-		bottom = math.Round(bottom * dh)
-	}
-	if right > dw {
-		right = dw
-	}
-	if bottom > dh {
-		bottom = dh
-	}
-	return img.ExtractArea(int(left), int(top), int(right-left), int(bottom-top))
+	return
 }
 
 func isBlack(c *vips.Color) bool {

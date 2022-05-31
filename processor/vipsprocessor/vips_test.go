@@ -144,6 +144,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"crop-percent stretch top flip", "0.006120x0.008993:1.0x1.0/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
 		{"padding rotation fill blur grayscale", "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
 		{"fill round_corner", "fit-in/0x210/filters:fill(yellow):round_corner(40,60,green)/gopher.png"},
+		{"trim with crop", "trim:bottom-right/50x50:0x0/find_trim.png"},
 		{"trim right", "trim:bottom-right/500x500/filters:strip_exif():upscale():no_upscale()/find_trim.png"},
 		{"trim upscale", "trim/fit-in/1000x1000/filters:upscale():strip_icc()/find_trim.png"},
 		{"trim tolerance", "trim:50/500x500/filters:stretch()/find_trim.png"},

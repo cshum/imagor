@@ -467,11 +467,7 @@ func stripIcc(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, _ ...str
 	return img.RemoveICCProfile()
 }
 
-func stripExif(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
-	return img.RemoveICCProfile()
-}
-
-func trimFilter(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
+func trim(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) error {
 	var (
 		ln        = len(args)
 		pos       string
@@ -483,7 +479,11 @@ func trimFilter(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args
 	if ln > 1 {
 		pos = args[1]
 	}
-	return trim(ctx, img, pos, tolerance)
+	l, t, w, h, err := findTrim(ctx, img, pos, tolerance)
+	if err != nil {
+		return err
+	}
+	return img.ExtractArea(l, t, w, h)
 }
 
 func linearRGB(img *vips.ImageRef, a, b []float64) error {
