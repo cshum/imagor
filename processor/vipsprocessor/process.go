@@ -16,13 +16,45 @@ import (
 func (v *VipsProcessor) process(
 	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
-	if p.Trim {
-		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {
+	var (
+		origWidth  = float64(img.Width())
+		origHeight = float64(img.PageHeight())
+		cropLeft   = p.CropLeft
+		cropRight  = p.CropRight
+		cropTop    = p.CropTop
+		cropBottom = p.CropBottom
+	)
+	if cropLeft < 0 {
+		cropLeft = 0
+	}
+	if cropTop < 0 {
+		cropTop = 0
+	}
+	if cropRight-cropLeft > 0 && cropBottom-cropTop > 0 {
+		// percentage
+		if cropLeft < 1.0 && cropTop < 1.0 && cropRight <= 1.0 && cropBottom <= 1.0 {
+			cropLeft = math.Round(cropLeft * origWidth)
+			cropTop = math.Round(cropTop * origHeight)
+			cropRight = math.Round(cropRight * origWidth)
+			cropBottom = math.Round(cropBottom * origHeight)
+		}
+		if cropRight > origWidth {
+			cropRight = origWidth
+		}
+		if cropBottom > origHeight {
+			cropBottom = origHeight
+		}
+		if err := img.ExtractArea(int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop)); err != nil {
 			return err
 		}
+	} else {
+		cropTop = 0
+		cropBottom = 0
+		cropRight = 0
+		cropLeft = 0
 	}
-	if p.CropBottom-p.CropTop > 0 || p.CropRight-p.CropLeft > 0 {
-		if err := crop(img, p.CropLeft, p.CropTop, p.CropRight, p.CropBottom); err != nil {
+	if p.Trim {
+		if err := trim(ctx, img, p.TrimBy, p.TrimTolerance); err != nil {
 			return err
 		}
 	}
@@ -80,8 +112,8 @@ func (v *VipsProcessor) process(
 				focalX, focalY := parseFocalPoint(focalRects...)
 				if err := v.focalThumbnail(
 					img, w, h,
-					focalX/float64(img.Width()),
-					focalY/float64(img.PageHeight()),
+					(focalX-cropLeft)/float64(img.Width()),
+					(focalY-cropTop)/float64(img.PageHeight()),
 				); err != nil {
 					return err
 				}
@@ -186,8 +218,8 @@ func trim(ctx context.Context, img *vips.ImageRef, pos string, tolerance int) er
 
 func crop(img *vips.ImageRef, left, top, right, bottom float64) (err error) {
 	var (
-		width  = float64(img.Width())
-		height = float64(img.PageHeight())
+		dw = float64(img.Width())
+		dh = float64(img.PageHeight())
 	)
 	if left < 0 {
 		left = 0
@@ -200,16 +232,16 @@ func crop(img *vips.ImageRef, left, top, right, bottom float64) (err error) {
 	}
 	// percentage
 	if left < 1.0 && top < 1.0 && right <= 1.0 && bottom <= 1.0 {
-		left = math.Round(left * width)
-		top = math.Round(top * height)
-		right = math.Round(right * width)
-		bottom = math.Round(bottom * height)
+		left = math.Round(left * dw)
+		top = math.Round(top * dh)
+		right = math.Round(right * dw)
+		bottom = math.Round(bottom * dh)
 	}
-	if right > width {
-		right = width
+	if right > dw {
+		right = dw
 	}
-	if bottom > height {
-		bottom = height
+	if bottom > dh {
+		bottom = dh
 	}
 	return img.ExtractArea(int(left), int(top), int(right-left), int(bottom-top))
 }

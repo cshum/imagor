@@ -282,10 +282,10 @@ func (v *VipsProcessor) Process(
 	}
 	AddImageRef(ctx, img)
 	var (
-		quality int
-		pageN   = img.Height() / img.PageHeight()
-		dw      = float64(img.Width())
-		dh      = float64(img.PageHeight())
+		quality    int
+		pageN      = img.Height() / img.PageHeight()
+		origWidth  = float64(img.Width())
+		origHeight = float64(img.PageHeight())
 	)
 	if format == vips.ImageTypeUnknown {
 		format = img.Format()
@@ -314,10 +314,10 @@ func (v *VipsProcessor) Process(
 				f.Right, _ = strconv.ParseFloat(args[2], 64)
 				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
 				if f.Left < 1 && f.Top < 1 && f.Right <= 1 && f.Bottom <= 1 {
-					f.Left *= dw
-					f.Right *= dw
-					f.Top *= dh
-					f.Bottom *= dh
+					f.Left *= origWidth
+					f.Right *= origWidth
+					f.Top *= origHeight
+					f.Bottom *= origHeight
 				}
 				if f.Right > f.Left && f.Bottom > f.Top {
 					focalRects = append(focalRects, f)
