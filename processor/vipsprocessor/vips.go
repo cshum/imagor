@@ -16,6 +16,9 @@ type FilterFunc func(ctx context.Context, img *vips.ImageRef, load imagor.LoadFu
 
 type FilterMap map[string]FilterFunc
 
+var l sync.RWMutex
+var cnt int
+
 type VipsProcessor struct {
 	Filters            FilterMap
 	DisableBlur        bool
@@ -31,9 +34,6 @@ type VipsProcessor struct {
 	MaxAnimationFrames int
 	MozJPEG            bool
 	Debug              bool
-
-	l   sync.RWMutex
-	cnt int
 }
 
 func New(options ...Option) *VipsProcessor {
@@ -82,10 +82,10 @@ func New(options ...Option) *VipsProcessor {
 }
 
 func (v *VipsProcessor) Startup(_ context.Context) error {
-	v.l.Lock()
-	defer v.l.Unlock()
-	v.cnt++
-	if v.cnt > 1 {
+	l.Lock()
+	defer l.Unlock()
+	cnt++
+	if cnt > 1 {
 		return nil
 	}
 	if v.Debug {
@@ -123,13 +123,13 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 }
 
 func (v *VipsProcessor) Shutdown(_ context.Context) error {
-	v.l.Lock()
-	defer v.l.Unlock()
-	if v.cnt <= 0 {
+	l.Lock()
+	defer l.Unlock()
+	if cnt <= 0 {
 		return nil
 	}
-	v.cnt--
-	if v.cnt == 0 {
+	cnt--
+	if cnt == 0 {
 		vips.Shutdown()
 	}
 	return nil
