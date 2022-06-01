@@ -3,4 +3,8 @@
 .env
 .idea
 bin
+tmp/
 .DS_Store
+.vscode
+bin/imagor
+profile.cov

@@ -35,3 +35,9 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Coveralls
+        if: matrix.os == 'ubuntu-20.04'
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: profile.cov

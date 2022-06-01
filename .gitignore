@@ -8,3 +8,4 @@ tmp/
 .vscode/
 .env
 bin/imagor
+profile.cov
