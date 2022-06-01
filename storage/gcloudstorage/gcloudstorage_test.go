@@ -86,7 +86,7 @@ func TestGCloudStorage_Path(t *testing.T) {
 	}
 }
 
-func TestCRUD(t *testing.T) {
+func TestGetPutStat(t *testing.T) {
 	srv := fakestorage.NewServer([]fakestorage.Object{{
 		ObjectAttrs: fakestorage.ObjectAttrs{
 			BucketName: "test",
@@ -97,6 +97,9 @@ func TestCRUD(t *testing.T) {
 	ctx := context.Background()
 	s := New(srv.Client(), "test")
 	var err error
+
+	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
 
 	_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
@@ -112,7 +115,30 @@ func TestCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "bar", string(buf))
 
-	stat, err := s.Stat(context.Background(), "/foo/fooo/asdf")
+	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
+}
+
+func TestExpiration(t *testing.T) {
+	srv := fakestorage.NewServer([]fakestorage.Object{{
+		ObjectAttrs: fakestorage.ObjectAttrs{
+			BucketName: "test",
+			Name:       "placeholder",
+		},
+		Content: []byte(""),
+	}})
+	s := New(srv.Client(), "test", WithExpiration(time.Millisecond*10))
+	ctx := context.Background()
+	var err error
+
+	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
+	b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "bar", string(buf))
+	time.Sleep(time.Millisecond * 10)
+	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+	require.ErrorIs(t, err, imagor.ErrExpired)
 }
