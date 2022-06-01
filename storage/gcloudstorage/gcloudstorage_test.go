@@ -95,7 +95,7 @@ func TestGetPutStat(t *testing.T) {
 		Content: []byte(""),
 	}})
 	ctx := context.Background()
-	s := New(srv.Client(), "test")
+	s := New(srv.Client(), "test", WithACL("publicRead"))
 	var err error
 
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
@@ -132,6 +132,8 @@ func TestExpiration(t *testing.T) {
 	ctx := context.Background()
 	var err error
 
+	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
 	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
 	b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
 	require.NoError(t, err)
