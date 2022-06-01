@@ -20,13 +20,13 @@ type GCloudStorage struct {
 	SafeChars  string
 	Expiration time.Duration
 	client     *storage.Client
-	bucket     string
+	Bucket     string
 
 	safeChars imagorpath.SafeChars
 }
 
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
-	s := &GCloudStorage{client: client, bucket: bucket}
+	s := &GCloudStorage{client: client, Bucket: bucket}
 	for _, option := range options {
 		option(s)
 	}
@@ -39,7 +39,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.By
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	object := s.client.Bucket(s.bucket).Object(image)
+	object := s.client.Bucket(s.Bucket).Object(image)
 
 	// Verify attributes only if expiration is set to avoid additional requests
 	if s.Expiration > 0 {
@@ -85,7 +85,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Byte
 		return err
 	}
 
-	objectHandle := s.client.Bucket(s.bucket).Object(image)
+	objectHandle := s.client.Bucket(s.Bucket).Object(image)
 	writer := objectHandle.NewWriter(ctx)
 	defer func() {
 		if writerErr := writer.Close(); err == nil && writerErr != nil {
@@ -119,7 +119,7 @@ func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.St
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	object := s.client.Bucket(s.bucket).Object(image)
+	object := s.client.Bucket(s.Bucket).Object(image)
 
 	attrs, err := object.Attrs(ctx)
 	if err != nil {

@@ -24,7 +24,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func main() {
+func newServer(args ...string) (srv *server.Server) {
 	var (
 		fs             = flag.NewFlagSet("imagor", flag.ExitOnError)
 		logger         *zap.Logger
@@ -32,9 +32,7 @@ func main() {
 		loaders        []imagor.Loader
 		storages       []imagor.Storage
 		resultStorages []imagor.Storage
-	)
 
-	var (
 		debug        = fs.Bool("debug", false, "Debug mode")
 		version      = fs.Bool("version", false, "Imagor version")
 		port         = fs.Int("port", 8000, "Sever port")
@@ -236,7 +234,7 @@ func main() {
 		ff.WithConfigFileParser(ff.EnvParser),
 	}
 
-	if err = ff.Parse(fs, os.Args[1:], ffOpts...); err != nil {
+	if err = ff.Parse(fs, args, ffOpts...); err != nil {
 		panic(err)
 	}
 
@@ -424,8 +422,7 @@ func main() {
 		)
 	}
 
-	// run server with Imagor app
-	server.New(
+	return server.New(
 		imagor.New(
 			imagor.WithLoaders(loaders...),
 			imagor.WithStorages(storages...),
@@ -470,5 +467,12 @@ func main() {
 		server.WithAccessLog(*serverAccessLog),
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
-	).Run()
+	)
+}
+
+func main() {
+	var srv = newServer(os.Args[1:]...)
+	if srv != nil {
+		srv.Run()
+	}
 }
