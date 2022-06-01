@@ -8,7 +8,7 @@ require (
 	github.com/davidbyttow/govips/v2 v2.11.0
 	github.com/peterbourgon/ff/v3 v3.2.0-rc.1
 	github.com/rs/cors v1.8.2
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	go.uber.org/zap v1.21.0
 	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
 	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
@@ -18,15 +18,22 @@ require (
 	cloud.google.com/go v0.102.0 // indirect
 	cloud.google.com/go/compute v1.6.1 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect
+	cloud.google.com/go/pubsub v1.22.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/fsouza/fake-gcs-server v1.37.12 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
-	github.com/google/uuid v1.1.2 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/googleapis/go-type-adapters v1.0.0 // indirect
+	github.com/gorilla/handlers v1.5.1 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/pkg/xattr v0.4.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
