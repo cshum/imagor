@@ -168,3 +168,22 @@ func TestGetPutStat(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
 }
+
+func TestExpiration(t *testing.T) {
+	ts := fakeS3Server()
+	defer ts.Close()
+
+	var err error
+	ctx := context.Background()
+	s := New(fakeS3Session(ts, "test"), "test", WithExpiration(time.Second))
+
+	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
+	b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "bar", string(buf))
+	time.Sleep(time.Second)
+	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+	require.ErrorIs(t, err, imagor.ErrExpired)
+}
