@@ -1,7 +1,14 @@
 package gcloudstorage
 
 import (
+	"context"
+	"github.com/cshum/imagor"
+	"github.com/fsouza/fake-gcs-server/fakestorage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"net/http"
 	"testing"
+	"time"
 )
 
 func TestGCloudStorage_Path(t *testing.T) {
@@ -77,4 +84,35 @@ func TestGCloudStorage_Path(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCRUD(t *testing.T) {
+	srv := fakestorage.NewServer([]fakestorage.Object{{
+		ObjectAttrs: fakestorage.ObjectAttrs{
+			BucketName: "test",
+			Name:       "placeholder",
+		},
+		Content: []byte(""),
+	}})
+	ctx := context.Background()
+	s := New(srv.Client(), "test")
+	var err error
+
+	_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
+	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
+	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
+
+	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "bar", string(buf))
+
+	stat, err := s.Stat(context.Background(), "/foo/fooo/asdf")
+	require.NoError(t, err)
+	assert.True(t, stat.ModifiedTime.Before(time.Now()))
 }

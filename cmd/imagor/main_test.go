@@ -164,9 +164,12 @@ func fakeGCSServer() *fakestorage.Server {
 	if err := os.Setenv("STORAGE_EMULATOR_HOST", "localhost:12345"); err != nil {
 		panic(err)
 	}
-	svr, _ := fakestorage.NewServerWithOptions(fakestorage.Options{
+	svr, err := fakestorage.NewServerWithOptions(fakestorage.Options{
 		Host: "localhost", Port: 12345,
 	})
+	if err != nil {
+		panic(err)
+	}
 	return svr
 }
 
