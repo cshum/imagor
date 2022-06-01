@@ -1,8 +1,20 @@
 package s3storage
 
 import (
+	"context"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/cshum/imagor"
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestS3Store_Path(t *testing.T) {
@@ -101,4 +113,58 @@ func TestS3Store_Path(t *testing.T) {
 			}
 		})
 	}
+}
+
+func fakeS3Server() *httptest.Server {
+	backend := s3mem.New()
+	faker := gofakes3.New(backend)
+	return httptest.NewServer(faker.Server())
+}
+
+func fakeS3Session(ts *httptest.Server, bucket string) *session.Session {
+	config := &aws.Config{
+		Credentials:      credentials.NewStaticCredentials("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
+		Endpoint:         aws.String(ts.URL),
+		Region:           aws.String("eu-central-1"),
+		DisableSSL:       aws.Bool(true),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+	// activate AWS Session only if credentials present
+	sess, err := session.NewSession(config)
+	if err != nil {
+		panic(err)
+	}
+	s3Client := s3.New(sess)
+	// Create a new bucket using the CreateBucket call.
+	_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		panic(err)
+	}
+	return sess
+}
+
+func TestGetPutStat(t *testing.T) {
+	ts := fakeS3Server()
+	defer ts.Close()
+
+	var err error
+	ctx := context.Background()
+	s := New(fakeS3Session(ts, "test"), "test")
+
+	_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
+	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
+
+	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "bar", string(buf))
+
+	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
+	require.NoError(t, err)
+	assert.True(t, stat.ModifiedTime.Before(time.Now()))
 }
