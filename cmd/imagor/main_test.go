@@ -4,7 +4,6 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/cshum/imagor/storage/gcloudstorage"
 	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -154,53 +153,6 @@ func TestS3Storage(t *testing.T) {
 	resultStorage := app.ResultStorages[0].(*s3storage.S3Storage)
 	assert.Equal(t, "b", resultStorage.Bucket)
 	assert.Equal(t, "/bar/", resultStorage.BaseDir)
-	assert.Equal(t, "/bcda/", resultStorage.PathPrefix)
-	assert.Equal(t, "!", resultStorage.SafeChars)
-}
-
-func TestGCSLoader(t *testing.T) {
-	srv := newServer(
-		"-gcloud-safe-chars", "!",
-
-		"-gcloud-loader-bucket", "a",
-		"-gcloud-loader-base-dir", "foo",
-		"-gcloud-loader-path-prefix", "abcd",
-	)
-	app := srv.App.(*imagor.Imagor)
-	loader := app.Loaders[0].(*gcloudstorage.GCloudStorage)
-	assert.Equal(t, "a", loader.Bucket)
-	assert.Equal(t, "foo", loader.BaseDir)
-	assert.Equal(t, "/abcd/", loader.PathPrefix)
-	assert.Equal(t, "!", loader.SafeChars)
-}
-
-func TestGCSStorage(t *testing.T) {
-	srv := newServer(
-		"-gcloud-safe-chars", "!",
-
-		"-gcloud-loader-bucket", "a",
-		"-gcloud-loader-base-dir", "foo",
-		"-gcloud-loader-path-prefix", "abcd",
-		"-gcloud-storage-bucket", "a",
-		"-gcloud-storage-base-dir", "foo",
-		"-gcloud-storage-path-prefix", "abcd",
-
-		"-gcloud-result-storage-bucket", "b",
-		"-gcloud-result-storage-base-dir", "bar",
-		"-gcloud-result-storage-path-prefix", "bcda",
-	)
-	app := srv.App.(*imagor.Imagor)
-	loader := app.Loaders[0].(*gcloudstorage.GCloudStorage)
-	storage := app.Storages[0].(*gcloudstorage.GCloudStorage)
-	assert.Equal(t, loader, storage)
-	assert.Equal(t, "a", storage.Bucket)
-	assert.Equal(t, "foo", storage.BaseDir)
-	assert.Equal(t, "/abcd/", storage.PathPrefix)
-	assert.Equal(t, "!", storage.SafeChars)
-
-	resultStorage := app.ResultStorages[0].(*gcloudstorage.GCloudStorage)
-	assert.Equal(t, "b", resultStorage.Bucket)
-	assert.Equal(t, "bar", resultStorage.BaseDir)
 	assert.Equal(t, "/bcda/", resultStorage.PathPrefix)
 	assert.Equal(t, "!", resultStorage.SafeChars)
 }
