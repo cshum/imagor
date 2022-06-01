@@ -1,6 +1,8 @@
 package httploader
 
 import (
+	"bytes"
+	"compress/gzip"
 	"github.com/cshum/imagor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -444,6 +446,38 @@ func TestWithAccept(t *testing.T) {
 			name:   "content type not ok",
 			target: "https://foo.bar/text/html",
 			err:    imagor.ErrUnsupportedFormat.Error(),
+			result: "ok",
+		},
+	})
+}
+
+func gzipBytes(a []byte) []byte {
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+	if _, err := gz.Write(a); err != nil {
+		gz.Close()
+		panic(err)
+	}
+	gz.Close()
+	return b.Bytes()
+}
+
+func TestWithGzip(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
+				Body:       ioutil.NopCloser(bytes.NewReader(gzipBytes([]byte("ok")))),
+			}
+			resp.Header.Set("Content-Encoding", "gzip")
+			resp.Header.Set("Content-Type", "image/jpeg")
+			return resp, nil
+		})),
+	), []test{
+		{
+			name:   "content type ok",
+			target: "https://foo.bar/image/jpeg",
 			result: "ok",
 		},
 	})

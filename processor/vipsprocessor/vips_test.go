@@ -160,7 +160,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"watermark frames static", "fit-in/200x200/filters:fill(white):frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
 		{"padding", "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
 	}
-	doTests(t, resultDir, tests, WithDebug(true))
+	doTests(t, resultDir, tests, WithDebug(true), WithLogger(zap.NewExample()))
 }
 
 func TestVipsProcessor_MaxFrames(t *testing.T) {
@@ -171,7 +171,7 @@ func TestVipsProcessor_MaxFrames(t *testing.T) {
 		{"original animated", "dancing-banana.gif"},
 		{"crop animated", "30x20:100x150/dancing-banana.gif"},
 	}
-	doTests(t, resultDir, tests, WithDebug(true), WithMaxAnimationFrames(100))
+	doTests(t, resultDir, tests, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(100))
 }
 
 func TestVipsProcessor_MaxFramesLimited(t *testing.T) {
@@ -182,5 +182,5 @@ func TestVipsProcessor_MaxFramesLimited(t *testing.T) {
 		{"original animated", "dancing-banana.gif"},
 		{"crop animated", "30x20:100x150/dancing-banana.gif"},
 	}
-	doTests(t, resultDir, tests, WithDebug(true), WithMaxAnimationFrames(3))
+	doTests(t, resultDir, tests, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(3))
 }
