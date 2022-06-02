@@ -70,6 +70,12 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, time.Hour*167, app.CacheHeaderTTL)
 }
 
+func TestCacheHeaderNoCache(t *testing.T) {
+	srv := newServer("-imagor-cache-header-no-cache")
+	app := srv.App.(*imagor.Imagor)
+	assert.Empty(t, app.CacheHeaderTTL)
+}
+
 func TestDisableHTTPLoader(t *testing.T) {
 	srv := newServer("-http-loader-disable")
 	app := srv.App.(*imagor.Imagor)

@@ -172,7 +172,7 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 		assert.Contains(t, w.Header().Get("Cache-Control"), "public, s-maxage=")
 	})
 	t.Run("no cache", func(t *testing.T) {
-		app := New(WithDebug(true), WithCacheHeaderTTL(-1), WithUnsafe(true))
+		app := New(WithDebug(true), WithCacheHeaderNoCache(true), WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))

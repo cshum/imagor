@@ -52,7 +52,13 @@ func WithCacheHeaderTTL(ttl time.Duration) Option {
 	return func(o *Imagor) {
 		if ttl > 0 {
 			o.CacheHeaderTTL = ttl
-		} else if ttl == -1 {
+		}
+	}
+}
+
+func WithCacheHeaderNoCache(nocache bool) Option {
+	return func(o *Imagor) {
+		if nocache {
 			o.CacheHeaderTTL = 0
 		}
 	}
