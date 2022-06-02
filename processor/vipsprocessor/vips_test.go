@@ -114,6 +114,7 @@ func TestVipsProcessor(t *testing.T) {
 		{"resize center", "100x100/filters:quality(70):format(jpeg)/gopher.png"},
 		{"resize smart", "100x100/smart/filters:autojpg()/gopher.png"},
 		{"resize smart focal", "300x100/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},
+		{"resize smart focal vertical", "100x300/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},
 		{"resize smart focal with crop", "0x100:9999x9999/300x100/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},
 		{"resize smart focal float", "300x100/smart/filters:fill(white):format(jpeg):focal(0.35x0.25:0.6x0.3)/gopher.png"},
 		{"resize top", "200x100/top/filters:quality(70):format(tiff)/gopher.png"},

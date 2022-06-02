@@ -97,19 +97,28 @@ func TestParseGenerate(t *testing.T) {
 		},
 		{
 			name: "no params",
-			uri:  "unsafe/https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
+			uri:  "unsafe/https://foobar/en/latest/_images/man_before_sharpen.png",
 			params: Params{
-				Path:   "https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
-				Image:  "https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
+				Path:   "https://foobar/en/latest/_images/man_before_sharpen.png",
+				Image:  "https://foobar/en/latest/_images/man_before_sharpen.png",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "contains query",
+			uri:  "unsafe/https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
+			params: Params{
+				Path:   "https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
+				Image:  "https://foobar/en/latest/_images/man_before_sharpen.png?foo=bar",
 				Unsafe: true,
 			},
 		},
 		{
 			name: "padding without dimensions",
-			uri:  "unsafe/fit-in/0x0/5x6:7x8/https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
+			uri:  "unsafe/fit-in/0x0/5x6:7x8/https://foobar/en/latest/_images/man_before_sharpen.png",
 			params: Params{
-				Path:          "fit-in/0x0/5x6:7x8/https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
-				Image:         "https://thumbor.readthedocs.io/en/latest/_images/man_before_sharpen.png",
+				Path:          "fit-in/0x0/5x6:7x8/https://foobar/en/latest/_images/man_before_sharpen.png",
+				Image:         "https://foobar/en/latest/_images/man_before_sharpen.png",
 				Unsafe:        true,
 				FitIn:         true,
 				PaddingLeft:   5,
