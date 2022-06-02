@@ -338,7 +338,7 @@ Usage of imagor:
   -imagor-auto-avif
         Output AVIF format automatically if browser supports (experimental)
   -imagor-cache-header-ttl duration
-        Imagor HTTP cache header ttl for successful image response. Set -1 for no-cache (default 24h0m0s)
+        Imagor HTTP cache header ttl for successful image response (default 24h0m0s)
   -imagor-request-timeout duration
         Timeout for performing Imagor request (default 30s)
   -imagor-load-timeout duration

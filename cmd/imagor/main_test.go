@@ -19,20 +19,21 @@ func TestDefault(t *testing.T) {
 
 	assert.False(t, app.Debug)
 	assert.False(t, app.Unsafe)
-	assert.Equal(t, app.RequestTimeout, time.Second*30)
-	assert.Equal(t, app.LoadTimeout, time.Second*20)
-	assert.Equal(t, app.SaveTimeout, time.Second*20)
-	assert.Equal(t, app.ProcessTimeout, time.Second*20)
+	assert.Equal(t, time.Second*30, app.RequestTimeout)
+	assert.Equal(t, time.Second*20, app.LoadTimeout)
+	assert.Equal(t, time.Second*20, app.SaveTimeout)
+	assert.Equal(t, time.Second*20, app.ProcessTimeout)
+	assert.Equal(t, time.Second*20, app.ProcessTimeout)
 	assert.Empty(t, app.BasePathRedirect)
 	assert.Empty(t, app.ProcessConcurrency)
 	assert.False(t, app.ModifiedTimeCheck)
 	assert.False(t, app.AutoWebP)
 	assert.False(t, app.AutoAVIF)
-	assert.Equal(t, app.CacheHeaderTTL, time.Hour*24)
+	assert.Equal(t, time.Hour*24, app.CacheHeaderTTL)
 	assert.Empty(t, app.ResultStorages)
 	assert.Empty(t, app.ResultLoaders)
 	assert.Empty(t, app.Storages)
-	assert.IsType(t, app.Loaders[0], &httploader.HTTPLoader{})
+	assert.IsType(t, &httploader.HTTPLoader{}, app.Loaders[0])
 }
 
 func TestVersion(t *testing.T) {
@@ -47,6 +48,12 @@ func TestBasic(t *testing.T) {
 		"-imagor-unsafe",
 		"-imagor-auto-webp",
 		"-imagor-auto-avif",
+		"-imagor-request-timeout", "16s",
+		"-imagor-load-timeout", "7s",
+		"-imagor-process-timeout", "19s",
+		"-imagor-process-concurrency", "199",
+		"-imagor-base-path-redirect", "https://www.google.com",
+		"-imagor-cache-header-ttl", "167h",
 	)
 	app := srv.App.(*imagor.Imagor)
 
@@ -55,6 +62,12 @@ func TestBasic(t *testing.T) {
 	assert.True(t, app.Unsafe)
 	assert.True(t, app.AutoWebP)
 	assert.Equal(t, "RrTsWGEXFU2s1J1mTl1j_ciO-1E=", app.Signer.Sign("bar"))
+	assert.Equal(t, time.Second*16, app.RequestTimeout)
+	assert.Equal(t, time.Second*7, app.LoadTimeout)
+	assert.Equal(t, time.Second*19, app.ProcessTimeout)
+	assert.Equal(t, int64(199), app.ProcessConcurrency)
+	assert.Equal(t, "https://www.google.com", app.BasePathRedirect)
+	assert.Equal(t, time.Hour*167, app.CacheHeaderTTL)
 }
 
 func TestDisableHTTPLoader(t *testing.T) {
