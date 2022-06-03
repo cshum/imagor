@@ -61,6 +61,7 @@ type Imagor struct {
 	SaveTimeout        time.Duration
 	ProcessTimeout     time.Duration
 	CacheHeaderTTL     time.Duration
+	CacheHeaderSWR     time.Duration
 	ProcessConcurrency int64
 	AutoWebP           bool
 	AutoAVIF           bool
@@ -81,7 +82,8 @@ func New(options ...Option) *Imagor {
 		LoadTimeout:    time.Second * 20,
 		SaveTimeout:    time.Second * 20,
 		ProcessTimeout: time.Second * 20,
-		CacheHeaderTTL: time.Hour * 24,
+		CacheHeaderTTL: time.Hour * 24 * 7,
+		CacheHeaderSWR: time.Hour * 24,
 	}
 	for _, option := range options {
 		option(app)
@@ -177,7 +179,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	setCacheHeaders(w, app.CacheHeaderTTL)
+	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	w.Header().Set("Content-Length", strconv.Itoa(ln))
 	w.WriteHeader(http.StatusOK)
 	if r.Method != http.MethodHead {
@@ -477,19 +479,23 @@ func (app *Imagor) debugLog() {
 	)
 }
 
-func setCacheHeaders(w http.ResponseWriter, ttl time.Duration) {
+func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration) {
 	expires := time.Now().Add(ttl)
 
 	w.Header().Add("Expires", strings.Replace(expires.Format(time.RFC1123), "UTC", "GMT", -1))
-	w.Header().Add("Cache-Control", getCacheControl(ttl))
+	w.Header().Add("Cache-Control", getCacheControl(ttl, swr))
 }
 
-func getCacheControl(ttl time.Duration) string {
+func getCacheControl(ttl, swr time.Duration) string {
 	if ttl == 0 {
 		return "private, no-cache, no-store, must-revalidate"
 	}
-	ttlSec := int(ttl.Seconds())
-	return fmt.Sprintf("public, s-maxage=%d, max-age=%d, no-transform", ttlSec, ttlSec)
+	var ttlSec = int64(ttl.Seconds())
+	var val = fmt.Sprintf("public, s-maxage=%d, max-age=%d, no-transform", ttlSec, ttlSec)
+	if swr > 0 && swr < ttl {
+		val += fmt.Sprintf(", stale-while-revalidate=%d", int64(swr.Seconds()))
+	}
+	return val
 }
 
 func resJSON(w http.ResponseWriter, v interface{}) {

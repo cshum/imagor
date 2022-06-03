@@ -56,6 +56,14 @@ func WithCacheHeaderTTL(ttl time.Duration) Option {
 	}
 }
 
+func WithCacheHeaderSWR(swr time.Duration) Option {
+	return func(o *Imagor) {
+		if swr > 0 {
+			o.CacheHeaderSWR = swr
+		}
+	}
+}
+
 func WithCacheHeaderNoCache(nocache bool) Option {
 	return func(o *Imagor) {
 		if nocache {

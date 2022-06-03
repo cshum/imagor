@@ -29,7 +29,8 @@ func TestDefault(t *testing.T) {
 	assert.False(t, app.ModifiedTimeCheck)
 	assert.False(t, app.AutoWebP)
 	assert.False(t, app.AutoAVIF)
-	assert.Equal(t, time.Hour*24, app.CacheHeaderTTL)
+	assert.Equal(t, time.Hour*24*7, app.CacheHeaderTTL)
+	assert.Equal(t, time.Hour*24, app.CacheHeaderSWR)
 	assert.Empty(t, app.ResultStorages)
 	assert.Empty(t, app.ResultLoaders)
 	assert.Empty(t, app.Storages)
@@ -53,7 +54,8 @@ func TestBasic(t *testing.T) {
 		"-imagor-process-timeout", "19s",
 		"-imagor-process-concurrency", "199",
 		"-imagor-base-path-redirect", "https://www.google.com",
-		"-imagor-cache-header-ttl", "167h",
+		"-imagor-cache-header-ttl", "169h",
+		"-imagor-cache-header-swr", "167h",
 	)
 	app := srv.App.(*imagor.Imagor)
 
@@ -67,7 +69,8 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, time.Second*19, app.ProcessTimeout)
 	assert.Equal(t, int64(199), app.ProcessConcurrency)
 	assert.Equal(t, "https://www.google.com", app.BasePathRedirect)
-	assert.Equal(t, time.Hour*167, app.CacheHeaderTTL)
+	assert.Equal(t, time.Hour*169, app.CacheHeaderTTL)
+	assert.Equal(t, time.Hour*167, app.CacheHeaderSWR)
 }
 
 func TestCacheHeaderNoCache(t *testing.T) {
