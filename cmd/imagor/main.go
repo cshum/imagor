@@ -61,7 +61,11 @@ func newServer(args ...string) (srv *server.Server) {
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
 			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
-			time.Hour*24, "Imagor HTTP cache header ttl for successful image response")
+			time.Hour*24*7, "Imagor HTTP Cache-Control header TTL for successful image response")
+		imagorCacheHeaderSWR = fs.Duration("imagor-cache-header-swr",
+			time.Hour*24, "Imagor HTTP Cache-Control header stale-while-revalidate for successful image response")
+		imagorCacheHeaderNoCache = fs.Bool("imagor-cache-header-no-cache",
+			false, "Imagor HTTP Cache-Control header no-cache for successful image response")
 		imagorModifiedTimeCheck = fs.Bool("imagor-modified-time-check", false,
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
 
@@ -452,6 +456,8 @@ func newServer(args ...string) (srv *server.Server) {
 			imagor.WithProcessTimeout(*imagorProcessTimeout),
 			imagor.WithProcessConcurrency(*imagorProcessConcurrency),
 			imagor.WithCacheHeaderTTL(*imagorCacheHeaderTTL),
+			imagor.WithCacheHeaderSWR(*imagorCacheHeaderSWR),
+			imagor.WithCacheHeaderNoCache(*imagorCacheHeaderNoCache),
 			imagor.WithAutoWebP(*imagorAutoWebP),
 			imagor.WithAutoAVIF(*imagorAutoAVIF),
 			imagor.WithModifiedTimeCheck(*imagorModifiedTimeCheck),

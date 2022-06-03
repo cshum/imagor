@@ -168,11 +168,36 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
 		assert.Equal(t, 200, w.Code)
-		assert.NotEmpty(t, w.Header().Get("Expires"))
-		assert.Contains(t, w.Header().Get("Cache-Control"), "public, s-maxage=")
+		assert.Equal(t, "public, s-maxage=604800, max-age=604800, no-transform, stale-while-revalidate=86400", w.Header().Get("Cache-Control"))
+	})
+	t.Run("custom ttl swr", func(t *testing.T) {
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithCacheHeaderSWR(time.Second*167),
+			WithCacheHeaderTTL(time.Second*169),
+			WithUnsafe(true))
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform, stale-while-revalidate=167", w.Header().Get("Cache-Control"))
+	})
+	t.Run("custom ttl no swr", func(t *testing.T) {
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithCacheHeaderSWR(time.Second*169),
+			WithCacheHeaderTTL(time.Second*169),
+			WithUnsafe(true))
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
 	})
 	t.Run("no cache", func(t *testing.T) {
-		app := New(WithDebug(true), WithCacheHeaderTTL(-1), WithUnsafe(true))
+		app := New(WithDebug(true), WithCacheHeaderNoCache(true), WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
