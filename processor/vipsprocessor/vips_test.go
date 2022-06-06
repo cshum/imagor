@@ -115,6 +115,28 @@ func TestVipsProcessor(t *testing.T) {
 		}
 		doTests(t, resultDir, tests, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(3))
 	})
+	t.Run("unsupported", func(t *testing.T) {
+		loader := filestorage.New(testDataDir + "/../")
+		app := imagor.New(
+			imagor.WithLoaders(loader),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(New(WithDebug(true))),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/README.md", nil))
+		assert.Equal(t, 406, w.Code)
+
+		buf, err := ioutil.ReadFile(testDataDir + "/../README.md")
+		require.NoError(t, err)
+		assert.Equal(t, buf, w.Body.Bytes(), "should return original file")
+	})
 }
 
 type test struct {
