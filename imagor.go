@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-const Version = "0.8.26"
+const Version = "0.8.27"
 
 // Loader load image from source
 type Loader interface {
@@ -304,7 +304,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 			app.save(ctx, nil, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && len(app.Storages) > 0 {
-			// storage put empty bytes on error
+			// storage put empty bytes if process error
 			app.save(ctx, nil, app.Storages, p.Image, NewBytes([]byte{}))
 		}
 		return blob, err
