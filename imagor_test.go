@@ -422,8 +422,8 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/empty", nil))
-			assert.Equal(t, 200, w.Code)
-			assert.Equal(t, "", w.Body.String())
+			assert.Equal(t, 404, w.Code)
+			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
 		})
 		t.Run(fmt.Sprintf("not found on pass %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()

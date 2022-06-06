@@ -449,12 +449,6 @@ func (v *VipsProcessor) export(image *vips.ImageRef, format vips.ImageType, qual
 			opts.Quality = quality
 		}
 		return image.ExportWebp(opts)
-	case vips.ImageTypeHEIF:
-		opts := vips.NewHeifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportHeif(opts)
 	case vips.ImageTypeTIFF:
 		opts := vips.NewTiffExportParams()
 		if quality > 0 {

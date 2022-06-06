@@ -303,6 +303,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		if err == nil && len(app.ResultStorages) > 0 {
 			app.save(ctx, nil, app.ResultStorages, resultKey, blob)
 		}
+		if err != nil && len(app.Storages) > 0 {
+			// storage put empty bytes on error
+			app.save(ctx, nil, app.Storages, p.Image, NewBytes([]byte{}))
+		}
 		return blob, err
 	})
 }
@@ -341,17 +345,19 @@ func (app *Imagor) load(
 		f, e := loader.Get(loadReq, key)
 		if !isEmpty(f) {
 			blob = f
-		}
-		if e == nil {
-			err = nil
-			origin, _ = loader.(Storage)
-			break
+			if e == nil {
+				err = nil
+				origin, _ = loader.(Storage)
+				break
+			}
 		}
 		// should not log expected error as of now, as it has not reached the end
 		err = e
 	}
 	if err == ErrPass {
 		// pass till the end means not found
+		err = ErrNotFound
+	} else if err == nil && isEmpty(blob) {
 		err = ErrNotFound
 	}
 	if app.Debug {
