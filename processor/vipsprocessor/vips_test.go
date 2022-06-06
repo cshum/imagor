@@ -67,6 +67,7 @@ func TestVipsProcessor(t *testing.T) {
 			{"stretch padding", "stretch/100x100/10x5/filters:fill(white)/gopher.png"},
 			{"padding", "0x0/40x50/filters:fill(white)/gopher-front.png"},
 			{"max_bytes", "filters:max_bytes(60000):format(jpg):fill(white)/gopher.png"},
+			{"max_bytes 2", "filters:max_bytes(6000):format(jpg):fill(white)/gopher.png"},
 			{"fill auto", "fit-in/400x400/filters:fill(auto)/find_trim.png"},
 			{"fill auto bottom-right", "fit-in/400x400/filters:fill(auto,bottom-right)/find_trim.png"},
 			{"resize top flip blur", "200x-210/top/filters:blur(5):sharpen(5):background_color(ffff00):format(jpeg):quality(70)/gopher.png"},
@@ -85,6 +86,7 @@ func TestVipsProcessor(t *testing.T) {
 
 			{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{"original animated", "dancing-banana.gif"},
+			{"original animated quality", "filters:quality(60)/dancing-banana.gif"},
 			{"crop animated", "30x20:100x150/dancing-banana.gif"},
 			{"crop-percent animated", "0.1x0.2:0.89x0.72/dancing-banana.gif"},
 			{"smart focal animated", "100x30/smart/filters:focal(0.1x0:0.89x0.72)/dancing-banana.gif"},
