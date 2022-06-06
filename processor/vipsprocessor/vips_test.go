@@ -80,7 +80,8 @@ func TestVipsProcessor(t *testing.T) {
 			{"trim tolerance", "trim:50/500x500/filters:stretch()/find_trim.png"},
 			{"trim filter", "/fit-in/100x100/filters:fill(auto):trim(50)/find_trim.png"},
 			{"watermark", "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
-			{"watermark", "fit-in/500x500/filters:fill(white):watermark(gopher.png,0.1,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-0.1)/gopher.png"},
+			{"watermark float", "fit-in/500x500/filters:fill(white):watermark(gopher.png,0.1,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-0.1)/gopher.png"},
+			{"watermark align", "fit-in/500x500/filters:fill(white):watermark(gopher.png,left,top,30,20,20):watermark(gopher.png,right,center,30,30,30):watermark(gopher-front.png,-20,-10)/gopher.png"},
 
 			{"original no animate", "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{"original animated", "dancing-banana.gif"},
