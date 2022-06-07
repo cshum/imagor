@@ -103,7 +103,7 @@ func (b *Bytes) readAllOnce() {
 
 func (b *Bytes) IsEmpty() bool {
 	b.readAllOnce()
-	return b.path == "" && len(b.buf) == 0
+	return b.bytesType == BytesTypeEmpty
 }
 
 func (b *Bytes) SupportsAnimation() bool {
