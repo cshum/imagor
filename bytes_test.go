@@ -55,3 +55,17 @@ func TestBytesTypes(t *testing.T) {
 		})
 	}
 }
+
+func TestNewEmptyBytes(t *testing.T) {
+	b := NewBytes([]byte{})
+	buf, err := b.ReadAll()
+	assert.NoError(t, err)
+	assert.Empty(t, buf)
+	assert.Equal(t, BytesTypeEmpty, b.BytesType())
+
+	b = NewEmptyBytes()
+	buf, err = b.ReadAll()
+	assert.NoError(t, err)
+	assert.Empty(t, buf)
+	assert.Equal(t, BytesTypeEmpty, b.BytesType())
+}

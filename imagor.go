@@ -305,7 +305,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		}
 		if err != nil && len(app.Storages) > 0 {
 			// storage put empty bytes if process error
-			app.save(ctx, nil, app.Storages, p.Image, NewBytes([]byte{}))
+			app.save(ctx, nil, app.Storages, p.Image, NewEmptyBytes())
 		}
 		return blob, err
 	})

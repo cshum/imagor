@@ -12,6 +12,7 @@ type BytesType int
 
 const (
 	BytesTypeUnknown BytesType = iota
+	BytesTypeEmpty
 	BytesTypeJPEG
 	BytesTypePNG
 	BytesTypeGIF
@@ -52,11 +53,14 @@ func NewBytesFilePath(filepath string) *Bytes {
 }
 
 func NewBytes(bytes []byte) *Bytes {
+	if len(bytes) == 0 {
+		return NewEmptyBytes()
+	}
 	return &Bytes{buf: bytes, bytesType: BytesTypeUnknown}
 }
 
-func NewBytesWithMeta(bytes []byte, meta *Meta) *Bytes {
-	return &Bytes{buf: bytes, Meta: meta, bytesType: BytesTypeUnknown}
+func NewEmptyBytes() *Bytes {
+	return &Bytes{buf: []byte{}, bytesType: BytesTypeEmpty}
 }
 
 var jpegHeader = []byte("\xFF\xD8\xFF")
@@ -70,6 +74,9 @@ var avif = []byte("avif")
 
 func (b *Bytes) readAllOnce() {
 	b.once.Do(func() {
+		if b.bytesType == BytesTypeEmpty {
+			return
+		}
 		if len(b.buf) == 0 {
 			if b.path != "" {
 				b.buf, b.err = ioutil.ReadFile(b.path)

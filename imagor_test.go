@@ -375,7 +375,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Bytes, p imagorpath.Params, load LoadFunc) (*Bytes, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "tar" {
-					return NewBytesWithMeta([]byte("bark"), fakeMeta), nil
+					b := NewBytes([]byte("bark"))
+					b.Meta = fakeMeta
+					return b, nil
 				}
 				if string(buf) == "poop" {
 					return nil, ErrUnsupportedFormat
