@@ -84,11 +84,11 @@ func (b *Bytes) readAllOnce() {
 			}
 		}
 		if len(b.buf) > 24 {
-			if bytes.HasPrefix(b.buf, jpegHeader) {
+			if bytes.Equal(b.buf[:3], jpegHeader) {
 				b.bytesType = BytesTypeJPEG
-			} else if bytes.HasPrefix(b.buf, pngHeader) {
+			} else if bytes.Equal(b.buf[:4], pngHeader) {
 				b.bytesType = BytesTypePNG
-			} else if bytes.HasPrefix(b.buf, gifHeader) {
+			} else if bytes.Equal(b.buf[:3], gifHeader) {
 				b.supportsAnimation = true
 				b.bytesType = BytesTypeGIF
 			} else if bytes.Equal(b.buf[8:12], webpHeader) {
