@@ -419,6 +419,10 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/ping", nil))
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "pong", w.Body.String())
+			require.NotNil(t, store.Map["ping"])
+			buf, err := store.Map["ping"].ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, "pong", string(buf))
 		})
 		t.Run(fmt.Sprintf("empty %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -426,6 +430,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/empty", nil))
 			assert.Equal(t, 404, w.Code)
 			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+			assert.Nil(t, store.Map["empty"])
 		})
 		t.Run(fmt.Sprintf("not found on pass %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -440,6 +445,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/boom", nil))
 			assert.Equal(t, 500, w.Code)
 			assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
+			assert.Nil(t, store.Map["boom"])
 		})
 		t.Run(fmt.Sprintf("error with value %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -447,6 +453,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/dood", nil))
 			assert.Equal(t, 500, w.Code)
 			assert.Equal(t, "dood", w.Body.String())
+			assert.Nil(t, store.Map["dood"])
 		})
 		t.Run(fmt.Sprintf("processor error return original %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -454,6 +461,8 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/poop", nil))
 			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
 			assert.Equal(t, "poop", w.Body.String())
+			assert.NotNil(t, store.Map["poop"])
+			assert.True(t, store.Map["poop"].IsEmpty())
 		})
 	}
 }
