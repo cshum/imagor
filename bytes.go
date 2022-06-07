@@ -53,9 +53,6 @@ func NewBytesFilePath(filepath string) *Bytes {
 }
 
 func NewBytes(bytes []byte) *Bytes {
-	if len(bytes) == 0 {
-		return NewEmptyBytes()
-	}
 	return &Bytes{buf: bytes, bytesType: BytesTypeUnknown}
 }
 
@@ -82,8 +79,7 @@ func (b *Bytes) readAllOnce() {
 				b.buf, b.err = ioutil.ReadFile(b.path)
 			}
 			if len(b.buf) == 0 && b.err == nil {
-				b.buf = nil
-				b.err = ErrNotFound
+				b.bytesType = BytesTypeEmpty
 				return
 			}
 		}
