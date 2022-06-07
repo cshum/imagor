@@ -132,13 +132,21 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		assert.Equal(t, imagor.ErrPass, s.Put(ctx, "/abc/.git", imagor.NewBytes([]byte("boo"))))
 	})
 	t.Run("save and load", func(t *testing.T) {
-		s := New(dir, WithMkdirPermission("0755"), WithWritePermission("0666"))
+		s := New(dir, WithPathPrefix("/foo"), WithMkdirPermission("0755"), WithWritePermission("0666"))
 
-		_, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+		_, err := s.Get(&http.Request{}, "/bar/fooo/asdf")
+		assert.Equal(t, imagor.ErrPass, err)
+
+		_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
+		assert.Equal(t, imagor.ErrPass, err)
+
+		_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
 		_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
+
+		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
 		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
 

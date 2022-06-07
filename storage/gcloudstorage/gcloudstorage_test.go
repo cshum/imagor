@@ -95,8 +95,14 @@ func TestGetPutStat(t *testing.T) {
 		Content: []byte(""),
 	}})
 	ctx := context.Background()
-	s := New(srv.Client(), "test", WithACL("publicRead"))
+	s := New(srv.Client(), "test", WithPathPrefix("/foo"), WithACL("publicRead"))
 	var err error
+
+	_, err = s.Get(&http.Request{}, "/bar/fooo/asdf")
+	assert.Equal(t, imagor.ErrPass, err)
+
+	_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
+	assert.Equal(t, imagor.ErrPass, err)
 
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
@@ -106,6 +112,8 @@ func TestGetPutStat(t *testing.T) {
 
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
+
+	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
 	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
 

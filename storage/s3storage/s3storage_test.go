@@ -151,10 +151,18 @@ func TestGetPutStat(t *testing.T) {
 
 	var err error
 	ctx := context.Background()
-	s := New(fakeS3Session(ts, "test"), "test", WithACL("public-read"))
+	s := New(fakeS3Session(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"))
+
+	_, err = s.Get(&http.Request{}, "/bar/fooo/asdf")
+	assert.Equal(t, imagor.ErrPass, err)
+
+	_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
+	assert.Equal(t, imagor.ErrPass, err)
 
 	_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
+
+	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
 	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
 
