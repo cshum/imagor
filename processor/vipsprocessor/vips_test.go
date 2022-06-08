@@ -46,10 +46,10 @@ func TestVipsProcessor(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "result")
 		var tests = []test{
 			{name: "original", path: "gopher-front.png"},
-			{name: "export gif", path: "filters:format(gif)/gopher-front.png", checkTypeOnly: true},
-			{name: "export webp", path: "filters:format(webp)/gopher-front.png", checkTypeOnly: true},
-			{name: "export avif", path: "filters:format(avif)/gopher-front.png", checkTypeOnly: true},
-			{name: "export tiff", path: "filters:format(tiff)/gopher-front.png", checkTypeOnly: true},
+			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "resize center", path: "100x100/filters:quality(70):format(jpeg)/gopher.png"},
 			{name: "resize smart", path: "100x100/smart/filters:autojpg()/gopher.png"},
 			{name: "resize smart focal", path: "300x100/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},
