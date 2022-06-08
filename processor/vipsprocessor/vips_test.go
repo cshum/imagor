@@ -50,6 +50,7 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "no-ops", path: "filters:frames():frames(0):round_corner():padding():rotate():proportion():proportion(-10):brightness():contrast():hue():saturation():rgb():modulate()/gopher-front.png"},
 			{name: "resize center", path: "100x100/filters:quality(70):format(jpeg)/gopher.png"},
 			{name: "resize smart", path: "100x100/smart/filters:autojpg()/gopher.png"},
 			{name: "resize smart focal", path: "300x100/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},

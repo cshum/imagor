@@ -424,6 +424,13 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, "pong", string(buf))
 		})
+		t.Run(fmt.Sprintf("not found on empty path %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/", nil))
+			assert.Equal(t, 404, w.Code)
+			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+		})
 		t.Run(fmt.Sprintf("empty %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(

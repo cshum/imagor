@@ -332,6 +332,10 @@ func (app *Imagor) load(
 	if len(loaders) == 0 {
 		return
 	}
+	if key == "" {
+		err = ErrNotFound
+		return
+	}
 	var ctx = r.Context()
 	var loadCtx = ctx
 	var loadReq = r
