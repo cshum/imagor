@@ -158,7 +158,10 @@ func (v *VipsProcessor) process(
 			break
 		}
 		start := time.Now()
-		args := strings.Split(filter.Args, ",")
+		var args []string
+		if filter.Args != "" {
+			args = strings.Split(filter.Args, ",")
+		}
 		if fn := v.Filters[filter.Name]; fn != nil {
 			if err := fn(ctx, img, load, args...); err != nil {
 				return err
