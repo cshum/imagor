@@ -56,14 +56,17 @@ func TestBytesTypes(t *testing.T) {
 			assert.Equal(t, tt.contentType, b.ContentType())
 			assert.Equal(t, tt.bytesType, b.BytesType())
 			assert.False(t, b.IsEmpty())
+			require.NoError(t, b.Err())
 
 			buf, err := b.ReadAll()
 			require.NoError(t, err)
+			require.NoError(t, b.Err())
 			b = NewBytes(buf)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
 			assert.Equal(t, tt.bytesType, b.BytesType())
 			assert.False(t, b.IsEmpty())
+			require.NoError(t, b.Err())
 		})
 	}
 }

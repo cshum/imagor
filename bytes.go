@@ -22,13 +22,14 @@ const (
 
 // Bytes abstraction for file path, bytes data and meta attributes
 type Bytes struct {
-	path string
-	buf  []byte
-	once sync.Once
-	err  error
+	path  string
+	buf   []byte
+	once  sync.Once
+	once2 sync.Once
+	err   error
 
-	supportsAnimation bool
-	bytesType         BytesType
+	bytesType   BytesType
+	contentType string
 
 	Meta *Meta
 }
@@ -89,10 +90,8 @@ func (b *Bytes) readAllOnce() {
 			} else if bytes.Equal(b.buf[:4], pngHeader) {
 				b.bytesType = BytesTypePNG
 			} else if bytes.Equal(b.buf[:3], gifHeader) {
-				b.supportsAnimation = true
 				b.bytesType = BytesTypeGIF
 			} else if bytes.Equal(b.buf[8:12], webpHeader) {
-				b.supportsAnimation = true
 				b.bytesType = BytesTypeWEBP
 			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
 				b.bytesType = BytesTypeAVIF
@@ -108,7 +107,7 @@ func (b *Bytes) IsEmpty() bool {
 
 func (b *Bytes) SupportsAnimation() bool {
 	b.readAllOnce()
-	return b.supportsAnimation
+	return b.bytesType == BytesTypeGIF || b.bytesType == BytesTypeWEBP
 }
 
 func (b *Bytes) BytesType() BytesType {
@@ -121,27 +120,34 @@ func (b *Bytes) ContentType() string {
 		return b.Meta.ContentType
 	}
 	b.readAllOnce()
-	contentType := "application/octet-stream"
-	switch b.BytesType() {
-	case BytesTypeJPEG:
-		contentType = "image/jpeg"
-	case BytesTypePNG:
-		contentType = "image/png"
-	case BytesTypeGIF:
-		contentType = "image/gif"
-	case BytesTypeWEBP:
-		contentType = "image/webp"
-	case BytesTypeAVIF:
-		contentType = "image/avif"
-	default:
-		contentType = http.DetectContentType(b.buf)
-	}
-	return contentType
+	b.once2.Do(func() {
+		b.contentType = "application/octet-stream"
+		switch b.BytesType() {
+		case BytesTypeJPEG:
+			b.contentType = "image/jpeg"
+		case BytesTypePNG:
+			b.contentType = "image/png"
+		case BytesTypeGIF:
+			b.contentType = "image/gif"
+		case BytesTypeWEBP:
+			b.contentType = "image/webp"
+		case BytesTypeAVIF:
+			b.contentType = "image/avif"
+		default:
+			b.contentType = http.DetectContentType(b.buf)
+		}
+	})
+	return b.contentType
 }
 
 func (b *Bytes) ReadAll() ([]byte, error) {
 	b.readAllOnce()
 	return b.buf, b.err
+}
+
+func (b *Bytes) Err() error {
+	b.readAllOnce()
+	return b.err
 }
 
 func isEmpty(f *Bytes) bool {
