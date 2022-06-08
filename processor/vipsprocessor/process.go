@@ -46,21 +46,19 @@ func (v *VipsProcessor) process(
 		cropBottom = math.Min(cropBottom, origHeight-1)
 	}
 	if p.Trim {
-		l, t, w, h, err := findTrim(ctx, img, p.TrimBy, p.TrimTolerance)
-		if err != nil {
-			return err
-		}
-		cropLeft = math.Max(cropLeft, float64(l))
-		cropTop = math.Max(cropTop, float64(t))
-		if cropRight > 0 {
-			cropRight = math.Min(cropRight, float64(l+w))
-		} else {
-			cropRight = float64(l + w)
-		}
-		if cropBottom > 0 {
-			cropBottom = math.Min(cropBottom, float64(t+h))
-		} else {
-			cropBottom = float64(t + h)
+		if l, t, w, h, err := findTrim(ctx, img, p.TrimBy, p.TrimTolerance); err == nil {
+			cropLeft = math.Max(cropLeft, float64(l))
+			cropTop = math.Max(cropTop, float64(t))
+			if cropRight > 0 {
+				cropRight = math.Min(cropRight, float64(l+w))
+			} else {
+				cropRight = float64(l + w)
+			}
+			if cropBottom > 0 {
+				cropBottom = math.Min(cropBottom, float64(t+h))
+			} else {
+				cropBottom = float64(t + h)
+			}
 		}
 	}
 	if cropRight > cropLeft && cropBottom > cropTop {

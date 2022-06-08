@@ -479,11 +479,10 @@ func trim(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...st
 	if ln > 1 {
 		pos = args[1]
 	}
-	l, t, w, h, err := findTrim(ctx, img, pos, tolerance)
-	if err != nil {
-		return err
+	if l, t, w, h, err := findTrim(ctx, img, pos, tolerance); err == nil {
+		return img.ExtractArea(l, t, w, h)
 	}
-	return img.ExtractArea(l, t, w, h)
+	return nil
 }
 
 func linearRGB(img *vips.ImageRef, a, b []float64) error {
