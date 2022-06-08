@@ -159,6 +159,16 @@ func TestWithDefaultScheme(t *testing.T) {
 		WithDefaultScheme("nil"),
 	), []test{
 		{
+			name:   "empty",
+			target: "",
+			err:    "imagor: 400 pass",
+		},
+		{
+			name:   "invalid url",
+			target: "abc*abc",
+			err:    "imagor: 400 pass",
+		},
+		{
 			name:   "default scheme set nil not found",
 			target: "foo.bar/baz",
 			err:    "imagor: 400 pass",
