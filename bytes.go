@@ -18,6 +18,7 @@ const (
 	BytesTypeGIF
 	BytesTypeWEBP
 	BytesTypeAVIF
+	BytesTypeTIFF
 )
 
 // Bytes abstraction for file path, bytes data and meta attributes
@@ -70,6 +71,9 @@ var pngHeader = []byte("\x89\x50\x4E\x47")
 var ftyp = []byte("ftyp")
 var avif = []byte("avif")
 
+var tifII = []byte("\x49\x49\x2A\x00")
+var tifMM = []byte("\x4D\x4D\x00\x2A")
+
 func (b *Bytes) readAllOnce() {
 	b.once.Do(func() {
 		if b.bytesType == BytesTypeEmpty {
@@ -95,6 +99,8 @@ func (b *Bytes) readAllOnce() {
 				b.bytesType = BytesTypeWEBP
 			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
 				b.bytesType = BytesTypeAVIF
+			} else if bytes.Equal(b.buf[:4], tifII) || bytes.Equal(b.buf[:4], tifMM) {
+				b.bytesType = BytesTypeTIFF
 			}
 		}
 	})
@@ -133,6 +139,8 @@ func (b *Bytes) ContentType() string {
 			b.contentType = "image/webp"
 		case BytesTypeAVIF:
 			b.contentType = "image/avif"
+		case BytesTypeTIFF:
+			b.contentType = "image/tiff"
 		default:
 			b.contentType = http.DetectContentType(b.buf)
 		}

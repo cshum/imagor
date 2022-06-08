@@ -29,6 +29,12 @@ func TestBytesTypes(t *testing.T) {
 			bytesType:   BytesTypePNG,
 		},
 		{
+			name:        "tiff",
+			path:        "gopher.tiff",
+			contentType: "image/tiff",
+			bytesType:   BytesTypeTIFF,
+		},
+		{
 			name:              "gif",
 			path:              "dancing-banana.gif",
 			contentType:       "image/gif",
