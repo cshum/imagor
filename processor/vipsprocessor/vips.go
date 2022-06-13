@@ -406,6 +406,7 @@ func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
 		Width:       meta.Width,
 		Height:      meta.Height,
 		Orientation: meta.Orientation,
+		Pages:       meta.Pages,
 	}
 }
 
