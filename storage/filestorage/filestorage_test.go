@@ -148,7 +148,15 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
-		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
+		blob := imagor.NewBytes([]byte("bar"))
+		blob.Meta = &imagor.Meta{
+			Format:      "abc",
+			ContentType: "def",
+			Width:       167,
+			Height:      169,
+		}
+
+		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
 		b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 		require.NoError(t, err)

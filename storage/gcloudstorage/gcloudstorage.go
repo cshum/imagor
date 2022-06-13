@@ -99,7 +99,9 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Byte
 	writer.ContentType = blob.ContentType()
 	if blob.Meta != nil {
 		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
-			writer.Metadata["Imagor-Meta"] = string(buf)
+			writer.Metadata = map[string]string{
+				"Imagor-Meta": string(buf),
+			}
 		}
 	}
 
