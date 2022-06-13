@@ -32,6 +32,8 @@ type S3Storage struct {
 	safeChars imagorpath.SafeChars
 }
 
+const metaKey = "Imagor-Meta"
+
 func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	baseDir := "/"
 	if idx := strings.Index(bucket, "/"); idx > -1 {
@@ -104,7 +106,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Bytes) e
 	if blob.Meta != nil {
 		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
 			metadata = map[string]*string{
-				"Imagor-Meta": aws.String(string(buf)),
+				metaKey: aws.String(string(buf)),
 			}
 		}
 	}
@@ -120,7 +122,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Bytes) e
 	return err
 }
 
-func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+func (s *S3Storage) head(ctx context.Context, image string) (*s3.HeadObjectOutput, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -129,14 +131,37 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(image),
 	}
-	out, err := s.S3.HeadObjectWithContext(ctx, input)
+	head, err := s.S3.HeadObjectWithContext(ctx, input)
 	if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
 		return nil, imagor.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
+	return head, nil
+}
+
+func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	head, err := s.head(ctx, image)
+	if err != nil {
+		return nil, err
+	}
 	return &imagor.Stat{
-		Size:         *out.ContentLength,
-		ModifiedTime: *out.LastModified,
+		Size:         *head.ContentLength,
+		ModifiedTime: *head.LastModified,
 	}, nil
+}
+
+func (s *S3Storage) Meta(ctx context.Context, image string) (meta *imagor.Meta, err error) {
+	head, err := s.head(ctx, image)
+	if err != nil {
+		return nil, err
+	}
+	if head.Metadata == nil || head.Metadata[metaKey] == nil || *head.Metadata[metaKey] == "" {
+		return nil, imagor.ErrNotFound
+	}
+	meta = &imagor.Meta{}
+	if err := json.Unmarshal([]byte(*head.Metadata[metaKey]), meta); err != nil {
+		return nil, err
+	}
+	return meta, nil
 }

@@ -134,6 +134,10 @@ func TestGetPutStat(t *testing.T) {
 	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
+
+	meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
+	require.NoError(t, err)
+	assert.Equal(t, meta, blob.Meta)
 }
 
 func TestExpiration(t *testing.T) {

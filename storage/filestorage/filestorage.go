@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -129,4 +130,23 @@ func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, 
 		Size:         stats.Size(),
 		ModifiedTime: stats.ModTime(),
 	}, nil
+}
+
+func (s *FileStorage) Meta(_ context.Context, image string) (*imagor.Meta, error) {
+	image, ok := s.Path(image)
+	if !ok {
+		return nil, imagor.ErrPass
+	}
+	buf, err := ioutil.ReadFile(image + ".meta.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, imagor.ErrNotFound
+		}
+		return nil, err
+	}
+	meta := &imagor.Meta{}
+	if err := json.Unmarshal(buf, meta); err != nil {
+		return nil, err
+	}
+	return meta, nil
 }

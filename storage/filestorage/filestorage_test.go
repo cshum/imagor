@@ -167,6 +167,10 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		stat, err := s.Stat(context.Background(), "/foo/fooo/asdf")
 		require.NoError(t, err)
 		assert.True(t, stat.ModifiedTime.Before(time.Now()))
+
+		meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
+		require.NoError(t, err)
+		assert.Equal(t, meta, blob.Meta)
 	})
 
 	t.Run("save err if exists", func(t *testing.T) {

@@ -29,6 +29,7 @@ type Storage interface {
 	Get(r *http.Request, image string) (*Bytes, error)
 	Put(ctx context.Context, image string, blob *Bytes) error
 	Stat(ctx context.Context, image string) (*Stat, error)
+	Meta(ctx context.Context, image string) (*Meta, error)
 }
 
 // LoadFunc load function for Processor
