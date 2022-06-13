@@ -113,6 +113,9 @@ func TestGetPutStat(t *testing.T) {
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
+	_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
 	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
 	blob := imagor.NewBytes([]byte("bar"))
