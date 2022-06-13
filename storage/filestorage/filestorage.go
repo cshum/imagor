@@ -137,7 +137,21 @@ func (s *FileStorage) Meta(_ context.Context, image string) (*imagor.Meta, error
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	buf, err := ioutil.ReadFile(image + ".meta.json")
+	key := image + ".meta.json"
+
+	if s.Expiration > 0 {
+		stats, err := os.Stat(key)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil, imagor.ErrNotFound
+			}
+			return nil, err
+		}
+		if time.Now().Sub(stats.ModTime()) > s.Expiration {
+			return nil, imagor.ErrExpired
+		}
+	}
+	buf, err := ioutil.ReadFile(key)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, imagor.ErrNotFound

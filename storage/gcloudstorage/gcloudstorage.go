@@ -160,6 +160,11 @@ func (s *GCloudStorage) Meta(ctx context.Context, image string) (meta *imagor.Me
 	if attrs.Metadata == nil || attrs.Metadata[metaKey] == "" {
 		return nil, imagor.ErrNotFound
 	}
+	if s.Expiration > 0 {
+		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
+			return nil, imagor.ErrExpired
+		}
+	}
 	meta = &imagor.Meta{}
 	if err := json.Unmarshal([]byte(attrs.Metadata[metaKey]), meta); err != nil {
 		return nil, err

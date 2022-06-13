@@ -159,6 +159,11 @@ func (s *S3Storage) Meta(ctx context.Context, image string) (meta *imagor.Meta, 
 	if head.Metadata == nil || head.Metadata[metaKey] == nil || *head.Metadata[metaKey] == "" {
 		return nil, imagor.ErrNotFound
 	}
+	if s.Expiration > 0 && head.LastModified != nil {
+		if time.Now().Sub(*head.LastModified) > s.Expiration {
+			return nil, imagor.ErrExpired
+		}
+	}
 	meta = &imagor.Meta{}
 	if err := json.Unmarshal([]byte(*head.Metadata[metaKey]), meta); err != nil {
 		return nil, err
