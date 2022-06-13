@@ -185,6 +185,8 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
+		_, err = s.Meta(context.Background(), "/foo/bar/asdf")
+		assert.Equal(t, imagor.ErrNotFound, err)
 	})
 
 	t.Run("expiration", func(t *testing.T) {

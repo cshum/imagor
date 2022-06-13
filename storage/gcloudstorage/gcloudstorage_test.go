@@ -141,6 +141,11 @@ func TestGetPutStat(t *testing.T) {
 	meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
 	require.NoError(t, err)
 	assert.Equal(t, meta, blob.Meta)
+
+	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBytes([]byte("bar"))))
+
+	_, err = s.Meta(context.Background(), "/foo/boo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
 }
 
 func TestExpiration(t *testing.T) {
