@@ -2,6 +2,7 @@ package filestorage
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"net/http"
@@ -96,6 +97,18 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Bytes) (
 	defer w.Close()
 	if _, err = w.Write(buf); err != nil {
 		return
+	}
+	if blob.Meta != nil {
+		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
+			w, err := os.OpenFile(image+".meta.json", flag, s.WritePermission)
+			if err != nil {
+				return err
+			}
+			defer w.Close()
+			if _, err = w.Write(buf); err != nil {
+				return err
+			}
+		}
 	}
 	return
 }

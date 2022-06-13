@@ -3,6 +3,7 @@ package gcloudstorage
 import (
 	"cloud.google.com/go/storage"
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -94,6 +95,12 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Byte
 	}()
 	if s.ACL != "" {
 		writer.PredefinedACL = s.ACL
+	}
+	writer.ContentType = blob.ContentType()
+	if blob.Meta != nil {
+		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
+			writer.Metadata["Imagor-Meta"] = string(buf)
+		}
 	}
 
 	if _, err := writer.Write(buf); err != nil {
