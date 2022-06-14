@@ -140,6 +140,9 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
 		assert.Equal(t, imagor.ErrPass, err)
 
+		_, err = s.Meta(context.Background(), "/bar/fooo/asdf")
+		assert.Equal(t, imagor.ErrPass, err)
+
 		_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
@@ -194,6 +197,8 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		var err error
 
 		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+		assert.Equal(t, imagor.ErrNotFound, err)
+		_, err = s.Meta(ctx, "/foo/bar/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 		blob := imagor.NewBytes([]byte("bar"))
 		blob.Meta = &imagor.Meta{
