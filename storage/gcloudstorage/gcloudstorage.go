@@ -45,8 +45,9 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 	object := s.client.Bucket(s.Bucket).Object(image)
 
 	// Verify attributes only if expiration is set to avoid additional requests
+	var attrs *storage.ObjectAttrs
 	if s.Expiration > 0 {
-		attrs, err := object.Attrs(r.Context())
+		attrs, err = object.Attrs(r.Context())
 		if err != nil {
 			if errors.Is(err, storage.ErrObjectNotExist) {
 				return nil, imagor.ErrNotFound
@@ -57,17 +58,19 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 			return nil, imagor.ErrExpired
 		}
 	}
-	newReader := func() (io.ReadCloser, error) {
-		reader, err := object.NewReader(r.Context())
+	return imagor.NewBlobFromReader(func() (reader io.ReadCloser, size int64, err error) {
+		if attrs != nil {
+			size = attrs.Size
+		}
+		reader, err = object.NewReader(r.Context())
 		if err != nil {
 			if errors.Is(err, storage.ErrObjectNotExist) {
-				return nil, imagor.ErrNotFound
+				err = imagor.ErrNotFound
 			}
-			return nil, err
+			return
 		}
-		return reader, nil
-	}
-	return imagor.NewBlobFromReaderFunc(newReader), err
+		return
+	}), err
 }
 
 func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {

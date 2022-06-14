@@ -73,7 +73,10 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	if s.Expiration > 0 && time.Now().Sub(stats.ModTime()) > s.Expiration {
 		return nil, imagor.ErrExpired
 	}
-	return imagor.NewBlobFromPath(image), nil
+	return imagor.NewBlobFromReader(func() (io.ReadCloser, int64, error) {
+		r, err := os.Open(image)
+		return r, stats.Size(), err
+	}), nil
 }
 
 func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (err error) {

@@ -129,7 +129,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		s := New(dir)
 		_, err = s.Get(&http.Request{}, "/abc/.git")
 		assert.Equal(t, imagor.ErrPass, err)
-		assert.Equal(t, imagor.ErrPass, s.Put(ctx, "/abc/.git", imagor.NewBlobFromBuffer([]byte("boo"))))
+		assert.Equal(t, imagor.ErrPass, s.Put(ctx, "/abc/.git", imagor.NewBlobFromBytes([]byte("boo"))))
 	})
 	t.Run("CRUD", func(t *testing.T) {
 		s := New(dir, WithPathPrefix("/foo"), WithMkdirPermission("0755"), WithWritePermission("0666"))
@@ -152,9 +152,9 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
-		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBuffer([]byte("bar"))), imagor.ErrPass)
+		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrPass)
 
-		blob := imagor.NewBlobFromBuffer([]byte("bar"))
+		blob := imagor.NewBlobFromBytes([]byte("bar"))
 		blob.Meta = &imagor.Meta{
 			Format:      "abc",
 			ContentType: "def",
@@ -181,8 +181,8 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 	t.Run("save err if exists", func(t *testing.T) {
 		s := New(dir, WithSaveErrIfExists(true))
-		require.NoError(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBlobFromBuffer([]byte("bar"))))
-		assert.Error(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBlobFromBuffer([]byte("boo"))))
+		require.NoError(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBlobFromBytes([]byte("bar"))))
+		assert.Error(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBlobFromBytes([]byte("boo"))))
 		b, err := s.Get(&http.Request{}, "/foo/tar/asdf")
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
@@ -200,7 +200,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		assert.Equal(t, imagor.ErrNotFound, err)
 		_, err = s.Meta(ctx, "/foo/bar/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
-		blob := imagor.NewBlobFromBuffer([]byte("bar"))
+		blob := imagor.NewBlobFromBytes([]byte("bar"))
 		blob.Meta = &imagor.Meta{
 			Format:      "abc",
 			ContentType: "def",

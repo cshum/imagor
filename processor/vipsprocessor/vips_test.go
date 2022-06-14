@@ -174,7 +174,7 @@ func doTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 			assert.Equal(t, 200, w.Code)
-			b := imagor.NewBlobFromBuffer(w.Body.Bytes())
+			b := imagor.NewBlobFromBytes(w.Body.Bytes())
 			require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
 			_ = resStorage.Put(context.Background(), tt.path, b)
 			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))

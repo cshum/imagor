@@ -30,7 +30,7 @@ type peekReadCloser struct {
 
 // Blob abstraction for file path, bytes data and meta attributes
 type Blob struct {
-	newReader  func() (io.ReadCloser, error)
+	newReader  func() (r io.ReadCloser, size int64, err error)
 	peekReader *peekReadCloser
 	once       sync.Once
 	onceReader sync.Once
@@ -60,39 +60,29 @@ type Meta struct {
 
 func NewBlobFromPath(filepath string) *Blob {
 	return &Blob{
-		newReader: func() (io.ReadCloser, error) {
-			return os.Open(filepath)
+		newReader: func() (io.ReadCloser, int64, error) {
+			stats, err := os.Stat(filepath)
+			if err != nil {
+				return nil, 0, err
+			}
+			reader, err := os.Open(filepath)
+			return reader, stats.Size(), err
 		},
 	}
 }
 
-func NewBlobFromBuffer(buf []byte) *Blob {
+func NewBlobFromBytes(buf []byte) *Blob {
+	ln := int64(len(buf))
 	return &Blob{
-		newReader: func() (io.ReadCloser, error) {
-			return io.NopCloser(bytes.NewReader(buf)), nil
+		newReader: func() (io.ReadCloser, int64, error) {
+			return io.NopCloser(bytes.NewReader(buf)), ln, nil
 		},
 	}
 }
 
-func NewBlobFromReaderFunc(newReader func() (io.ReadCloser, error)) *Blob {
+func NewBlobFromReader(newReader func() (io.ReadCloser, int64, error)) *Blob {
 	return &Blob{
 		newReader: newReader,
-	}
-}
-
-func NewBlobFromReader(reader io.ReadCloser) *Blob {
-	defer func() {
-		_ = reader.Close()
-	}()
-	buf, err := io.ReadAll(reader)
-	// todo improve
-	return &Blob{
-		newReader: func() (io.ReadCloser, error) {
-			if err != nil {
-				return nil, err
-			}
-			return io.NopCloser(bytes.NewReader(buf)), nil
-		},
 	}
 }
 
@@ -118,7 +108,7 @@ func (b *Blob) peekOnce() {
 			b.blobType = BlobTypeEmpty
 			return
 		}
-		reader, err := b.newReader()
+		reader, _, err := b.newReader()
 		if err != nil {
 			b.err = err
 			return
@@ -208,10 +198,10 @@ func (b *Blob) NewReader() (reader io.ReadCloser, err error) {
 			reader = b.peekReader
 		}
 	})
-	if reader != nil {
-		return
+	if reader == nil && err == nil {
+		reader, _, err = b.newReader()
 	}
-	return b.newReader()
+	return
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {

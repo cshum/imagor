@@ -71,25 +71,28 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	newReader := func() (io.ReadCloser, error) {
+	return imagor.NewBlobFromReader(func() (io.ReadCloser, int64, error) {
 		input := &s3.GetObjectInput{
 			Bucket: aws.String(s.Bucket),
 			Key:    aws.String(image),
 		}
 		out, err := s.S3.GetObjectWithContext(r.Context(), input)
 		if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
-			return nil, imagor.ErrNotFound
+			return nil, 0, imagor.ErrNotFound
 		} else if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if s.Expiration > 0 && out.LastModified != nil {
 			if time.Now().Sub(*out.LastModified) > s.Expiration {
-				return nil, imagor.ErrExpired
+				return nil, 0, imagor.ErrExpired
 			}
 		}
-		return out.Body, nil
-	}
-	return imagor.NewBlobFromReaderFunc(newReader), nil
+		var size int64
+		if out.ContentLength != nil {
+			size = *out.ContentLength
+		}
+		return out.Body, size, nil
+	}), nil
 }
 
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {

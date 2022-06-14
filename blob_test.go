@@ -67,7 +67,7 @@ func TestBlobTypes(t *testing.T) {
 			buf, err := b.ReadAll()
 			require.NoError(t, err)
 			require.NoError(t, b.Err())
-			b = NewBlobFromBuffer(buf)
+			b = NewBlobFromBytes(buf)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
 			assert.Equal(t, tt.bytesType, b.BlobType())
@@ -78,7 +78,7 @@ func TestBlobTypes(t *testing.T) {
 }
 
 func TestNewEmptyBlob(t *testing.T) {
-	b := NewBlobFromBuffer([]byte{})
+	b := NewBlobFromBytes([]byte{})
 	buf, err := b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
