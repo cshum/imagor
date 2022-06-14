@@ -1,7 +1,6 @@
 package s3storage
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
@@ -98,10 +97,13 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	if !ok {
 		return imagor.ErrPass
 	}
-	buf, err := blob.ReadAll()
+	reader, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = reader.Close()
+	}()
 	var metadata map[string]*string
 	if blob.Meta != nil {
 		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
@@ -112,7 +114,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	}
 	input := &s3manager.UploadInput{
 		ACL:         aws.String(s.ACL),
-		Body:        bytes.NewReader(buf),
+		Body:        reader,
 		Bucket:      aws.String(s.Bucket),
 		ContentType: aws.String(blob.ContentType()),
 		Metadata:    metadata,

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -83,10 +84,13 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
 	}
-	buf, err := blob.ReadAll()
+	reader, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = reader.Close()
+	}()
 	flag := os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	if s.SaveErrIfExists {
 		flag = os.O_RDWR | os.O_CREATE | os.O_EXCL
@@ -95,8 +99,10 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	if err != nil {
 		return
 	}
-	defer w.Close()
-	if _, err = w.Write(buf); err != nil {
+	defer func() {
+		_ = w.Close()
+	}()
+	if _, err = io.Copy(w, reader); err != nil {
 		return
 	}
 	if blob.Meta != nil {

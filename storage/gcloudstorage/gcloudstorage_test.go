@@ -107,7 +107,8 @@ func TestCRUD(t *testing.T) {
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	_, err = b.NewReader()
 	assert.Equal(t, imagor.ErrNotFound, err)
 
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
@@ -128,7 +129,7 @@ func TestCRUD(t *testing.T) {
 
 	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
-	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
