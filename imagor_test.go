@@ -93,11 +93,11 @@ func TestSuppressDeadlockResolve(t *testing.T) {
 	f, err := app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
 		return app.suppress(ctx, "b", func(ctx context.Context) (*Blob, error) {
 			return app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
-				return &Blob{path: "abc"}, nil
+				return NewEmptyBlob(), nil
 			})
 		})
 	})
-	assert.Equal(t, &Blob{path: "abc"}, f)
+	assert.Equal(t, NewEmptyBlob(), f)
 	require.NoError(t, err)
 }
 
