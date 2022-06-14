@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
+	"io"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -146,18 +147,12 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	blob, err := app.Do(r, p)
-	var buf []byte
-	var ln int
 	if err == nil && p.Meta && blob != nil && blob.Meta != nil {
 		resJSON(w, blob.Meta)
 		return
 	}
 	if !isEmpty(blob) {
-		buf, _ = blob.ReadAll()
-		ln = len(buf)
-		if ln > 0 {
-			w.Header().Set("Content-Type", blob.ContentType())
-		}
+		w.Header().Set("Content-Type", blob.ContentType())
 	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -169,10 +164,14 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				e = ErrNotFound
 			}
 			w.WriteHeader(e.Code)
-			if ln > 0 {
-				w.Header().Set("Content-Length", strconv.Itoa(ln))
-				_, _ = w.Write(buf)
-				return
+
+			if !isEmpty(blob) {
+				buf, _ := blob.ReadAll()
+				if ln := len(buf); ln > 0 {
+					w.Header().Set("Content-Length", strconv.Itoa(ln))
+					_, _ = w.Write(buf)
+					return
+				}
 			}
 			resJSON(w, e)
 		} else {
@@ -181,10 +180,28 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
-	w.Header().Set("Content-Length", strconv.Itoa(ln))
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_, _ = w.Write(buf)
+	if !isEmpty(blob) {
+		if reader, size, err := blob.NewReader(); err == nil {
+			defer func() {
+				_ = reader.Close()
+			}()
+			if size > 0 {
+				// total size known, use io.Copy
+				w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+				w.WriteHeader(http.StatusOK)
+				if r.Method != http.MethodHead {
+					_, _ = io.Copy(w, reader)
+				}
+			} else {
+				// total size unknown, need read all bytes first
+				buf, _ := io.ReadAll(reader)
+				w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+				w.WriteHeader(http.StatusOK)
+				if r.Method != http.MethodHead {
+					_, _ = w.Write(buf)
+				}
+			}
+		}
 	}
 	return
 }

@@ -35,6 +35,7 @@ type Blob struct {
 	once       sync.Once
 	onceReader sync.Once
 	err        error
+	size       int64
 
 	blobType    BlobType
 	contentType string
@@ -108,11 +109,12 @@ func (b *Blob) peekOnce() {
 			b.blobType = BlobTypeEmpty
 			return
 		}
-		reader, _, err := b.newReader()
+		reader, size, err := b.newReader()
 		if err != nil {
 			b.err = err
 			return
 		}
+		b.size = size
 		b.peekReader = &peekReadCloser{
 			Reader: bufio.NewReader(reader),
 			Closer: reader,
@@ -196,6 +198,7 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 		}
 		if b.peekReader != nil {
 			reader = b.peekReader
+			size = b.size
 		}
 	})
 	if reader == nil && err == nil {
