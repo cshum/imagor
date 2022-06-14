@@ -65,7 +65,7 @@ func New(options ...Option) *HTTPLoader {
 	return h
 }
 
-func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Bytes, error) {
+func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if image == "" {
 		return nil, imagor.ErrPass
 	}
@@ -129,12 +129,12 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Bytes, error) {
 		return nil, err
 	}
 	if resp.StatusCode >= 400 {
-		return imagor.NewBytes(buf), imagor.NewErrorFromStatusCode(resp.StatusCode)
+		return imagor.NewBlobFromBytes(buf), imagor.NewErrorFromStatusCode(resp.StatusCode)
 	}
 	if !validateContentType(resp.Header.Get("Content-Type"), h.accepts) {
-		return imagor.NewBytes(buf), imagor.ErrUnsupportedFormat
+		return imagor.NewBlobFromBytes(buf), imagor.ErrUnsupportedFormat
 	}
-	return imagor.NewBytes(buf), nil
+	return imagor.NewBlobFromBytes(buf), nil
 }
 
 func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Request, error) {

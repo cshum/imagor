@@ -8,28 +8,28 @@ import (
 	"time"
 )
 
-type BytesType int
+type BlobType int
 
 const (
-	BytesTypeUnknown BytesType = iota
-	BytesTypeEmpty
-	BytesTypeJPEG
-	BytesTypePNG
-	BytesTypeGIF
-	BytesTypeWEBP
-	BytesTypeAVIF
-	BytesTypeTIFF
+	BlobTypeUnknown BlobType = iota
+	BlobTypeEmpty
+	BlobTypeJPEG
+	BlobTypePNG
+	BlobTypeGIF
+	BlobTypeWEBP
+	BlobTypeAVIF
+	BlobTypeTIFF
 )
 
-// Bytes abstraction for file path, bytes data and meta attributes
-type Bytes struct {
+// Blob abstraction for file path, bytes data and meta attributes
+type Blob struct {
 	path  string
 	buf   []byte
 	once  sync.Once
 	once2 sync.Once
 	err   error
 
-	bytesType   BytesType
+	blobType    BlobType
 	contentType string
 
 	Meta *Meta
@@ -51,16 +51,16 @@ type Meta struct {
 	Pages       int    `json:"pages"`
 }
 
-func NewBytesFilePath(filepath string) *Bytes {
-	return &Bytes{path: filepath, bytesType: BytesTypeUnknown}
+func NewBlobFromPath(filepath string) *Blob {
+	return &Blob{path: filepath, blobType: BlobTypeUnknown}
 }
 
-func NewBytes(bytes []byte) *Bytes {
-	return &Bytes{buf: bytes, bytesType: BytesTypeUnknown}
+func NewBlobFromBytes(bytes []byte) *Blob {
+	return &Blob{buf: bytes, blobType: BlobTypeUnknown}
 }
 
-func NewEmptyBytes() *Bytes {
-	return &Bytes{buf: []byte{}, bytesType: BytesTypeEmpty}
+func NewEmptyBlob() *Blob {
+	return &Blob{buf: []byte{}, blobType: BlobTypeEmpty}
 }
 
 var jpegHeader = []byte("\xFF\xD8\xFF")
@@ -75,9 +75,9 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
-func (b *Bytes) readAllOnce() {
+func (b *Blob) readAllOnce() {
 	b.once.Do(func() {
-		if b.bytesType == BytesTypeEmpty {
+		if b.blobType == BlobTypeEmpty {
 			return
 		}
 		if len(b.buf) == 0 {
@@ -85,44 +85,44 @@ func (b *Bytes) readAllOnce() {
 				b.buf, b.err = ioutil.ReadFile(b.path)
 			}
 			if len(b.buf) == 0 && b.err == nil {
-				b.bytesType = BytesTypeEmpty
+				b.blobType = BlobTypeEmpty
 				return
 			}
 		}
 		if len(b.buf) > 24 {
 			if bytes.Equal(b.buf[:3], jpegHeader) {
-				b.bytesType = BytesTypeJPEG
+				b.blobType = BlobTypeJPEG
 			} else if bytes.Equal(b.buf[:4], pngHeader) {
-				b.bytesType = BytesTypePNG
+				b.blobType = BlobTypePNG
 			} else if bytes.Equal(b.buf[:3], gifHeader) {
-				b.bytesType = BytesTypeGIF
+				b.blobType = BlobTypeGIF
 			} else if bytes.Equal(b.buf[8:12], webpHeader) {
-				b.bytesType = BytesTypeWEBP
+				b.blobType = BlobTypeWEBP
 			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
-				b.bytesType = BytesTypeAVIF
+				b.blobType = BlobTypeAVIF
 			} else if bytes.Equal(b.buf[:4], tifII) || bytes.Equal(b.buf[:4], tifMM) {
-				b.bytesType = BytesTypeTIFF
+				b.blobType = BlobTypeTIFF
 			}
 		}
 	})
 }
 
-func (b *Bytes) IsEmpty() bool {
+func (b *Blob) IsEmpty() bool {
 	b.readAllOnce()
-	return b.bytesType == BytesTypeEmpty
+	return b.blobType == BlobTypeEmpty
 }
 
-func (b *Bytes) SupportsAnimation() bool {
+func (b *Blob) SupportsAnimation() bool {
 	b.readAllOnce()
-	return b.bytesType == BytesTypeGIF || b.bytesType == BytesTypeWEBP
+	return b.blobType == BlobTypeGIF || b.blobType == BlobTypeWEBP
 }
 
-func (b *Bytes) BytesType() BytesType {
+func (b *Blob) BytesType() BlobType {
 	b.readAllOnce()
-	return b.bytesType
+	return b.blobType
 }
 
-func (b *Bytes) ContentType() string {
+func (b *Blob) ContentType() string {
 	if b.Meta != nil && b.Meta.ContentType != "" {
 		return b.Meta.ContentType
 	}
@@ -130,17 +130,17 @@ func (b *Bytes) ContentType() string {
 	b.once2.Do(func() {
 		b.contentType = "application/octet-stream"
 		switch b.BytesType() {
-		case BytesTypeJPEG:
+		case BlobTypeJPEG:
 			b.contentType = "image/jpeg"
-		case BytesTypePNG:
+		case BlobTypePNG:
 			b.contentType = "image/png"
-		case BytesTypeGIF:
+		case BlobTypeGIF:
 			b.contentType = "image/gif"
-		case BytesTypeWEBP:
+		case BlobTypeWEBP:
 			b.contentType = "image/webp"
-		case BytesTypeAVIF:
+		case BlobTypeAVIF:
 			b.contentType = "image/avif"
-		case BytesTypeTIFF:
+		case BlobTypeTIFF:
 			b.contentType = "image/tiff"
 		default:
 			b.contentType = http.DetectContentType(b.buf)
@@ -149,16 +149,16 @@ func (b *Bytes) ContentType() string {
 	return b.contentType
 }
 
-func (b *Bytes) ReadAll() ([]byte, error) {
+func (b *Blob) ReadAll() ([]byte, error) {
 	b.readAllOnce()
 	return b.buf, b.err
 }
 
-func (b *Bytes) Err() error {
+func (b *Blob) Err() error {
 	b.readAllOnce()
 	return b.err
 }
 
-func isEmpty(f *Bytes) bool {
+func isEmpty(f *Blob) bool {
 	return f == nil || f.IsEmpty()
 }

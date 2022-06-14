@@ -140,8 +140,8 @@ func focalSplit(r rune) bool {
 }
 
 func (v *VipsProcessor) Process(
-	ctx context.Context, blob *imagor.Bytes, p imagorpath.Params, load imagor.LoadFunc,
-) (*imagor.Bytes, error) {
+	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
+) (*imagor.Blob, error) {
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
@@ -379,7 +379,7 @@ func (v *VipsProcessor) Process(
 				continue
 			}
 		}
-		b := imagor.NewBytes(buf)
+		b := imagor.NewBlobFromBytes(buf)
 		b.Meta = getMeta(meta)
 		return b, nil
 	}
