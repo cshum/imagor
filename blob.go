@@ -187,7 +187,7 @@ func (b *Blob) ContentType() string {
 	return b.contentType
 }
 
-func (b *Blob) NewReader() (reader io.ReadCloser, err error) {
+func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	b.peekOnce()
 	b.onceReader.Do(func() {
 		if b.err != nil {
@@ -199,7 +199,7 @@ func (b *Blob) NewReader() (reader io.ReadCloser, err error) {
 		}
 	})
 	if reader == nil && err == nil {
-		reader, _, err = b.newReader()
+		reader, size, err = b.newReader()
 	}
 	return
 }
@@ -209,7 +209,7 @@ func (b *Blob) ReadAll() ([]byte, error) {
 	if b.blobType == BlobTypeEmpty || b.err != nil {
 		return nil, b.err
 	}
-	reader, err := b.NewReader()
+	reader, _, err := b.NewReader()
 	if err != nil {
 		return nil, err
 	}

@@ -108,7 +108,6 @@ func TestCRUD(t *testing.T) {
 	assert.Equal(t, imagor.ErrNotFound, err)
 
 	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
-	_, err = b.NewReader()
 	assert.Equal(t, imagor.ErrNotFound, err)
 
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")

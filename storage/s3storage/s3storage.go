@@ -100,7 +100,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	if !ok {
 		return imagor.ErrPass
 	}
-	reader, err := blob.NewReader()
+	reader, _, err := blob.NewReader()
 	if err != nil {
 		return err
 	}

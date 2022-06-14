@@ -43,17 +43,14 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		return nil, imagor.ErrPass
 	}
 	object := s.client.Bucket(s.Bucket).Object(image)
-
-	// Verify attributes only if expiration is set to avoid additional requests
-	var attrs *storage.ObjectAttrs
-	if s.Expiration > 0 {
-		attrs, err = object.Attrs(r.Context())
-		if err != nil {
-			if errors.Is(err, storage.ErrObjectNotExist) {
-				return nil, imagor.ErrNotFound
-			}
-			return nil, err
+	attrs, err := object.Attrs(r.Context())
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotExist) {
+			return nil, imagor.ErrNotFound
 		}
+		return nil, err
+	}
+	if s.Expiration > 0 {
 		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
 			return nil, imagor.ErrExpired
 		}
@@ -78,7 +75,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 	if !ok {
 		return imagor.ErrPass
 	}
-	reader, err := blob.NewReader()
+	reader, _, err := blob.NewReader()
 	if err != nil {
 		return err
 	}

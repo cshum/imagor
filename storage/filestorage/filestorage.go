@@ -87,7 +87,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
 	}
-	reader, err := blob.NewReader()
+	reader, _, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
