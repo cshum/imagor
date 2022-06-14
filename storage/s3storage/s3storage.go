@@ -71,11 +71,11 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	input := &s3.GetObjectInput{
-		Bucket: aws.String(s.Bucket),
-		Key:    aws.String(image),
-	}
-	return imagor.NewBlobFromReaderFunc(func() (io.ReadCloser, error) {
+	newReader := func() (io.ReadCloser, error) {
+		input := &s3.GetObjectInput{
+			Bucket: aws.String(s.Bucket),
+			Key:    aws.String(image),
+		}
 		out, err := s.S3.GetObjectWithContext(r.Context(), input)
 		if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
 			return nil, imagor.ErrNotFound
@@ -88,7 +88,8 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			}
 		}
 		return out.Body, nil
-	}), nil
+	}
+	return imagor.NewBlobFromReaderFunc(newReader), nil
 }
 
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {
