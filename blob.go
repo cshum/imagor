@@ -117,7 +117,7 @@ func (b *Blob) SupportsAnimation() bool {
 	return b.blobType == BlobTypeGIF || b.blobType == BlobTypeWEBP
 }
 
-func (b *Blob) BytesType() BlobType {
+func (b *Blob) BlobType() BlobType {
 	b.readAllOnce()
 	return b.blobType
 }
@@ -129,7 +129,7 @@ func (b *Blob) ContentType() string {
 	b.readAllOnce()
 	b.once2.Do(func() {
 		b.contentType = "application/octet-stream"
-		switch b.BytesType() {
+		switch b.BlobType() {
 		case BlobTypeJPEG:
 			b.contentType = "image/jpeg"
 		case BlobTypePNG:

@@ -60,7 +60,7 @@ func TestBlobTypes(t *testing.T) {
 			b := NewBlobFromPath("testdata/" + tt.path)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
-			assert.Equal(t, tt.bytesType, b.BytesType())
+			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			require.NoError(t, b.Err())
 
@@ -70,26 +70,26 @@ func TestBlobTypes(t *testing.T) {
 			b = NewBlobFromBytes(buf)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
-			assert.Equal(t, tt.bytesType, b.BytesType())
+			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			require.NoError(t, b.Err())
 		})
 	}
 }
 
-func TestNewBytesEmpty(t *testing.T) {
+func TestNewEmptyBlob(t *testing.T) {
 	b := NewBlobFromBytes([]byte{})
 	buf, err := b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
-	assert.Equal(t, BlobTypeEmpty, b.BytesType())
+	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 
 	b = NewEmptyBlob()
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
-	assert.Equal(t, BlobTypeEmpty, b.BytesType())
+	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 
 	f, err := os.CreateTemp("", "tmpfile-")
@@ -101,6 +101,6 @@ func TestNewBytesEmpty(t *testing.T) {
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
-	assert.Equal(t, BlobTypeEmpty, b.BytesType())
+	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 }
