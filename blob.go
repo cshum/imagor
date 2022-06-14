@@ -59,23 +59,34 @@ type Meta struct {
 }
 
 func NewBlobFromPath(filepath string) *Blob {
-	return &Blob{newReader: func() (io.ReadCloser, error) {
-		return os.Open(filepath)
-	}, blobType: BlobTypeUnknown}
+	return &Blob{
+		newReader: func() (io.ReadCloser, error) {
+			return os.Open(filepath)
+		},
+		blobType: BlobTypeUnknown,
+	}
 }
 
 func NewBlobFromBytes(buf []byte) *Blob {
-	return &Blob{newReader: func() (io.ReadCloser, error) {
-		return io.NopCloser(bytes.NewReader(buf)), nil
-	}, blobType: BlobTypeUnknown}
+	return &Blob{
+		newReader: func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(buf)), nil
+		},
+		blobType: BlobTypeUnknown,
+	}
 }
 
-func NewBlobFromReadCloser(newReader func() (io.ReadCloser, error)) *Blob {
-	return &Blob{newReader: newReader, blobType: BlobTypeUnknown}
+func NewBlobFromReader(newReader func() (io.ReadCloser, error)) *Blob {
+	return &Blob{
+		newReader: newReader,
+		blobType:  BlobTypeUnknown,
+	}
 }
 
 func NewEmptyBlob() *Blob {
-	return &Blob{blobType: BlobTypeEmpty}
+	return &Blob{
+		blobType: BlobTypeEmpty,
+	}
 }
 
 var jpegHeader = []byte("\xFF\xD8\xFF")
@@ -103,7 +114,8 @@ func (b *Blob) peekOnce() {
 		}
 		b.peekReader = &bufioReadCloser{bufio.NewReader(reader), reader}
 		buf := make([]byte, 0, 512)
-		if buf, err = b.peekReader.Peek(512); err != nil && err != bufio.ErrBufferFull && err != io.EOF {
+		buf, err = b.peekReader.Peek(512)
+		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
 			b.err = err
 			return
 		}
@@ -125,23 +137,23 @@ func (b *Blob) peekOnce() {
 			} else if bytes.Equal(buf[:4], tifII) || bytes.Equal(buf[:4], tifMM) {
 				b.blobType = BlobTypeTIFF
 			}
-			b.contentType = "application/octet-stream"
-			switch b.blobType {
-			case BlobTypeJPEG:
-				b.contentType = "image/jpeg"
-			case BlobTypePNG:
-				b.contentType = "image/png"
-			case BlobTypeGIF:
-				b.contentType = "image/gif"
-			case BlobTypeWEBP:
-				b.contentType = "image/webp"
-			case BlobTypeAVIF:
-				b.contentType = "image/avif"
-			case BlobTypeTIFF:
-				b.contentType = "image/tiff"
-			default:
-				b.contentType = http.DetectContentType(buf)
-			}
+		}
+		b.contentType = "application/octet-stream"
+		switch b.blobType {
+		case BlobTypeJPEG:
+			b.contentType = "image/jpeg"
+		case BlobTypePNG:
+			b.contentType = "image/png"
+		case BlobTypeGIF:
+			b.contentType = "image/gif"
+		case BlobTypeWEBP:
+			b.contentType = "image/webp"
+		case BlobTypeAVIF:
+			b.contentType = "image/avif"
+		case BlobTypeTIFF:
+			b.contentType = "image/tiff"
+		default:
+			b.contentType = http.DetectContentType(buf)
 		}
 	})
 }
@@ -170,8 +182,8 @@ func (b *Blob) ContentType() string {
 }
 
 func (b *Blob) NewReader() (reader io.ReadCloser, err error) {
+	b.peekOnce()
 	b.once2.Do(func() {
-		b.peekOnce()
 		if b.err != nil {
 			err = b.err
 			return
