@@ -400,12 +400,17 @@ func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
 		contentType = "image/jpeg"
 	}
 
+	pages := meta.Pages
+	if pages < 1 {
+		pages = 1
+	}
 	return &imagor.Meta{
 		Format:      format,
 		ContentType: contentType,
 		Width:       meta.Width,
-		Height:      meta.Height,
+		Height:      meta.Height / pages,
 		Orientation: meta.Orientation,
+		Pages:       pages,
 	}
 }
 

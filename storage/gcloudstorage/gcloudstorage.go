@@ -3,6 +3,7 @@ package gcloudstorage
 import (
 	"cloud.google.com/go/storage"
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -24,6 +25,8 @@ type GCloudStorage struct {
 
 	safeChars imagorpath.SafeChars
 }
+
+const metaKey = "Imagor-Meta"
 
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
 	s := &GCloudStorage{client: client, Bucket: bucket}
@@ -95,6 +98,14 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Byte
 	if s.ACL != "" {
 		writer.PredefinedACL = s.ACL
 	}
+	writer.ContentType = blob.ContentType()
+	if blob.Meta != nil {
+		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
+			writer.Metadata = map[string]string{
+				metaKey: string(buf),
+			}
+		}
+	}
 
 	if _, err := writer.Write(buf); err != nil {
 		return err
@@ -114,22 +125,49 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 	return strings.Trim(joinedPath, "/"), true
 }
 
-func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+func (s *GCloudStorage) attrs(ctx context.Context, image string) (attrs *storage.ObjectAttrs, err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
 	}
 	object := s.client.Bucket(s.Bucket).Object(image)
-
-	attrs, err := object.Attrs(ctx)
+	attrs, err = object.Attrs(ctx)
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			return nil, imagor.ErrNotFound
 		}
 		return nil, err
 	}
+	return attrs, err
+}
+
+func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	attrs, err := s.attrs(ctx, image)
+	if err != nil {
+		return nil, err
+	}
 	return &imagor.Stat{
 		Size:         attrs.Size,
 		ModifiedTime: attrs.Updated,
 	}, nil
+}
+
+func (s *GCloudStorage) Meta(ctx context.Context, image string) (meta *imagor.Meta, err error) {
+	attrs, err := s.attrs(ctx, image)
+	if err != nil {
+		return nil, err
+	}
+	if attrs.Metadata == nil || attrs.Metadata[metaKey] == "" {
+		return nil, imagor.ErrNotFound
+	}
+	if s.Expiration > 0 {
+		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
+			return nil, imagor.ErrExpired
+		}
+	}
+	meta = &imagor.Meta{}
+	if err := json.Unmarshal([]byte(attrs.Metadata[metaKey]), meta); err != nil {
+		return nil, err
+	}
+	return meta, nil
 }

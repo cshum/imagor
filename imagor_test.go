@@ -37,6 +37,11 @@ func (f saverFunc) Get(r *http.Request, image string) (*Bytes, error) {
 	return nil, ErrNotFound
 }
 
+func (f saverFunc) Meta(ctx context.Context, image string) (*Meta, error) {
+	// dummy
+	return nil, ErrNotFound
+}
+
 func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
 	// dummy
 	return nil, ErrNotFound
@@ -298,6 +303,14 @@ func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
 	return &Stat{
 		ModifiedTime: t,
 	}, nil
+}
+
+func (s *mapStore) Meta(ctx context.Context, image string) (*Meta, error) {
+	buf, ok := s.Map[image]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return buf.Meta, nil
 }
 
 func TestWithLoadersStoragesProcessors(t *testing.T) {

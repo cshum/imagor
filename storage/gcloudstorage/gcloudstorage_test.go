@@ -86,7 +86,7 @@ func TestGCloudStorage_Path(t *testing.T) {
 	}
 }
 
-func TestGetPutStat(t *testing.T) {
+func TestCRUD(t *testing.T) {
 	srv := fakestorage.NewServer([]fakestorage.Object{{
 		ObjectAttrs: fakestorage.ObjectAttrs{
 			BucketName: "test",
@@ -113,9 +113,20 @@ func TestGetPutStat(t *testing.T) {
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
+	_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
 	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
-	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
+	blob := imagor.NewBytes([]byte("bar"))
+	blob.Meta = &imagor.Meta{
+		Format:      "abc",
+		ContentType: "def",
+		Width:       167,
+		Height:      169,
+	}
+
+	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
 	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 	require.NoError(t, err)
@@ -126,6 +137,15 @@ func TestGetPutStat(t *testing.T) {
 	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
+
+	meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
+	require.NoError(t, err)
+	assert.Equal(t, meta, blob.Meta)
+
+	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBytes([]byte("bar"))))
+
+	_, err = s.Meta(context.Background(), "/foo/boo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
 }
 
 func TestExpiration(t *testing.T) {
@@ -142,13 +162,27 @@ func TestExpiration(t *testing.T) {
 
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
-	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
+	blob := imagor.NewBytes([]byte("bar"))
+	blob.Meta = &imagor.Meta{
+		Format:      "abc",
+		ContentType: "def",
+		Width:       167,
+		Height:      169,
+	}
+	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
 	b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
 	assert.Equal(t, "bar", string(buf))
-	time.Sleep(time.Millisecond * 10)
+
+	meta, err := s.Meta(context.Background(), "/foo/bar/asdf")
+	require.NoError(t, err)
+	assert.Equal(t, meta, blob.Meta)
+
+	time.Sleep(time.Second)
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+	require.ErrorIs(t, err, imagor.ErrExpired)
+	_, err = s.Meta(context.Background(), "/foo/bar/asdf")
 	require.ErrorIs(t, err, imagor.ErrExpired)
 }

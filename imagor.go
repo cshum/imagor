@@ -29,6 +29,7 @@ type Storage interface {
 	Get(r *http.Request, image string) (*Bytes, error)
 	Put(ctx context.Context, image string, blob *Bytes) error
 	Stat(ctx context.Context, image string) (*Stat, error)
+	Meta(ctx context.Context, image string) (*Meta, error)
 }
 
 // LoadFunc load function for Processor
@@ -147,13 +148,13 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	blob, err := app.Do(r, p)
 	var buf []byte
 	var ln int
+	if err == nil && p.Meta && blob != nil && blob.Meta != nil {
+		resJSON(w, blob.Meta)
+		return
+	}
 	if !isEmpty(blob) {
 		buf, _ = blob.ReadAll()
 		ln = len(buf)
-		if blob.Meta != nil && p.Meta {
-			resJSON(w, blob.Meta)
-			return
-		}
 		if ln > 0 {
 			w.Header().Set("Content-Type", blob.ContentType())
 		}
@@ -214,13 +215,13 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		}
 		if !hasFormat {
 			accept := r.Header.Get("Accept")
-			if strings.Contains(accept, "image/avif") && app.AutoAVIF {
+			if app.AutoAVIF && strings.Contains(accept, "image/avif") {
 				p.Filters = append(p.Filters, imagorpath.Filter{
 					Name: "format",
 					Args: "avif",
 				})
 				p.Path = imagorpath.GeneratePath(p)
-			} else if strings.Contains(accept, "image/webp") && app.AutoWebP {
+			} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
 				p.Filters = append(p.Filters, imagorpath.Filter{
 					Name: "format",
 					Args: "webp",
@@ -238,19 +239,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 	load := func(image string) (*Bytes, error) {
 		return app.loadStorage(r, image)
 	}
+	if p.Meta {
+		if blob := app.loadResult(r, resultKey, p.Image, true); blob != nil {
+			return blob, nil
+		}
+	}
 	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Bytes, error) {
-		if blob, resOrigin, err := app.load(
-			r, app.ResultLoaders, resultKey,
-		); err == nil && !isEmpty(blob) {
-			if app.ModifiedTimeCheck && resOrigin != nil {
-				if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
-					if sourceStat, err2 := app.storageStat(ctx, p.Image); sourceStat != nil && err2 == nil {
-						if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
-							return blob, nil
-						}
-					}
-				}
-			} else {
+		if !p.Meta {
+			if blob := app.loadResult(r, resultKey, p.Image, false); blob != nil {
 				return blob, nil
 			}
 		}
@@ -315,7 +311,7 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
 	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Bytes, err error) {
 		var origin Storage
 		r = r.WithContext(ctx)
-		blob, origin, err = app.load(r, app.Loaders, key)
+		blob, origin, err = app.load(r, app.Loaders, key, false)
 		if err != nil || isEmpty(blob) {
 			return
 		}
@@ -326,8 +322,28 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
 	})
 }
 
+func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Bytes {
+	ctx := r.Context()
+	if blob, resOrigin, err := app.load(
+		r, app.ResultLoaders, resultKey, metaMode,
+	); err == nil && (!isEmpty(blob) || metaMode) {
+		if app.ModifiedTimeCheck && resOrigin != nil {
+			if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
+				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
+					if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
+						return blob
+					}
+				}
+			}
+		} else {
+			return blob
+		}
+	}
+	return nil
+}
+
 func (app *Imagor) load(
-	r *http.Request, loaders []Loader, key string,
+	r *http.Request, loaders []Loader, key string, metaMode bool,
 ) (blob *Bytes, origin Storage, err error) {
 	if len(loaders) == 0 {
 		return
@@ -346,22 +362,36 @@ func (app *Imagor) load(
 		loadReq = r.WithContext(loadCtx)
 	}
 	for _, loader := range loaders {
-		f, e := loader.Get(loadReq, key)
-		if !isEmpty(f) {
-			blob = f
-			if e == nil {
-				err = nil
-				origin, _ = loader.(Storage)
+		storage, _ := loader.(Storage)
+		if metaMode && storage != nil {
+			m, e := storage.Meta(ctx, key)
+			if e == nil && m != nil {
+				blob = NewEmptyBytes()
+				blob.Meta = m
+				origin = storage
 				break
 			}
+			// should not log expected error as of now, as it has not reached the end
+			err = e
+		} else {
+			f, e := loader.Get(loadReq, key)
+			if !isEmpty(f) {
+				blob = f
+				if e == nil {
+					err = nil
+					origin = storage
+					break
+				}
+			}
+			// should not log expected error as of now, as it has not reached the end
+			err = e
 		}
-		// should not log expected error as of now, as it has not reached the end
-		err = e
+
 	}
 	if err == ErrPass {
 		// pass till the end means not found
 		err = ErrNotFound
-	} else if err == nil && isEmpty(blob) {
+	} else if err == nil && isEmpty(blob) && !metaMode {
 		err = ErrNotFound
 	}
 	if app.Debug {

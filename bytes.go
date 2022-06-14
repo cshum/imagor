@@ -48,6 +48,7 @@ type Meta struct {
 	Width       int    `json:"width"`
 	Height      int    `json:"height"`
 	Orientation int    `json:"orientation"`
+	Pages       int    `json:"pages"`
 }
 
 func NewBytesFilePath(filepath string) *Bytes {

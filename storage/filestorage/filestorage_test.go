@@ -131,7 +131,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		assert.Equal(t, imagor.ErrPass, err)
 		assert.Equal(t, imagor.ErrPass, s.Put(ctx, "/abc/.git", imagor.NewBytes([]byte("boo"))))
 	})
-	t.Run("save and load", func(t *testing.T) {
+	t.Run("CRUD", func(t *testing.T) {
 		s := New(dir, WithPathPrefix("/foo"), WithMkdirPermission("0755"), WithWritePermission("0666"))
 
 		_, err := s.Get(&http.Request{}, "/bar/fooo/asdf")
@@ -146,9 +146,20 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
+		_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
+		assert.Equal(t, imagor.ErrNotFound, err)
+
 		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
-		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
+		blob := imagor.NewBytes([]byte("bar"))
+		blob.Meta = &imagor.Meta{
+			Format:      "abc",
+			ContentType: "def",
+			Width:       167,
+			Height:      169,
+		}
+
+		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
 		b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 		require.NoError(t, err)
@@ -159,28 +170,53 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		stat, err := s.Stat(context.Background(), "/foo/fooo/asdf")
 		require.NoError(t, err)
 		assert.True(t, stat.ModifiedTime.Before(time.Now()))
+
+		meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
+		require.NoError(t, err)
+		assert.Equal(t, meta, blob.Meta)
 	})
 
 	t.Run("save err if exists", func(t *testing.T) {
 		s := New(dir, WithSaveErrIfExists(true))
-		require.NoError(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
-		assert.Error(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("boo"))))
-		b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
+		require.NoError(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBytes([]byte("bar"))))
+		assert.Error(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBytes([]byte("boo"))))
+		b, err := s.Get(&http.Request{}, "/foo/tar/asdf")
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
+		_, err = s.Meta(context.Background(), "/foo/tar/asdf")
+		assert.Equal(t, imagor.ErrNotFound, err)
 	})
 
 	t.Run("expiration", func(t *testing.T) {
 		s := New(dir, WithExpiration(time.Millisecond*10))
+		var err error
+
+		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+		assert.Equal(t, imagor.ErrNotFound, err)
+		blob := imagor.NewBytes([]byte("bar"))
+		blob.Meta = &imagor.Meta{
+			Format:      "abc",
+			ContentType: "def",
+			Width:       167,
+			Height:      169,
+		}
+		require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
 		b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
-		time.Sleep(time.Millisecond * 10)
+
+		meta, err := s.Meta(context.Background(), "/foo/bar/asdf")
+		require.NoError(t, err)
+		assert.Equal(t, meta, blob.Meta)
+
+		time.Sleep(time.Second)
 		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+		require.ErrorIs(t, err, imagor.ErrExpired)
+		_, err = s.Meta(context.Background(), "/foo/bar/asdf")
 		require.ErrorIs(t, err, imagor.ErrExpired)
 	})
 }

@@ -3,6 +3,7 @@ package s3storage
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -30,6 +31,8 @@ type S3Storage struct {
 
 	safeChars imagorpath.SafeChars
 }
+
+const metaKey = "Imagor-Meta"
 
 func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	baseDir := "/"
@@ -99,18 +102,27 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Bytes) e
 	if err != nil {
 		return err
 	}
+	var metadata map[string]*string
+	if blob.Meta != nil {
+		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
+			metadata = map[string]*string{
+				metaKey: aws.String(string(buf)),
+			}
+		}
+	}
 	input := &s3manager.UploadInput{
 		ACL:         aws.String(s.ACL),
 		Body:        bytes.NewReader(buf),
 		Bucket:      aws.String(s.Bucket),
 		ContentType: aws.String(blob.ContentType()),
+		Metadata:    metadata,
 		Key:         aws.String(image),
 	}
 	_, err = s.Uploader.UploadWithContext(ctx, input)
 	return err
 }
 
-func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+func (s *S3Storage) head(ctx context.Context, image string) (*s3.HeadObjectOutput, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -119,14 +131,42 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(image),
 	}
-	out, err := s.S3.HeadObjectWithContext(ctx, input)
+	head, err := s.S3.HeadObjectWithContext(ctx, input)
 	if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
 		return nil, imagor.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
+	return head, nil
+}
+
+func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	head, err := s.head(ctx, image)
+	if err != nil {
+		return nil, err
+	}
 	return &imagor.Stat{
-		Size:         *out.ContentLength,
-		ModifiedTime: *out.LastModified,
+		Size:         *head.ContentLength,
+		ModifiedTime: *head.LastModified,
 	}, nil
+}
+
+func (s *S3Storage) Meta(ctx context.Context, image string) (meta *imagor.Meta, err error) {
+	head, err := s.head(ctx, image)
+	if err != nil {
+		return nil, err
+	}
+	if head.Metadata == nil || head.Metadata[metaKey] == nil || *head.Metadata[metaKey] == "" {
+		return nil, imagor.ErrNotFound
+	}
+	if s.Expiration > 0 && head.LastModified != nil {
+		if time.Now().Sub(*head.LastModified) > s.Expiration {
+			return nil, imagor.ErrExpired
+		}
+	}
+	meta = &imagor.Meta{}
+	if err := json.Unmarshal([]byte(*head.Metadata[metaKey]), meta); err != nil {
+		return nil, err
+	}
+	return meta, nil
 }

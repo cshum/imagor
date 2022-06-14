@@ -145,7 +145,7 @@ func fakeS3Session(ts *httptest.Server, bucket string) *session.Session {
 	return sess
 }
 
-func TestGetPutStat(t *testing.T) {
+func TestCRUD(t *testing.T) {
 	ts := fakeS3Server()
 	defer ts.Close()
 
@@ -164,7 +164,15 @@ func TestGetPutStat(t *testing.T) {
 
 	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
 
-	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", imagor.NewBytes([]byte("bar"))))
+	blob := imagor.NewBytes([]byte("bar"))
+	blob.Meta = &imagor.Meta{
+		Format:      "abc",
+		ContentType: "def",
+		Width:       167,
+		Height:      169,
+	}
+
+	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
 	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 	require.NoError(t, err)
@@ -175,6 +183,15 @@ func TestGetPutStat(t *testing.T) {
 	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
+
+	meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
+	require.NoError(t, err)
+	assert.Equal(t, meta, blob.Meta)
+
+	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBytes([]byte("bar"))))
+
+	_, err = s.Meta(context.Background(), "/foo/boo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
 }
 
 func TestExpiration(t *testing.T) {
@@ -187,13 +204,27 @@ func TestExpiration(t *testing.T) {
 
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
-	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", imagor.NewBytes([]byte("bar"))))
+	blob := imagor.NewBytes([]byte("bar"))
+	blob.Meta = &imagor.Meta{
+		Format:      "abc",
+		ContentType: "def",
+		Width:       167,
+		Height:      169,
+	}
+	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
 	b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
 	assert.Equal(t, "bar", string(buf))
+
+	meta, err := s.Meta(context.Background(), "/foo/bar/asdf")
+	require.NoError(t, err)
+	assert.Equal(t, meta, blob.Meta)
+
 	time.Sleep(time.Second)
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+	require.ErrorIs(t, err, imagor.ErrExpired)
+	_, err = s.Meta(context.Background(), "/foo/bar/asdf")
 	require.ErrorIs(t, err, imagor.ErrExpired)
 }
