@@ -239,22 +239,17 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 	load := func(image string) (*Bytes, error) {
 		return app.loadStorage(r, image)
 	}
-	if blob, resOrigin, err := app.load(
-		r, app.ResultLoaders, resultKey, p.Meta,
-	); err == nil && (!isEmpty(blob) || p.Meta) {
-		if app.ModifiedTimeCheck && resOrigin != nil {
-			if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
-				if sourceStat, err2 := app.storageStat(ctx, p.Image); sourceStat != nil && err2 == nil {
-					if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
-						return blob, nil
-					}
-				}
-			}
-		} else {
+	if p.Meta {
+		if blob := app.loadResult(r, resultKey, p.Image, true); blob != nil {
 			return blob, nil
 		}
 	}
 	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Bytes, error) {
+		if !p.Meta {
+			if blob := app.loadResult(r, resultKey, p.Image, false); blob != nil {
+				return blob, nil
+			}
+		}
 		if app.sema != nil {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
 				app.Logger.Debug("acquire", zap.Error(err))
@@ -325,6 +320,26 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
 		}
 		return
 	})
+}
+
+func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Bytes {
+	ctx := r.Context()
+	if blob, resOrigin, err := app.load(
+		r, app.ResultLoaders, resultKey, metaMode,
+	); err == nil && (!isEmpty(blob) || metaMode) {
+		if app.ModifiedTimeCheck && resOrigin != nil {
+			if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
+				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
+					if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
+						return blob
+					}
+				}
+			}
+		} else {
+			return blob
+		}
+	}
+	return nil
 }
 
 func (app *Imagor) load(
