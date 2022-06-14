@@ -324,13 +324,13 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 		WithLoaders(
 			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "foo" {
-					return NewBlobFromBytes([]byte("bar")), nil
+					return NewBlobFromBuffer([]byte("bar")), nil
 				}
 				if image == "bar" {
-					return NewBlobFromBytes([]byte("foo")), nil
+					return NewBlobFromBuffer([]byte("foo")), nil
 				}
 				if image == "ping" {
-					return NewBlobFromBytes([]byte("pong")), nil
+					return NewBlobFromBuffer([]byte("pong")), nil
 				}
 				if image == "empty" {
 					return nil, nil
@@ -339,19 +339,19 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "beep" {
-					return NewBlobFromBytes([]byte("boop")), nil
+					return NewBlobFromBuffer([]byte("boop")), nil
 				}
 				if image == "boom" {
 					return nil, errors.New("unexpected error")
 				}
 				if image == "poop" {
-					return NewBlobFromBytes([]byte("poop")), nil
+					return NewBlobFromBuffer([]byte("poop")), nil
 				}
 				if image == "timeout" {
-					return NewBlobFromBytes([]byte("timeout")), nil
+					return NewBlobFromBuffer([]byte("timeout")), nil
 				}
 				if image == "dood" {
-					return NewBlobFromBytes([]byte("dood")), errors.New("error with value")
+					return NewBlobFromBuffer([]byte("dood")), errors.New("error with value")
 				}
 				return nil, ErrPass
 			}),
@@ -371,7 +371,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "bar" {
-					return NewBlobFromBytes([]byte("tar")), ErrPass
+					return NewBlobFromBuffer([]byte("tar")), ErrPass
 				}
 				if string(buf) == "poop" {
 					return nil, ErrPass
@@ -388,7 +388,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "tar" {
-					b := NewBlobFromBytes([]byte("bark"))
+					b := NewBlobFromBuffer([]byte("bark"))
 					b.Meta = fakeMeta
 					return b, nil
 				}
@@ -501,7 +501,7 @@ func TestWithResultKey(t *testing.T) {
 		WithStorages(store),
 		WithResultStorages(resultStore),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
-			return NewBlobFromBytes([]byte(image)), nil
+			return NewBlobFromBuffer([]byte(image)), nil
 		})),
 		WithResultKey(resultKeyFunc(func(p imagorpath.Params) string {
 			return "prefix:" + strings.TrimPrefix(p.Path, "meta/")
@@ -535,7 +535,7 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 		WithStorages(store),
 		WithResultStorages(resultStore),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
-			return NewBlobFromBytes([]byte(image)), nil
+			return NewBlobFromBuffer([]byte(image)), nil
 		})),
 		WithUnsafe(true),
 		WithModifiedTimeCheck(true),
@@ -581,7 +581,7 @@ func TestWithSameStore(t *testing.T) {
 			store,
 			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "beep" {
-					return NewBlobFromBytes([]byte("boop")), nil
+					return NewBlobFromBuffer([]byte("boop")), nil
 				}
 				return nil, ErrPass
 			}),
@@ -612,10 +612,10 @@ func TestAutoWebP(t *testing.T) {
 			WithUnsafe(true),
 			WithAutoWebP(isAuto),
 			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
-				return NewBlobFromBytes([]byte("foo")), nil
+				return NewBlobFromBuffer([]byte("foo")), nil
 			})),
 			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
-				return NewBlobFromBytes([]byte(p.Path)), nil
+				return NewBlobFromBuffer([]byte(p.Path)), nil
 			})),
 			WithDebug(true))
 	}
@@ -679,10 +679,10 @@ func TestAutoAVIF(t *testing.T) {
 			WithUnsafe(true),
 			WithAutoAVIF(isAuto),
 			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
-				return NewBlobFromBytes([]byte("foo")), nil
+				return NewBlobFromBuffer([]byte("foo")), nil
 			})),
 			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
-				return NewBlobFromBytes([]byte(p.Path)), nil
+				return NewBlobFromBuffer([]byte(p.Path)), nil
 			})),
 			WithDebug(true))
 	}
@@ -761,7 +761,7 @@ func TestWithLoadTimeout(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return NewBlobFromBytes(buf), err
+		return NewBlobFromBuffer(buf), err
 	})
 
 	tests := []struct {
@@ -829,7 +829,7 @@ func TestSuppression(t *testing.T) {
 				randBytes := make([]byte, 100)
 				rand.Read(randBytes)
 				time.Sleep(time.Millisecond * 100)
-				return NewBlobFromBytes(randBytes), nil
+				return NewBlobFromBuffer(randBytes), nil
 			}),
 		),
 		WithUnsafe(true),

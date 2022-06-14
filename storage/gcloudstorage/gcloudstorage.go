@@ -75,7 +75,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 	if err != nil {
 		return nil, err
 	}
-	return imagor.NewBlobFromBytes(buf), err
+	return imagor.NewBlobFromBuffer(buf), err
 }
 
 func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {

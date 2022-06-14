@@ -67,10 +67,10 @@ func NewBlobFromPath(filepath string) *Blob {
 	}
 }
 
-func NewBlobFromBytes(buf []byte) *Blob {
+func NewBlobFromBuffer(buf []byte) *Blob {
 	return &Blob{
 		newReader: func() (io.ReadCloser, error) {
-			return io.NopCloser(bytes.NewReader(buf)), nil
+			return io.NopCloser(bytes.NewBuffer(buf)), nil
 		},
 		blobType: BlobTypeUnknown,
 	}

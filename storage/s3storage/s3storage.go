@@ -90,7 +90,7 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return imagor.NewBlobFromBytes(buf), err
+	return imagor.NewBlobFromBuffer(buf), err
 }
 
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {
