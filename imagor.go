@@ -215,13 +215,13 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		}
 		if !hasFormat {
 			accept := r.Header.Get("Accept")
-			if strings.Contains(accept, "image/avif") && app.AutoAVIF {
+			if app.AutoAVIF && strings.Contains(accept, "image/avif") {
 				p.Filters = append(p.Filters, imagorpath.Filter{
 					Name: "format",
 					Args: "avif",
 				})
 				p.Path = imagorpath.GeneratePath(p)
-			} else if strings.Contains(accept, "image/webp") && app.AutoWebP {
+			} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
 				p.Filters = append(p.Filters, imagorpath.Filter{
 					Name: "format",
 					Args: "webp",
