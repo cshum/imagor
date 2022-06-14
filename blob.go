@@ -33,7 +33,7 @@ type Blob struct {
 	newReader  func() (io.ReadCloser, error)
 	peekReader *bufioReadCloser
 	once       sync.Once
-	once2      sync.Once
+	onceReader sync.Once
 	err        error
 
 	blobType    BlobType
@@ -63,7 +63,6 @@ func NewBlobFromPath(filepath string) *Blob {
 		newReader: func() (io.ReadCloser, error) {
 			return os.Open(filepath)
 		},
-		blobType: BlobTypeUnknown,
 	}
 }
 
@@ -72,21 +71,17 @@ func NewBlobFromBuffer(buf []byte) *Blob {
 		newReader: func() (io.ReadCloser, error) {
 			return io.NopCloser(bytes.NewBuffer(buf)), nil
 		},
-		blobType: BlobTypeUnknown,
 	}
 }
 
 func NewBlobFromReader(newReader func() (io.ReadCloser, error)) *Blob {
 	return &Blob{
 		newReader: newReader,
-		blobType:  BlobTypeUnknown,
 	}
 }
 
 func NewEmptyBlob() *Blob {
-	return &Blob{
-		blobType: BlobTypeEmpty,
-	}
+	return &Blob{}
 }
 
 var jpegHeader = []byte("\xFF\xD8\xFF")
@@ -123,6 +118,7 @@ func (b *Blob) peekOnce() {
 			b.blobType = BlobTypeEmpty
 			return
 		}
+		b.blobType = BlobTypeUnknown
 		if len(buf) > 24 {
 			if bytes.Equal(buf[:3], jpegHeader) {
 				b.blobType = BlobTypeJPEG
@@ -183,7 +179,7 @@ func (b *Blob) ContentType() string {
 
 func (b *Blob) NewReader() (reader io.ReadCloser, err error) {
 	b.peekOnce()
-	b.once2.Do(func() {
+	b.onceReader.Do(func() {
 		if b.err != nil {
 			err = b.err
 			return
