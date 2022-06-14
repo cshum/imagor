@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"github.com/cshum/imagor"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -124,17 +123,13 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		}
 		body = gzipBody
 	}
-	buf, err := io.ReadAll(body)
-	if err != nil {
-		return nil, err
-	}
 	if resp.StatusCode >= 400 {
-		return imagor.NewBlobFromBuffer(buf), imagor.NewErrorFromStatusCode(resp.StatusCode)
+		return imagor.NewBlobFromReader(body), imagor.NewErrorFromStatusCode(resp.StatusCode)
 	}
 	if !validateContentType(resp.Header.Get("Content-Type"), h.accepts) {
-		return imagor.NewBlobFromBuffer(buf), imagor.ErrUnsupportedFormat
+		return imagor.NewBlobFromReader(body), imagor.ErrUnsupportedFormat
 	}
-	return imagor.NewBlobFromBuffer(buf), nil
+	return imagor.NewBlobFromReader(body), nil
 }
 
 func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Request, error) {

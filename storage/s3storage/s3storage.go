@@ -18,9 +18,10 @@ import (
 )
 
 type S3Storage struct {
-	S3       *s3.S3
-	Uploader *s3manager.Uploader
-	Bucket   string
+	S3         *s3.S3
+	Uploader   *s3manager.Uploader
+	Downloader *s3manager.Downloader
+	Bucket     string
 
 	BaseDir    string
 	PathPrefix string
@@ -74,22 +75,20 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(image),
 	}
-	out, err := s.S3.GetObjectWithContext(r.Context(), input)
-	if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
-		return nil, imagor.ErrNotFound
-	} else if err != nil {
-		return nil, err
-	}
-	if s.Expiration > 0 && out.LastModified != nil {
-		if time.Now().Sub(*out.LastModified) > s.Expiration {
-			return nil, imagor.ErrExpired
+	return imagor.NewBlobFromReaderFunc(func() (io.ReadCloser, error) {
+		out, err := s.S3.GetObjectWithContext(r.Context(), input)
+		if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
+			return nil, imagor.ErrNotFound
+		} else if err != nil {
+			return nil, err
 		}
-	}
-	buf, err := io.ReadAll(out.Body)
-	if err != nil {
-		return nil, err
-	}
-	return imagor.NewBlobFromBuffer(buf), err
+		if s.Expiration > 0 && out.LastModified != nil {
+			if time.Now().Sub(*out.LastModified) > s.Expiration {
+				return nil, imagor.ErrExpired
+			}
+		}
+		return out.Body, nil
+	}), nil
 }
 
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {

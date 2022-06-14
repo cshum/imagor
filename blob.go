@@ -23,7 +23,7 @@ const (
 	BlobTypeTIFF
 )
 
-type bufioReadCloser struct {
+type peekReadCloser struct {
 	*bufio.Reader
 	io.Closer
 }
@@ -31,7 +31,7 @@ type bufioReadCloser struct {
 // Blob abstraction for file path, bytes data and meta attributes
 type Blob struct {
 	newReader  func() (io.ReadCloser, error)
-	peekReader *bufioReadCloser
+	peekReader *peekReadCloser
 	once       sync.Once
 	onceReader sync.Once
 	err        error
@@ -69,14 +69,30 @@ func NewBlobFromPath(filepath string) *Blob {
 func NewBlobFromBuffer(buf []byte) *Blob {
 	return &Blob{
 		newReader: func() (io.ReadCloser, error) {
-			return io.NopCloser(bytes.NewBuffer(buf)), nil
+			return io.NopCloser(bytes.NewReader(buf)), nil
 		},
 	}
 }
 
-func NewBlobFromReader(newReader func() (io.ReadCloser, error)) *Blob {
+func NewBlobFromReaderFunc(newReader func() (io.ReadCloser, error)) *Blob {
 	return &Blob{
 		newReader: newReader,
+	}
+}
+
+func NewBlobFromReader(reader io.ReadCloser) *Blob {
+	defer func() {
+		_ = reader.Close()
+	}()
+	buf, err := io.ReadAll(reader)
+	// todo improve
+	return &Blob{
+		newReader: func() (io.ReadCloser, error) {
+			if err != nil {
+				return nil, err
+			}
+			return io.NopCloser(bytes.NewReader(buf)), nil
+		},
 	}
 }
 
@@ -107,7 +123,11 @@ func (b *Blob) peekOnce() {
 			b.err = err
 			return
 		}
-		b.peekReader = &bufioReadCloser{bufio.NewReader(reader), reader}
+		b.peekReader = &peekReadCloser{
+			Reader: bufio.NewReader(reader),
+			Closer: reader,
+		}
+		// peek first 512 bytes for type sniffing
 		buf := make([]byte, 0, 512)
 		buf, err = b.peekReader.Peek(512)
 		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
@@ -203,7 +223,9 @@ func (b *Blob) ReadAll() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() {
+		_ = reader.Close()
+	}()
 	return io.ReadAll(reader)
 }
 
