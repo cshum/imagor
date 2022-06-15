@@ -294,12 +294,12 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 			bytes.NewReader(buf),
 			readFunc(func(p []byte) (n int, e error) {
 				lock.RLock()
-				s := size
 				e = err
-				lock.RUnlock()
-				if cnt >= s {
+				if cnt >= size {
+					lock.RUnlock()
 					return 0, io.EOF
 				}
+				lock.RUnlock()
 				if e != nil {
 					return
 				}
