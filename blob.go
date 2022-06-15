@@ -82,7 +82,7 @@ func NewBlobFromBytes(buf []byte) *Blob {
 	}
 }
 
-func NewBlobFromReader(newReader func() (io.ReadCloser, int64, error)) *Blob {
+func NewBlobFromReader(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
 	return &Blob{
 		newReader: newReader,
 	}
@@ -119,7 +119,7 @@ func (b *Blob) peekOnce() {
 		}
 		b.size = size
 		if reader != nil && size > 0 && size < maxBodySize && err == nil {
-			newReader := FanoutReader(reader)
+			newReader := FanoutReader(reader, int(size))
 			if r, err2 := newReader(); err2 == nil {
 				b.newReader = func() (io.ReadCloser, int64, error) {
 					fReader, err3 := newReader()
