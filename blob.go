@@ -61,31 +61,25 @@ type Meta struct {
 }
 
 func NewBlobFromPath(filepath string) *Blob {
-	return &Blob{
-		newReader: func() (io.ReadCloser, int64, error) {
-			stats, err := os.Stat(filepath)
-			if err != nil {
-				return nil, 0, err
-			}
-			reader, err := os.Open(filepath)
-			return reader, stats.Size(), err
-		},
-	}
+	return NewBlobFromReader(func() (io.ReadCloser, int64, error) {
+		stats, err := os.Stat(filepath)
+		if err != nil {
+			return nil, 0, err
+		}
+		reader, err := os.Open(filepath)
+		return reader, stats.Size(), err
+	})
 }
 
 func NewBlobFromBytes(buf []byte) *Blob {
 	ln := int64(len(buf))
-	return &Blob{
-		newReader: func() (io.ReadCloser, int64, error) {
-			return io.NopCloser(bytes.NewReader(buf)), ln, nil
-		},
-	}
+	return NewBlobFromReader(func() (io.ReadCloser, int64, error) {
+		return io.NopCloser(bytes.NewReader(buf)), ln, nil
+	})
 }
 
 func NewBlobFromReader(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
-	return &Blob{
-		newReader: newReader,
-	}
+	return &Blob{newReader: newReader}
 }
 
 func NewEmptyBlob() *Blob {
