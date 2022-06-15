@@ -158,7 +158,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, context.Canceled) {
 			return
 		}
-		e := wrapErr(err)
+		e := WrapError(err)
 		if !isEmpty(blob) {
 			reader, size, _ := blob.NewReader()
 			if reader != nil {
@@ -181,25 +181,13 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else if errors.Is(err, context.Canceled) {
 		return
 	} else if reader != nil {
-		app.writeBody(w, r, wrapErr(err).Code, reader, size)
+		app.writeBody(w, r, WrapError(err).Code, reader, size)
 	} else {
-		e := wrapErr(err)
+		e := WrapError(err)
 		w.WriteHeader(e.Code)
 		resJSON(w, e)
 	}
 	return
-}
-
-func wrapErr(err error) Error {
-	if e, ok := WrapError(err).(Error); ok {
-		if e == ErrPass {
-			// passed till the end means not found
-			e = ErrNotFound
-		}
-		return e
-	} else {
-		return ErrInternal
-	}
 }
 
 func (app *Imagor) writeBody(w http.ResponseWriter, r *http.Request, status int, reader io.ReadCloser, size int64) {
