@@ -120,13 +120,10 @@ func (b *Blob) peekOnce() {
 		b.size = size
 		if reader != nil && size > 0 && size < maxBodySize && err == nil {
 			newReader := fanOutReader(reader, int(size))
-			if r, err2 := newReader(); err2 == nil {
-				b.newReader = func() (io.ReadCloser, int64, error) {
-					fReader, err3 := newReader()
-					return fReader, size, err3
-				}
-				reader = r
+			b.newReader = func() (io.ReadCloser, int64, error) {
+				return newReader(), size, nil
 			}
+			reader = newReader()
 		}
 		b.peekReader = &peekReadCloser{
 			Reader: bufio.NewReader(reader),
@@ -249,7 +246,7 @@ func isEmpty(f *Blob) bool {
 	return f == nil || f.IsEmpty()
 }
 
-func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) {
+func fanOutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 	var lock sync.RWMutex
 	var consumers []chan []byte
 	var err error
@@ -285,17 +282,16 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 			}
 		}
 	}()
-	return func() (io.ReadCloser, error) {
+	return func() io.ReadCloser {
 		ch := make(chan []byte, size/512+1)
 
 		lock.Lock()
 		consumers = append(consumers, ch)
-		e := err
 		cnt := len(buf)
 		lock.Unlock()
 
 		var b []byte
-		r := io.NopCloser(io.MultiReader(
+		return io.NopCloser(io.MultiReader(
 			bytes.NewReader(buf),
 			readerFunc(func(p []byte) (n int, e error) {
 				lock.RLock()
@@ -322,7 +318,6 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 				return
 			}),
 		))
-		return r, e
 	}
 }
 
