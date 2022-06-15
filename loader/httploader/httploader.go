@@ -115,6 +115,7 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			return nil, 0, err
 		}
 		body := resp.Body
+		size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
 		if resp.Header.Get("Content-Encoding") == "gzip" {
 			gzipBody, err := gzip.NewReader(resp.Body)
 			if gzipBody != nil {
@@ -126,11 +127,8 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 				return nil, 0, err
 			}
 			body = gzipBody
+			size = 0 // size unknown after decompress
 		}
-		size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
-		//if h.MaxAllowedSize > 0 && size > int64(h.MaxAllowedSize) {
-		//	return nil, size, imagor.ErrMaxSizeExceeded
-		//}
 		if resp.StatusCode >= 400 {
 			return body, size, imagor.NewErrorFromStatusCode(resp.StatusCode)
 		}
