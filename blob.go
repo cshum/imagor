@@ -292,7 +292,7 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 		var b []byte
 		r := io.NopCloser(io.MultiReader(
 			bytes.NewReader(buf),
-			readFunc(func(p []byte) (n int, e error) {
+			readerFunc(func(p []byte) (n int, e error) {
 				lock.RLock()
 				e = err
 				if cnt >= size {
@@ -318,6 +318,6 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 	}
 }
 
-type readFunc func(p []byte) (n int, err error)
+type readerFunc func(p []byte) (n int, err error)
 
-func (rf readFunc) Read(p []byte) (n int, err error) { return rf(p) }
+func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
