@@ -109,7 +109,7 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return imagor.NewBlobFromReader(func() (io.ReadCloser, int64, error) {
+	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		resp, err := client.Do(req)
 		if err != nil {
 			return nil, 0, err

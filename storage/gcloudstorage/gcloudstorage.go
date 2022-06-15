@@ -55,7 +55,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 			return nil, imagor.ErrExpired
 		}
 	}
-	return imagor.NewBlobFromReader(func() (reader io.ReadCloser, size int64, err error) {
+	return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
 		if attrs != nil {
 			size = attrs.Size
 		}

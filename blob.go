@@ -60,8 +60,12 @@ type Meta struct {
 	Pages       int    `json:"pages"`
 }
 
+func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
+	return &Blob{newReader: newReader}
+}
+
 func NewBlobFromPath(filepath string) *Blob {
-	return NewBlobFromReader(func() (io.ReadCloser, int64, error) {
+	return NewBlob(func() (io.ReadCloser, int64, error) {
 		stats, err := os.Stat(filepath)
 		if err != nil {
 			return nil, 0, err
@@ -72,14 +76,10 @@ func NewBlobFromPath(filepath string) *Blob {
 }
 
 func NewBlobFromBytes(buf []byte) *Blob {
-	ln := int64(len(buf))
-	return NewBlobFromReader(func() (io.ReadCloser, int64, error) {
-		return io.NopCloser(bytes.NewReader(buf)), ln, nil
+	size := int64(len(buf))
+	return NewBlob(func() (io.ReadCloser, int64, error) {
+		return io.NopCloser(bytes.NewReader(buf)), size, nil
 	})
-}
-
-func NewBlobFromReader(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
-	return &Blob{newReader: newReader}
 }
 
 func NewEmptyBlob() *Blob {

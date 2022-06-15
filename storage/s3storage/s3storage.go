@@ -71,7 +71,7 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	return imagor.NewBlobFromReader(func() (io.ReadCloser, int64, error) {
+	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		input := &s3.GetObjectInput{
 			Bucket: aws.String(s.Bucket),
 			Key:    aws.String(image),
