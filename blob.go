@@ -263,10 +263,10 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 			b := make([]byte, 512)
 			n, e := reader.Read(b)
 			if cnt+n > size {
-				return
+				n = size - cnt
 			}
-			lock.Lock()
 			bn := b[:n]
+			lock.Lock()
 			buf = append(buf, bn...)
 			cnt += n
 			if e != nil {
@@ -280,7 +280,7 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 			for _, ch := range cons {
 				ch <- bn
 			}
-			if e != nil {
+			if e != nil || cnt >= size {
 				return
 			}
 		}
@@ -291,7 +291,7 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 		lock.Lock()
 		consumers = append(consumers, ch)
 		e := err
-		var cnt = len(buf)
+		cnt := len(buf)
 		lock.Unlock()
 
 		var b []byte
@@ -302,6 +302,7 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 				e = err
 				s := size
 				lock.RUnlock()
+
 				if cnt >= s {
 					return 0, io.EOF
 				}
