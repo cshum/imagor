@@ -12,6 +12,8 @@ import (
 
 type BlobType int
 
+const maxBodySize = int64(10 << 20) // 10mb
+
 const (
 	BlobTypeUnknown BlobType = iota
 	BlobTypeEmpty
@@ -116,6 +118,16 @@ func (b *Blob) peekOnce() {
 			return
 		}
 		b.size = size
+		if reader != nil && size > 0 && size < maxBodySize && err == nil {
+			newReader := FanoutReader(reader)
+			if r, err2 := newReader(); err2 == nil {
+				b.newReader = func() (io.ReadCloser, int64, error) {
+					fReader, err3 := newReader()
+					return fReader, size, err3
+				}
+				reader = r
+			}
+		}
 		b.peekReader = &peekReadCloser{
 			Reader: bufio.NewReader(reader),
 			Closer: reader,
