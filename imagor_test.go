@@ -164,10 +164,14 @@ func TestWithSigner(t *testing.T) {
 }
 
 func TestWithCacheHeaderTTL(t *testing.T) {
+	loader := loaderFunc(func(r *http.Request, image string) (blob *Blob, err error) {
+		return NewBlobFromBytes([]byte("ok")), nil
+	})
 	t.Run("default", func(t *testing.T) {
 		app := New(
 			WithDebug(true),
 			WithLogger(zap.NewExample()),
+			WithLoaders(loader),
 			WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
@@ -181,6 +185,7 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 			WithLogger(zap.NewExample()),
 			WithCacheHeaderSWR(time.Second*167),
 			WithCacheHeaderTTL(time.Second*169),
+			WithLoaders(loader),
 			WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
@@ -194,6 +199,7 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 			WithLogger(zap.NewExample()),
 			WithCacheHeaderSWR(time.Second*169),
 			WithCacheHeaderTTL(time.Second*169),
+			WithLoaders(loader),
 			WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
@@ -202,7 +208,11 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 		assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
 	})
 	t.Run("no cache", func(t *testing.T) {
-		app := New(WithDebug(true), WithCacheHeaderNoCache(true), WithUnsafe(true))
+		app := New(
+			WithDebug(true),
+			WithLoaders(loader),
+			WithCacheHeaderNoCache(true),
+			WithUnsafe(true))
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))

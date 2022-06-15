@@ -158,52 +158,70 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, context.Canceled) {
 			return
 		}
-		if e, ok := WrapError(err).(Error); ok {
-			if e == ErrPass {
-				// passed till the end means not found
-				e = ErrNotFound
+		e := wrapErr(err)
+		if !isEmpty(blob) {
+			reader, size, _ := blob.NewReader()
+			if reader != nil {
+				app.writeBody(w, r, e.Code, reader, size)
+				return
 			}
-			w.WriteHeader(e.Code)
-
-			if !isEmpty(blob) {
-				buf, _ := blob.ReadAll()
-				if ln := len(buf); ln > 0 {
-					w.Header().Set("Content-Length", strconv.Itoa(ln))
-					_, _ = w.Write(buf)
-					return
-				}
-			}
-			resJSON(w, e)
 		} else {
-			resJSON(w, ErrInternal)
+			w.WriteHeader(e.Code)
+			resJSON(w, e)
 		}
 		return
 	}
-	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
-	if !isEmpty(blob) {
-		if reader, size, err := blob.NewReader(); err == nil {
-			defer func() {
-				_ = reader.Close()
-			}()
-			if size > 0 {
-				// total size known, use io.Copy
-				w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
-				w.WriteHeader(http.StatusOK)
-				if r.Method != http.MethodHead {
-					_, _ = io.Copy(w, reader)
-				}
-			} else {
-				// total size unknown, need read all bytes first
-				buf, _ := io.ReadAll(reader)
-				w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-				w.WriteHeader(http.StatusOK)
-				if r.Method != http.MethodHead {
-					_, _ = w.Write(buf)
-				}
-			}
-		}
+	if isEmpty(blob) {
+		return
+	}
+	reader, size, err := blob.NewReader()
+	if err == nil {
+		setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
+		app.writeBody(w, r, http.StatusOK, reader, size)
+	} else if errors.Is(err, context.Canceled) {
+		return
+	} else if reader != nil {
+		app.writeBody(w, r, wrapErr(err).Code, reader, size)
+	} else {
+		e := wrapErr(err)
+		w.WriteHeader(e.Code)
+		resJSON(w, e)
 	}
 	return
+}
+
+func wrapErr(err error) Error {
+	if e, ok := WrapError(err).(Error); ok {
+		if e == ErrPass {
+			// passed till the end means not found
+			e = ErrNotFound
+		}
+		return e
+	} else {
+		return ErrInternal
+	}
+}
+
+func (app *Imagor) writeBody(w http.ResponseWriter, r *http.Request, status int, reader io.ReadCloser, size int64) {
+	defer func() {
+		_ = reader.Close()
+	}()
+	if size > 0 {
+		// total size known, use io.Copy
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+		w.WriteHeader(status)
+		if r.Method != http.MethodHead {
+			_, _ = io.Copy(w, reader)
+		}
+	} else {
+		// total size unknown, need read all bytes first
+		buf, _ := io.ReadAll(reader)
+		w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+		w.WriteHeader(status)
+		if r.Method != http.MethodHead {
+			_, _ = w.Write(buf)
+		}
+	}
 }
 
 // Do executes Imagor operations

@@ -53,16 +53,27 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 			r.Header.Set("User-Agent", "Test")
 			r.Header.Set("X-Imagor-Foo", "Bar")
 			r.Header.Set("X-Imagor-Ping", "Pong")
+			var err, err2 error
+			var buf []byte
 			b, err := loader.Get(r, tt.target)
 			if tt.err == "" {
 				require.NoError(t, err)
-			} else {
-				assert.EqualError(t, err, tt.err)
 			}
 			if tt.result != "" {
-				buf, err := b.ReadAll()
-				require.NoError(t, err, tt.result)
-				assert.Equal(t, string(buf), tt.result)
+				buf, err2 = b.ReadAll()
+				if tt.err == "" {
+					require.NoError(t, err2)
+				}
+				assert.Equal(t, tt.result, string(buf))
+			}
+			if tt.err != "" {
+				var msg string
+				if err != nil {
+					msg = err.Error()
+				} else if err2 != nil {
+					msg = err2.Error()
+				}
+				assert.Equal(t, tt.err, msg)
 			}
 		})
 	}

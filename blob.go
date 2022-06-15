@@ -28,7 +28,6 @@ type peekReadCloser struct {
 	io.Closer
 }
 
-// Blob abstraction for file path, bytes data and meta attributes
 type Blob struct {
 	newReader  func() (r io.ReadCloser, size int64, err error)
 	peekReader *peekReadCloser
@@ -112,6 +111,8 @@ func (b *Blob) peekOnce() {
 		reader, size, err := b.newReader()
 		if err != nil {
 			b.err = err
+		}
+		if reader == nil {
 			return
 		}
 		b.size = size
@@ -123,7 +124,9 @@ func (b *Blob) peekOnce() {
 		buf := make([]byte, 0, 512)
 		buf, err = b.peekReader.Peek(512)
 		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
-			b.err = err
+			if b.err == nil {
+				b.err = err
+			}
 			return
 		}
 		if len(buf) == 0 && b.err == nil {
@@ -194,7 +197,6 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	b.onceReader.Do(func() {
 		if b.err != nil {
 			err = b.err
-			return
 		}
 		if b.peekReader != nil {
 			reader = b.peekReader
@@ -209,17 +211,21 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 
 func (b *Blob) ReadAll() ([]byte, error) {
 	b.peekOnce()
-	if b.blobType == BlobTypeEmpty || b.err != nil {
+	if b.blobType == BlobTypeEmpty {
 		return nil, b.err
 	}
 	reader, _, err := b.NewReader()
-	if err != nil {
-		return nil, err
+	if reader != nil {
+		defer func() {
+			_ = reader.Close()
+		}()
+		buf, err2 := io.ReadAll(reader)
+		if err != nil {
+			return buf, err
+		}
+		return buf, err2
 	}
-	defer func() {
-		_ = reader.Close()
-	}()
-	return io.ReadAll(reader)
+	return nil, err
 }
 
 func (b *Blob) Err() error {

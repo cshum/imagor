@@ -109,35 +109,36 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	body := resp.Body
-	if resp.Header.Get("Content-Encoding") == "gzip" {
-		gzipBody, err := gzip.NewReader(resp.Body)
-		if gzipBody != nil {
-			defer gzipBody.Close()
-		}
+	return imagor.NewBlobFromReader(func() (io.ReadCloser, int64, error) {
+		resp, err := client.Do(req)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
-		body = gzipBody
-	}
-	defer func() {
-		_ = body.Close()
-	}()
-	buf, err := io.ReadAll(body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode >= 400 {
-		return imagor.NewBlobFromBytes(buf), imagor.NewErrorFromStatusCode(resp.StatusCode)
-	}
-	if !validateContentType(resp.Header.Get("Content-Type"), h.accepts) {
-		return imagor.NewBlobFromBytes(buf), imagor.ErrUnsupportedFormat
-	}
-	return imagor.NewBlobFromBytes(buf), nil
+		body := resp.Body
+		if resp.Header.Get("Content-Encoding") == "gzip" {
+			gzipBody, err := gzip.NewReader(resp.Body)
+			if gzipBody != nil {
+				defer func() {
+					_ = gzipBody.Close()
+				}()
+			}
+			if err != nil {
+				return nil, 0, err
+			}
+			body = gzipBody
+		}
+		size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
+		//if h.MaxAllowedSize > 0 && size > int64(h.MaxAllowedSize) {
+		//	return nil, size, imagor.ErrMaxSizeExceeded
+		//}
+		if resp.StatusCode >= 400 {
+			return body, size, imagor.NewErrorFromStatusCode(resp.StatusCode)
+		}
+		if !validateContentType(resp.Header.Get("Content-Type"), h.accepts) {
+			return body, size, imagor.ErrUnsupportedFormat
+		}
+		return body, size, nil
+	}), nil
 }
 
 func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Request, error) {
