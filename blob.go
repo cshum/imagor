@@ -119,7 +119,7 @@ func (b *Blob) peekOnce() {
 		}
 		b.size = size
 		if reader != nil && size > 0 && size < maxBodySize && err == nil {
-			newReader := fanoutReader(reader, int(size))
+			newReader := fanOutReader(reader, int(size))
 			if r, err2 := newReader(); err2 == nil {
 				b.newReader = func() (io.ReadCloser, int64, error) {
 					fReader, err3 := newReader()
@@ -249,7 +249,7 @@ func isEmpty(f *Blob) bool {
 	return f == nil || f.IsEmpty()
 }
 
-func fanoutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) {
+func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) {
 	var lock sync.RWMutex
 	var consumers []chan []byte
 	var err error
@@ -262,16 +262,21 @@ func fanoutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 		for {
 			b := make([]byte, 512)
 			n, e := reader.Read(b)
+			if cnt+n > size {
+				return
+			}
 			lock.Lock()
-			buf = append(buf, b[:n]...)
+			bn := b[:n]
+			buf = append(buf, bn...)
 			cnt += n
-			if cnt <= size {
-				for _, ch := range consumers {
-					ch <- b[:n]
-				}
-				if e != nil && e != io.EOF {
+			if e != nil {
+				size = cnt
+				if e != io.EOF {
 					err = e
 				}
+			}
+			for _, ch := range consumers {
+				ch <- bn
 			}
 			lock.Unlock()
 			if e != nil {
@@ -285,24 +290,28 @@ func fanoutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 		consumers = append(consumers, ch)
 		var cnt = len(buf)
 		var b []byte
-		r := io.NopCloser(io.MultiReader(bytes.NewReader(buf), readFunc(func(p []byte) (n int, e error) {
-			if cnt >= size {
-				return 0, io.EOF
-			}
-			lock.RLock()
-			e = err
-			lock.RUnlock()
-			if e != nil {
+		r := io.NopCloser(io.MultiReader(
+			bytes.NewReader(buf),
+			readFunc(func(p []byte) (n int, e error) {
+				lock.RLock()
+				s := size
+				e = err
+				lock.RUnlock()
+				if cnt >= s {
+					return 0, io.EOF
+				}
+				if e != nil {
+					return
+				}
+				if len(b) == 0 {
+					b = <-ch
+				}
+				n = copy(p, b)
+				b = b[n:]
+				cnt += n
 				return
-			}
-			if len(b) == 0 {
-				b = <-ch
-			}
-			n = copy(p, b)
-			b = b[n:]
-			cnt += n
-			return
-		})))
+			}),
+		))
 		e := err
 		lock.Unlock()
 		return r, e
