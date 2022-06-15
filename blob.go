@@ -275,31 +275,36 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 					err = e
 				}
 			}
-			for _, ch := range consumers {
+			cons := consumers
+			lock.Unlock()
+			for _, ch := range cons {
 				ch <- bn
 			}
-			lock.Unlock()
 			if e != nil {
 				return
 			}
 		}
 	}()
 	return func() (io.ReadCloser, error) {
+		ch := make(chan []byte, size/512+1)
+
 		lock.Lock()
-		ch := make(chan []byte, size)
 		consumers = append(consumers, ch)
+		e := err
 		var cnt = len(buf)
+		lock.Unlock()
+
 		var b []byte
 		r := io.NopCloser(io.MultiReader(
 			bytes.NewReader(buf),
 			readerFunc(func(p []byte) (n int, e error) {
 				lock.RLock()
 				e = err
-				if cnt >= size {
-					lock.RUnlock()
+				s := size
+				lock.RUnlock()
+				if cnt >= s {
 					return 0, io.EOF
 				}
-				lock.RUnlock()
 				if e != nil {
 					return
 				}
@@ -312,8 +317,6 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 				return
 			}),
 		))
-		e := err
-		lock.Unlock()
 		return r, e
 	}
 }
