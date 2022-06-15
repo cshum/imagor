@@ -315,6 +315,10 @@ func fanOutReader(reader io.ReadCloser, size int) func() (io.ReadCloser, error) 
 				n = copy(p, b)
 				b = b[n:]
 				cnt += n
+				if cnt >= s {
+					close(ch)
+					e = io.EOF
+				}
 				return
 			}),
 		))
