@@ -108,6 +108,8 @@ func newEmptyReader() (io.ReadCloser, int64, error) {
 func (b *Blob) peekOnce() {
 	b.once.Do(func() {
 		b.blobType = BlobTypeUnknown
+		b.contentType = "application/octet-stream"
+
 		if b.newReader == nil {
 			b.blobType = BlobTypeEmpty
 			b.newReader = newEmptyReader
@@ -158,7 +160,6 @@ func (b *Blob) peekOnce() {
 				b.blobType = BlobTypeTIFF
 			}
 		}
-		b.contentType = "application/octet-stream"
 		switch b.blobType {
 		case BlobTypeJPEG:
 			b.contentType = "image/jpeg"
