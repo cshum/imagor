@@ -14,6 +14,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 	var err error
 	var buf []byte
 	var cnt int
+
 	go func() {
 		defer func() {
 			_ = reader.Close()
@@ -48,6 +49,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 			}
 		}
 	}()
+
 	return func() io.ReadCloser {
 		ch := make(chan []byte, size/512+1)
 
@@ -59,7 +61,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 		bufReader := bytes.NewReader(buf)
 		lock.Unlock()
 
-		closeCh := func() {
+		closeCh := closerFunc(func() (e error) {
 			lock.Lock()
 			if closed[i] {
 				lock.Unlock()
@@ -68,39 +70,58 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 			closed[i] = true
 			lock.Unlock()
 			close(ch)
-		}
-		var b []byte
-		return io.NopCloser(io.MultiReader(
-			bufReader,
-			readerFunc(func(p []byte) (n int, e error) {
-				lock.RLock()
-				e = err
-				s := size
-				lock.RUnlock()
+			return
+		})
 
-				if cnt >= s {
-					return 0, io.EOF
-				}
-				if e != nil {
-					closeCh()
+		var b []byte
+
+		return &readerCloser{
+			Reader: io.MultiReader(
+				bufReader,
+				readerFunc(func(p []byte) (n int, e error) {
+					lock.RLock()
+					e = err
+					s := size
+					c := closed[i]
+					lock.RUnlock()
+
+					if cnt >= s {
+						return 0, io.EOF
+					}
+					if c {
+						return 0, io.ErrClosedPipe
+					}
+					if e != nil {
+						_ = closeCh()
+						return
+					}
+					if len(b) == 0 {
+						b = <-ch
+					}
+					n = copy(p, b)
+					b = b[n:]
+					cnt += n
+					if cnt >= s {
+						_ = closeCh()
+						e = io.EOF
+					}
 					return
-				}
-				if len(b) == 0 {
-					b = <-ch
-				}
-				n = copy(p, b)
-				b = b[n:]
-				cnt += n
-				if cnt >= s {
-					closeCh()
-					e = io.EOF
-				}
-				return
-			}),
-		))
+				}),
+			),
+			Closer: closeCh,
+		}
 	}
+}
+
+type readerCloser struct {
+	io.Reader
+	io.Closer
 }
 
 type readerFunc func(p []byte) (n int, err error)
 
 func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
+
+type closerFunc func() error
+
+func (cf closerFunc) Close() error { return cf() }
