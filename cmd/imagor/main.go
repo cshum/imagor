@@ -58,6 +58,8 @@ func newServer(args ...string) (srv *server.Server) {
 			time.Second*20, "Timeout for image processing")
 		imagorBasePathRedirect = fs.String("imagor-base-path-redirect", "",
 			"URL to redirect for Imagor / base path e.g. https://www.google.com")
+		imagorBaseParams = fs.String("imagor-base-params", "",
+			"Imagor base params endpoint e.g. 'fitlers:watermark(example.jpg)'")
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
 			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
@@ -68,7 +70,8 @@ func newServer(args ...string) (srv *server.Server) {
 			false, "Imagor HTTP Cache-Control header no-cache for successful image response")
 		imagorModifiedTimeCheck = fs.Bool("imagor-modified-time-check", false,
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
-		imagorDisableErrorBody = fs.Bool("imagor-disable-error-body", false, "Imagor disable response body on error")
+		imagorDisableErrorBody      = fs.Bool("imagor-disable-error-body", false, "Imagor disable response body on error")
+		imagorDisableParamsEndpoint = fs.Bool("imagor-disable-params-endpoint", false, "Imagor disable /params endpoint")
 
 		serverAddress = fs.String("server-address", "",
 			"Server address")
@@ -451,6 +454,7 @@ func newServer(args ...string) (srv *server.Server) {
 			),
 			imagor.WithSigner(imagorpath.NewDefaultSigner(*imagorSecret)),
 			imagor.WithBasePathRedirect(*imagorBasePathRedirect),
+			imagor.WithBaseParams(*imagorBaseParams),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),
 			imagor.WithLoadTimeout(*imagorLoadTimeout),
 			imagor.WithSaveTimeout(*imagorSaveTimeout),
@@ -463,6 +467,7 @@ func newServer(args ...string) (srv *server.Server) {
 			imagor.WithAutoAVIF(*imagorAutoAVIF),
 			imagor.WithModifiedTimeCheck(*imagorModifiedTimeCheck),
 			imagor.WithDisableErrorBody(*imagorDisableErrorBody),
+			imagor.WithDisableParamsEndpoint(*imagorDisableParamsEndpoint),
 			imagor.WithUnsafe(*imagorUnsafe),
 			imagor.WithLogger(logger),
 			imagor.WithDebug(*debug),

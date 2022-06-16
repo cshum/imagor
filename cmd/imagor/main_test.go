@@ -25,10 +25,12 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, time.Second*20, app.ProcessTimeout)
 	assert.Empty(t, app.BasePathRedirect)
 	assert.Empty(t, app.ProcessConcurrency)
+	assert.Empty(t, app.BaseParams)
 	assert.False(t, app.ModifiedTimeCheck)
 	assert.False(t, app.AutoWebP)
 	assert.False(t, app.AutoAVIF)
 	assert.False(t, app.DisableErrorBody)
+	assert.False(t, app.DisableParamsEndpoint)
 	assert.Equal(t, time.Hour*24*7, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*24, app.CacheHeaderSWR)
 	assert.Empty(t, app.ResultStorages)
@@ -50,11 +52,13 @@ func TestBasic(t *testing.T) {
 		"-imagor-auto-webp",
 		"-imagor-auto-avif",
 		"-imagor-disable-error-body",
+		"-imagor-disable-params-endpoint",
 		"-imagor-request-timeout", "16s",
 		"-imagor-load-timeout", "7s",
 		"-imagor-process-timeout", "19s",
 		"-imagor-process-concurrency", "199",
 		"-imagor-base-path-redirect", "https://www.google.com",
+		"-imagor-base-params", "fitlers:watermark(example.jpg)",
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 	)
@@ -65,12 +69,14 @@ func TestBasic(t *testing.T) {
 	assert.True(t, app.Unsafe)
 	assert.True(t, app.AutoWebP)
 	assert.True(t, app.DisableErrorBody)
+	assert.True(t, app.DisableParamsEndpoint)
 	assert.Equal(t, "RrTsWGEXFU2s1J1mTl1j_ciO-1E=", app.Signer.Sign("bar"))
 	assert.Equal(t, time.Second*16, app.RequestTimeout)
 	assert.Equal(t, time.Second*7, app.LoadTimeout)
 	assert.Equal(t, time.Second*19, app.ProcessTimeout)
 	assert.Equal(t, int64(199), app.ProcessConcurrency)
 	assert.Equal(t, "https://www.google.com", app.BasePathRedirect)
+	assert.Equal(t, "fitlers:watermark(example.jpg)", app.BaseParams)
 	assert.Equal(t, time.Hour*169, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*167, app.CacheHeaderSWR)
 }

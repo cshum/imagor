@@ -105,6 +105,9 @@ func (b *Blob) peekOnce() {
 	b.once.Do(func() {
 		if b.blobType == BlobTypeEmpty || b.newReader == nil {
 			b.blobType = BlobTypeEmpty
+			b.newReader = func() (io.ReadCloser, int64, error) {
+				return io.NopCloser(bytes.NewReader(nil)), 0, nil
+			}
 			return
 		}
 		reader, size, err := b.newReader()

@@ -128,6 +128,12 @@ func WithBasePathRedirect(url string) Option {
 	}
 }
 
+func WithBaseParams(params string) Option {
+	return func(o *Imagor) {
+		o.BaseParams = params
+	}
+}
+
 func WithModifiedTimeCheck(enabled bool) Option {
 	return func(o *Imagor) {
 		o.ModifiedTimeCheck = enabled
@@ -137,6 +143,12 @@ func WithModifiedTimeCheck(enabled bool) Option {
 func WithDisableErrorBody(disabled bool) Option {
 	return func(o *Imagor) {
 		o.DisableErrorBody = disabled
+	}
+}
+
+func WithDisableParamsEndpoint(disabled bool) Option {
+	return func(o *Imagor) {
+		o.DisableParamsEndpoint = disabled
 	}
 }
 

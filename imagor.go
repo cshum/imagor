@@ -50,31 +50,34 @@ type ResultKey interface {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	Unsafe             bool
-	Signer             imagorpath.Signer
-	BasePathRedirect   string
-	Loaders            []Loader
-	Storages           []Storage
-	ResultLoaders      []Loader
-	ResultStorages     []Storage
-	Processors         []Processor
-	RequestTimeout     time.Duration
-	LoadTimeout        time.Duration
-	SaveTimeout        time.Duration
-	ProcessTimeout     time.Duration
-	CacheHeaderTTL     time.Duration
-	CacheHeaderSWR     time.Duration
-	ProcessConcurrency int64
-	AutoWebP           bool
-	AutoAVIF           bool
-	ModifiedTimeCheck  bool
-	DisableErrorBody   bool
-	Logger             *zap.Logger
-	Debug              bool
-	ResultKey          ResultKey
+	Unsafe                bool
+	Signer                imagorpath.Signer
+	BasePathRedirect      string
+	Loaders               []Loader
+	Storages              []Storage
+	ResultLoaders         []Loader
+	ResultStorages        []Storage
+	Processors            []Processor
+	RequestTimeout        time.Duration
+	LoadTimeout           time.Duration
+	SaveTimeout           time.Duration
+	ProcessTimeout        time.Duration
+	CacheHeaderTTL        time.Duration
+	CacheHeaderSWR        time.Duration
+	ProcessConcurrency    int64
+	AutoWebP              bool
+	AutoAVIF              bool
+	ModifiedTimeCheck     bool
+	DisableErrorBody      bool
+	DisableParamsEndpoint bool
+	BaseParams            string
+	Logger                *zap.Logger
+	Debug                 bool
+	ResultKey             ResultKey
 
-	g    singleflight.Group
-	sema *semaphore.Weighted
+	g          singleflight.Group
+	sema       *semaphore.Weighted
+	baseParams imagorpath.Params
 }
 
 // New create new Imagor
@@ -102,6 +105,10 @@ func New(options ...Option) *Imagor {
 	}
 	app.ResultLoaders = append(loaderSlice(app.ResultStorages), app.ResultLoaders...)
 	app.Loaders = append(loaderSlice(app.Storages), app.Loaders...)
+
+	if app.BaseParams != "" {
+		app.baseParams = imagorpath.Parse(strings.TrimSuffix(app.BaseParams, "/") + "/")
+	}
 	return app
 }
 
@@ -142,8 +149,8 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	p := imagorpath.Parse(path)
-	if p.Params {
+	p := imagorpath.Apply(app.baseParams, path)
+	if p.Params && !app.DisableParamsEndpoint {
 		resJSONIndent(w, p)
 		return
 	}
@@ -491,8 +498,17 @@ func (app *Imagor) suppress(
 		return fn(ctx)
 	}
 	isCanceled := false
-	ch := app.g.DoChan(key, func() (interface{}, error) {
-		v, err := fn(context.WithValue(ctx, suppressKey{key}, true))
+	ch := app.g.DoChan(key, func() (v interface{}, err error) {
+		defer func() {
+			if rvr := recover(); rvr != nil {
+				var ok bool
+				err, ok = rvr.(error)
+				if !ok {
+					err = fmt.Errorf("%v", rvr)
+				}
+			}
+		}()
+		v, err = fn(context.WithValue(ctx, suppressKey{key}, true))
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
 			isCanceled = true
