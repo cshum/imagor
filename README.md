@@ -357,6 +357,8 @@ Usage of imagor:
         URL to redirect for Imagor / base path e.g. https://www.google.com
   -imagor-modified-time-check
         Check modified time of result image against the source image. This eliminates stale result but require more lookups
+  -imagor-disable-params-endpoint
+        Imagor disable /params endpoint
   -imagor-disable-error-body
         Imagor disable response body on error
 

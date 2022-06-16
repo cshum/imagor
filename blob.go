@@ -124,6 +124,8 @@ func (b *Blob) peekOnce() {
 		}
 		b.size = size
 		if reader != nil && size > 0 && size < maxBodySize && err == nil {
+			// use fan-out reader if buf size < 10mb
+			// otherwise create new readers
 			newReader := FanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
 				return newReader(), size, nil
