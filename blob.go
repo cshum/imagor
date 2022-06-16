@@ -101,7 +101,7 @@ type peekReaderCloser struct {
 	io.Closer
 }
 
-func emptyNewReader() (io.ReadCloser, int64, error) {
+func newEmptyReader() (io.ReadCloser, int64, error) {
 	return io.NopCloser(bytes.NewReader(nil)), 0, nil
 }
 
@@ -109,7 +109,7 @@ func (b *Blob) peekOnce() {
 	b.once.Do(func() {
 		if b.blobType == BlobTypeEmpty || b.newReader == nil {
 			b.blobType = BlobTypeEmpty
-			b.newReader = emptyNewReader
+			b.newReader = newEmptyReader
 			return
 		}
 		reader, size, err := b.newReader()
@@ -244,6 +244,6 @@ func (b *Blob) Err() error {
 	return b.err
 }
 
-func isEmpty(f *Blob) bool {
-	return f == nil || f.IsEmpty()
+func isEmpty(b *Blob) bool {
+	return b == nil || b.IsEmpty()
 }
