@@ -107,7 +107,7 @@ func TestCRUD(t *testing.T) {
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
@@ -116,9 +116,9 @@ func TestCRUD(t *testing.T) {
 	_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
+	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrPass)
 
-	blob := imagor.NewBytes([]byte("bar"))
+	blob := imagor.NewBlobFromBytes([]byte("bar"))
 	blob.Meta = &imagor.Meta{
 		Format:      "abc",
 		ContentType: "def",
@@ -128,7 +128,7 @@ func TestCRUD(t *testing.T) {
 
 	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
-	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, meta, blob.Meta)
 
-	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBytes([]byte("bar"))))
+	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBlobFromBytes([]byte("bar"))))
 
 	_, err = s.Meta(context.Background(), "/foo/boo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
@@ -162,7 +162,7 @@ func TestExpiration(t *testing.T) {
 
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
-	blob := imagor.NewBytes([]byte("bar"))
+	blob := imagor.NewBlobFromBytes([]byte("bar"))
 	blob.Meta = &imagor.Meta{
 		Format:      "abc",
 		ContentType: "def",

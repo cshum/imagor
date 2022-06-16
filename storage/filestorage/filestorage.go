@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -57,7 +58,7 @@ func (s *FileStorage) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Bytes, error) {
+func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
@@ -72,10 +73,13 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Bytes, error) 
 	if s.Expiration > 0 && time.Now().Sub(stats.ModTime()) > s.Expiration {
 		return nil, imagor.ErrExpired
 	}
-	return imagor.NewBytesFilePath(image), nil
+	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		r, err := os.Open(image)
+		return r, stats.Size(), err
+	}), nil
 }
 
-func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Bytes) (err error) {
+func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass
@@ -83,10 +87,13 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Bytes) (
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
 	}
-	buf, err := blob.ReadAll()
+	reader, _, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = reader.Close()
+	}()
 	flag := os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	if s.SaveErrIfExists {
 		flag = os.O_RDWR | os.O_CREATE | os.O_EXCL
@@ -95,8 +102,10 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Bytes) (
 	if err != nil {
 		return
 	}
-	defer w.Close()
-	if _, err = w.Write(buf); err != nil {
+	defer func() {
+		_ = w.Close()
+	}()
+	if _, err = io.Copy(w, reader); err != nil {
 		return
 	}
 	if blob.Meta != nil {

@@ -14,7 +14,7 @@ func TestWrapError(t *testing.T) {
 	var err error
 	var e Error
 
-	assert.NoError(t, WrapError(nil))
+	assert.Equal(t, WrapError(nil), ErrInternal)
 
 	assert.Equal(t, ErrMethodNotAllowed, WrapError(ErrMethodNotAllowed))
 
@@ -28,7 +28,7 @@ func TestWrapError(t *testing.T) {
 	assert.Equal(t, ErrTimeout, WrapError(&url.Error{Err: context.DeadlineExceeded}))
 
 	err = errors.New("asdfsdfsaf")
-	e = WrapError(err).(Error)
+	e = WrapError(err)
 	assert.Equal(t, 500, e.Code)
 	assert.Contains(t, e.Error(), err.Error())
 

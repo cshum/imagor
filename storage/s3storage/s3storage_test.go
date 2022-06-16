@@ -159,12 +159,13 @@ func TestCRUD(t *testing.T) {
 	_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
 	assert.Equal(t, imagor.ErrPass, err)
 
-	_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	_, err = b.ReadAll()
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBytes([]byte("bar"))), imagor.ErrPass)
+	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrPass)
 
-	blob := imagor.NewBytes([]byte("bar"))
+	blob := imagor.NewBlobFromBytes([]byte("bar"))
 	blob.Meta = &imagor.Meta{
 		Format:      "abc",
 		ContentType: "def",
@@ -174,7 +175,7 @@ func TestCRUD(t *testing.T) {
 
 	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
-	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
@@ -188,7 +189,7 @@ func TestCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, meta, blob.Meta)
 
-	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBytes([]byte("bar"))))
+	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBlobFromBytes([]byte("bar"))))
 
 	_, err = s.Meta(context.Background(), "/foo/boo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
@@ -202,9 +203,10 @@ func TestExpiration(t *testing.T) {
 	ctx := context.Background()
 	s := New(fakeS3Session(ts, "test"), "test", WithExpiration(time.Second))
 
-	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+	b, _ := s.Get(&http.Request{}, "/foo/bar/asdf")
+	_, err = b.ReadAll()
 	assert.Equal(t, imagor.ErrNotFound, err)
-	blob := imagor.NewBytes([]byte("bar"))
+	blob := imagor.NewBlobFromBytes([]byte("bar"))
 	blob.Meta = &imagor.Meta{
 		Format:      "abc",
 		ContentType: "def",
@@ -212,7 +214,7 @@ func TestExpiration(t *testing.T) {
 		Height:      169,
 	}
 	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
-	b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
+	b, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
@@ -223,7 +225,8 @@ func TestExpiration(t *testing.T) {
 	assert.Equal(t, meta, blob.Meta)
 
 	time.Sleep(time.Second)
-	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+	b, _ = s.Get(&http.Request{}, "/foo/bar/asdf")
+	_, err = b.ReadAll()
 	require.ErrorIs(t, err, imagor.ErrExpired)
 	_, err = s.Meta(context.Background(), "/foo/bar/asdf")
 	require.ErrorIs(t, err, imagor.ErrExpired)

@@ -55,9 +55,9 @@ func NewErrorFromStatusCode(code int) Error {
 }
 
 // WrapError wraps Go error into Imagor Error
-func WrapError(err error) error {
+func WrapError(err error) Error {
 	if err == nil {
-		return nil
+		return ErrInternal
 	}
 	if e, ok := err.(Error); ok {
 		return e

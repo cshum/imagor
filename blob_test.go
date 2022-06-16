@@ -4,92 +4,95 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 )
 
-func TestBytesTypes(t *testing.T) {
+func TestBlobTypes(t *testing.T) {
 	tests := []struct {
 		name              string
 		path              string
 		contentType       string
-		bytesType         BytesType
+		bytesType         BlobType
 		supportsAnimation bool
 	}{
 		{
 			name:        "jpeg",
 			path:        "demo1.jpg",
 			contentType: "image/jpeg",
-			bytesType:   BytesTypeJPEG,
+			bytesType:   BlobTypeJPEG,
 		},
 		{
 			name:        "png",
 			path:        "gopher.png",
 			contentType: "image/png",
-			bytesType:   BytesTypePNG,
+			bytesType:   BlobTypePNG,
 		},
 		{
 			name:        "tiff",
 			path:        "gopher.tiff",
 			contentType: "image/tiff",
-			bytesType:   BytesTypeTIFF,
+			bytesType:   BlobTypeTIFF,
 		},
 		{
 			name:              "gif",
 			path:              "dancing-banana.gif",
 			contentType:       "image/gif",
-			bytesType:         BytesTypeGIF,
+			bytesType:         BlobTypeGIF,
 			supportsAnimation: true,
 		},
 		{
 			name:              "webp",
 			path:              "demo3.webp",
 			contentType:       "image/webp",
-			bytesType:         BytesTypeWEBP,
+			bytesType:         BlobTypeWEBP,
 			supportsAnimation: true,
 		},
 		{
 			name:        "avif",
 			path:        "gopher-front.avif",
 			contentType: "image/avif",
-			bytesType:   BytesTypeAVIF,
+			bytesType:   BlobTypeAVIF,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := NewBytesFilePath("testdata/" + tt.path)
+			b := NewBlobFromPath("testdata/" + tt.path)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
-			assert.Equal(t, tt.bytesType, b.BytesType())
+			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			require.NoError(t, b.Err())
 
 			buf, err := b.ReadAll()
 			require.NoError(t, err)
 			require.NoError(t, b.Err())
-			b = NewBytes(buf)
+			b = NewBlobFromBytes(buf)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
-			assert.Equal(t, tt.bytesType, b.BytesType())
+			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			require.NoError(t, b.Err())
 		})
 	}
 }
 
-func TestNewBytesEmpty(t *testing.T) {
-	b := NewBytes([]byte{})
+func TestNewEmptyBlob(t *testing.T) {
+	b := NewBlobFromBytes([]byte{})
 	buf, err := b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
-	assert.Equal(t, BytesTypeEmpty, b.BytesType())
+	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 
-	b = NewEmptyBytes()
+	b = NewEmptyBlob()
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
-	assert.Equal(t, BytesTypeEmpty, b.BytesType())
+	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 
 	f, err := os.CreateTemp("", "tmpfile-")
@@ -97,10 +100,27 @@ func TestNewBytesEmpty(t *testing.T) {
 	defer f.Close()
 	defer os.Remove(f.Name())
 	fmt.Println(f.Name())
-	b = NewBytesFilePath(f.Name())
+	b = NewBlobFromPath(f.Name())
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
-	assert.Equal(t, BytesTypeEmpty, b.BytesType())
+	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
+}
+
+func TestNewBlobFromPathNotFound(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromPath("./non-exists-path"), nil
+		})))
+
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foobar", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 404, w.Code)
+	assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
 }

@@ -37,53 +37,45 @@ func New(client *storage.Client, bucket string, options ...Option) *GCloudStorag
 	return s
 }
 
-func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bytes, err error) {
+func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Blob, err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
 	}
 	object := s.client.Bucket(s.Bucket).Object(image)
-
-	// Verify attributes only if expiration is set to avoid additional requests
-	if s.Expiration > 0 {
-		attrs, err := object.Attrs(r.Context())
-		if err != nil {
-			if errors.Is(err, storage.ErrObjectNotExist) {
-				return nil, imagor.ErrNotFound
-			}
-			return nil, err
-		}
-		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
-			return nil, imagor.ErrExpired
-		}
-	}
-
-	reader, err := object.NewReader(r.Context())
+	attrs, err := object.Attrs(r.Context())
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			return nil, imagor.ErrNotFound
 		}
 		return nil, err
 	}
-	defer func() {
-		if readerErr := reader.Close(); err == nil && readerErr != nil {
-			err = readerErr
+	if s.Expiration > 0 {
+		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
+			return nil, imagor.ErrExpired
 		}
-	}()
-
-	buf, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, err
 	}
-	return imagor.NewBytes(buf), err
+	return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		if attrs != nil {
+			size = attrs.Size
+		}
+		reader, err = object.NewReader(r.Context())
+		if err != nil {
+			if errors.Is(err, storage.ErrObjectNotExist) {
+				err = imagor.ErrNotFound
+			}
+			return
+		}
+		return
+	}), err
 }
 
-func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Bytes) (err error) {
+func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass
 	}
-	buf, err := blob.ReadAll()
+	reader, _, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
@@ -91,9 +83,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Byte
 	objectHandle := s.client.Bucket(s.Bucket).Object(image)
 	writer := objectHandle.NewWriter(ctx)
 	defer func() {
-		if writerErr := writer.Close(); err == nil && writerErr != nil {
-			err = writerErr
-		}
+		_ = writer.Close()
 	}()
 	if s.ACL != "" {
 		writer.PredefinedACL = s.ACL
@@ -106,11 +96,9 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Byte
 			}
 		}
 	}
-
-	if _, err := writer.Write(buf); err != nil {
+	if _, err := io.Copy(writer, reader); err != nil {
 		return err
 	}
-
 	return writer.Close()
 }
 

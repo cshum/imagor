@@ -1,7 +1,6 @@
 package s3storage
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,9 +18,10 @@ import (
 )
 
 type S3Storage struct {
-	S3       *s3.S3
-	Uploader *s3manager.Uploader
-	Bucket   string
+	S3         *s3.S3
+	Uploader   *s3manager.Uploader
+	Downloader *s3manager.Downloader
+	Bucket     string
 
 	BaseDir    string
 	PathPrefix string
@@ -66,42 +66,47 @@ func (s *S3Storage) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Bytes, error) {
+func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrPass
 	}
-	input := &s3.GetObjectInput{
-		Bucket: aws.String(s.Bucket),
-		Key:    aws.String(image),
-	}
-	out, err := s.S3.GetObjectWithContext(r.Context(), input)
-	if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
-		return nil, imagor.ErrNotFound
-	} else if err != nil {
-		return nil, err
-	}
-	if s.Expiration > 0 && out.LastModified != nil {
-		if time.Now().Sub(*out.LastModified) > s.Expiration {
-			return nil, imagor.ErrExpired
+	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		input := &s3.GetObjectInput{
+			Bucket: aws.String(s.Bucket),
+			Key:    aws.String(image),
 		}
-	}
-	buf, err := io.ReadAll(out.Body)
-	if err != nil {
-		return nil, err
-	}
-	return imagor.NewBytes(buf), err
+		out, err := s.S3.GetObjectWithContext(r.Context(), input)
+		if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
+			return nil, 0, imagor.ErrNotFound
+		} else if err != nil {
+			return nil, 0, err
+		}
+		if s.Expiration > 0 && out.LastModified != nil {
+			if time.Now().Sub(*out.LastModified) > s.Expiration {
+				return nil, 0, imagor.ErrExpired
+			}
+		}
+		var size int64
+		if out.ContentLength != nil {
+			size = *out.ContentLength
+		}
+		return out.Body, size, nil
+	}), nil
 }
 
-func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Bytes) error {
+func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass
 	}
-	buf, err := blob.ReadAll()
+	reader, _, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = reader.Close()
+	}()
 	var metadata map[string]*string
 	if blob.Meta != nil {
 		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
@@ -112,7 +117,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Bytes) e
 	}
 	input := &s3manager.UploadInput{
 		ACL:         aws.String(s.ACL),
-		Body:        bytes.NewReader(buf),
+		Body:        reader,
 		Bucket:      aws.String(s.Bucket),
 		ContentType: aws.String(blob.ContentType()),
 		Metadata:    metadata,

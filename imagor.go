@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
+	"io"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -21,24 +22,24 @@ const Version = "0.8.29"
 
 // Loader load image from source
 type Loader interface {
-	Get(r *http.Request, image string) (*Bytes, error)
+	Get(r *http.Request, image string) (*Blob, error)
 }
 
 // Storage load and save image
 type Storage interface {
-	Get(r *http.Request, image string) (*Bytes, error)
-	Put(ctx context.Context, image string, blob *Bytes) error
+	Get(r *http.Request, image string) (*Blob, error)
+	Put(ctx context.Context, image string, blob *Blob) error
 	Stat(ctx context.Context, image string) (*Stat, error)
 	Meta(ctx context.Context, image string) (*Meta, error)
 }
 
 // LoadFunc load function for Processor
-type LoadFunc func(string) (*Bytes, error)
+type LoadFunc func(string) (*Blob, error)
 
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, blob *Bytes, p imagorpath.Params, load LoadFunc) (*Bytes, error)
+	Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -146,51 +147,73 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	blob, err := app.Do(r, p)
-	var buf []byte
-	var ln int
 	if err == nil && p.Meta && blob != nil && blob.Meta != nil {
 		resJSON(w, blob.Meta)
 		return
 	}
 	if !isEmpty(blob) {
-		buf, _ = blob.ReadAll()
-		ln = len(buf)
-		if ln > 0 {
-			w.Header().Set("Content-Type", blob.ContentType())
-		}
+		w.Header().Set("Content-Type", blob.ContentType())
 	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return
 		}
-		if e, ok := WrapError(err).(Error); ok {
-			if e == ErrPass {
-				// passed till the end means not found
-				e = ErrNotFound
-			}
-			w.WriteHeader(e.Code)
-			if ln > 0 {
-				w.Header().Set("Content-Length", strconv.Itoa(ln))
-				_, _ = w.Write(buf)
+		e := WrapError(err)
+		if !isEmpty(blob) {
+			reader, size, _ := blob.NewReader()
+			if reader != nil {
+				app.writeBody(w, r, e.Code, reader, size)
 				return
 			}
-			resJSON(w, e)
 		} else {
-			resJSON(w, ErrInternal)
+			w.WriteHeader(e.Code)
+			resJSON(w, e)
 		}
 		return
 	}
-	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
-	w.Header().Set("Content-Length", strconv.Itoa(ln))
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_, _ = w.Write(buf)
+	if isEmpty(blob) {
+		return
+	}
+	reader, size, err := blob.NewReader()
+	if err == nil {
+		setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
+		app.writeBody(w, r, http.StatusOK, reader, size)
+	} else if errors.Is(err, context.Canceled) {
+		return
+	} else if reader != nil {
+		app.writeBody(w, r, WrapError(err).Code, reader, size)
+	} else {
+		e := WrapError(err)
+		w.WriteHeader(e.Code)
+		resJSON(w, e)
 	}
 	return
 }
 
+func (app *Imagor) writeBody(w http.ResponseWriter, r *http.Request, status int, reader io.ReadCloser, size int64) {
+	defer func() {
+		_ = reader.Close()
+	}()
+	if size > 0 {
+		// total size known, use io.Copy
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+		w.WriteHeader(status)
+		if r.Method != http.MethodHead {
+			_, _ = io.Copy(w, reader)
+		}
+	} else {
+		// total size unknown, read all
+		buf, _ := io.ReadAll(reader)
+		w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+		w.WriteHeader(status)
+		if r.Method != http.MethodHead {
+			_, _ = w.Write(buf)
+		}
+	}
+}
+
 // Do executes Imagor operations
-func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err error) {
+func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
 	var cancel func()
 	ctx := r.Context()
 	if app.RequestTimeout > 0 {
@@ -236,7 +259,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 	} else {
 		resultKey = strings.TrimPrefix(p.Path, "meta/")
 	}
-	load := func(image string) (*Bytes, error) {
+	load := func(image string) (*Blob, error) {
 		return app.loadStorage(r, image)
 	}
 	if p.Meta {
@@ -244,7 +267,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 			return blob, nil
 		}
 	}
-	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Bytes, error) {
+	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
 		if !p.Meta {
 			if blob := app.loadResult(r, resultKey, p.Image, false); blob != nil {
 				return blob, nil
@@ -301,14 +324,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Bytes, err er
 		}
 		if err != nil && len(app.Storages) > 0 {
 			// storage put empty bytes if process error
-			app.save(ctx, nil, app.Storages, p.Image, NewEmptyBytes())
+			app.save(ctx, nil, app.Storages, p.Image, NewEmptyBlob())
 		}
 		return blob, err
 	})
 }
 
-func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
-	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Bytes, err error) {
+func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
+	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
 		var origin Storage
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key, false)
@@ -322,7 +345,7 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Bytes, error) {
 	})
 }
 
-func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Bytes {
+func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Blob {
 	ctx := r.Context()
 	if blob, resOrigin, err := app.load(
 		r, app.ResultLoaders, resultKey, metaMode,
@@ -344,7 +367,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaM
 
 func (app *Imagor) load(
 	r *http.Request, loaders []Loader, key string, metaMode bool,
-) (blob *Bytes, origin Storage, err error) {
+) (blob *Blob, origin Storage, err error) {
 	if len(loaders) == 0 {
 		return
 	}
@@ -366,7 +389,7 @@ func (app *Imagor) load(
 		if metaMode && storage != nil {
 			m, e := storage.Meta(ctx, key)
 			if e == nil && m != nil {
-				blob = NewEmptyBytes()
+				blob = NewEmptyBlob()
 				blob.Meta = m
 				origin = storage
 				break
@@ -405,9 +428,6 @@ func (app *Imagor) load(
 }
 
 func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err error) {
-	if len(app.Storages) == 0 {
-		return
-	}
 	for _, storage := range app.Storages {
 		if stat, err = storage.Stat(ctx, key); stat != nil && err == nil {
 			return
@@ -417,7 +437,7 @@ func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err
 }
 
 func (app *Imagor) save(
-	ctx context.Context, origin Storage, storages []Storage, key string, blob *Bytes,
+	ctx context.Context, origin Storage, storages []Storage, key string, blob *Blob,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -453,8 +473,8 @@ type suppressKey struct {
 
 func (app *Imagor) suppress(
 	ctx context.Context,
-	key string, fn func(ctx context.Context) (*Bytes, error),
-) (blob *Bytes, err error) {
+	key string, fn func(ctx context.Context) (*Blob, error),
+) (blob *Blob, err error) {
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
@@ -478,7 +498,7 @@ func (app *Imagor) suppress(
 			return app.suppress(ctx, key, fn)
 		}
 		if res.Val != nil {
-			return res.Val.(*Bytes), res.Err
+			return res.Val.(*Blob), res.Err
 		}
 		return nil, res.Err
 	case <-ctx.Done():
