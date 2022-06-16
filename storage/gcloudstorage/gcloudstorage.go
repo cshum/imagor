@@ -60,12 +60,6 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 			size = attrs.Size
 		}
 		reader, err = object.NewReader(r.Context())
-		if err != nil {
-			if errors.Is(err, storage.ErrObjectNotExist) {
-				err = imagor.ErrNotFound
-			}
-			return
-		}
 		return
 	}), err
 }
