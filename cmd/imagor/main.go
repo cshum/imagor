@@ -59,7 +59,7 @@ func newServer(args ...string) (srv *server.Server) {
 		imagorBasePathRedirect = fs.String("imagor-base-path-redirect", "",
 			"URL to redirect for Imagor / base path e.g. https://www.google.com")
 		imagorBaseParams = fs.String("imagor-base-params", "",
-			"Imagor base params endpoint e.g. 'fitlers:watermark(example.jpg)'")
+			"Imagor base endpoint params that applies to all resulting images e.g. fitlers:watermark(example.jpg)")
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
 			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",

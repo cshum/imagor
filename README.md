@@ -337,6 +337,8 @@ Usage of imagor:
         Output WebP format automatically if browser supports
   -imagor-auto-avif
         Output AVIF format automatically if browser supports (experimental)
+  -imagor-base-params string
+        Imagor base endpoint params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response (default 168h0m0s)
   -imagor-cache-header-swr duration
