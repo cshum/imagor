@@ -202,7 +202,7 @@ func (app *Imagor) writeBody(w http.ResponseWriter, r *http.Request, status int,
 			_, _ = io.Copy(w, reader)
 		}
 	} else {
-		// total size unknown, need read all bytes first
+		// total size unknown, read all
 		buf, _ := io.ReadAll(reader)
 		w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
 		w.WriteHeader(status)
@@ -428,9 +428,6 @@ func (app *Imagor) load(
 }
 
 func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err error) {
-	if len(app.Storages) == 0 {
-		return
-	}
 	for _, storage := range app.Storages {
 		if stat, err = storage.Stat(ctx, key); stat != nil && err == nil {
 			return

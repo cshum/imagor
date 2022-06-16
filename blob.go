@@ -68,6 +68,9 @@ func NewBlobFromPath(filepath string) *Blob {
 	return NewBlob(func() (io.ReadCloser, int64, error) {
 		stats, err := os.Stat(filepath)
 		if err != nil {
+			if os.IsNotExist(err) {
+				err = ErrNotFound
+			}
 			return nil, 0, err
 		}
 		reader, err := os.Open(filepath)

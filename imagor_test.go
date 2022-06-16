@@ -1,6 +1,7 @@
 package imagor
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -123,7 +124,7 @@ func TestSuppressForgetCanceled(t *testing.T) {
 			defer wg.Done()
 			_, err := app.suppress(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
 				time.Sleep(time.Millisecond)
-				return NewBlobFromPath("a"), nil
+				return NewEmptyBlob(), nil
 			})
 			assert.Nil(t, err)
 		}()
@@ -329,18 +330,23 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 	fakeMeta := &Meta{Format: "a", ContentType: "b", Width: 167, Height: 167}
 	fakeMetaBuf, _ := json.Marshal(fakeMeta)
 	fakeMetaStr := string(fakeMetaBuf)
+	newFakeBlob := func(str string) *Blob {
+		return NewBlob(func() (io.ReadCloser, int64, error) {
+			return io.NopCloser(bytes.NewReader([]byte(str))), 0, nil
+		})
+	}
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(
 			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "foo" {
-					return NewBlobFromBytes([]byte("bar")), nil
+					return newFakeBlob("bar"), nil
 				}
 				if image == "bar" {
-					return NewBlobFromBytes([]byte("foo")), nil
+					return newFakeBlob("foo"), nil
 				}
 				if image == "ping" {
-					return NewBlobFromBytes([]byte("pong")), nil
+					return newFakeBlob("pong"), nil
 				}
 				if image == "empty" {
 					return nil, nil
@@ -349,19 +355,19 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			}),
 			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "beep" {
-					return NewBlobFromBytes([]byte("boop")), nil
+					return newFakeBlob("boop"), nil
 				}
 				if image == "boom" {
 					return nil, errors.New("unexpected error")
 				}
 				if image == "poop" {
-					return NewBlobFromBytes([]byte("poop")), nil
+					return newFakeBlob("poop"), nil
 				}
 				if image == "timeout" {
-					return NewBlobFromBytes([]byte("timeout")), nil
+					return newFakeBlob("timeout"), nil
 				}
 				if image == "dood" {
-					return NewBlobFromBytes([]byte("dood")), errors.New("error with value")
+					return newFakeBlob("dood"), errors.New("error with value")
 				}
 				return nil, ErrPass
 			}),
@@ -381,7 +387,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "bar" {
-					return NewBlobFromBytes([]byte("tar")), ErrPass
+					return newFakeBlob("tar"), ErrPass
 				}
 				if string(buf) == "poop" {
 					return nil, ErrPass
@@ -398,7 +404,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "tar" {
-					b := NewBlobFromBytes([]byte("bark"))
+					b := newFakeBlob("bark")
 					b.Meta = fakeMeta
 					return b, nil
 				}

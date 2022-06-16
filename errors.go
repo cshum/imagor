@@ -60,10 +60,6 @@ func WrapError(err error) Error {
 		return ErrInternal
 	}
 	if e, ok := err.(Error); ok {
-		if e == ErrPass {
-			// passed till the end means not found
-			e = ErrNotFound
-		}
 		return e
 	}
 	if e, ok := err.(timeoutErr); ok {

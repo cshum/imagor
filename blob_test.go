@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 )
@@ -103,4 +106,21 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.Empty(t, buf)
 	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
+}
+
+func TestNewBlobFromPathNotFound(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromPath("./non-exists-path"), nil
+		})))
+
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foobar", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 404, w.Code)
+	assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
 }
