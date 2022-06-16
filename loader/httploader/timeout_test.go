@@ -79,7 +79,7 @@ func TestWithLoadTimeout(t *testing.T) {
 			tt.app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%s/sleep", ts.URL), nil))
 			assert.Equal(t, http.StatusRequestTimeout, w.Code)
-			assert.Equal(t, w.Body.String(), jsonStr(imagor.ErrTimeout))
+			assert.Equal(t, jsonStr(imagor.ErrTimeout), w.Body.String())
 		})
 	}
 }

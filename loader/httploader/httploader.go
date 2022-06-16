@@ -118,11 +118,6 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
 		if resp.Header.Get("Content-Encoding") == "gzip" {
 			gzipBody, err := gzip.NewReader(resp.Body)
-			if gzipBody != nil {
-				defer func() {
-					_ = gzipBody.Close()
-				}()
-			}
 			if err != nil {
 				return nil, 0, err
 			}

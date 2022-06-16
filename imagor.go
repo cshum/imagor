@@ -179,10 +179,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				app.writeBody(w, r, e.Code, reader, size)
 				return
 			}
-		} else {
-			w.WriteHeader(e.Code)
-			resJSON(w, e)
 		}
+		w.WriteHeader(e.Code)
+		resJSON(w, e)
 		return
 	}
 	if isEmpty(blob) {
