@@ -137,7 +137,7 @@ func Apply(p Params, path string) Params {
 	}
 	index += 1
 	if match[index] != "" {
-		p.Filters = parseFilters(match[index+1])
+		p.Filters = append(p.Filters, parseFilters(match[index+1])...)
 	}
 	index += 2
 	p.Image = match[index]
