@@ -68,7 +68,7 @@ func newServer(args ...string) (srv *server.Server) {
 			false, "Imagor HTTP Cache-Control header no-cache for successful image response")
 		imagorModifiedTimeCheck = fs.Bool("imagor-modified-time-check", false,
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
-		imagorDisableErrorBody = fs.Bool("imagor-disable-error-body", false, "")
+		imagorDisableErrorBody = fs.Bool("imagor-disable-error-body", false, "Imagor disable response body on error")
 
 		serverAddress = fs.String("server-address", "",
 			"Server address")

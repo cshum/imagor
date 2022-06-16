@@ -63,6 +63,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 
 		closeCh := closerFunc(func() (e error) {
 			lock.Lock()
+			e = err
 			if closed[i] {
 				lock.Unlock()
 				return
