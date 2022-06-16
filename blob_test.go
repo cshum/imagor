@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"io"
 	"os"
 	"testing"
 )
@@ -91,6 +92,13 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.Empty(t, buf)
 	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
+
+	r, size, err := b.NewReader()
+	assert.NoError(t, err)
+	assert.Empty(t, size)
+	buf, err = io.ReadAll(r)
+	assert.NoError(t, err)
+	assert.Empty(t, buf)
 
 	f, err := os.CreateTemp("", "tmpfile-")
 	require.NoError(t, err)
