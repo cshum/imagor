@@ -164,6 +164,53 @@ func TestWithSigner(t *testing.T) {
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 }
 
+func TestNewBlobFromPathNotFound(t *testing.T) {
+	loader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+		return NewBlobFromPath("./non-exists-path"), nil
+	})
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithUnsafe(true),
+		WithLoaders(loader))
+
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foobar", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 404, w.Code)
+	assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+
+	app = New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithUnsafe(true),
+		WithDisableErrorBody(true),
+		WithLoaders(loader))
+
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foobar", nil)
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 404, w.Code)
+	assert.Empty(t, w.Body.String())
+}
+
+func TestWithDisableErrorBody(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithDisableErrorBody(true),
+		WithSigner(imagorpath.NewDefaultSigner("1234")))
+	assert.True(t, app.DisableErrorBody)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/foo.jpg", nil))
+	assert.Equal(t, 403, w.Code)
+	assert.Empty(t, w.Body.String())
+}
+
 func TestWithCacheHeaderTTL(t *testing.T) {
 	loader := loaderFunc(func(r *http.Request, image string) (blob *Blob, err error) {
 		return NewBlobFromBytes([]byte("ok")), nil

@@ -25,25 +25,6 @@ const (
 	BlobTypeTIFF
 )
 
-type peekReadCloser struct {
-	*bufio.Reader
-	io.Closer
-}
-
-type Blob struct {
-	newReader  func() (r io.ReadCloser, size int64, err error)
-	peekReader *peekReadCloser
-	once       sync.Once
-	onceReader sync.Once
-	err        error
-	size       int64
-
-	blobType    BlobType
-	contentType string
-
-	Meta *Meta
-}
-
 // Stat image attributes
 type Stat struct {
 	ModifiedTime time.Time
@@ -58,6 +39,20 @@ type Meta struct {
 	Height      int    `json:"height"`
 	Orientation int    `json:"orientation"`
 	Pages       int    `json:"pages"`
+}
+
+type Blob struct {
+	newReader  func() (r io.ReadCloser, size int64, err error)
+	peekReader *peekReaderCloser
+	once       sync.Once
+	onceReader sync.Once
+	err        error
+	size       int64
+
+	blobType    BlobType
+	contentType string
+
+	Meta *Meta
 }
 
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
@@ -101,6 +96,11 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
+type peekReaderCloser struct {
+	*bufio.Reader
+	io.Closer
+}
+
 func (b *Blob) peekOnce() {
 	b.once.Do(func() {
 		if b.blobType == BlobTypeEmpty || b.newReader == nil {
@@ -122,7 +122,7 @@ func (b *Blob) peekOnce() {
 			}
 			reader = newReader()
 		}
-		b.peekReader = &peekReadCloser{
+		b.peekReader = &peekReaderCloser{
 			Reader: bufio.NewReader(reader),
 			Closer: reader,
 		}

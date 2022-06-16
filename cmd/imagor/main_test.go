@@ -23,12 +23,12 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, time.Second*20, app.LoadTimeout)
 	assert.Equal(t, time.Second*20, app.SaveTimeout)
 	assert.Equal(t, time.Second*20, app.ProcessTimeout)
-	assert.Equal(t, time.Second*20, app.ProcessTimeout)
 	assert.Empty(t, app.BasePathRedirect)
 	assert.Empty(t, app.ProcessConcurrency)
 	assert.False(t, app.ModifiedTimeCheck)
 	assert.False(t, app.AutoWebP)
 	assert.False(t, app.AutoAVIF)
+	assert.False(t, app.DisableErrorBody)
 	assert.Equal(t, time.Hour*24*7, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*24, app.CacheHeaderSWR)
 	assert.Empty(t, app.ResultStorages)
@@ -49,6 +49,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-unsafe",
 		"-imagor-auto-webp",
 		"-imagor-auto-avif",
+		"-imagor-disable-error-body",
 		"-imagor-request-timeout", "16s",
 		"-imagor-load-timeout", "7s",
 		"-imagor-process-timeout", "19s",
@@ -63,6 +64,7 @@ func TestBasic(t *testing.T) {
 	assert.True(t, app.Debug)
 	assert.True(t, app.Unsafe)
 	assert.True(t, app.AutoWebP)
+	assert.True(t, app.DisableErrorBody)
 	assert.Equal(t, "RrTsWGEXFU2s1J1mTl1j_ciO-1E=", app.Signer.Sign("bar"))
 	assert.Equal(t, time.Second*16, app.RequestTimeout)
 	assert.Equal(t, time.Second*7, app.LoadTimeout)

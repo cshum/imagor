@@ -68,6 +68,7 @@ type Imagor struct {
 	AutoWebP           bool
 	AutoAVIF           bool
 	ModifiedTimeCheck  bool
+	DisableErrorBody   bool
 	Logger             *zap.Logger
 	Debug              bool
 	ResultKey          ResultKey
@@ -159,6 +160,10 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		e := WrapError(err)
+		if app.DisableErrorBody {
+			w.WriteHeader(e.Code)
+			return
+		}
 		if !isEmpty(blob) {
 			reader, size, _ := blob.NewReader()
 			if reader != nil {
@@ -179,6 +184,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 		app.writeBody(w, r, http.StatusOK, reader, size)
 	} else if errors.Is(err, context.Canceled) {
+		return
+	} else if app.DisableErrorBody {
+		w.WriteHeader(WrapError(err).Code)
 		return
 	} else if reader != nil {
 		app.writeBody(w, r, WrapError(err).Code, reader, size)

@@ -134,6 +134,12 @@ func WithModifiedTimeCheck(enabled bool) Option {
 	}
 }
 
+func WithDisableErrorBody(disabled bool) Option {
+	return func(o *Imagor) {
+		o.DisableErrorBody = disabled
+	}
+}
+
 func WithDebug(debug bool) Option {
 	return func(o *Imagor) {
 		o.Debug = debug
