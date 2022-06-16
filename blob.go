@@ -132,16 +132,18 @@ func (b *Blob) peekOnce() {
 			Closer: reader,
 		}
 		// peek first 512 bytes for type sniffing
-		buf := make([]byte, 0, 512)
+		var buf []byte
 		buf, err = b.peekReader.Peek(512)
+		if len(buf) == 0 {
+			b.blobType = BlobTypeEmpty
+		}
 		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
 			if b.err == nil {
 				b.err = err
 			}
 			return
 		}
-		if len(buf) == 0 && b.err == nil {
-			b.blobType = BlobTypeEmpty
+		if b.blobType == BlobTypeEmpty {
 			return
 		}
 		b.blobType = BlobTypeUnknown

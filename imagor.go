@@ -414,13 +414,16 @@ func (app *Imagor) load(
 			// should not log expected error as of now, as it has not reached the end
 			err = e
 		} else {
-			f, e := loader.Get(loadReq, key)
-			if !isEmpty(f) {
-				blob = f
+			b, e := loader.Get(loadReq, key)
+			if !isEmpty(b) {
+				blob = b
 				if e == nil {
-					err = nil
-					origin = storage
-					break
+					e = b.Err()
+					if e == nil {
+						err = nil
+						origin = storage
+						break
+					}
 				}
 			}
 			// should not log expected error as of now, as it has not reached the end
