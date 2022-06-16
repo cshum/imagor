@@ -499,15 +499,6 @@ func (app *Imagor) suppress(
 	}
 	isCanceled := false
 	ch := app.g.DoChan(key, func() (v interface{}, err error) {
-		defer func() {
-			if rvr := recover(); rvr != nil {
-				var ok bool
-				err, ok = rvr.(error)
-				if !ok {
-					err = fmt.Errorf("%v", rvr)
-				}
-			}
-		}()
 		v, err = fn(context.WithValue(ctx, suppressKey{key}, true))
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
