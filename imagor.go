@@ -150,8 +150,10 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := imagorpath.Apply(app.baseParams, path)
-	if p.Params && !app.DisableParamsEndpoint {
-		resJSONIndent(w, p)
+	if p.Params {
+		if !app.DisableParamsEndpoint {
+			resJSONIndent(w, p)
+		}
 		return
 	}
 	blob, err := app.Do(r, p)

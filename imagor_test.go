@@ -319,6 +319,18 @@ func TestParams(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	buf, _ = json.MarshalIndent(imagorpath.Parse(r.URL.EscapedPath()), "", "  ")
 	assert.Equal(t, string(buf), w.Body.String())
+
+	app = New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithDisableParamsEndpoint(true),
+		WithSigner(imagorpath.NewDefaultSigner("1234")))
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/params/_-19cQt1szHeUV0WyWFntvTImDI=/foo.jpg", nil)
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Empty(t, w.Body.String())
 }
 
 var clock time.Time
