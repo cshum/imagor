@@ -132,8 +132,7 @@ func (b *Blob) peekOnce() {
 			Closer: reader,
 		}
 		// peek first 512 bytes for type sniffing
-		var buf []byte
-		buf, err = b.peekReader.Peek(512)
+		buf, err := b.peekReader.Peek(512)
 		if len(buf) == 0 {
 			b.blobType = BlobTypeEmpty
 		}
@@ -143,23 +142,22 @@ func (b *Blob) peekOnce() {
 			}
 			return
 		}
-		if b.blobType == BlobTypeEmpty {
-			return
-		}
-		b.blobType = BlobTypeUnknown
-		if len(buf) > 24 {
-			if bytes.Equal(buf[:3], jpegHeader) {
-				b.blobType = BlobTypeJPEG
-			} else if bytes.Equal(buf[:4], pngHeader) {
-				b.blobType = BlobTypePNG
-			} else if bytes.Equal(buf[:3], gifHeader) {
-				b.blobType = BlobTypeGIF
-			} else if bytes.Equal(buf[8:12], webpHeader) {
-				b.blobType = BlobTypeWEBP
-			} else if bytes.Equal(buf[4:8], ftyp) && bytes.Equal(buf[8:12], avif) {
-				b.blobType = BlobTypeAVIF
-			} else if bytes.Equal(buf[:4], tifII) || bytes.Equal(buf[:4], tifMM) {
-				b.blobType = BlobTypeTIFF
+		if b.blobType != BlobTypeEmpty {
+			b.blobType = BlobTypeUnknown
+			if len(buf) > 24 {
+				if bytes.Equal(buf[:3], jpegHeader) {
+					b.blobType = BlobTypeJPEG
+				} else if bytes.Equal(buf[:4], pngHeader) {
+					b.blobType = BlobTypePNG
+				} else if bytes.Equal(buf[:3], gifHeader) {
+					b.blobType = BlobTypeGIF
+				} else if bytes.Equal(buf[8:12], webpHeader) {
+					b.blobType = BlobTypeWEBP
+				} else if bytes.Equal(buf[4:8], ftyp) && bytes.Equal(buf[8:12], avif) {
+					b.blobType = BlobTypeAVIF
+				} else if bytes.Equal(buf[:4], tifII) || bytes.Equal(buf[:4], tifMM) {
+					b.blobType = BlobTypeTIFF
+				}
 			}
 		}
 		b.contentType = "application/octet-stream"
