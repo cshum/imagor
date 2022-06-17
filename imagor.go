@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const Version = "0.8.29"
+const Version = "0.9.0"
 
 // Loader load image from source
 type Loader interface {
@@ -157,15 +157,15 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	blob, err := app.Do(r, p)
+	if err == nil && blob != nil {
+		err = blob.Err()
+	}
 	if err == nil && p.Meta && blob != nil && blob.Meta != nil {
 		resJSON(w, blob.Meta)
 		return
 	}
 	if !isEmpty(blob) {
 		w.Header().Set("Content-Type", blob.ContentType())
-		if err == nil {
-			err = blob.Err()
-		}
 	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
