@@ -359,9 +359,11 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
 
 func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Blob {
 	ctx := r.Context()
-	if blob, resOrigin, err := app.load(
-		r, app.ResultLoaders, resultKey, metaMode,
-	); err == nil && (!isEmpty(blob) || metaMode) {
+	blob, resOrigin, err := app.load(r, app.ResultLoaders, resultKey, metaMode)
+	if err == nil && blob != nil {
+		err = blob.Err()
+	}
+	if err == nil && (!isEmpty(blob) || metaMode) {
 		if app.ModifiedTimeCheck && resOrigin != nil {
 			if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
 				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
