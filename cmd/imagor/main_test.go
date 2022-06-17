@@ -76,7 +76,7 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, time.Second*19, app.ProcessTimeout)
 	assert.Equal(t, int64(199), app.ProcessConcurrency)
 	assert.Equal(t, "https://www.google.com", app.BasePathRedirect)
-	assert.Equal(t, "fitlers:watermark(example.jpg)", app.BaseParams)
+	assert.Equal(t, "fitlers:watermark(example.jpg)/", app.BaseParams)
 	assert.Equal(t, time.Hour*169, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*167, app.CacheHeaderSWR)
 }

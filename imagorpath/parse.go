@@ -140,9 +140,11 @@ func Apply(p Params, path string) Params {
 		p.Filters = append(p.Filters, parseFilters(match[index+1])...)
 	}
 	index += 2
-	p.Image = match[index]
-	if u, err := url.QueryUnescape(match[index]); err == nil {
-		p.Image = u
+	if str := match[index]; str != "" {
+		p.Image = str
+		if u, err := url.QueryUnescape(str); err == nil {
+			p.Image = u
+		}
 	}
 	return p
 }

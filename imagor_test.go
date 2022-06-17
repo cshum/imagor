@@ -680,6 +680,26 @@ func TestWithSameStore(t *testing.T) {
 	})
 }
 
+func TestBaseParams(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithBaseParams("filters:watermark(example.jpg)"),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			return NewBlobFromBytes([]byte(p.Path)), nil
+		})),
+	)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/fit-in/200x0/filters:format(jpg)/abc.png", nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "fit-in/200x0/filters:format(jpg):watermark(example.jpg)/abc.png", w.Body.String())
+}
+
 func TestAutoWebP(t *testing.T) {
 	factory := func(isAuto bool) *Imagor {
 		return New(

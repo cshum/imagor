@@ -106,8 +106,9 @@ func New(options ...Option) *Imagor {
 	app.ResultLoaders = append(loaderSlice(app.ResultStorages), app.ResultLoaders...)
 	app.Loaders = append(loaderSlice(app.Storages), app.Loaders...)
 
+	app.BaseParams = strings.TrimSpace(app.BaseParams)
 	if app.BaseParams != "" {
-		app.baseParams = imagorpath.Parse(strings.TrimSuffix(app.BaseParams, "/") + "/")
+		app.BaseParams = strings.TrimSuffix(app.BaseParams, "/") + "/"
 	}
 	return app
 }
@@ -149,7 +150,11 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	p := imagorpath.Apply(app.baseParams, path)
+	p := imagorpath.Parse(path)
+	if app.BaseParams != "" {
+		p = imagorpath.Apply(p, app.BaseParams)
+		p.Path = imagorpath.GeneratePath(p)
+	}
 	if p.Params {
 		if !app.DisableParamsEndpoint {
 			resJSONIndent(w, p)
