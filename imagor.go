@@ -220,10 +220,7 @@ func (app *Imagor) writeBody(w http.ResponseWriter, r *http.Request, status int,
 
 // Do executes Imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
-	ctx := r.Context()
-	withInitDefer(ctx)
-	defer callDefer(ctx)
-
+	var ctx = WithDefer(r.Context())
 	var cancel func()
 	if app.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
