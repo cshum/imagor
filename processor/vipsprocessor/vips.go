@@ -154,8 +154,7 @@ func (v *VipsProcessor) Process(
 		focalRects            []focal
 		err                   error
 	)
-	ctx = WithInitImageRefs(ctx)
-	defer CloseImageRefs(ctx)
+	ctx = withInitImageRefs(ctx)
 	if p.Trim {
 		thumbnailNotSupported = true
 	}
@@ -298,7 +297,7 @@ func (v *VipsProcessor) Process(
 			}
 		}
 	}
-	AddImageRef(ctx, img)
+	imagor.Defer(ctx, img.Close)
 	var (
 		quality    int
 		pageN      = img.Height() / img.PageHeight()

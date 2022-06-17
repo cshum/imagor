@@ -58,7 +58,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		}
 	}
 	var overlayN = overlay.Height() / overlay.PageHeight()
-	AddImageRef(ctx, overlay)
+	imagor.Defer(ctx, overlay.Close)
 	if err = overlay.AddAlpha(); err != nil {
 		return
 	}
@@ -215,7 +215,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, 
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
-		AddImageRef(ctx, cp)
+		imagor.Defer(ctx, cp.Close)
 		if err = img.ThumbnailWithSize(
 			width, height, vips.InterestingNone, vips.SizeForce,
 		); err != nil {
@@ -264,7 +264,7 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 	`, w, h, rx, ry, w, h)), w, h, vips.InterestingNone); err != nil {
 		return
 	}
-	AddImageRef(ctx, rounded)
+	imagor.Defer(ctx, rounded.Close)
 	if n := GetPageN(ctx); n > 1 {
 		if err = rounded.Replicate(1, n); err != nil {
 			return

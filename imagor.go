@@ -220,11 +220,14 @@ func (app *Imagor) writeBody(w http.ResponseWriter, r *http.Request, status int,
 
 // Do executes Imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
-	var cancel func()
 	ctx := r.Context()
+	withInitDefer(ctx)
+	defer callDefer(ctx)
+
+	var cancel func()
 	if app.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
-		defer cancel()
+		Defer(ctx, cancel)
 		r = r.WithContext(ctx)
 	}
 	if !(app.Unsafe && p.Unsafe) && app.Signer != nil && app.Signer.Sign(p.Path) != p.Hash {
@@ -296,22 +299,22 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var cancel func()
 		if app.ProcessTimeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
-			defer cancel()
+			Defer(ctx, cancel)
 		}
 		for _, processor := range app.Processors {
-			f, e := processor.Process(ctx, blob, p, load)
+			b, e := processor.Process(ctx, blob, p, load)
 			if e == nil {
-				blob = f
+				blob = b
 				err = nil
 				if app.Debug {
-					app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", f.Meta))
+					app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", b.Meta))
 				}
 				break
 			} else {
 				if e == ErrPass {
-					if !isEmpty(f) {
+					if !isEmpty(b) {
 						// pass to next processor
-						blob = f
+						blob = b
 					}
 					if app.Debug {
 						app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
@@ -382,13 +385,11 @@ func (app *Imagor) load(
 		return
 	}
 	var ctx = r.Context()
-	var loadCtx = ctx
-	var loadReq = r
 	var cancel func()
 	if app.LoadTimeout > 0 {
-		loadCtx, cancel = context.WithTimeout(loadCtx, app.LoadTimeout)
-		defer cancel()
-		loadReq = r.WithContext(loadCtx)
+		ctx, cancel = context.WithTimeout(ctx, app.LoadTimeout)
+		Defer(ctx, cancel)
+		r = r.WithContext(ctx)
 	}
 	for _, loader := range loaders {
 		storage, _ := loader.(Storage)
@@ -402,7 +403,7 @@ func (app *Imagor) load(
 			}
 			err = e
 		} else {
-			b, e := loader.Get(loadReq, key)
+			b, e := loader.Get(r, key)
 			if !isEmpty(b) {
 				blob = b
 				if e == nil {
@@ -449,7 +450,7 @@ func (app *Imagor) save(
 	if app.SaveTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
 	}
-	defer cancel()
+	Defer(ctx, cancel)
 	var wg sync.WaitGroup
 	for _, storage := range storages {
 		if storage == origin {
