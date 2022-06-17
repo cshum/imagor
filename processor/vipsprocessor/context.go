@@ -55,6 +55,6 @@ func GetPageN(ctx context.Context) int {
 	return 1
 }
 
-func isAnimated(ctx context.Context) bool {
+func IsAnimated(ctx context.Context) bool {
 	return GetPageN(ctx) > 1
 }

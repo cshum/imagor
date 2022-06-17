@@ -300,6 +300,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		for _, processor := range app.Processors {
 			b, e := processor.Process(ctx, blob, p, load)
+			if b != nil && e == nil {
+				e = b.Err()
+			}
 			if e == nil {
 				blob = b
 				err = nil
@@ -324,9 +327,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					}
 				}
 			}
-		}
-		if err == nil && blob != nil {
-			err = blob.Err()
 		}
 		if err == nil && len(app.ResultStorages) > 0 {
 			app.save(ctx, nil, app.ResultStorages, resultKey, blob)
@@ -407,15 +407,15 @@ func (app *Imagor) load(
 			err = e
 		} else {
 			b, e := loader.Get(r, key)
+			if b != nil && e == nil {
+				e = b.Err()
+			}
 			if !isEmpty(b) {
 				blob = b
 				if e == nil {
-					e = b.Err()
-					if e == nil {
-						err = nil
-						origin = storage
-						break
-					}
+					err = nil
+					origin = storage
+					break
 				}
 			}
 			err = e

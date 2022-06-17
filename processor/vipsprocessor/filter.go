@@ -30,7 +30,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	var down = 1
 	var overlay *vips.ImageRef
 	var n = 1
-	if isAnimated(ctx) {
+	if IsAnimated(ctx) {
 		n = -1
 	}
 	// w_ratio h_ratio
@@ -189,7 +189,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, 
 	top := (h-img.PageHeight())/2 + pTop
 	width := w + pLeft + pRight
 	height := h + pTop + pBottom
-	if colour != "blur" || (colour == "blur" && v.DisableBlur) || isAnimated(ctx) {
+	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
 		// fill color
 		if img.HasAlpha() {
 			if err = img.Flatten(getColor(img, colour)); err != nil {
@@ -425,7 +425,7 @@ func modulate(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...
 }
 
 func blur(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
-	if isAnimated(ctx) {
+	if IsAnimated(ctx) {
 		// skip animation support
 		return
 	}
@@ -446,7 +446,7 @@ func blur(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...st
 }
 
 func sharpen(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
-	if isAnimated(ctx) {
+	if IsAnimated(ctx) {
 		// skip animation support
 		return
 	}

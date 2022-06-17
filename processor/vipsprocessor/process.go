@@ -203,7 +203,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 func findTrim(
 	ctx context.Context, img *vips.ImageRef, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
-	if isAnimated(ctx) {
+	if IsAnimated(ctx) {
 		// skip animation support
 		return
 	}
