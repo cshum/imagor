@@ -379,7 +379,9 @@ func (v *VipsProcessor) Process(
 			}
 		}
 		b := imagor.NewBlobFromBytes(buf)
-		b.Meta = getMeta(meta)
+		if meta != nil {
+			b.Meta = getMeta(meta)
+		}
 		return b, nil
 	}
 }

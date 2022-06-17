@@ -325,6 +325,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				}
 			}
 		}
+		if err == nil && blob != nil {
+			err = blob.Err()
+		}
 		if err == nil && len(app.ResultStorages) > 0 {
 			app.save(ctx, nil, app.ResultStorages, resultKey, blob)
 		}
@@ -342,6 +345,9 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key, false)
 		if err != nil || isEmpty(blob) {
+			return
+		}
+		if err = blob.Err(); err != nil {
 			return
 		}
 		if len(app.Storages) > 0 {
