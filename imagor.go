@@ -344,10 +344,10 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
 		var origin Storage
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key, false)
-		if err != nil || isEmpty(blob) {
-			return
+		if err == nil && blob != nil {
+			err = blob.Err()
 		}
-		if err = blob.Err(); err != nil {
+		if err != nil || isEmpty(blob) {
 			return
 		}
 		if len(app.Storages) > 0 {
