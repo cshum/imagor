@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const Version = "0.9.1"
+const Version = "0.9.2"
 
 // Loader load image from source
 type Loader interface {
@@ -344,9 +344,6 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
 		var origin Storage
 		r = r.WithContext(ctx)
 		blob, origin, err = app.load(r, app.Loaders, key, false)
-		if err == nil && blob != nil {
-			err = blob.Err()
-		}
 		if err != nil || isEmpty(blob) {
 			return
 		}
@@ -360,9 +357,6 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
 func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Blob {
 	ctx := r.Context()
 	blob, resOrigin, err := app.load(r, app.ResultLoaders, resultKey, metaMode)
-	if err == nil && blob != nil {
-		err = blob.Err()
-	}
 	if err == nil && (!isEmpty(blob) || metaMode) {
 		if app.ModifiedTimeCheck && resOrigin != nil {
 			if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
