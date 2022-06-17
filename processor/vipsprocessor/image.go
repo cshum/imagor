@@ -18,7 +18,7 @@ func (v *VipsProcessor) newThumbnail(
 	}
 	var params *vips.ImportParams
 	var img *vips.ImageRef
-	if isAnimated(blob, n) {
+	if isBlobAnimated(blob, n) {
 		params = vips.NewImportParams()
 		if n < -1 {
 			params.NumPages.Set(-n)
@@ -80,7 +80,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 		return nil, err
 	}
 	var params *vips.ImportParams
-	if isAnimated(blob, n) {
+	if isBlobAnimated(blob, n) {
 		params = vips.NewImportParams()
 		if n < -1 {
 			params.NumPages.Set(-n)
@@ -160,6 +160,6 @@ func (v *VipsProcessor) animatedThumbnailWithCrop(
 	return img.ExtractArea(left, top, w, h)
 }
 
-func isAnimated(blob *imagor.Blob, n int) bool {
+func isBlobAnimated(blob *imagor.Blob, n int) bool {
 	return blob != nil && blob.SupportsAnimation() && n != 1 && n != 0
 }

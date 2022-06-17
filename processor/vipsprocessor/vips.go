@@ -307,7 +307,7 @@ func (v *VipsProcessor) Process(
 	if format == vips.ImageTypeUnknown {
 		format = img.Format()
 	}
-	SetPageN(ctx, pageN)
+	setPageN(ctx, pageN)
 	if v.Debug {
 		v.Logger.Debug("image",
 			zap.Int("width", img.Width()),
