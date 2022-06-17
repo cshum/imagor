@@ -58,7 +58,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 		}
 	}
 	var overlayN = overlay.Height() / overlay.PageHeight()
-	imagor.Defer(ctx, overlay.Close)
+	AddImageRef(ctx, overlay)
 	if err = overlay.AddAlpha(); err != nil {
 		return
 	}
@@ -129,7 +129,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *vips.ImageRef, load 
 	); err != nil {
 		return
 	}
-	if n := getPageN(ctx); n > overlayN {
+	if n := GetPageN(ctx); n > overlayN {
 		cnt := n / overlayN
 		if n%overlayN > 0 {
 			cnt += 1
@@ -153,7 +153,7 @@ func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...
 	if newN < 1 {
 		return
 	}
-	if n := getPageN(ctx); n != newN {
+	if n := GetPageN(ctx); n != newN {
 		height := img.PageHeight()
 		if err = img.SetPageHeight(img.Height()); err != nil {
 			return
@@ -164,7 +164,7 @@ func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...
 		if err = img.SetPageHeight(height); err != nil {
 			return
 		}
-		setPageN(ctx, newN)
+		SetPageN(ctx, newN)
 	}
 	var delay int
 	if ln > 1 {
@@ -215,7 +215,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, 
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
-		imagor.Defer(ctx, cp.Close)
+		AddImageRef(ctx, cp)
 		if err = img.ThumbnailWithSize(
 			width, height, vips.InterestingNone, vips.SizeForce,
 		); err != nil {
@@ -264,8 +264,8 @@ func roundCorner(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, arg
 	`, w, h, rx, ry, w, h)), w, h, vips.InterestingNone); err != nil {
 		return
 	}
-	imagor.Defer(ctx, rounded.Close)
-	if n := getPageN(ctx); n > 1 {
+	AddImageRef(ctx, rounded)
+	if n := GetPageN(ctx); n > 1 {
 		if err = rounded.Replicate(1, n); err != nil {
 			return
 		}

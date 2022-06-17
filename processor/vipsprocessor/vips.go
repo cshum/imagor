@@ -155,6 +155,7 @@ func (v *VipsProcessor) Process(
 		err                   error
 	)
 	ctx = withInitImageRefs(ctx)
+	defer closeImageRefs(ctx)
 	if p.Trim {
 		thumbnailNotSupported = true
 	}
@@ -297,7 +298,7 @@ func (v *VipsProcessor) Process(
 			}
 		}
 	}
-	imagor.Defer(ctx, img.Close)
+	AddImageRef(ctx, img)
 	var (
 		quality    int
 		pageN      = img.Height() / img.PageHeight()
@@ -307,7 +308,7 @@ func (v *VipsProcessor) Process(
 	if format == vips.ImageTypeUnknown {
 		format = img.Format()
 	}
-	setPageN(ctx, pageN)
+	SetPageN(ctx, pageN)
 	if v.Debug {
 		v.Logger.Debug("image",
 			zap.Int("width", img.Width()),
