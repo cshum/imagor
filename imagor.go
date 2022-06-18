@@ -151,10 +151,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := imagorpath.Parse(path)
-	if app.BaseParams != "" {
-		p = imagorpath.Apply(p, app.BaseParams)
-		p.Path = imagorpath.GeneratePath(p)
-	}
 	if p.Params {
 		if !app.DisableParamsEndpoint {
 			resJSONIndent(w, p)
@@ -238,6 +234,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", app.Signer.Sign(p.Path)))
 		}
 		return
+	}
+	if app.BaseParams != "" {
+		p = imagorpath.Apply(p, app.BaseParams)
+		p.Path = imagorpath.GeneratePath(p)
 	}
 	// auto WebP / AVIF
 	if app.AutoWebP || app.AutoAVIF {
