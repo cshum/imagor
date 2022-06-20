@@ -154,16 +154,16 @@ func TestCRUD(t *testing.T) {
 	s := New(fakeS3Session(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"))
 
 	_, err = s.Get(&http.Request{}, "/bar/fooo/asdf")
-	assert.Equal(t, imagor.ErrPass, err)
+	assert.Equal(t, imagor.ErrInvalid, err)
 
 	_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
-	assert.Equal(t, imagor.ErrPass, err)
+	assert.Equal(t, imagor.ErrInvalid, err)
 
 	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
 	_, err = b.ReadAll()
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrPass)
+	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrInvalid)
 
 	blob := imagor.NewBlobFromBytes([]byte("bar"))
 	blob.Meta = &imagor.Meta{

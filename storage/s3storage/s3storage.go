@@ -69,7 +69,7 @@ func (s *S3Storage) Path(image string) (string, bool) {
 func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		input := &s3.GetObjectInput{
@@ -98,7 +98,7 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {
 	image, ok := s.Path(image)
 	if !ok {
-		return imagor.ErrPass
+		return imagor.ErrInvalid
 	}
 	reader, _, err := blob.NewReader()
 	if err != nil {
@@ -130,7 +130,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 func (s *S3Storage) Delete(ctx context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
-		return imagor.ErrPass
+		return imagor.ErrInvalid
 	}
 	_, err := s.S3.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.Bucket),
@@ -142,7 +142,7 @@ func (s *S3Storage) Delete(ctx context.Context, image string) error {
 func (s *S3Storage) head(ctx context.Context, image string) (*s3.HeadObjectOutput, error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	input := &s3.HeadObjectInput{
 		Bucket: aws.String(s.Bucket),

@@ -40,7 +40,7 @@ func New(client *storage.Client, bucket string, options ...Option) *GCloudStorag
 func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Blob, err error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	object := s.client.Bucket(s.Bucket).Object(image)
 	attrs, err := object.Attrs(r.Context())
@@ -67,7 +67,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return imagor.ErrPass
+		return imagor.ErrInvalid
 	}
 	reader, _, err := blob.NewReader()
 	if err != nil {
@@ -99,7 +99,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 func (s *GCloudStorage) Delete(ctx context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
-		return imagor.ErrPass
+		return imagor.ErrInvalid
 	}
 	return s.client.Bucket(s.Bucket).Object(image).Delete(ctx)
 }
@@ -118,7 +118,7 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 func (s *GCloudStorage) attrs(ctx context.Context, image string) (attrs *storage.ObjectAttrs, err error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	object := s.client.Bucket(s.Bucket).Object(image)
 	attrs, err = object.Attrs(ctx)

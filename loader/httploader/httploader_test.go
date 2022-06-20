@@ -104,17 +104,17 @@ func TestWithAllowedSources(t *testing.T) {
 		{
 			name:   "not allowed source",
 			target: "https://foo.boo/boooo",
-			err:    "imagor: 400 pass",
+			err:    "imagor: 400 invalid",
 		},
 		{
 			name:   "not allowed source",
 			target: "https://foo.barr/baz",
-			err:    "imagor: 400 pass",
+			err:    "imagor: 400 invalid",
 		},
 		{
 			name:   "not allowed source",
 			target: "https://boo.bar/baz",
-			err:    "imagor: 400 pass",
+			err:    "imagor: 400 invalid",
 		},
 		{
 			name:   "csv allowed source",
@@ -172,22 +172,22 @@ func TestWithDefaultScheme(t *testing.T) {
 		{
 			name:   "empty",
 			target: "",
-			err:    "imagor: 400 pass",
+			err:    "imagor: 400 invalid",
 		},
 		{
 			name:   "invalid url",
 			target: "abc*abc",
-			err:    "imagor: 400 pass",
+			err:    "imagor: 400 invalid",
 		},
 		{
 			name:   "default scheme set nil not found",
 			target: "foo.bar/baz",
-			err:    "imagor: 400 pass",
+			err:    "imagor: 400 invalid",
 		},
 		{
 			name:   "default scheme set nil not found",
 			target: "foo.boo/boo",
-			err:    "imagor: 400 pass",
+			err:    "imagor: 400 invalid",
 		},
 		{
 			name:   "default scheme set nil found",

@@ -67,24 +67,24 @@ func New(options ...Option) *HTTPLoader {
 
 func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if image == "" {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	u, err := url.Parse(image)
 	if err != nil {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	if u.Host == "" || u.Scheme == "" {
 		if h.DefaultScheme != "" {
 			image = h.DefaultScheme + "://" + image
 			if u, err = url.Parse(image); err != nil {
-				return nil, imagor.ErrPass
+				return nil, imagor.ErrInvalid
 			}
 		} else {
-			return nil, imagor.ErrPass
+			return nil, imagor.ErrInvalid
 		}
 	}
 	if !isURLAllowed(u, h.AllowedSources) {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	client := &http.Client{Transport: h.Transport}
 	if h.MaxAllowedSize > 0 {

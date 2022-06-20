@@ -99,10 +99,10 @@ func TestCRUD(t *testing.T) {
 	var err error
 
 	_, err = s.Get(&http.Request{}, "/bar/fooo/asdf")
-	assert.Equal(t, imagor.ErrPass, err)
+	assert.Equal(t, imagor.ErrInvalid, err)
 
 	_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
-	assert.Equal(t, imagor.ErrPass, err)
+	assert.Equal(t, imagor.ErrInvalid, err)
 
 	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
@@ -116,7 +116,7 @@ func TestCRUD(t *testing.T) {
 	_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrPass)
+	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrInvalid)
 
 	blob := imagor.NewBlobFromBytes([]byte("bar"))
 	blob.Meta = &imagor.Meta{

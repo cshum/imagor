@@ -13,6 +13,7 @@ import (
 var (
 	ErrNotFound          = NewError("not found", http.StatusNotFound)
 	ErrPass              = NewError("pass", http.StatusBadRequest)
+	ErrInvalid           = NewError("invalid", http.StatusBadRequest)
 	ErrMethodNotAllowed  = NewError("method not allowed", http.StatusMethodNotAllowed)
 	ErrSignatureMismatch = NewError("url signature mismatch", http.StatusForbidden)
 	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)

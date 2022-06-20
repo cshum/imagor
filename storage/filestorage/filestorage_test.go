@@ -128,20 +128,20 @@ func TestFileStorage_Load_Save(t *testing.T) {
 	t.Run("blacklisted path", func(t *testing.T) {
 		s := New(dir)
 		_, err = s.Get(&http.Request{}, "/abc/.git")
-		assert.Equal(t, imagor.ErrPass, err)
-		assert.Equal(t, imagor.ErrPass, s.Put(ctx, "/abc/.git", imagor.NewBlobFromBytes([]byte("boo"))))
+		assert.Equal(t, imagor.ErrInvalid, err)
+		assert.Equal(t, imagor.ErrInvalid, s.Put(ctx, "/abc/.git", imagor.NewBlobFromBytes([]byte("boo"))))
 	})
 	t.Run("CRUD", func(t *testing.T) {
 		s := New(dir, WithPathPrefix("/foo"), WithMkdirPermission("0755"), WithWritePermission("0666"))
 
 		_, err := s.Get(&http.Request{}, "/bar/fooo/asdf")
-		assert.Equal(t, imagor.ErrPass, err)
+		assert.Equal(t, imagor.ErrInvalid, err)
 
 		_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
-		assert.Equal(t, imagor.ErrPass, err)
+		assert.Equal(t, imagor.ErrInvalid, err)
 
 		_, err = s.Meta(context.Background(), "/bar/fooo/asdf")
-		assert.Equal(t, imagor.ErrPass, err)
+		assert.Equal(t, imagor.ErrInvalid, err)
 
 		_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
@@ -152,7 +152,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
-		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrPass)
+		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrInvalid)
 
 		blob := imagor.NewBlobFromBytes([]byte("bar"))
 		blob.Meta = &imagor.Meta{

@@ -61,7 +61,7 @@ func (s *FileStorage) Path(image string) (string, bool) {
 func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	stats, err := os.Stat(image)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return imagor.ErrPass
+		return imagor.ErrInvalid
 	}
 	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
 		return
@@ -126,7 +126,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 func (s *FileStorage) Delete(_ context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
-		return imagor.ErrPass
+		return imagor.ErrInvalid
 	}
 	return os.Remove(image)
 }
@@ -134,7 +134,7 @@ func (s *FileStorage) Delete(_ context.Context, image string) error {
 func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	stats, err := os.Stat(image)
 	if err != nil {
@@ -152,7 +152,7 @@ func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, 
 func (s *FileStorage) Meta(_ context.Context, image string) (*imagor.Meta, error) {
 	image, ok := s.Path(image)
 	if !ok {
-		return nil, imagor.ErrPass
+		return nil, imagor.ErrInvalid
 	}
 	key := image + ".meta.json"
 
