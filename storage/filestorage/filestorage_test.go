@@ -177,6 +177,13 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
 		require.NoError(t, err)
 		assert.Equal(t, meta, blob.Meta)
+
+		err = s.Del(context.Background(), "/foo/fooo/asdf")
+		require.NoError(t, err)
+
+		b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+		assert.Equal(t, imagor.ErrNotFound, err)
+
 	})
 
 	t.Run("save err if exists", func(t *testing.T) {

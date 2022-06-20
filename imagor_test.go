@@ -48,6 +48,11 @@ func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
 	return nil, ErrNotFound
 }
 
+func (f saverFunc) Del(ctx context.Context, image string) error {
+	// dummy
+	return nil
+}
+
 func (f saverFunc) Put(ctx context.Context, image string, blob *Blob) error {
 	return f(ctx, image, blob)
 }
@@ -348,12 +353,13 @@ type mapStore struct {
 	ModTime map[string]time.Time
 	LoadCnt map[string]int
 	SaveCnt map[string]int
+	DelCnt  map[string]int
 }
 
 func newMapStore() *mapStore {
 	return &mapStore{
 		Map: map[string]*Blob{}, LoadCnt: map[string]int{}, SaveCnt: map[string]int{},
-		ModTime: map[string]time.Time{},
+		DelCnt: map[string]int{}, ModTime: map[string]time.Time{},
 	}
 }
 
@@ -365,11 +371,18 @@ func (s *mapStore) Get(r *http.Request, image string) (*Blob, error) {
 	s.LoadCnt[image] = s.LoadCnt[image] + 1
 	return buf, nil
 }
+
 func (s *mapStore) Put(ctx context.Context, image string, blob *Blob) error {
 	clock = clock.Add(1)
 	s.Map[image] = blob
 	s.SaveCnt[image] = s.SaveCnt[image] + 1
 	s.ModTime[image] = clock
+	return nil
+}
+
+func (s *mapStore) Del(ctx context.Context, image string) error {
+	delete(s.Map, image)
+	s.DelCnt[image] = s.DelCnt[image] + 1
 	return nil
 }
 
@@ -564,8 +577,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/poop", nil))
 			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
 			assert.Equal(t, "poop", w.Body.String())
-			assert.NotNil(t, store.Map["poop"])
-			assert.True(t, store.Map["poop"].IsEmpty())
+			assert.Nil(t, store.Map["poop"])
 		})
 	}
 }

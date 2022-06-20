@@ -189,6 +189,13 @@ func TestCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, meta, blob.Meta)
 
+	err = s.Del(context.Background(), "/foo/fooo/asdf")
+	require.NoError(t, err)
+
+	b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	_, err = b.ReadAll()
+	assert.Equal(t, imagor.ErrNotFound, err)
+
 	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBlobFromBytes([]byte("bar"))))
 
 	_, err = s.Meta(context.Background(), "/foo/boo/asdf")

@@ -96,6 +96,14 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 	return writer.Close()
 }
 
+func (s *GCloudStorage) Del(ctx context.Context, image string) error {
+	image, ok := s.Path(image)
+	if !ok {
+		return imagor.ErrPass
+	}
+	return s.client.Bucket(s.Bucket).Object(image).Delete(ctx)
+}
+
 func (s *GCloudStorage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.safeChars)
 

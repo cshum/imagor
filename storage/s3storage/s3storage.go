@@ -127,6 +127,18 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	return err
 }
 
+func (s *S3Storage) Del(ctx context.Context, image string) error {
+	image, ok := s.Path(image)
+	if !ok {
+		return imagor.ErrPass
+	}
+	_, err := s.S3.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.Bucket),
+		Key:    aws.String(image),
+	})
+	return err
+}
+
 func (s *S3Storage) head(ctx context.Context, image string) (*s3.HeadObjectOutput, error) {
 	image, ok := s.Path(image)
 	if !ok {

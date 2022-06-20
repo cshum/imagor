@@ -29,6 +29,7 @@ type Loader interface {
 type Storage interface {
 	Get(r *http.Request, image string) (*Blob, error)
 	Put(ctx context.Context, image string, blob *Blob) error
+	Del(ctx context.Context, image string) error
 	Stat(ctx context.Context, image string) (*Stat, error)
 	Meta(ctx context.Context, image string) (*Meta, error)
 }
@@ -329,8 +330,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			app.save(ctx, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && isSave {
-			// storage put empty bytes if process error and is a save
-			app.save(ctx, app.Storages, p.Image, NewEmptyBlob())
+			app.del(ctx, app.Storages, p.Image)
 		}
 		return blob, err
 	})
@@ -461,6 +461,23 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
+			}
+		}(storage)
+	}
+	wg.Wait()
+	return
+}
+
+func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
+	var wg sync.WaitGroup
+	for _, storage := range storages {
+		wg.Add(1)
+		go func(storage Storage) {
+			defer wg.Done()
+			if err := storage.Del(ctx, key); err != nil {
+				app.Logger.Warn("delete", zap.String("key", key), zap.Error(err))
+			} else if app.Debug {
+				app.Logger.Debug("deleted", zap.String("key", key))
 			}
 		}(storage)
 	}

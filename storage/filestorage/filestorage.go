@@ -123,6 +123,14 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	return
 }
 
+func (s *FileStorage) Del(_ context.Context, image string) error {
+	image, ok := s.Path(image)
+	if !ok {
+		return imagor.ErrPass
+	}
+	return os.Remove(image)
+}
+
 func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {
