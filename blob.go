@@ -106,7 +106,7 @@ func newEmptyReader() (io.ReadCloser, int64, error) {
 	return io.NopCloser(bytes.NewReader(nil)), 0, nil
 }
 
-func (b *Blob) peekOnce() {
+func (b *Blob) init() {
 	b.once.Do(func() {
 		b.blobType = BlobTypeUnknown
 		b.contentType = "application/octet-stream"
@@ -183,22 +183,22 @@ func (b *Blob) peekOnce() {
 }
 
 func (b *Blob) IsEmpty() bool {
-	b.peekOnce()
+	b.init()
 	return b.blobType == BlobTypeEmpty
 }
 
 func (b *Blob) SupportsAnimation() bool {
-	b.peekOnce()
+	b.init()
 	return b.blobType == BlobTypeGIF || b.blobType == BlobTypeWEBP
 }
 
 func (b *Blob) BlobType() BlobType {
-	b.peekOnce()
+	b.init()
 	return b.blobType
 }
 
 func (b *Blob) Sniff() []byte {
-	b.peekOnce()
+	b.init()
 	return b.buf
 }
 
@@ -206,12 +206,12 @@ func (b *Blob) ContentType() string {
 	if b.Meta != nil && b.Meta.ContentType != "" {
 		return b.Meta.ContentType
 	}
-	b.peekOnce()
+	b.init()
 	return b.contentType
 }
 
 func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
-	b.peekOnce()
+	b.init()
 	b.onceReader.Do(func() {
 		if b.err != nil {
 			err = b.err
@@ -228,7 +228,7 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {
-	b.peekOnce()
+	b.init()
 	if b.blobType == BlobTypeEmpty {
 		return nil, b.err
 	}
@@ -247,7 +247,7 @@ func (b *Blob) ReadAll() ([]byte, error) {
 }
 
 func (b *Blob) Err() error {
-	b.peekOnce()
+	b.init()
 	return b.err
 }
 

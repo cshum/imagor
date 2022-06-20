@@ -271,7 +271,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		resultKey = strings.TrimPrefix(p.Path, "meta/")
 	}
 	load := func(image string) (*Blob, error) {
-		return app.loadStorage(r, image)
+		b, _, err := app.loadStorage(r, image)
+		return b, err
 	}
 	if p.Meta {
 		if blob := app.loadResult(r, resultKey, p.Image, true); blob != nil {
@@ -291,7 +292,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			defer app.sema.Release(1)
 		}
-		if blob, err = app.loadStorage(r, p.Image); err != nil {
+		var isSave bool
+		if blob, isSave, err = app.loadStorage(r, p.Image); err != nil {
 			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 			return blob, err
 		}
@@ -334,29 +336,29 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 		}
 		if err == nil && len(app.ResultStorages) > 0 {
-			app.save(ctx, nil, app.ResultStorages, resultKey, blob)
+			app.save(ctx, app.ResultStorages, resultKey, blob)
 		}
-		if err != nil && len(app.Storages) > 0 {
-			// storage put empty bytes if process error
-			app.save(ctx, nil, app.Storages, p.Image, NewEmptyBlob())
+		if err != nil && isSave {
+			// storage put empty bytes if process error and is a save
+			app.save(ctx, app.Storages, p.Image, NewEmptyBlob())
 		}
 		return blob, err
 	})
 }
 
-func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, error) {
-	return app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
-		var origin Storage
+func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, bool, error) {
+	var isSave bool
+	b, err := app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
 		r = r.WithContext(ctx)
+		var origin Storage
 		blob, origin, err = app.load(r, app.Loaders, key, false)
-		if err != nil || isEmpty(blob) {
-			return
-		}
-		if len(app.Storages) > 0 {
-			app.save(ctx, origin, app.Storages, key, blob)
+		if err == nil && !isEmpty(blob) && origin == nil && len(app.Storages) > 0 {
+			isSave = true
+			app.save(ctx, app.Storages, key, blob)
 		}
 		return
 	})
+	return b, isSave, err
 }
 
 func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Blob {
@@ -448,7 +450,7 @@ func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err
 }
 
 func (app *Imagor) save(
-	ctx context.Context, origin Storage, storages []Storage, key string, blob *Blob,
+	ctx context.Context, storages []Storage, key string, blob *Blob,
 ) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
@@ -457,13 +459,6 @@ func (app *Imagor) save(
 	Defer(ctx, cancel)
 	var wg sync.WaitGroup
 	for _, storage := range storages {
-		if storage == origin {
-			// loaded from the same store, no need save again
-			if app.Debug {
-				app.Logger.Debug("skip-save", zap.String("key", key))
-			}
-			continue
-		}
 		wg.Add(1)
 		go func(storage Storage) {
 			defer wg.Done()
