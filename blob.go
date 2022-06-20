@@ -46,6 +46,7 @@ type Blob struct {
 	peekReader *peekReaderCloser
 	once       sync.Once
 	onceReader sync.Once
+	buf        []byte
 	err        error
 	size       int64
 
@@ -137,8 +138,8 @@ func (b *Blob) peekOnce() {
 			Closer: reader,
 		}
 		// peek first 512 bytes for type sniffing
-		buf, err := b.peekReader.Peek(512)
-		if len(buf) == 0 {
+		b.buf, err = b.peekReader.Peek(512)
+		if len(b.buf) == 0 {
 			b.blobType = BlobTypeEmpty
 		}
 		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
@@ -147,18 +148,18 @@ func (b *Blob) peekOnce() {
 			}
 			return
 		}
-		if b.blobType != BlobTypeEmpty && len(buf) > 24 {
-			if bytes.Equal(buf[:3], jpegHeader) {
+		if b.blobType != BlobTypeEmpty && len(b.buf) > 24 {
+			if bytes.Equal(b.buf[:3], jpegHeader) {
 				b.blobType = BlobTypeJPEG
-			} else if bytes.Equal(buf[:4], pngHeader) {
+			} else if bytes.Equal(b.buf[:4], pngHeader) {
 				b.blobType = BlobTypePNG
-			} else if bytes.Equal(buf[:3], gifHeader) {
+			} else if bytes.Equal(b.buf[:3], gifHeader) {
 				b.blobType = BlobTypeGIF
-			} else if bytes.Equal(buf[8:12], webpHeader) {
+			} else if bytes.Equal(b.buf[8:12], webpHeader) {
 				b.blobType = BlobTypeWEBP
-			} else if bytes.Equal(buf[4:8], ftyp) && bytes.Equal(buf[8:12], avif) {
+			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
 				b.blobType = BlobTypeAVIF
-			} else if bytes.Equal(buf[:4], tifII) || bytes.Equal(buf[:4], tifMM) {
+			} else if bytes.Equal(b.buf[:4], tifII) || bytes.Equal(b.buf[:4], tifMM) {
 				b.blobType = BlobTypeTIFF
 			}
 		}
@@ -176,7 +177,7 @@ func (b *Blob) peekOnce() {
 		case BlobTypeTIFF:
 			b.contentType = "image/tiff"
 		default:
-			b.contentType = http.DetectContentType(buf)
+			b.contentType = http.DetectContentType(b.buf)
 		}
 	})
 }
@@ -194,6 +195,11 @@ func (b *Blob) SupportsAnimation() bool {
 func (b *Blob) BlobType() BlobType {
 	b.peekOnce()
 	return b.blobType
+}
+
+func (b *Blob) Sniff() []byte {
+	b.peekOnce()
+	return b.buf
 }
 
 func (b *Blob) ContentType() string {
