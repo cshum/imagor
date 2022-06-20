@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const Version = "0.9.5"
+const Version = "0.9.6"
 
 // Loader image loader interface
 type Loader interface {
