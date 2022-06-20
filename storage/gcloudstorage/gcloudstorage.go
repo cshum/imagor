@@ -96,7 +96,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 	return writer.Close()
 }
 
-func (s *GCloudStorage) Del(ctx context.Context, image string) error {
+func (s *GCloudStorage) Delete(ctx context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

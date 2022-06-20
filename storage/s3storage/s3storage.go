@@ -127,7 +127,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	return err
 }
 
-func (s *S3Storage) Del(ctx context.Context, image string) error {
+func (s *S3Storage) Delete(ctx context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

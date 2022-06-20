@@ -20,16 +20,16 @@ import (
 
 const Version = "0.9.5"
 
-// Loader load image from source
+// Loader image loader interface
 type Loader interface {
 	Get(r *http.Request, image string) (*Blob, error)
 }
 
-// Storage load and save image
+// Storage image storage interface
 type Storage interface {
 	Get(r *http.Request, image string) (*Blob, error)
 	Put(ctx context.Context, image string, blob *Blob) error
-	Del(ctx context.Context, image string) error
+	Delete(ctx context.Context, image string) error
 	Stat(ctx context.Context, image string) (*Stat, error)
 	Meta(ctx context.Context, image string) (*Meta, error)
 }
@@ -474,7 +474,7 @@ func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
 		wg.Add(1)
 		go func(storage Storage) {
 			defer wg.Done()
-			if err := storage.Del(ctx, key); err != nil {
+			if err := storage.Delete(ctx, key); err != nil {
 				app.Logger.Warn("delete", zap.String("key", key), zap.Error(err))
 			} else if app.Debug {
 				app.Logger.Debug("deleted", zap.String("key", key))

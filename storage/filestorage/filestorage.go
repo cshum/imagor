@@ -123,7 +123,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	return
 }
 
-func (s *FileStorage) Del(_ context.Context, image string) error {
+func (s *FileStorage) Delete(_ context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrPass

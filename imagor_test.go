@@ -48,7 +48,7 @@ func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
 	return nil, ErrNotFound
 }
 
-func (f saverFunc) Del(ctx context.Context, image string) error {
+func (f saverFunc) Delete(ctx context.Context, image string) error {
 	// dummy
 	return nil
 }
@@ -380,7 +380,7 @@ func (s *mapStore) Put(ctx context.Context, image string, blob *Blob) error {
 	return nil
 }
 
-func (s *mapStore) Del(ctx context.Context, image string) error {
+func (s *mapStore) Delete(ctx context.Context, image string) error {
 	delete(s.Map, image)
 	s.DelCnt[image] = s.DelCnt[image] + 1
 	return nil
