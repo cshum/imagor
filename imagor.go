@@ -22,16 +22,16 @@ const Version = "0.9.5"
 
 // Loader image loader interface
 type Loader interface {
-	Get(r *http.Request, image string) (*Blob, error)
+	Get(r *http.Request, key string) (*Blob, error)
 }
 
 // Storage image storage interface
 type Storage interface {
-	Get(r *http.Request, image string) (*Blob, error)
-	Put(ctx context.Context, image string, blob *Blob) error
-	Delete(ctx context.Context, image string) error
-	Stat(ctx context.Context, image string) (*Stat, error)
-	Meta(ctx context.Context, image string) (*Meta, error)
+	Get(r *http.Request, key string) (*Blob, error)
+	Put(ctx context.Context, key string, blob *Blob) error
+	Delete(ctx context.Context, key string) error
+	Stat(ctx context.Context, key string) (*Stat, error)
+	Meta(ctx context.Context, key string) (*Meta, error)
 }
 
 // LoadFunc load function for Processor
