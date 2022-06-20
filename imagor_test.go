@@ -66,7 +66,12 @@ func (f processorFunc) Shutdown(_ context.Context) error {
 
 func TestWithUnsafe(t *testing.T) {
 	logger := zap.NewExample()
-	app := New(WithUnsafe(true), WithLogger(logger))
+	app := New(
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithLogger(logger))
 	assert.Equal(t, false, app.Debug)
 	assert.Equal(t, logger, app.Logger)
 
@@ -143,6 +148,9 @@ func TestWithSigner(t *testing.T) {
 	app := New(
 		WithDebug(true),
 		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
 		WithSigner(imagorpath.NewDefaultSigner("1234")))
 	assert.Equal(t, true, app.Debug)
 

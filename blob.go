@@ -251,6 +251,13 @@ func (b *Blob) Err() error {
 	return b.err
 }
 
-func isEmpty(b *Blob) bool {
-	return b == nil || b.IsEmpty()
+func isBlobEmpty(blob *Blob) bool {
+	return blob == nil || blob.IsEmpty()
+}
+
+func checkBlob(blob *Blob, err error) (*Blob, error) {
+	if blob != nil && err == nil {
+		err = blob.Err()
+	}
+	return blob, err
 }

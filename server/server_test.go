@@ -33,6 +33,12 @@ func (app *testProcessor) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+type loaderFunc func(r *http.Request, image string) (blob *imagor.Blob, err error)
+
+func (f loaderFunc) Get(r *http.Request, image string) (*imagor.Blob, error) {
+	return f(r, image)
+}
+
 func TestServer_Run(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	processor := &testProcessor{}
@@ -54,7 +60,13 @@ func TestServer_Run(t *testing.T) {
 }
 
 func TestServer(t *testing.T) {
-	s := New(imagor.New(imagor.WithUnsafe(true)),
+	s := New(
+		imagor.New(
+			imagor.WithUnsafe(true),
+			imagor.WithLoaders(loaderFunc(func(r *http.Request, image string) (*imagor.Blob, error) {
+				return imagor.NewBlobFromBytes([]byte("foo")), nil
+			})),
+		),
 		WithAccessLog(true),
 		WithMiddleware(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +77,8 @@ func TestServer(t *testing.T) {
 				next.ServeHTTP(w, r)
 			})
 		}),
-		WithCORS(true))
+		WithCORS(true),
+	)
 
 	w := httptest.NewRecorder()
 	s.Handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/favicon.ico", nil))

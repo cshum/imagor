@@ -55,7 +55,6 @@ type Imagor struct {
 	BasePathRedirect      string
 	Loaders               []Loader
 	Storages              []Storage
-	ResultLoaders         []Loader
 	ResultStorages        []Storage
 	Processors            []Processor
 	RequestTimeout        time.Duration
@@ -103,9 +102,6 @@ func New(options ...Option) *Imagor {
 	if app.Signer == nil {
 		app.Signer = imagorpath.NewDefaultSigner("")
 	}
-	app.ResultLoaders = append(loaderSlice(app.ResultStorages), app.ResultLoaders...)
-	app.Loaders = append(loaderSlice(app.Storages), app.Loaders...)
-
 	app.BaseParams = strings.TrimSpace(app.BaseParams)
 	if app.BaseParams != "" {
 		app.BaseParams = strings.TrimSuffix(app.BaseParams, "/") + "/"
@@ -157,15 +153,12 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	blob, err := app.Do(r, p)
-	if err == nil && blob != nil {
-		err = blob.Err()
-	}
+	blob, err := checkBlob(app.Do(r, p))
 	if err == nil && p.Meta && blob != nil && blob.Meta != nil {
 		resJSON(w, blob.Meta)
 		return
 	}
-	if !isEmpty(blob) {
+	if !isBlobEmpty(blob) {
 		w.Header().Set("Content-Type", blob.ContentType())
 	}
 	if err != nil {
@@ -177,7 +170,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(e.Code)
 			return
 		}
-		if !isEmpty(blob) {
+		if !isBlobEmpty(blob) {
 			reader, size, _ := blob.NewReader()
 			if reader != nil {
 				app.writeBody(w, r, e.Code, reader, size)
@@ -188,7 +181,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		resJSON(w, e)
 		return
 	}
-	if isEmpty(blob) {
+	if isBlobEmpty(blob) {
 		return
 	}
 	reader, size, _ := blob.NewReader()
@@ -297,7 +290,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 			return blob, err
 		}
-		if isEmpty(blob) {
+		if isBlobEmpty(blob) {
 			return blob, err
 		}
 		var cancel func()
@@ -306,10 +299,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			Defer(ctx, cancel)
 		}
 		for _, processor := range app.Processors {
-			b, e := processor.Process(ctx, blob, p, load)
-			if b != nil && e == nil {
-				e = b.Err()
-			}
+			b, e := checkBlob(processor.Process(ctx, blob, p, load))
 			if e == nil {
 				blob = b
 				err = nil
@@ -319,7 +309,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				break
 			} else {
 				if e == ErrPass {
-					if !isEmpty(b) {
+					if !isBlobEmpty(b) {
 						// pass to next processor
 						blob = b
 					}
@@ -351,8 +341,8 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, bool, error)
 	b, err := app.suppress(r.Context(), "img:"+key, func(ctx context.Context) (blob *Blob, err error) {
 		r = r.WithContext(ctx)
 		var origin Storage
-		blob, origin, err = app.load(r, app.Loaders, key, false)
-		if err == nil && !isEmpty(blob) && origin == nil && len(app.Storages) > 0 {
+		blob, origin, err = app.load(r, app.Storages, app.Loaders, key, false)
+		if err == nil && !isBlobEmpty(blob) && origin == nil && len(app.Storages) > 0 {
 			isSave = true
 			app.save(ctx, app.Storages, key, blob)
 		}
@@ -363,10 +353,10 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (*Blob, bool, error)
 
 func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Blob {
 	ctx := r.Context()
-	blob, resOrigin, err := app.load(r, app.ResultLoaders, resultKey, metaMode)
-	if err == nil && (!isEmpty(blob) || metaMode) {
-		if app.ModifiedTimeCheck && resOrigin != nil {
-			if resStat, err1 := resOrigin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
+	blob, origin, err := app.load(r, app.ResultStorages, nil, resultKey, metaMode)
+	if err == nil && (!isBlobEmpty(blob) || metaMode) {
+		if app.ModifiedTimeCheck && origin != nil {
+			if resStat, err1 := origin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
 				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
 					if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
 						return blob
@@ -381,11 +371,8 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaM
 }
 
 func (app *Imagor) load(
-	r *http.Request, loaders []Loader, key string, metaMode bool,
+	r *http.Request, storages []Storage, loaders []Loader, key string, metaMode bool,
 ) (blob *Blob, origin Storage, err error) {
-	if len(loaders) == 0 {
-		return
-	}
 	if key == "" {
 		err = ErrNotFound
 		return
@@ -397,37 +384,47 @@ func (app *Imagor) load(
 		Defer(ctx, cancel)
 		r = r.WithContext(ctx)
 	}
-	for _, loader := range loaders {
-		storage, _ := loader.(Storage)
-		if metaMode && storage != nil {
+	if metaMode {
+		for _, storage := range storages {
 			m, e := storage.Meta(ctx, key)
 			if e == nil && m != nil {
 				blob = NewEmptyBlob()
 				blob.Meta = m
 				origin = storage
-				break
+				return
 			}
 			err = e
-		} else {
-			b, e := loader.Get(r, key)
-			if b != nil && e == nil {
-				e = b.Err()
-			}
-			if !isEmpty(b) {
+		}
+	} else {
+		for _, storage := range storages {
+			b, e := checkBlob(storage.Get(r, key))
+			if !isBlobEmpty(b) {
 				blob = b
 				if e == nil {
 					err = nil
 					origin = storage
-					break
+					return
+				}
+			}
+			err = e
+		}
+		for _, loader := range loaders {
+			b, e := checkBlob(loader.Get(r, key))
+			if !isBlobEmpty(b) {
+				blob = b
+				if e == nil {
+					err = nil
+					return
 				}
 			}
 			err = e
 		}
 	}
+
 	if err == ErrPass {
 		// pass till the end means not found
 		err = ErrNotFound
-	} else if err == nil && isEmpty(blob) && !metaMode {
+	} else if err == nil && isBlobEmpty(blob) && !metaMode {
 		err = ErrNotFound
 	}
 	if app.Debug {
@@ -449,9 +446,7 @@ func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err
 	return
 }
 
-func (app *Imagor) save(
-	ctx context.Context, storages []Storage, key string, blob *Blob,
-) {
+func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
 	var cancel func()
 	if app.SaveTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
@@ -586,11 +581,4 @@ func getType(v interface{}) string {
 	} else {
 		return t.Name()
 	}
-}
-
-func loaderSlice(storages []Storage) (loaders []Loader) {
-	for _, storage := range storages {
-		loaders = append(loaders, storage)
-	}
-	return
 }

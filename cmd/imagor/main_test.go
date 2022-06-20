@@ -34,7 +34,6 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, time.Hour*24*7, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*24, app.CacheHeaderSWR)
 	assert.Empty(t, app.ResultStorages)
-	assert.Empty(t, app.ResultLoaders)
 	assert.Empty(t, app.Storages)
 	assert.IsType(t, &httploader.HTTPLoader{}, app.Loaders[0])
 }
@@ -120,9 +119,8 @@ func TestFileStorage(t *testing.T) {
 		"-file-result-storage-path-prefix", "bcda",
 	)
 	app := srv.App.(*imagor.Imagor)
-	loader := app.Loaders[0].(*filestorage.FileStorage)
+	assert.Equal(t, 1, len(app.Loaders))
 	storage := app.Storages[0].(*filestorage.FileStorage)
-	assert.Equal(t, loader, storage)
 	assert.Equal(t, "./foo", storage.BaseDir)
 	assert.Equal(t, "/abcd/", storage.PathPrefix)
 	assert.Equal(t, "!", storage.SafeChars)
@@ -175,9 +173,8 @@ func TestS3Storage(t *testing.T) {
 		"-s3-result-storage-path-prefix", "bcda",
 	)
 	app := srv.App.(*imagor.Imagor)
-	loader := app.Loaders[0].(*s3storage.S3Storage)
+	assert.Equal(t, 1, len(app.Loaders))
 	storage := app.Storages[0].(*s3storage.S3Storage)
-	assert.Equal(t, loader, storage)
 	assert.Equal(t, "a", storage.Bucket)
 	assert.Equal(t, "/foo/", storage.BaseDir)
 	assert.Equal(t, "/abcd/", storage.PathPrefix)
@@ -241,9 +238,8 @@ func TestGCSStorage(t *testing.T) {
 		"-gcloud-result-storage-path-prefix", "bcda",
 	)
 	app := srv.App.(*imagor.Imagor)
-	loader := app.Loaders[0].(*gcloudstorage.GCloudStorage)
+	assert.Equal(t, 1, len(app.Loaders))
 	storage := app.Storages[0].(*gcloudstorage.GCloudStorage)
-	assert.Equal(t, loader, storage)
 	assert.Equal(t, "a", storage.Bucket)
 	assert.Equal(t, "foo", storage.BaseDir)
 	assert.Equal(t, "/abcd/", storage.PathPrefix)
