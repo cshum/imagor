@@ -420,11 +420,7 @@ func (app *Imagor) load(
 			err = e
 		}
 	}
-
-	if err == ErrPass {
-		// pass till the end means not found
-		err = ErrNotFound
-	} else if err == nil && isBlobEmpty(blob) && !metaMode {
+	if err == nil && isBlobEmpty(blob) && !metaMode {
 		err = ErrNotFound
 	}
 	if app.Debug {

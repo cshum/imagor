@@ -431,7 +431,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if image == "empty" {
 					return nil, nil
 				}
-				return nil, ErrPass
+				return nil, ErrNotFound
 			}),
 			loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 				if image == "beep" {
@@ -449,7 +449,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if image == "dood" {
 					return newFakeBlob("dood"), errors.New("error with value")
 				}
-				return nil, ErrPass
+				return nil, ErrNotFound
 			}),
 		),
 		WithStorages(
@@ -678,7 +678,7 @@ func TestWithSameStore(t *testing.T) {
 				if image == "beep" {
 					return NewBlobFromBytes([]byte("boop")), nil
 				}
-				return nil, ErrPass
+				return nil, ErrNotFound
 			}),
 		),
 		WithStorages(store),
