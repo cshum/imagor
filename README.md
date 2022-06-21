@@ -339,6 +339,10 @@ Usage of imagor:
         Output AVIF format automatically if browser supports (experimental)
   -imagor-base-params string
         Imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
+  -imagor-signer-algorithm string
+        Imagor URL signature algorithm sha1 or sha256 (default "sha1")
+  -imagor-signer-truncate int
+        Imagor URL signature truncate at length
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response (default 168h0m0s)
   -imagor-cache-header-swr duration
