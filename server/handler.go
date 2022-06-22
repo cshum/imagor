@@ -29,7 +29,7 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 				}
 				s.Logger.Error("panic", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
-				resJSON(w, errResp{
+				writeJSON(w, r, errResp{
 					Message: err.Error(),
 					Code:    http.StatusInternalServerError,
 				})
@@ -69,11 +69,13 @@ func stripQueryStringHandler(next http.Handler) http.Handler {
 	})
 }
 
-func resJSON(w http.ResponseWriter, v interface{}) {
+func writeJSON(w http.ResponseWriter, r *http.Request, v interface{}) {
 	buf, _ := json.Marshal(v)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-	w.Write(buf)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(buf)
+	}
 	return
 }
 

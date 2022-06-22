@@ -139,7 +139,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		if app.BasePathRedirect == "" {
-			resJSON(w, json.RawMessage(fmt.Sprintf(
+			writeJSON(w, r, json.RawMessage(fmt.Sprintf(
 				`{"imagor":{"version":"%s"}}`, Version,
 			)))
 		} else {
@@ -150,13 +150,13 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p := imagorpath.Parse(path)
 	if p.Params {
 		if !app.DisableParamsEndpoint {
-			resJSONIndent(w, p)
+			writeJSONIndent(w, r, p)
 		}
 		return
 	}
 	blob, err := checkBlob(app.Do(r, p))
 	if err == nil && p.Meta && blob != nil && blob.Meta != nil {
-		resJSON(w, blob.Meta)
+		writeJSON(w, r, blob.Meta)
 		return
 	}
 	if !isBlobEmpty(blob) {
@@ -174,12 +174,13 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !isBlobEmpty(blob) {
 			reader, size, _ := blob.NewReader()
 			if reader != nil {
-				app.writeBody(w, r, e.Code, reader, size)
+				w.WriteHeader(e.Code)
+				writeBody(w, r, reader, size)
 				return
 			}
 		}
 		w.WriteHeader(e.Code)
-		resJSON(w, e)
+		writeJSON(w, r, e)
 		return
 	}
 	if isBlobEmpty(blob) {
@@ -187,30 +188,8 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	reader, size, _ := blob.NewReader()
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
-	app.writeBody(w, r, http.StatusOK, reader, size)
+	writeBody(w, r, reader, size)
 	return
-}
-
-func (app *Imagor) writeBody(w http.ResponseWriter, r *http.Request, status int, reader io.ReadCloser, size int64) {
-	defer func() {
-		_ = reader.Close()
-	}()
-	if size > 0 {
-		// total size known, use io.Copy
-		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
-		w.WriteHeader(status)
-		if r.Method != http.MethodHead {
-			_, _ = io.Copy(w, reader)
-		}
-	} else {
-		// total size unknown, read all
-		buf, _ := io.ReadAll(reader)
-		w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-		w.WriteHeader(status)
-		if r.Method != http.MethodHead {
-			_, _ = w.Write(buf)
-		}
-	}
 }
 
 // Do executes Imagor operations
@@ -572,20 +551,44 @@ func getCacheControl(ttl, swr time.Duration) string {
 	return val
 }
 
-func resJSON(w http.ResponseWriter, v interface{}) {
+func writeJSON(w http.ResponseWriter, r *http.Request, v interface{}) {
 	buf, _ := json.Marshal(v)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-	_, _ = w.Write(buf)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(buf)
+	}
 	return
 }
 
-func resJSONIndent(w http.ResponseWriter, v interface{}) {
+func writeJSONIndent(w http.ResponseWriter, r *http.Request, v interface{}) {
 	buf, _ := json.MarshalIndent(v, "", "  ")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
-	_, _ = w.Write(buf)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(buf)
+	}
 	return
+}
+
+func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, size int64) {
+	defer func() {
+		_ = reader.Close()
+	}()
+	if size > 0 {
+		// total size known, use io.Copy
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+		if r.Method != http.MethodHead {
+			_, _ = io.Copy(w, reader)
+		}
+	} else {
+		// total size unknown, read all
+		buf, _ := io.ReadAll(reader)
+		w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+		if r.Method != http.MethodHead {
+			_, _ = w.Write(buf)
+		}
+	}
 }
 
 func getType(v interface{}) string {
