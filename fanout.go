@@ -32,8 +32,9 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 			buf = append(buf, bn...)
 			curr += n
 			if e != nil {
-				size = curr
-				if e != io.EOF {
+				if e == io.EOF {
+					size = curr
+				} else {
 					err = e
 				}
 			}
