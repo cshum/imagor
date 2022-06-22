@@ -76,7 +76,7 @@ func newServer(args ...string) (srv *server.Server) {
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
 		imagorDisableErrorBody      = fs.Bool("imagor-disable-error-body", false, "Imagor disable response body on error")
 		imagorDisableParamsEndpoint = fs.Bool("imagor-disable-params-endpoint", false, "Imagor disable /params endpoint")
-		imagorSignerAlgorithm       = fs.String("imagor-signer-algorithm", "sha1", "Imagor URL signature algorithm sha1 or sha256")
+		imagorSignerAlgorithm       = fs.String("imagor-signer-type", "sha1", "Imagor URL signature hasher type sha1 or sha256")
 		imagorSignerTruncate        = fs.Int("imagor-signer-truncate", 0, "Imagor URL signature truncate at length")
 
 		serverAddress = fs.String("server-address", "",

@@ -82,7 +82,7 @@ func TestBasic(t *testing.T) {
 
 func TestSignerAlgorithm(t *testing.T) {
 	srv := newServer(
-		"-imagor-signer-algorithm", "sha256",
+		"-imagor-signer-type", "sha256",
 		"-imagor-signer-truncate", "32",
 	)
 	app := srv.App.(*imagor.Imagor)
