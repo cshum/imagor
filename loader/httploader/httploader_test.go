@@ -88,7 +88,6 @@ func TestWithAllowedSources(t *testing.T) {
 			"https://foo.abc/bar":   "foobar",
 		}),
 		WithAllowedSources("foo.bar", "*.abc", "def.def,ghi.ghi"),
-		WithInsecureSkipVerifyTransport(true),
 	), []test{
 		{
 			name:   "allowed source",
@@ -361,6 +360,7 @@ func TestWithMaxAllowedSize(t *testing.T) {
 
 	doTests(t, New(
 		WithMaxAllowedSize(1025),
+		WithInsecureSkipVerifyTransport(true),
 	), []test{
 		{
 			name:   "max allowed size ok",
@@ -371,6 +371,7 @@ func TestWithMaxAllowedSize(t *testing.T) {
 
 	doTests(t, New(
 		WithMaxAllowedSize(1023),
+		WithInsecureSkipVerifyTransport(true),
 	), []test{
 		{
 			name:   "max allowed size exceeded",
