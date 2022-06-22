@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func fanoutDo(t *testing.T, do func(), n, m int) {
+func doFanoutTest(t *testing.T, do func(), n, m int) {
 	g, _ := errgroup.WithContext(context.Background())
 	for i := 0; i < n; i++ {
 		g.Go(func() error {
@@ -18,17 +18,17 @@ func fanoutDo(t *testing.T, do func(), n, m int) {
 			return nil
 		})
 	}
+	assert.NoError(t, g.Wait())
 	for i := 0; i < m; i++ {
-		assert.NoError(t, g.Wait())
+		do()
 	}
-	do()
 }
 
 func TestFanoutSizeOver(t *testing.T) {
 	buf := []byte("abcdefghi")
 	source := io.NopCloser(bytes.NewReader(buf))
 	newReader := FanoutReader(source, 5)
-	fanoutDo(t, func() {
+	doFanoutTest(t, func() {
 		reader := newReader()
 		res1, err := io.ReadAll(reader)
 		assert.NoError(t, err)
@@ -41,7 +41,7 @@ func TestFanoutSizeBelow(t *testing.T) {
 	buf := []byte("abcd")
 	source := io.NopCloser(bytes.NewReader(buf))
 	newReader := FanoutReader(source, 5)
-	fanoutDo(t, func() {
+	doFanoutTest(t, func() {
 		reader := newReader()
 		res1, err := io.ReadAll(reader)
 		assert.NoError(t, err)
@@ -63,7 +63,7 @@ func TestFanoutUpstreamError(t *testing.T) {
 		return
 	}))
 	newReader := FanoutReader(source, 10000)
-	fanoutDo(t, func() {
+	doFanoutTest(t, func() {
 		reader := newReader()
 		res, err := io.ReadAll(reader)
 		assert.ErrorIs(t, err, e)
