@@ -9,29 +9,30 @@ import (
 // FanoutReader fan-out io.ReadCloser - known size, unknown number of consumers
 func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 	var lock sync.RWMutex
+	var once sync.Once
 	var consumers []chan []byte
 	var closed []bool
 	var err error
 	var buf []byte
-	var cnt int
+	var curr int
 
-	go func() {
+	var init = func() {
 		defer func() {
 			_ = reader.Close()
 		}()
 		for {
 			b := make([]byte, 512)
 			n, e := reader.Read(b)
-			if cnt+n > size {
-				n = size - cnt
+			if curr+n > size {
+				n = size - curr
 			}
 			bn := b[:n]
 
 			lock.Lock()
 			buf = append(buf, bn...)
-			cnt += n
+			curr += n
 			if e != nil {
-				size = cnt
+				size = curr
 				if e != io.EOF {
 					err = e
 				}
@@ -44,11 +45,11 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 				}
 			}
 			lock.RUnlock()
-			if e != nil || cnt >= size {
+			if e != nil || curr >= size {
 				return
 			}
 		}
-	}()
+	}
 
 	return func() io.ReadCloser {
 		ch := make(chan []byte, size/512+1)
@@ -80,6 +81,10 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 			Reader: io.MultiReader(
 				bufReader,
 				readerFunc(func(p []byte) (n int, e error) {
+					once.Do(func() {
+						go init()
+					})
+
 					lock.RLock()
 					e = err
 					s := size
