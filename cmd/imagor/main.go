@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"flag"
 	"fmt"
 	"github.com/cshum/imagor/imagorpath"
@@ -76,7 +77,7 @@ func newServer(args ...string) (srv *server.Server) {
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
 		imagorDisableErrorBody      = fs.Bool("imagor-disable-error-body", false, "Imagor disable response body on error")
 		imagorDisableParamsEndpoint = fs.Bool("imagor-disable-params-endpoint", false, "Imagor disable /params endpoint")
-		imagorSignerAlgorithm       = fs.String("imagor-signer-type", "sha1", "Imagor URL signature hasher type sha1 or sha256")
+		imagorSignerType            = fs.String("imagor-signer-type", "sha1", "Imagor URL signature hasher type sha1 or sha256")
 		imagorSignerTruncate        = fs.Int("imagor-signer-truncate", 0, "Imagor URL signature truncate at length")
 
 		serverAddress = fs.String("server-address", "",
@@ -272,8 +273,10 @@ func newServer(args ...string) (srv *server.Server) {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
-	if strings.ToLower(*imagorSignerAlgorithm) == "sha256" {
+	if strings.ToLower(*imagorSignerType) == "sha256" {
 		alg = sha256.New
+	} else if strings.ToLower(*imagorSignerType) == "sha512" {
+		alg = sha512.New
 	}
 
 	if *fileStorageBaseDir != "" {
