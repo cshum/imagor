@@ -8,6 +8,7 @@ import (
 	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"github.com/stretchr/testify/assert"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -60,6 +61,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-base-params", "fitlers:watermark(example.jpg)",
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
+		"-http-loader-insecure-skip-verify-transport",
 	)
 	app := srv.App.(*imagor.Imagor)
 
@@ -78,6 +80,9 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, "fitlers:watermark(example.jpg)/", app.BaseParams)
 	assert.Equal(t, time.Hour*169, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*167, app.CacheHeaderSWR)
+
+	httpLoader := app.Loaders[0].(*httploader.HTTPLoader)
+	assert.True(t, httpLoader.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify)
 }
 
 func TestSignerAlgorithm(t *testing.T) {
