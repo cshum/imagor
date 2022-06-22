@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
 	"flag"
 	"fmt"
 	"github.com/cshum/imagor/imagorpath"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -32,6 +36,7 @@ func newServer(args ...string) (srv *server.Server) {
 		loaders        []imagor.Loader
 		storages       []imagor.Storage
 		resultStorages []imagor.Storage
+		alg            = sha1.New
 
 		debug        = fs.Bool("debug", false, "Debug mode")
 		version      = fs.Bool("version", false, "Imagor version")
@@ -72,6 +77,8 @@ func newServer(args ...string) (srv *server.Server) {
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
 		imagorDisableErrorBody      = fs.Bool("imagor-disable-error-body", false, "Imagor disable response body on error")
 		imagorDisableParamsEndpoint = fs.Bool("imagor-disable-params-endpoint", false, "Imagor disable /params endpoint")
+		imagorSignerType            = fs.String("imagor-signer-type", "sha1", "Imagor URL signature hasher type sha1 or sha256")
+		imagorSignerTruncate        = fs.Int("imagor-signer-truncate", 0, "Imagor URL signature truncate at length")
 
 		serverAddress = fs.String("server-address", "",
 			"Server address")
@@ -266,6 +273,12 @@ func newServer(args ...string) (srv *server.Server) {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
+	if strings.ToLower(*imagorSignerType) == "sha256" {
+		alg = sha256.New
+	} else if strings.ToLower(*imagorSignerType) == "sha512" {
+		alg = sha512.New
+	}
+
 	if *fileStorageBaseDir != "" {
 		// activate File Storage only if base dir config presents
 		storages = append(storages,
@@ -452,7 +465,9 @@ func newServer(args ...string) (srv *server.Server) {
 					vipsprocessor.WithDebug(*debug),
 				),
 			),
-			imagor.WithSigner(imagorpath.NewDefaultSigner(*imagorSecret)),
+			imagor.WithSigner(imagorpath.NewHMACSigner(
+				alg, *imagorSignerTruncate, *imagorSecret,
+			)),
 			imagor.WithBasePathRedirect(*imagorBasePathRedirect),
 			imagor.WithBaseParams(*imagorBaseParams),
 			imagor.WithRequestTimeout(*imagorRequestTimeout),

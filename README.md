@@ -281,11 +281,33 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 // cST4Ko5_FqwT3BDn-Wf4gO3RFSk=/500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
+##### Custom Hash Signer
+
+Imagor uses SHA1 hash signer by default, the same method used by [Thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). However, SHA1 is not considered cryptographically secure. If that is a concern it is possible to configure different signing method and truncate length. Imagor supports sha1, sha256, sha512 signer type. Example:
+
+```dotenv
+IMAGOR_SIGNER_TYPE=sha256
+IMAGOR_SIGNER_TRUNCATE=32
+```
+
+The URL signature generator becomes:
+
+```javascript
+var hmacSHA256 = require("crypto-js/hmac-sha256")
+var Base64 = require("crypto-js/enc-base64")
+
+function sign(path, secret) {
+  var hash = hmacSHA256(path, secret)
+  hash = Base64.stringify(hash).slice(0, 32).replace(/\+/g, '-').replace(/\//g, '_')
+  return hash + '/' + path
+}
+```
+
 #### Allowed Sources
 Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES`. Accept csv wth glob pattern e.g.:
 
-```yaml
-HTTP_LOADER_ALLOWED_SOURCES: "*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com"
+```dotenv
+HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
 ```
 
 ### Configuration
@@ -339,6 +361,10 @@ Usage of imagor:
         Output AVIF format automatically if browser supports (experimental)
   -imagor-base-params string
         Imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
+  -imagor-signer-type string
+        Imagor URL signature hasher type sha1, sha256, sha512 (default "sha1")
+  -imagor-signer-truncate int
+        Imagor URL signature truncate at length
   -imagor-cache-header-ttl duration
         Imagor HTTP cache header ttl for successful image response (default 168h0m0s)
   -imagor-cache-header-swr duration

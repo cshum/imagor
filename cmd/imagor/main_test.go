@@ -80,6 +80,21 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, time.Hour*167, app.CacheHeaderSWR)
 }
 
+func TestSignerAlgorithm(t *testing.T) {
+	srv := newServer(
+		"-imagor-signer-type", "sha256",
+	)
+	app := srv.App.(*imagor.Imagor)
+	assert.Equal(t, "WN6mgyl8pD4KTy5IDSBs0GcFPaV7-R970JLsd01pqAU=", app.Signer.Sign("bar"))
+
+	srv = newServer(
+		"-imagor-signer-type", "sha512",
+		"-imagor-signer-truncate", "32",
+	)
+	app = srv.App.(*imagor.Imagor)
+	assert.Equal(t, "Kmml5ejnmsn7M7TszYkeM2j5G3bpI7mp", app.Signer.Sign("bar"))
+}
+
 func TestCacheHeaderNoCache(t *testing.T) {
 	srv := newServer("-imagor-cache-header-no-cache")
 	app := srv.App.(*imagor.Imagor)
