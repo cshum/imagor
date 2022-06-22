@@ -281,9 +281,9 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 // cST4Ko5_FqwT3BDn-Wf4gO3RFSk=/500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
-#### Custom Hash Signer
+#### Custom HMAC Signer
 
-Imagor uses SHA1 hash signer by default, the same method used by [Thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). However, SHA1 is not considered cryptographically secure. If that is a concern it is possible to configure different signing method and truncate length. Imagor supports `sha1`, `sha256`, `sha512` signer type e.g.:
+Imagor uses SHA1 HMAC signer by default, the same one used by [Thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). However, SHA1 is not considered cryptographically secure. If that is a concern it is possible to configure different signing method and truncate length. Imagor supports `sha1`, `sha256`, `sha512` signer type:
 
 ```dotenv
 IMAGOR_SIGNER_TYPE=sha256
