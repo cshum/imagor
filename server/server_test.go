@@ -127,6 +127,10 @@ func TestWithStripQueryString(t *testing.T) {
 	s.Handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/?a=1&b=2", nil))
 	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
 	assert.Equal(t, "https://example.com/", w.Header().Get("Location"))
+
+	w = httptest.NewRecorder()
+	s.Handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/", nil))
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestWithPathPrefix(t *testing.T) {
