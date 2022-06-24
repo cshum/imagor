@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.23.0
 	github.com/aws/aws-sdk-go v1.44.25
 	github.com/davidbyttow/govips/v2 v2.11.0
-	github.com/fsouza/fake-gcs-server v1.37.12
+	github.com/fsouza/fake-gcs-server v1.38.2
 	github.com/johannesboyne/gofakes3 v0.0.0-20220517215058-83a58ec253b6
 	github.com/peterbourgon/ff/v3 v3.2.0-rc.1
 	github.com/rs/cors v1.8.2
@@ -20,7 +20,7 @@ require (
 	cloud.google.com/go v0.102.1 // indirect
 	cloud.google.com/go/compute v1.7.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect
-	cloud.google.com/go/pubsub v1.22.0 // indirect
+	cloud.google.com/go/pubsub v1.22.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect

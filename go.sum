@@ -55,8 +55,8 @@ cloud.google.com/go/pubsub v1.0.1/go.mod h1:R0Gpsv3s54REJCy4fxDixWD93lHJMoZTyQ2k
 cloud.google.com/go/pubsub v1.1.0/go.mod h1:EwwdRX2sKPjnvnqCa270oGRyludottCI76h+R3AArQw=
 cloud.google.com/go/pubsub v1.2.0/go.mod h1:jhfEVHT8odbXTkndysNHCcx0awwzvfOlguIAii9o8iA=
 cloud.google.com/go/pubsub v1.3.1/go.mod h1:i+ucay31+CNRpDW4Lu78I4xXG+O1r/MAHgjpRVR+TSU=
-cloud.google.com/go/pubsub v1.22.0 h1:u9NBLGWrqsmakU6tLVAHOiMvFsweeJTRboWZ0YGYr0c=
-cloud.google.com/go/pubsub v1.22.0/go.mod h1:LBHGrtgM7+SGKCDKQu2pKIRtGwbZyJvRDkMk0594xdU=
+cloud.google.com/go/pubsub v1.22.2 h1:e6A4rhtMX4opff/jDWApl4HwLtsCdV9VULVfpFRp6eo=
+cloud.google.com/go/pubsub v1.22.2/go.mod h1:LBHGrtgM7+SGKCDKQu2pKIRtGwbZyJvRDkMk0594xdU=
 cloud.google.com/go/storage v1.0.0/go.mod h1:IhtSnM/ZTZV8YYJWCY8RULGVqBDmpoyjwiyrjsg+URw=
 cloud.google.com/go/storage v1.5.0/go.mod h1:tpKbwo567HUNpVclU5sGELwQWBDZ8gh0ZeosJ0Rtdos=
 cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohlUTyfDhBk=
@@ -109,8 +109,8 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/felixge/httpsnoop v1.0.3 h1:s/nj+GCswXYzN5v2DpNMuMQYe+0DDwt5WVCU6CWBdXk=
 github.com/felixge/httpsnoop v1.0.3/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/fsouza/fake-gcs-server v1.37.12 h1:eMjZgs2KXoN/QmbFuydN29jWwpdioPQcg92dzis21TE=
-github.com/fsouza/fake-gcs-server v1.37.12/go.mod h1:9A8foxhEYU5Vf7znk9TMl5YZGrdPGBokNTTuqltZCnc=
+github.com/fsouza/fake-gcs-server v1.38.2 h1:pEXd/nReYDflYaZi4TR3SloXuPqm1WryKO9yKMGX85Y=
+github.com/fsouza/fake-gcs-server v1.38.2/go.mod h1:o4oLHmNPvmM7YzpWsAeGbryiXnaeSujDDoZvnoOdBPc=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
