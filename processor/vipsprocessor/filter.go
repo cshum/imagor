@@ -184,6 +184,17 @@ func frames(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...
 }
 
 func (v *VipsProcessor) fill(ctx context.Context, img *vips.ImageRef, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
+	if IsRotate90(ctx) {
+		tmpW := w
+		w = h
+		h = tmpW
+		tmpPLeft := pLeft
+		pLeft = pTop
+		pTop = tmpPLeft
+		tmpPRight := pRight
+		pRight = pBottom
+		pBottom = tmpPRight
+	}
 	c := getColor(img, colour)
 	left := (w-img.Width())/2 + pLeft
 	top := (h-img.PageHeight())/2 + pTop
@@ -314,7 +325,7 @@ func backgroundColor(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, a
 	return img.Flatten(getColor(img, args[0]))
 }
 
-func rotate(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func rotate(ctx context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -323,10 +334,12 @@ func rotate(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args ...st
 		switch angle {
 		case 90:
 			vAngle = vips.Angle270
+			SetRotate90(ctx)
 		case 180:
 			vAngle = vips.Angle180
 		case 270:
 			vAngle = vips.Angle90
+			SetRotate90(ctx)
 		}
 		if err = img.Rotate(vAngle); err != nil {
 			return err
