@@ -105,6 +105,7 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "smart focal animated", path: "100x30/smart/filters:focal(0.1x0:0.89x0.72)/dancing-banana.gif"},
 			{name: "watermark frames static", path: "fit-in/200x200/filters:fill(white):frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
 			{name: "padding", path: "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
+			{name: "rotate fill", path: "fit-in/100x210/10x20:15x3/filters:rotate(90):fill(yellow)/gopher-front.png"},
 		}
 		doTests(t, resultDir, tests, WithDebug(true), WithLogger(zap.NewExample()))
 	})
