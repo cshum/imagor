@@ -2,7 +2,7 @@
 
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/github/cshum/imagor/badge.svg?branch=master)](https://coveralls.io/github/cshum/imagor?branch=master)
-[![Docker](https://ghcr-badge.herokuapp.com/cshum/imagor/latest_tag?trim=major&label=ghcr.io/cshum/imagor)](https://github.com/cshum/imagor/pkgs/container/imagor)
+[![Docker](https://ghcr-badge.herokuapp.com/cshum/imagor/latest_tag?trim=major&label=ghcr.io/cshum/imagor&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
 
 Imagor is a fast, Docker-ready image processing server written in Go.
 
@@ -290,7 +290,7 @@ IMAGOR_SIGNER_TYPE=sha256
 IMAGOR_SIGNER_TRUNCATE=32
 ```
 
-The URL signature generator becomes:
+The URL signature generator then becomes:
 
 ```javascript
 var hmacSHA256 = require("crypto-js/hmac-sha256")
