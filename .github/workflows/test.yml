@@ -24,8 +24,6 @@ jobs:
       - name: Install linux deps
         if: matrix.os == 'ubuntu-22.04'
         run: |
-          sudo add-apt-repository -y ppa:strukturag/libde265
-          sudo add-apt-repository -y ppa:strukturag/libheif
           sudo add-apt-repository -y ppa:lovell/cgif
           sudo apt-get -y install libopenjp2-7 libcgif-dev
           sudo apt-get -y install libvips-dev
