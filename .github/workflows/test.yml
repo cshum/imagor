@@ -32,7 +32,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
           glib-2.0-dev libexpat-dev librsvg2-dev libpng-dev \
-          libjpeg-turbo8-dev libimagequant-dev liblcms2-dev \
+          libjpeg-turbo8-dev libimagequant-dev libfftw3-dev \
+          libpoppler-glib-dev libxml2-dev \
+          libopenslide-dev libcfitsio-dev liborc-0.4-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
           libopenjp2-7 libcgif-dev
       - name: Vips cache
