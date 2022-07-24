@@ -27,8 +27,10 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo add-apt-repository -y ppa:lovell/cgif
+          sudo apt-get update
           sudo apt-get install -y \
-          glib-2.0-dev libexpat-dev librsvg2-dev libpng-dev libjpeg-dev \
+          glib-2.0-dev libexpat-dev librsvg2-dev libpng-dev \
+          libjpeg-turbo8-dev libimagequant-dev liblcms2-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
           libopenjp2-7 libcgif-dev
 #          sudo apt-get -y install libvips-dev
