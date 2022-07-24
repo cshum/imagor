@@ -1,3 +1,5 @@
+env:
+  VIPS_VERSION: 8.13.0
 name: test
 
 on: [push, pull_request]
@@ -25,8 +27,36 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo add-apt-repository -y ppa:lovell/cgif
-          sudo apt-get -y install libopenjp2-7 libcgif-dev
-          sudo apt-get -y install libvips-dev
+          sudo apt-get install -y \
+          glib-2.0-dev libexpat-dev librsvg2-dev libpng-dev libjpeg-dev \
+          libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
+          libopenjp2-7 libcgif-dev
+#          sudo apt-get -y install libvips-dev
+      - name: Vips cache
+        uses: actions/cache@v1
+        with:
+          path: vips-${{ env.VIPS_VERSION }}
+          key: ${{ runner.os }}-vips-${{ env.VIPS_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-vips-
+
+      - name: Build libvips from source
+        run: |
+          wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
+          tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+          cd vips-${{ env.VIPS_VERSION }}
+          CFLAGS="-g -O3" CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -g -O3" \
+          ./configure \
+          --disable-debug \
+          --disable-dependency-tracking \
+          --disable-introspection \
+          --disable-static \
+          --enable-gtk-doc-html=no \
+          --enable-gtk-doc=no \
+          --enable-pyvips8=no
+          make
+          sudo make install
+          sudo ldconfig
 
       - name: Get dependencies
         run: make get
