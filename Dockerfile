@@ -45,7 +45,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
       --enable-pyvips8=no && \
     make && \
     make install && \
-  ldconfig
+  ldconfig && \
+  rm -rf /usr/local/lib/python*
 
 WORKDIR ${GOPATH}/src/github.com/cshum/imagor
 
@@ -58,8 +59,6 @@ COPY . .
 
 RUN if [ "$RUN_TEST" = 1 ]; then go test ./...; fi
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
-
-RUN rm -rf /usr/local/lib/python*
 
 FROM debian:bullseye-slim
 LABEL maintainer="adrian@cshum.com"
