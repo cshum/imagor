@@ -101,24 +101,17 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 				v.Logger.Error(domain, zap.String("log", msg))
 			}
 		}, vips.LogLevelDebug)
-		vips.Startup(&vips.Config{
-			ReportLeaks:      true,
-			MaxCacheFiles:    v.MaxCacheFiles,
-			MaxCacheMem:      v.MaxCacheMem,
-			MaxCacheSize:     v.MaxCacheSize,
-			ConcurrencyLevel: v.Concurrency,
-		})
 	} else {
 		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
 			v.Logger.Error(domain, zap.String("log", msg))
 		}, vips.LogLevelError)
-		vips.Startup(&vips.Config{
-			MaxCacheFiles:    v.MaxCacheFiles,
-			MaxCacheMem:      v.MaxCacheMem,
-			MaxCacheSize:     v.MaxCacheSize,
-			ConcurrencyLevel: v.Concurrency,
-		})
 	}
+	vips.Startup(&vips.Config{
+		MaxCacheFiles:    v.MaxCacheFiles,
+		MaxCacheMem:      v.MaxCacheMem,
+		MaxCacheSize:     v.MaxCacheSize,
+		ConcurrencyLevel: v.Concurrency,
+	})
 	return nil
 }
 
