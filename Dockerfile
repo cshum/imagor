@@ -1,7 +1,7 @@
-ARG GOLANG_VERSION=1.18.3
+ARG GOLANG_VERSION=1.18.4
 FROM golang:${GOLANG_VERSION}-bullseye as builder
 
-ARG VIPS_VERSION=8.12.2
+ARG VIPS_VERSION=8.13.0
 ARG CGIF_VERSION=0.3.0
 ARG RUN_TEST
 
@@ -23,29 +23,30 @@ RUN DEBIAN_FRONTEND=noninteractive \
   libgsf-1-dev fftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev/bullseye-backports libheif-dev && \
   pip3 install meson && \
   cd /tmp && \
-  curl -fsSLO https://github.com/dloebl/cgif/archive/refs/tags/V${CGIF_VERSION}.tar.gz && \
-  tar xf V${CGIF_VERSION}.tar.gz && \
-  cd cgif-${CGIF_VERSION} && \
-  meson build --prefix=/usr/local --libdir=/usr/local/lib && \
-  cd build && \
-  ninja && \
-  ninja install && \
+    curl -fsSLO https://github.com/dloebl/cgif/archive/refs/tags/V${CGIF_VERSION}.tar.gz && \
+    tar xf V${CGIF_VERSION}.tar.gz && \
+    cd cgif-${CGIF_VERSION} && \
+    meson build --prefix=/usr/local --libdir=/usr/local/lib --buildtype=release && \
+    cd build && \
+    ninja && \
+    ninja install && \
   cd /tmp && \
-  curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz && \
-  tar zvxf vips-${VIPS_VERSION}.tar.gz && \
-  cd /tmp/vips-${VIPS_VERSION} && \
-	CFLAGS="-g -O3" CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -g -O3" \
-    ./configure \
-    --disable-debug \
-    --disable-dependency-tracking \
-    --disable-introspection \
-    --disable-static \
-    --enable-gtk-doc-html=no \
-    --enable-gtk-doc=no \
-    --enable-pyvips8=no && \
-  make && \
-  make install && \
-  ldconfig
+    curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz && \
+    tar zvxf vips-${VIPS_VERSION}.tar.gz && \
+    cd /tmp/vips-${VIPS_VERSION} && \
+    CFLAGS="-g -O3" CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -g -O3" \
+      ./configure \
+      --disable-debug \
+      --disable-dependency-tracking \
+      --disable-introspection \
+      --disable-static \
+      --enable-gtk-doc-html=no \
+      --enable-gtk-doc=no \
+      --enable-pyvips8=no && \
+    make && \
+    make install && \
+  ldconfig && \
+  rm -rf /usr/local/lib/python*
 
 WORKDIR ${GOPATH}/src/github.com/cshum/imagor
 
@@ -58,8 +59,6 @@ COPY . .
 
 RUN if [ "$RUN_TEST" = 1 ]; then go test ./...; fi
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
-
-RUN rm -rf /usr/local/lib/python*
 
 FROM debian:bullseye-slim
 LABEL maintainer="adrian@cshum.com"

@@ -1,3 +1,5 @@
+env:
+  VIPS_VERSION: 8.13.0
 name: test
 
 on: [push, pull_request]
@@ -24,11 +26,42 @@ jobs:
       - name: Install linux deps
         if: matrix.os == 'ubuntu-20.04'
         run: |
+          sudo add-apt-repository -y ppa:lovell/cgif
           sudo add-apt-repository -y ppa:strukturag/libde265
           sudo add-apt-repository -y ppa:strukturag/libheif
-          sudo add-apt-repository -y ppa:tonimelisma/ppa
-          sudo apt-get -y install libopenjp2-7
-          sudo apt-get -y install libvips-dev
+          sudo apt-get update
+          sudo apt-get install -y \
+          glib-2.0-dev libexpat-dev librsvg2-dev libpng-dev \
+          libjpeg-turbo8-dev libimagequant-dev libfftw3-dev \
+          libpoppler-glib-dev libxml2-dev \
+          libopenslide-dev libcfitsio-dev liborc-0.4-dev \
+          libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
+          libopenjp2-7 libcgif-dev
+      - name: Vips cache
+        uses: actions/cache@v1
+        with:
+          path: vips-${{ env.VIPS_VERSION }}
+          key: ${{ runner.os }}-vips-${{ env.VIPS_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-vips-
+
+      - name: Build libvips from source
+        run: |
+          wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
+          tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+          cd vips-${{ env.VIPS_VERSION }}
+          CFLAGS="-g -O3" CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -g -O3" \
+          ./configure \
+          --disable-debug \
+          --disable-dependency-tracking \
+          --disable-introspection \
+          --disable-static \
+          --enable-gtk-doc-html=no \
+          --enable-gtk-doc=no \
+          --enable-pyvips8=no
+          make
+          sudo make install
+          sudo ldconfig
 
       - name: Get dependencies
         run: make get

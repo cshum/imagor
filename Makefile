@@ -18,7 +18,7 @@ docker-dev-build:
 
 docker-dev-run:
 	touch .env
-	docker run -p 8000:8000 --env-file .env shumc/imagor:dev -debug -imagor-unsafe
+	docker run --rm -p 8000:8000 --env-file .env shumc/imagor:dev -debug -imagor-unsafe
 
 docker-dev: docker-dev-build docker-dev-run
 
