@@ -37,6 +37,7 @@ jobs:
           libopenslide-dev libcfitsio-dev liborc-0.4-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
           libopenjp2-7 libcgif-dev
+          pip3 install meson
       - name: Vips cache
         uses: actions/cache@v1
         with:
