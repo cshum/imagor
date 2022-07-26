@@ -34,19 +34,20 @@ RUN DEBIAN_FRONTEND=noninteractive \
     curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz && \
     tar zvxf vips-${VIPS_VERSION}.tar.gz && \
     cd /tmp/vips-${VIPS_VERSION} && \
-    CFLAGS="-g -O3" CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 -g -O3" \
-      ./configure \
-      --disable-debug \
-      --disable-dependency-tracking \
-      --disable-introspection \
-      --disable-static \
-      --enable-gtk-doc-html=no \
-      --enable-gtk-doc=no \
-      --enable-pyvips8=no && \
-    make && \
-    make install && \
+    meson setup _build \
+    --buildtype=release \
+    --strip \
+    --prefix=/usr/local \
+    --libdir=lib \
+    -Dgtk_doc=false \
+    -Dintrospection=false && \
+    ninja -C _build \
+    ninja -C _build install \
   ldconfig && \
-  rm -rf /usr/local/lib/python*
+  rm -rf /usr/local/lib/python* && \
+  rm -rf /usr/local/lib/libvips-cpp.* && \
+  rm -rf /usr/local/lib/*.a && \
+  rm -rf /usr/local/lib/*.la
 
 WORKDIR ${GOPATH}/src/github.com/cshum/imagor
 
