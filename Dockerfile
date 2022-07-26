@@ -41,7 +41,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
     --libdir=lib \
     -Dgtk_doc=false \
     -Dintrospection=false && \
-    ninja -C _build \
+    ninja -C _build && \
     ninja -C _build install \
   ldconfig && \
   rm -rf /usr/local/lib/python* && \
