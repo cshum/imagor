@@ -58,8 +58,8 @@ jobs:
           --libdir=lib \
           -Dgtk_doc=false \
           -Dintrospection=false
-          ninja -C _build
-          ninja -C _build install
+          sudo ninja -C _build
+          sudo ninja -C _build install
           sudo ldconfig
 
       - name: Get dependencies
