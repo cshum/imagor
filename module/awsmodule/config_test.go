@@ -1,15 +1,15 @@
-package awsconfig
+package awsmodule
 
 import (
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/config"
+	"github.com/cshum/imagor/module"
 	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestS3Loader(t *testing.T) {
-	srv := config.Do([]string{
+	srv := module.Do([]string{
 		"-aws-region", "asdf",
 		"-aws-access-key-id", "asdf",
 		"-aws-secret-access-key", "asdf",
@@ -30,7 +30,7 @@ func TestS3Loader(t *testing.T) {
 }
 
 func TestS3Storage(t *testing.T) {
-	srv := config.Do([]string{
+	srv := module.Do([]string{
 		"-aws-region", "asdf",
 		"-aws-access-key-id", "asdf",
 		"-aws-secret-access-key", "asdf",
