@@ -36,7 +36,7 @@ func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
 			"Enable server access log")
 	)
 
-	app = NewImagor(fs, func() (logger *zap.Logger, isDebug bool) {
+	app = NewImagor(fs, func() (*zap.Logger, bool) {
 		if err = ff.Parse(fs, args,
 			ff.WithEnvVars(),
 			ff.WithConfigFileFlag("config"),
