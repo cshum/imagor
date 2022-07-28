@@ -19,9 +19,9 @@ import (
 
 type Callback func() (logger *zap.Logger, isDebug bool)
 
-type FlagFunc func(fs *flag.FlagSet, cb Callback) imagor.Option
+type Func func(fs *flag.FlagSet, cb Callback) imagor.Option
 
-func Do(args []string, funcs ...FlagFunc) (srv *server.Server) {
+func Do(args []string, funcs ...Func) (srv *server.Server) {
 	var (
 		fs      = flag.NewFlagSet("imagor", flag.ExitOnError)
 		logger  *zap.Logger
@@ -84,7 +84,7 @@ func Do(args []string, funcs ...FlagFunc) (srv *server.Server) {
 	)
 
 	// base funcs
-	options = ApplyFlagFuncs(fs, func() (*zap.Logger, bool) {
+	options = ApplyFuncs(fs, func() (*zap.Logger, bool) {
 		if err = ff.Parse(fs, args,
 			ff.WithEnvVars(),
 			ff.WithConfigFileFlag("config"),

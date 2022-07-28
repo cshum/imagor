@@ -12,7 +12,7 @@ func TestApplySetFuncs(t *testing.T) {
 	fs := flag.NewFlagSet("imagaor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
 	var seq []int
-	imagor.New(ApplyFlagFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
+	imagor.New(ApplyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
 	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
