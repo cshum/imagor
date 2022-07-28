@@ -26,11 +26,11 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 	setters = append(setters, withFile, withHTTPLoader)
 
 	var (
-		fs            = flag.NewFlagSet("imagor", flag.ExitOnError)
-		logger        *zap.Logger
-		err           error
-		setterOptions []imagor.Option
-		alg           = sha1.New
+		fs      = flag.NewFlagSet("imagor", flag.ExitOnError)
+		logger  *zap.Logger
+		err     error
+		options []imagor.Option
+		alg     = sha1.New
 
 		debug        = fs.Bool("debug", false, "Debug mode")
 		version      = fs.Bool("version", false, "Imagor version")
@@ -86,25 +86,7 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 			"Enable server access log")
 	)
 
-	var doSetters func(setters []Setter)
-	doSetters = func(setters []Setter) {
-		if len(setters) > 0 {
-			last := len(setters) - 1
-			if setters[last] == nil {
-				doSetters(setters[:last])
-				return
-			}
-			var isCalled bool
-			setterOptions = append(setterOptions, setters[last](fs, func() (*zap.Logger, bool) {
-				isCalled = true
-				doSetters(setters[:last])
-				return logger, *debug
-			}))
-			if !isCalled {
-				doSetters(setters[:last])
-			}
-			return
-		}
+	options = doSetters(fs, setters, func() (*zap.Logger, bool) {
 		if err = ff.Parse(fs, args,
 			ff.WithEnvVars(),
 			ff.WithConfigFileFlag("config"),
@@ -123,8 +105,8 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 				panic(err)
 			}
 		}
-	}
-	doSetters(setters)
+		return logger, *debug
+	})
 
 	if *version {
 		fmt.Println(imagor.Version)
@@ -144,7 +126,7 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 
 	return server.New(
 		imagor.New(append(
-			setterOptions,
+			options,
 			imagor.WithSigner(imagorpath.NewHMACSigner(
 				alg, *imagorSignerTruncate, *imagorSecret,
 			)),
@@ -176,4 +158,19 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
 	)
+}
+
+func doSetters(fs *flag.FlagSet, setters []Setter, cb Callback) (options []imagor.Option) {
+	var logger *zap.Logger
+	var isDebug bool
+	if len(setters) > 0 {
+		var last = len(setters) - 1
+		options = append(options, setters[last](fs, func() (*zap.Logger, bool) {
+			options = append(options, doSetters(fs, setters[:last], cb)...)
+			return logger, isDebug
+		}))
+		return
+	}
+	logger, isDebug = cb()
+	return
 }
