@@ -6,22 +6,21 @@ import (
 	"go.uber.org/zap"
 )
 
-func ApplyFlagFuncs(fs *flag.FlagSet, cb Callback, setters ...FlagFunc) (options []imagor.Option) {
-	options, _, _ = applyFlagFuncs(fs, cb, setters...)
+func ApplyFlagFuncs(fs *flag.FlagSet, cb Callback, funcs ...FlagFunc) (options []imagor.Option) {
+	options, _, _ = applyFlagFuncs(fs, cb, funcs...)
 	return
 }
 
-func applyFlagFuncs(fs *flag.FlagSet, cb Callback, setters ...FlagFunc) (options []imagor.Option, logger *zap.Logger, isDebug bool) {
-	if len(setters) == 0 {
+func applyFlagFuncs(fs *flag.FlagSet, cb Callback, funcs ...FlagFunc) (options []imagor.Option, logger *zap.Logger, isDebug bool) {
+	if len(funcs) == 0 {
 		logger, isDebug = cb()
 		return
 	} else {
-		var last = len(setters) - 1
-		options = append(options, setters[last](fs, func() (*zap.Logger, bool) {
-			opts, l, i := applyFlagFuncs(fs, cb, setters[:last]...)
+		var last = len(funcs) - 1
+		options = append(options, funcs[last](fs, func() (*zap.Logger, bool) {
+			var opts []imagor.Option
+			opts, logger, isDebug = applyFlagFuncs(fs, cb, funcs[:last]...)
 			options = append(options, opts...)
-			logger = l
-			isDebug = i
 			return logger, isDebug
 		}))
 		return
