@@ -8,11 +8,11 @@ import (
 	"testing"
 )
 
-func TestApplyFuncs(t *testing.T) {
+func TestImagorFuncs(t *testing.T) {
 	fs := flag.NewFlagSet("imagor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
 	var seq []int
-	imagor.New(ApplyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
+	NewImagor(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
 	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
@@ -42,15 +42,15 @@ func TestApplyFuncs(t *testing.T) {
 		return func(app *imagor.Imagor) {
 			seq = append(seq, 10)
 		}
-	})...)
+	})
 	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, seq)
 }
 
-func TestApplyFuncsNil(t *testing.T) {
+func TestImagorFuncsNil(t *testing.T) {
 	fs := flag.NewFlagSet("imagor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
 	var seq []int
-	imagor.New(ApplyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
+	NewImagor(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
 	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
@@ -76,6 +76,6 @@ func TestApplyFuncsNil(t *testing.T) {
 		return func(app *imagor.Imagor) {
 			seq = append(seq, 9)
 		}
-	})...)
+	})
 	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8, 9}, seq)
 }

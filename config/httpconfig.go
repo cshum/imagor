@@ -6,7 +6,7 @@ import (
 	"github.com/cshum/imagor/loader/httploader"
 )
 
-func withHTTPLoader(fs *flag.FlagSet, cb Callback) imagor.Option {
+func WithHTTPLoader(fs *flag.FlagSet, cb Callback) imagor.Option {
 	var (
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
