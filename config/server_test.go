@@ -35,10 +35,6 @@ func TestDefault(t *testing.T) {
 	assert.IsType(t, &httploader.HTTPLoader{}, app.Loaders[0])
 }
 
-func TestVersion(t *testing.T) {
-	assert.Empty(t, CreateServer([]string{"-version"}))
-}
-
 func TestBasic(t *testing.T) {
 	srv := CreateServer([]string{
 		"-debug",
@@ -79,6 +75,10 @@ func TestBasic(t *testing.T) {
 
 	httpLoader := app.Loaders[0].(*httploader.HTTPLoader)
 	assert.True(t, httpLoader.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify)
+}
+
+func TestVersion(t *testing.T) {
+	assert.Empty(t, CreateServer([]string{"-version"}))
 }
 
 func TestSignerAlgorithm(t *testing.T) {
