@@ -21,12 +21,10 @@ type Callback func() (logger *zap.Logger, isDebug bool)
 
 type Setter func(fs *flag.FlagSet, cb Callback) imagor.Option
 
-var baseSetters = []Setter{
-	withFile,
-	withHTTPLoader,
-}
-
 func Do(args []string, setters ...Setter) (srv *server.Server) {
+	// base setters
+	setters = append(setters, withFile, withHTTPLoader)
+
 	var (
 		fs            = flag.NewFlagSet("imagor", flag.ExitOnError)
 		logger        *zap.Logger
@@ -88,23 +86,22 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 			"Enable server access log")
 	)
 
-	setters = append(setters, baseSetters...)
-
 	var doSetters func(setters []Setter)
 	doSetters = func(setters []Setter) {
 		if len(setters) > 0 {
-			var isCalled bool
-			if setters[0] == nil {
-				doSetters(setters[1:])
+			last := len(setters) - 1
+			if setters[last] == nil {
+				doSetters(setters[:last])
 				return
 			}
-			setterOptions = append(setterOptions, setters[0](fs, func() (*zap.Logger, bool) {
+			var isCalled bool
+			setterOptions = append(setterOptions, setters[last](fs, func() (*zap.Logger, bool) {
 				isCalled = true
-				doSetters(setters[1:])
+				doSetters(setters[:last])
 				return logger, *debug
 			}))
 			if !isCalled {
-				doSetters(setters[1:])
+				doSetters(setters[:last])
 			}
 			return
 		}

@@ -40,7 +40,6 @@ func withFile(fs *flag.FlagSet, cb Callback) imagor.Option {
 		_, _ = cb()
 	)
 	return func(o *imagor.Imagor) {
-
 		if *fileStorageBaseDir != "" {
 			// activate File Storage only if base dir config presents
 			o.Storages = append(o.Storages,
