@@ -1,4 +1,4 @@
-package module
+package config
 
 import (
 	"crypto/sha1"

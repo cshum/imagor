@@ -1,8 +1,8 @@
-package gcloudmodule
+package gcloudconfig
 
 import (
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/module"
+	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/storage/gcloudstorage"
 	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +27,7 @@ func TestGCSLoader(t *testing.T) {
 	svr := fakeGCSServer()
 	defer svr.Stop()
 
-	srv := module.Do([]string{
+	srv := config.Do([]string{
 		"-gcloud-safe-chars", "!",
 
 		"-gcloud-loader-bucket", "a",
@@ -46,7 +46,7 @@ func TestGCSStorage(t *testing.T) {
 	svr := fakeGCSServer()
 	defer svr.Stop()
 
-	srv := module.Do([]string{
+	srv := config.Do([]string{
 		"-gcloud-safe-chars", "!",
 
 		"-gcloud-loader-bucket", "a",

@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/cshum/imagor/module"
-	"github.com/cshum/imagor/module/awsmodule"
-	"github.com/cshum/imagor/module/gcloudmodule"
-	"github.com/cshum/imagor/module/vipsmodule"
+	"github.com/cshum/imagor/config"
+	"github.com/cshum/imagor/config/awsconfig"
+	"github.com/cshum/imagor/config/gcloudconfig"
+	"github.com/cshum/imagor/config/vipsconfig"
 	"os"
 )
 
 func main() {
-	var server = module.Do(os.Args[1:], vipsmodule.WithVips, awsmodule.WithAWS, gcloudmodule.WithGCloud)
+	var server = config.Do(os.Args[1:], vipsconfig.WithVips, awsconfig.WithAWS, gcloudconfig.WithGCloud)
 	if server != nil {
 		server.Run()
 	}

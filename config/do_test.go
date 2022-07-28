@@ -1,4 +1,4 @@
-package module
+package config
 
 import (
 	"github.com/cshum/imagor"

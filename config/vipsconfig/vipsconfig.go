@@ -1,13 +1,13 @@
-package vipsmodule
+package vipsconfig
 
 import (
 	"flag"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/module"
+	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 )
 
-func WithVips(fs *flag.FlagSet, cb module.Callback) imagor.Option {
+func WithVips(fs *flag.FlagSet, cb config.Callback) imagor.Option {
 	var (
 		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
 			"VIPS disable blur operations for vips processor")
