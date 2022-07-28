@@ -21,12 +21,21 @@ func applyFuncs(fs *flag.FlagSet, cb Callback, funcs ...Func) (options []imagor.
 		return
 	} else {
 		var last = len(funcs) - 1
+		var called bool
+		if funcs[last] == nil {
+			return applyFuncs(fs, cb, funcs[:last]...)
+		}
 		options = append(options, funcs[last](fs, func() (*zap.Logger, bool) {
-			var opts []imagor.Option
-			opts, logger, isDebug = applyFuncs(fs, cb, funcs[:last]...)
-			options = append(options, opts...)
+			options, logger, isDebug = applyFuncs(fs, cb, funcs[:last]...)
+			called = true
 			return logger, isDebug
 		}))
+		if !called {
+			var opts []imagor.Option
+			opts, logger, isDebug = applyFuncs(fs, cb, funcs[:last]...)
+			options = append(opts, options...)
+			return options, logger, isDebug
+		}
 		return
 	}
 }
