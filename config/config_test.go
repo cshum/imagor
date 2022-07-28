@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"github.com/cshum/imagor"
@@ -15,7 +15,7 @@ import (
 )
 
 func TestDefault(t *testing.T) {
-	srv := newServer()
+	srv := Do(nil, nil)
 	app := srv.App.(*imagor.Imagor)
 
 	assert.False(t, app.Debug)
@@ -40,11 +40,11 @@ func TestDefault(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	assert.Empty(t, newServer("-version"))
+	assert.Empty(t, Do([]string{"-version"}, nil))
 }
 
 func TestBasic(t *testing.T) {
-	srv := newServer(
+	srv := Do([]string{
 		"-debug",
 		"-port", "2345",
 		"-imagor-secret", "foo",
@@ -62,7 +62,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 		"-http-loader-insecure-skip-verify-transport",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 
 	assert.Equal(t, 2345, srv.Port)
@@ -86,39 +86,39 @@ func TestBasic(t *testing.T) {
 }
 
 func TestSignerAlgorithm(t *testing.T) {
-	srv := newServer(
+	srv := Do([]string{
 		"-imagor-signer-type", "sha256",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 	assert.Equal(t, "WN6mgyl8pD4KTy5IDSBs0GcFPaV7-R970JLsd01pqAU=", app.Signer.Sign("bar"))
 
-	srv = newServer(
+	srv = Do([]string{
 		"-imagor-signer-type", "sha512",
 		"-imagor-signer-truncate", "32",
-	)
+	}, nil)
 	app = srv.App.(*imagor.Imagor)
 	assert.Equal(t, "Kmml5ejnmsn7M7TszYkeM2j5G3bpI7mp", app.Signer.Sign("bar"))
 }
 
 func TestCacheHeaderNoCache(t *testing.T) {
-	srv := newServer("-imagor-cache-header-no-cache")
+	srv := Do([]string{"-imagor-cache-header-no-cache"}, nil)
 	app := srv.App.(*imagor.Imagor)
 	assert.Empty(t, app.CacheHeaderTTL)
 }
 
 func TestDisableHTTPLoader(t *testing.T) {
-	srv := newServer("-http-loader-disable")
+	srv := Do([]string{"-http-loader-disable"}, nil)
 	app := srv.App.(*imagor.Imagor)
 	assert.Empty(t, app.Loaders)
 }
 
 func TestFileLoader(t *testing.T) {
-	srv := newServer(
+	srv := Do([]string{
 		"-file-safe-chars", "!",
 
 		"-file-loader-base-dir", "./foo",
 		"-file-loader-path-prefix", "abcd",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 	fileLoader := app.Loaders[0].(*filestorage.FileStorage)
 	assert.Equal(t, "./foo", fileLoader.BaseDir)
@@ -127,7 +127,7 @@ func TestFileLoader(t *testing.T) {
 }
 
 func TestFileStorage(t *testing.T) {
-	srv := newServer(
+	srv := Do([]string{
 		"-file-safe-chars", "!",
 
 		"-file-storage-base-dir", "./foo",
@@ -137,7 +137,7 @@ func TestFileStorage(t *testing.T) {
 
 		"-file-result-storage-base-dir", "./bar",
 		"-file-result-storage-path-prefix", "bcda",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 	assert.Equal(t, 1, len(app.Loaders))
 	storage := app.Storages[0].(*filestorage.FileStorage)
@@ -152,7 +152,7 @@ func TestFileStorage(t *testing.T) {
 }
 
 func TestS3Loader(t *testing.T) {
-	srv := newServer(
+	srv := Do([]string{
 		"-aws-region", "asdf",
 		"-aws-access-key-id", "asdf",
 		"-aws-secret-access-key", "asdf",
@@ -163,7 +163,7 @@ func TestS3Loader(t *testing.T) {
 		"-s3-loader-bucket", "a",
 		"-s3-loader-base-dir", "foo",
 		"-s3-loader-path-prefix", "abcd",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 	loader := app.Loaders[0].(*s3storage.S3Storage)
 	assert.Equal(t, "a", loader.Bucket)
@@ -173,7 +173,7 @@ func TestS3Loader(t *testing.T) {
 }
 
 func TestS3Storage(t *testing.T) {
-	srv := newServer(
+	srv := Do([]string{
 		"-aws-region", "asdf",
 		"-aws-access-key-id", "asdf",
 		"-aws-secret-access-key", "asdf",
@@ -191,7 +191,7 @@ func TestS3Storage(t *testing.T) {
 		"-s3-result-storage-bucket", "b",
 		"-s3-result-storage-base-dir", "bar",
 		"-s3-result-storage-path-prefix", "bcda",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 	assert.Equal(t, 1, len(app.Loaders))
 	storage := app.Storages[0].(*s3storage.S3Storage)
@@ -224,13 +224,13 @@ func TestGCSLoader(t *testing.T) {
 	svr := fakeGCSServer()
 	defer svr.Stop()
 
-	srv := newServer(
+	srv := Do([]string{
 		"-gcloud-safe-chars", "!",
 
 		"-gcloud-loader-bucket", "a",
 		"-gcloud-loader-base-dir", "foo",
 		"-gcloud-loader-path-prefix", "abcd",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 	loader := app.Loaders[0].(*gcloudstorage.GCloudStorage)
 	assert.Equal(t, "a", loader.Bucket)
@@ -243,7 +243,7 @@ func TestGCSStorage(t *testing.T) {
 	svr := fakeGCSServer()
 	defer svr.Stop()
 
-	srv := newServer(
+	srv := Do([]string{
 		"-gcloud-safe-chars", "!",
 
 		"-gcloud-loader-bucket", "a",
@@ -256,7 +256,7 @@ func TestGCSStorage(t *testing.T) {
 		"-gcloud-result-storage-bucket", "b",
 		"-gcloud-result-storage-base-dir", "bar",
 		"-gcloud-result-storage-path-prefix", "bcda",
-	)
+	}, nil)
 	app := srv.App.(*imagor.Imagor)
 	assert.Equal(t, 1, len(app.Loaders))
 	storage := app.Storages[0].(*gcloudstorage.GCloudStorage)
