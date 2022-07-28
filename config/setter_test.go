@@ -8,15 +8,20 @@ import (
 	"testing"
 )
 
-func TestCreateOptions(t *testing.T) {
+func TestApplySetters(t *testing.T) {
 	fs := flag.NewFlagSet("imagaor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
-	op1 := func(app *imagor.Imagor) {}
-	op2 := func(app *imagor.Imagor) {}
-	op3 := func(app *imagor.Imagor) {}
 	var seq []int
-
-	ApplySetters(fs, func() (logger *zap.Logger, isDebug bool) {
+	op1 := func(app *imagor.Imagor) {
+		seq = append(seq, 8)
+	}
+	op2 := func(app *imagor.Imagor) {
+		seq = append(seq, 9)
+	}
+	op3 := func(app *imagor.Imagor) {
+		seq = append(seq, 10)
+	}
+	imagor.New(ApplySetters(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
 	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
@@ -40,6 +45,6 @@ func TestCreateOptions(t *testing.T) {
 		assert.True(t, isDebug)
 		seq = append(seq, 7)
 		return op3
-	})
-	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7}, seq)
+	})...)
+	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, seq)
 }
