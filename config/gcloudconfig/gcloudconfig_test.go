@@ -27,7 +27,7 @@ func TestGCSLoader(t *testing.T) {
 	svr := fakeGCSServer()
 	defer svr.Stop()
 
-	srv := config.NewServer([]string{
+	srv := config.CreateServer([]string{
 		"-gcloud-safe-chars", "!",
 
 		"-gcloud-loader-bucket", "a",
@@ -46,7 +46,7 @@ func TestGCSStorage(t *testing.T) {
 	svr := fakeGCSServer()
 	defer svr.Stop()
 
-	srv := config.NewServer([]string{
+	srv := config.CreateServer([]string{
 		"-gcloud-safe-chars", "!",
 
 		"-gcloud-loader-bucket", "a",

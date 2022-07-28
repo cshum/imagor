@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	var server = config.NewServer(
+	var server = config.CreateServer(
 		os.Args[1:],
 		vipsconfig.WithVips,
 		awsconfig.WithAWS,
