@@ -6,168 +6,168 @@ import (
 	"time"
 )
 
-type Option func(o *Imagor)
+type Option func(app *Imagor)
 
 func WithLogger(logger *zap.Logger) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if logger != nil {
-			o.Logger = logger
+			app.Logger = logger
 		}
 	}
 }
 
 func WithLoaders(loaders ...Loader) Option {
-	return func(o *Imagor) {
-		o.Loaders = append(o.Loaders, loaders...)
+	return func(app *Imagor) {
+		app.Loaders = append(app.Loaders, loaders...)
 	}
 }
 
 func WithStorages(savers ...Storage) Option {
-	return func(o *Imagor) {
-		o.Storages = append(o.Storages, savers...)
+	return func(app *Imagor) {
+		app.Storages = append(app.Storages, savers...)
 	}
 }
 
 func WithResultStorages(savers ...Storage) Option {
-	return func(o *Imagor) {
-		o.ResultStorages = append(o.ResultStorages, savers...)
+	return func(app *Imagor) {
+		app.ResultStorages = append(app.ResultStorages, savers...)
 	}
 }
 
 func WithProcessors(processors ...Processor) Option {
-	return func(o *Imagor) {
-		o.Processors = append(o.Processors, processors...)
+	return func(app *Imagor) {
+		app.Processors = append(app.Processors, processors...)
 	}
 }
 
 func WithRequestTimeout(timeout time.Duration) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if timeout > 0 {
-			o.RequestTimeout = timeout
+			app.RequestTimeout = timeout
 		}
 	}
 }
 
 func WithCacheHeaderTTL(ttl time.Duration) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if ttl > 0 {
-			o.CacheHeaderTTL = ttl
+			app.CacheHeaderTTL = ttl
 		}
 	}
 }
 
 func WithCacheHeaderSWR(swr time.Duration) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if swr > 0 {
-			o.CacheHeaderSWR = swr
+			app.CacheHeaderSWR = swr
 		}
 	}
 }
 
 func WithCacheHeaderNoCache(nocache bool) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if nocache {
-			o.CacheHeaderTTL = 0
+			app.CacheHeaderTTL = 0
 		}
 	}
 }
 
 func WithLoadTimeout(timeout time.Duration) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if timeout > 0 {
-			o.LoadTimeout = timeout
+			app.LoadTimeout = timeout
 		}
 	}
 }
 
 func WithSaveTimeout(timeout time.Duration) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if timeout > 0 {
-			o.SaveTimeout = timeout
+			app.SaveTimeout = timeout
 		}
 	}
 }
 
 func WithProcessTimeout(timeout time.Duration) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if timeout > 0 {
-			o.ProcessTimeout = timeout
+			app.ProcessTimeout = timeout
 		}
 	}
 }
 
 func WithProcessConcurrency(concurrency int64) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if concurrency > 0 {
-			o.ProcessConcurrency = concurrency
+			app.ProcessConcurrency = concurrency
 		}
 	}
 }
 
 func WithUnsafe(unsafe bool) Option {
-	return func(o *Imagor) {
-		o.Unsafe = unsafe
+	return func(app *Imagor) {
+		app.Unsafe = unsafe
 	}
 }
 
 func WithAutoWebP(enable bool) Option {
-	return func(o *Imagor) {
-		o.AutoWebP = enable
+	return func(app *Imagor) {
+		app.AutoWebP = enable
 	}
 }
 
 func WithAutoAVIF(enable bool) Option {
-	return func(o *Imagor) {
-		o.AutoAVIF = enable
+	return func(app *Imagor) {
+		app.AutoAVIF = enable
 	}
 }
 
 func WithBasePathRedirect(url string) Option {
-	return func(o *Imagor) {
-		o.BasePathRedirect = url
+	return func(app *Imagor) {
+		app.BasePathRedirect = url
 	}
 }
 
 func WithBaseParams(params string) Option {
-	return func(o *Imagor) {
-		o.BaseParams = params
+	return func(app *Imagor) {
+		app.BaseParams = params
 	}
 }
 
 func WithModifiedTimeCheck(enabled bool) Option {
-	return func(o *Imagor) {
-		o.ModifiedTimeCheck = enabled
+	return func(app *Imagor) {
+		app.ModifiedTimeCheck = enabled
 	}
 }
 
 func WithDisableErrorBody(disabled bool) Option {
-	return func(o *Imagor) {
-		o.DisableErrorBody = disabled
+	return func(app *Imagor) {
+		app.DisableErrorBody = disabled
 	}
 }
 
 func WithDisableParamsEndpoint(disabled bool) Option {
-	return func(o *Imagor) {
-		o.DisableParamsEndpoint = disabled
+	return func(app *Imagor) {
+		app.DisableParamsEndpoint = disabled
 	}
 }
 
 func WithDebug(debug bool) Option {
-	return func(o *Imagor) {
-		o.Debug = debug
+	return func(app *Imagor) {
+		app.Debug = debug
 	}
 }
 
 func WithResultKey(resultKey ResultKey) Option {
-	return func(o *Imagor) {
-		o.ResultKey = resultKey
+	return func(app *Imagor) {
+		app.ResultKey = resultKey
 	}
 }
 
 func WithSigner(signer imagorpath.Signer) Option {
-	return func(o *Imagor) {
+	return func(app *Imagor) {
 		if signer != nil {
-			o.Signer = signer
+			app.Signer = signer
 		}
 	}
 }

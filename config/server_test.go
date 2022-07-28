@@ -1,21 +1,17 @@
-package main
+package config
 
 import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/cshum/imagor/storage/gcloudstorage"
-	"github.com/cshum/imagor/storage/s3storage"
-	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"github.com/stretchr/testify/assert"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 )
 
 func TestDefault(t *testing.T) {
-	srv := newServer()
+	srv := CreateServer(nil)
 	app := srv.App.(*imagor.Imagor)
 
 	assert.False(t, app.Debug)
@@ -39,12 +35,8 @@ func TestDefault(t *testing.T) {
 	assert.IsType(t, &httploader.HTTPLoader{}, app.Loaders[0])
 }
 
-func TestVersion(t *testing.T) {
-	assert.Empty(t, newServer("-version"))
-}
-
 func TestBasic(t *testing.T) {
-	srv := newServer(
+	srv := CreateServer([]string{
 		"-debug",
 		"-port", "2345",
 		"-imagor-secret", "foo",
@@ -62,7 +54,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 		"-http-loader-insecure-skip-verify-transport",
-	)
+	})
 	app := srv.App.(*imagor.Imagor)
 
 	assert.Equal(t, 2345, srv.Port)
@@ -85,40 +77,44 @@ func TestBasic(t *testing.T) {
 	assert.True(t, httpLoader.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify)
 }
 
+func TestVersion(t *testing.T) {
+	assert.Empty(t, CreateServer([]string{"-version"}))
+}
+
 func TestSignerAlgorithm(t *testing.T) {
-	srv := newServer(
+	srv := CreateServer([]string{
 		"-imagor-signer-type", "sha256",
-	)
+	})
 	app := srv.App.(*imagor.Imagor)
 	assert.Equal(t, "WN6mgyl8pD4KTy5IDSBs0GcFPaV7-R970JLsd01pqAU=", app.Signer.Sign("bar"))
 
-	srv = newServer(
+	srv = CreateServer([]string{
 		"-imagor-signer-type", "sha512",
 		"-imagor-signer-truncate", "32",
-	)
+	})
 	app = srv.App.(*imagor.Imagor)
 	assert.Equal(t, "Kmml5ejnmsn7M7TszYkeM2j5G3bpI7mp", app.Signer.Sign("bar"))
 }
 
 func TestCacheHeaderNoCache(t *testing.T) {
-	srv := newServer("-imagor-cache-header-no-cache")
+	srv := CreateServer([]string{"-imagor-cache-header-no-cache"})
 	app := srv.App.(*imagor.Imagor)
 	assert.Empty(t, app.CacheHeaderTTL)
 }
 
 func TestDisableHTTPLoader(t *testing.T) {
-	srv := newServer("-http-loader-disable")
+	srv := CreateServer([]string{"-http-loader-disable"})
 	app := srv.App.(*imagor.Imagor)
 	assert.Empty(t, app.Loaders)
 }
 
 func TestFileLoader(t *testing.T) {
-	srv := newServer(
+	srv := CreateServer([]string{
 		"-file-safe-chars", "!",
 
 		"-file-loader-base-dir", "./foo",
 		"-file-loader-path-prefix", "abcd",
-	)
+	})
 	app := srv.App.(*imagor.Imagor)
 	fileLoader := app.Loaders[0].(*filestorage.FileStorage)
 	assert.Equal(t, "./foo", fileLoader.BaseDir)
@@ -127,7 +123,7 @@ func TestFileLoader(t *testing.T) {
 }
 
 func TestFileStorage(t *testing.T) {
-	srv := newServer(
+	srv := CreateServer([]string{
 		"-file-safe-chars", "!",
 
 		"-file-storage-base-dir", "./foo",
@@ -137,7 +133,7 @@ func TestFileStorage(t *testing.T) {
 
 		"-file-result-storage-base-dir", "./bar",
 		"-file-result-storage-path-prefix", "bcda",
-	)
+	})
 	app := srv.App.(*imagor.Imagor)
 	assert.Equal(t, 1, len(app.Loaders))
 	storage := app.Storages[0].(*filestorage.FileStorage)
@@ -147,127 +143,6 @@ func TestFileStorage(t *testing.T) {
 
 	resultStorage := app.ResultStorages[0].(*filestorage.FileStorage)
 	assert.Equal(t, "./bar", resultStorage.BaseDir)
-	assert.Equal(t, "/bcda/", resultStorage.PathPrefix)
-	assert.Equal(t, "!", resultStorage.SafeChars)
-}
-
-func TestS3Loader(t *testing.T) {
-	srv := newServer(
-		"-aws-region", "asdf",
-		"-aws-access-key-id", "asdf",
-		"-aws-secret-access-key", "asdf",
-		"-s3-endpoint", "asdfasdf",
-		"-s3-force-path-style",
-		"-s3-safe-chars", "!",
-
-		"-s3-loader-bucket", "a",
-		"-s3-loader-base-dir", "foo",
-		"-s3-loader-path-prefix", "abcd",
-	)
-	app := srv.App.(*imagor.Imagor)
-	loader := app.Loaders[0].(*s3storage.S3Storage)
-	assert.Equal(t, "a", loader.Bucket)
-	assert.Equal(t, "/foo/", loader.BaseDir)
-	assert.Equal(t, "/abcd/", loader.PathPrefix)
-	assert.Equal(t, "!", loader.SafeChars)
-}
-
-func TestS3Storage(t *testing.T) {
-	srv := newServer(
-		"-aws-region", "asdf",
-		"-aws-access-key-id", "asdf",
-		"-aws-secret-access-key", "asdf",
-		"-s3-endpoint", "asdfasdf",
-		"-s3-force-path-style",
-		"-s3-safe-chars", "!",
-
-		"-s3-loader-bucket", "a",
-		"-s3-loader-base-dir", "foo",
-		"-s3-loader-path-prefix", "abcd",
-		"-s3-storage-bucket", "a",
-		"-s3-storage-base-dir", "foo",
-		"-s3-storage-path-prefix", "abcd",
-
-		"-s3-result-storage-bucket", "b",
-		"-s3-result-storage-base-dir", "bar",
-		"-s3-result-storage-path-prefix", "bcda",
-	)
-	app := srv.App.(*imagor.Imagor)
-	assert.Equal(t, 1, len(app.Loaders))
-	storage := app.Storages[0].(*s3storage.S3Storage)
-	assert.Equal(t, "a", storage.Bucket)
-	assert.Equal(t, "/foo/", storage.BaseDir)
-	assert.Equal(t, "/abcd/", storage.PathPrefix)
-	assert.Equal(t, "!", storage.SafeChars)
-
-	resultStorage := app.ResultStorages[0].(*s3storage.S3Storage)
-	assert.Equal(t, "b", resultStorage.Bucket)
-	assert.Equal(t, "/bar/", resultStorage.BaseDir)
-	assert.Equal(t, "/bcda/", resultStorage.PathPrefix)
-	assert.Equal(t, "!", resultStorage.SafeChars)
-}
-
-func fakeGCSServer() *fakestorage.Server {
-	if err := os.Setenv("STORAGE_EMULATOR_HOST", "localhost:12345"); err != nil {
-		panic(err)
-	}
-	svr, err := fakestorage.NewServerWithOptions(fakestorage.Options{
-		Host: "localhost", Port: 12345,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return svr
-}
-
-func TestGCSLoader(t *testing.T) {
-	svr := fakeGCSServer()
-	defer svr.Stop()
-
-	srv := newServer(
-		"-gcloud-safe-chars", "!",
-
-		"-gcloud-loader-bucket", "a",
-		"-gcloud-loader-base-dir", "foo",
-		"-gcloud-loader-path-prefix", "abcd",
-	)
-	app := srv.App.(*imagor.Imagor)
-	loader := app.Loaders[0].(*gcloudstorage.GCloudStorage)
-	assert.Equal(t, "a", loader.Bucket)
-	assert.Equal(t, "foo", loader.BaseDir)
-	assert.Equal(t, "/abcd/", loader.PathPrefix)
-	assert.Equal(t, "!", loader.SafeChars)
-}
-
-func TestGCSStorage(t *testing.T) {
-	svr := fakeGCSServer()
-	defer svr.Stop()
-
-	srv := newServer(
-		"-gcloud-safe-chars", "!",
-
-		"-gcloud-loader-bucket", "a",
-		"-gcloud-loader-base-dir", "foo",
-		"-gcloud-loader-path-prefix", "abcd",
-		"-gcloud-storage-bucket", "a",
-		"-gcloud-storage-base-dir", "foo",
-		"-gcloud-storage-path-prefix", "abcd",
-
-		"-gcloud-result-storage-bucket", "b",
-		"-gcloud-result-storage-base-dir", "bar",
-		"-gcloud-result-storage-path-prefix", "bcda",
-	)
-	app := srv.App.(*imagor.Imagor)
-	assert.Equal(t, 1, len(app.Loaders))
-	storage := app.Storages[0].(*gcloudstorage.GCloudStorage)
-	assert.Equal(t, "a", storage.Bucket)
-	assert.Equal(t, "foo", storage.BaseDir)
-	assert.Equal(t, "/abcd/", storage.PathPrefix)
-	assert.Equal(t, "!", storage.SafeChars)
-
-	resultStorage := app.ResultStorages[0].(*gcloudstorage.GCloudStorage)
-	assert.Equal(t, "b", resultStorage.Bucket)
-	assert.Equal(t, "bar", resultStorage.BaseDir)
 	assert.Equal(t, "/bcda/", resultStorage.PathPrefix)
 	assert.Equal(t, "!", resultStorage.SafeChars)
 }
