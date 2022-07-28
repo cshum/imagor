@@ -19,9 +19,9 @@ import (
 
 type Callback func() (logger *zap.Logger, isDebug bool)
 
-type Setter func(fs *flag.FlagSet, cb Callback) imagor.Option
+type FlagFunc func(fs *flag.FlagSet, cb Callback) imagor.Option
 
-func Do(args []string, setters ...Setter) (srv *server.Server) {
+func Do(args []string, funcs ...FlagFunc) (srv *server.Server) {
 	var (
 		fs      = flag.NewFlagSet("imagor", flag.ExitOnError)
 		logger  *zap.Logger
@@ -83,8 +83,8 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 			"Enable server access log")
 	)
 
-	// base setters
-	options = ApplySetters(fs, func() (*zap.Logger, bool) {
+	// base funcs
+	options = ApplyFlagFuncs(fs, func() (*zap.Logger, bool) {
 		if err = ff.Parse(fs, args,
 			ff.WithEnvVars(),
 			ff.WithConfigFileFlag("config"),
@@ -104,7 +104,7 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 			}
 		}
 		return logger, *debug
-	}, append(setters, withFile, withHTTPLoader)...)
+	}, append(funcs, withFile, withHTTPLoader)...)
 
 	if *version {
 		fmt.Println(imagor.Version)
