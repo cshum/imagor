@@ -312,9 +312,8 @@ HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
 
 ### Configuration
 
-Imagor supports command-line arguments, see available options `imagor -h`. 
-
-Imagor also supports environment variables for the arguments equivalent in capitalized snake case. For instances `-imagor-secret` would become `IMAGOR_SECRET`:
+Imagor supports command-line arguments and environment variables for the arguments equivalent in capitalized snake case, see available options `imagor -h`.
+For instances `-imagor-secret` would become `IMAGOR_SECRET`:
 
 ```bash
 # both are equivalent
