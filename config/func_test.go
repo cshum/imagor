@@ -9,7 +9,7 @@ import (
 )
 
 func TestApplyFuncs(t *testing.T) {
-	fs := flag.NewFlagSet("imagaor", flag.ExitOnError)
+	fs := flag.NewFlagSet("imagor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
 	var seq []int
 	imagor.New(ApplyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
@@ -47,7 +47,7 @@ func TestApplyFuncs(t *testing.T) {
 }
 
 func TestApplyFuncsNil(t *testing.T) {
-	fs := flag.NewFlagSet("imagaor", flag.ExitOnError)
+	fs := flag.NewFlagSet("imagor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
 	var seq []int
 	imagor.New(ApplyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
