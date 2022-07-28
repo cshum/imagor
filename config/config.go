@@ -84,9 +84,7 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 	)
 
 	// base setters
-	setters = append(setters, withFile, withHTTPLoader)
-
-	options = doSetters(fs, setters, func() (*zap.Logger, bool) {
+	options = ApplySetters(fs, func() (*zap.Logger, bool) {
 		if err = ff.Parse(fs, args,
 			ff.WithEnvVars(),
 			ff.WithConfigFileFlag("config"),
@@ -106,7 +104,7 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 			}
 		}
 		return logger, *debug
-	})
+	}, append(setters, withFile, withHTTPLoader)...)
 
 	if *version {
 		fmt.Println(imagor.Version)
@@ -158,20 +156,4 @@ func Do(args []string, setters ...Setter) (srv *server.Server) {
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
 	)
-}
-
-func doSetters(fs *flag.FlagSet, setters []Setter, cb Callback) (options []imagor.Option) {
-	var logger *zap.Logger
-	var isDebug bool
-	if len(setters) == 0 {
-		logger, isDebug = cb()
-		return
-	} else {
-		var last = len(setters) - 1
-		options = append(options, setters[last](fs, func() (*zap.Logger, bool) {
-			options = append(options, doSetters(fs, setters[:last], cb)...)
-			return logger, isDebug
-		}))
-		return
-	}
 }
