@@ -9,7 +9,12 @@ import (
 )
 
 func main() {
-	var server = config.Do(os.Args[1:], vipsconfig.WithVips, awsconfig.WithAWS, gcloudconfig.WithGCloud)
+	var server = config.NewServer(
+		os.Args[1:],
+		vipsconfig.WithVips,
+		awsconfig.WithAWS,
+		gcloudconfig.WithGCloud,
+	)
 	if server != nil {
 		server.Run()
 	}

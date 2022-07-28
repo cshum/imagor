@@ -11,7 +11,7 @@ import (
 )
 
 func TestDefault(t *testing.T) {
-	srv := Do(nil)
+	srv := NewServer(nil)
 	app := srv.App.(*imagor.Imagor)
 
 	assert.False(t, app.Debug)
@@ -36,11 +36,11 @@ func TestDefault(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	assert.Empty(t, Do([]string{"-version"}))
+	assert.Empty(t, NewServer([]string{"-version"}))
 }
 
 func TestBasic(t *testing.T) {
-	srv := Do([]string{
+	srv := NewServer([]string{
 		"-debug",
 		"-port", "2345",
 		"-imagor-secret", "foo",
@@ -82,13 +82,13 @@ func TestBasic(t *testing.T) {
 }
 
 func TestSignerAlgorithm(t *testing.T) {
-	srv := Do([]string{
+	srv := NewServer([]string{
 		"-imagor-signer-type", "sha256",
 	})
 	app := srv.App.(*imagor.Imagor)
 	assert.Equal(t, "WN6mgyl8pD4KTy5IDSBs0GcFPaV7-R970JLsd01pqAU=", app.Signer.Sign("bar"))
 
-	srv = Do([]string{
+	srv = NewServer([]string{
 		"-imagor-signer-type", "sha512",
 		"-imagor-signer-truncate", "32",
 	})
@@ -97,19 +97,19 @@ func TestSignerAlgorithm(t *testing.T) {
 }
 
 func TestCacheHeaderNoCache(t *testing.T) {
-	srv := Do([]string{"-imagor-cache-header-no-cache"})
+	srv := NewServer([]string{"-imagor-cache-header-no-cache"})
 	app := srv.App.(*imagor.Imagor)
 	assert.Empty(t, app.CacheHeaderTTL)
 }
 
 func TestDisableHTTPLoader(t *testing.T) {
-	srv := Do([]string{"-http-loader-disable"})
+	srv := NewServer([]string{"-http-loader-disable"})
 	app := srv.App.(*imagor.Imagor)
 	assert.Empty(t, app.Loaders)
 }
 
 func TestFileLoader(t *testing.T) {
-	srv := Do([]string{
+	srv := NewServer([]string{
 		"-file-safe-chars", "!",
 
 		"-file-loader-base-dir", "./foo",
@@ -123,7 +123,7 @@ func TestFileLoader(t *testing.T) {
 }
 
 func TestFileStorage(t *testing.T) {
-	srv := Do([]string{
+	srv := NewServer([]string{
 		"-file-safe-chars", "!",
 
 		"-file-storage-base-dir", "./foo",

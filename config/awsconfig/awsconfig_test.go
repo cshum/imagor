@@ -9,7 +9,7 @@ import (
 )
 
 func TestS3Loader(t *testing.T) {
-	srv := config.Do([]string{
+	srv := config.NewServer([]string{
 		"-aws-region", "asdf",
 		"-aws-access-key-id", "asdf",
 		"-aws-secret-access-key", "asdf",
@@ -30,7 +30,7 @@ func TestS3Loader(t *testing.T) {
 }
 
 func TestS3Storage(t *testing.T) {
-	srv := config.Do([]string{
+	srv := config.NewServer([]string{
 		"-aws-region", "asdf",
 		"-aws-access-key-id", "asdf",
 		"-aws-secret-access-key", "asdf",

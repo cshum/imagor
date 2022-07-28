@@ -17,7 +17,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Do(args []string, funcs ...Func) (srv *server.Server) {
+func NewServer(args []string, funcs ...Func) (srv *server.Server) {
 	var (
 		fs      = flag.NewFlagSet("imagor", flag.ExitOnError)
 		logger  *zap.Logger
