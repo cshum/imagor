@@ -79,7 +79,6 @@ func Do(args []string, funcs ...Func) (srv *server.Server) {
 			"Enable server access log")
 	)
 
-	// base funcs
 	options = ApplyFuncs(fs, func() (*zap.Logger, bool) {
 		if err = ff.Parse(fs, args,
 			ff.WithEnvVars(),

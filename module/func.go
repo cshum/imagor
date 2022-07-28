@@ -15,7 +15,9 @@ func ApplyFuncs(fs *flag.FlagSet, cb Callback, funcs ...Func) (options []imagor.
 	return
 }
 
-func applyFuncs(fs *flag.FlagSet, cb Callback, funcs ...Func) (options []imagor.Option, logger *zap.Logger, isDebug bool) {
+func applyFuncs(
+	fs *flag.FlagSet, cb Callback, funcs ...Func,
+) (options []imagor.Option, logger *zap.Logger, isDebug bool) {
 	if len(funcs) == 0 {
 		logger, isDebug = cb()
 		return
