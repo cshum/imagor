@@ -3,6 +3,7 @@ FROM golang:${GOLANG_VERSION}-bullseye as builder
 
 ARG VIPS_VERSION=8.13.0
 ARG CGIF_VERSION=0.3.0
+ARG LIBSPNG_VERSION=0.7.2
 ARG RUN_TEST
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
@@ -30,6 +31,17 @@ RUN DEBIAN_FRONTEND=noninteractive \
     cd build && \
     ninja && \
     ninja install && \
+  cd /tmp && \
+    curl -fsSLO https://github.com/randy408/libspng/archive/refs/tags/v${LIBSPNG_VERSION}.tar.gz && \
+    tar xf v${LIBSPNG_VERSION}.tar.gz && \
+    cd libspng-${LIBSPNG_VERSION} && \
+    meson setup _build \
+      --buildtype=release \
+      --strip \
+      --prefix=/usr/local \
+      --libdir=lib && \
+    ninja -C _build && \
+    ninja -C _build install && \
   cd /tmp && \
     curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz && \
     tar zvxf vips-${VIPS_VERSION}.tar.gz && \
