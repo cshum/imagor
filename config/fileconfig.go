@@ -4,9 +4,10 @@ import (
 	"flag"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/storage/filestorage"
+	"go.uber.org/zap"
 )
 
-func withFile(fs *flag.FlagSet, cb Callback) imagor.Option {
+func withFileSystem(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		fileSafeChars = fs.String("file-safe-chars", "",
 			"File safe characters to be excluded from image key escape")

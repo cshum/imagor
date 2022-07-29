@@ -15,7 +15,7 @@ func TestApplyFuncs(t *testing.T) {
 	options, logger, isDebug := applyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
-	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
+	}, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		seq = append(seq, 3)
 		logger, isDebug := cb()
 		assert.Equal(t, nopLogger, logger)
@@ -24,7 +24,7 @@ func TestApplyFuncs(t *testing.T) {
 		return func(app *imagor.Imagor) {
 			seq = append(seq, 8)
 		}
-	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
+	}, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		seq = append(seq, 2)
 		logger, isDebug := cb()
 		assert.Equal(t, nopLogger, logger)
@@ -33,7 +33,7 @@ func TestApplyFuncs(t *testing.T) {
 		return func(app *imagor.Imagor) {
 			seq = append(seq, 9)
 		}
-	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
+	}, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		seq = append(seq, 1)
 		logger, isDebug := cb()
 		assert.Equal(t, nopLogger, logger)
@@ -56,7 +56,7 @@ func TestApplyFuncsNil(t *testing.T) {
 	options, logger, isDebug := applyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
-	}, func(fs *flag.FlagSet, cb Callback) imagor.Option {
+	}, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		seq = append(seq, 3)
 		logger, isDebug := cb()
 		assert.Equal(t, nopLogger, logger)
@@ -65,12 +65,12 @@ func TestApplyFuncsNil(t *testing.T) {
 		return func(app *imagor.Imagor) {
 			seq = append(seq, 7)
 		}
-	}, nil, func(fs *flag.FlagSet, cb Callback) imagor.Option {
+	}, nil, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		seq = append(seq, 2)
 		return func(app *imagor.Imagor) {
 			seq = append(seq, 8)
 		}
-	}, nil, func(fs *flag.FlagSet, cb Callback) imagor.Option {
+	}, nil, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		seq = append(seq, 1)
 		logger, isDebug := cb()
 		assert.Equal(t, nopLogger, logger)

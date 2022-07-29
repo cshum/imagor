@@ -6,8 +6,10 @@ import (
 	"go.uber.org/zap"
 )
 
+type Func func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option
+
 func applyFuncs(
-	fs *flag.FlagSet, cb Callback, funcs ...Func,
+	fs *flag.FlagSet, cb func() (*zap.Logger, bool), funcs ...Func,
 ) (options []imagor.Option, logger *zap.Logger, isDebug bool) {
 	if len(funcs) == 0 {
 		logger, isDebug = cb()

@@ -4,9 +4,10 @@ import (
 	"flag"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
+	"go.uber.org/zap"
 )
 
-func withHTTPLoader(fs *flag.FlagSet, cb Callback) imagor.Option {
+func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")

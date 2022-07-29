@@ -5,11 +5,11 @@ import (
 	"context"
 	"flag"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/storage/gcloudstorage"
+	"go.uber.org/zap"
 )
 
-func WithGCloud(fs *flag.FlagSet, cb config.Callback) imagor.Option {
+func WithGCloud(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		gcloudSafeChars = fs.String("gcloud-safe-chars", "",
 			"Google Cloud safe characters to be excluded from image key escape")

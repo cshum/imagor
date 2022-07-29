@@ -3,11 +3,11 @@ package vipsconfig
 import (
 	"flag"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/processor/vipsprocessor"
+	"go.uber.org/zap"
 )
 
-func WithVips(fs *flag.FlagSet, cb config.Callback) imagor.Option {
+func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		vipsDisableBlur = fs.Bool("vips-disable-blur", false,
 			"VIPS disable blur operations for vips processor")

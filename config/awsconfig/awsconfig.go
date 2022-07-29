@@ -6,11 +6,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/storage/s3storage"
+	"go.uber.org/zap"
 )
 
-func WithAWS(fs *flag.FlagSet, cb config.Callback) imagor.Option {
+func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		awsRegion = fs.String("aws-region", "",
 			"AWS Region. Required if using S3 Loader or storage")
