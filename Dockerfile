@@ -19,7 +19,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
   python3-pip ninja-build pkg-config \
   gobject-introspection gtk-doc-tools libglib2.0-dev libjpeg62-turbo-dev libpng-dev \
   libwebp-dev libtiff5-dev libexif-dev libxml2-dev libpoppler-glib-dev \
-  swig libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev \
+  swig libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev libopenjp2-7-dev \
   libgsf-1-dev fftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev/bullseye-backports libheif-dev && \
   pip3 install meson && \
   cd /tmp && \
@@ -74,7 +74,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
   apt-get install --no-install-recommends -y \
   procps libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr25 \
   libwebp6 libwebpmux3 libwebpdemux2 libtiff5 libexif12 libxml2 libpoppler-glib8 \
-  libpango1.0-0 libmatio11 libopenslide0 libjemalloc2 \
+  libpango1.0-0 libmatio11 libopenslide0 libopenjp2-7 libjemalloc2 \
   libgsf-1-114 fftw3 liborc-0.4-0 librsvg2-2 libcfitsio9 libimagequant0 libaom3 libheif1 && \
   ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
