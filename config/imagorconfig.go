@@ -7,16 +7,11 @@ import (
 	"flag"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"go.uber.org/zap"
 	"strings"
 	"time"
 )
 
-type Callback func() (logger *zap.Logger, isDebug bool)
-
-type Func func(fs *flag.FlagSet, cb Callback) imagor.Option
-
-func NewImagor(fs *flag.FlagSet, cb Callback, funcs ...Func) *imagor.Imagor {
+func withImagorOptions(fs *flag.FlagSet, cb Callback) imagor.Option {
 	var (
 		imagorSecret = fs.String("imagor-secret", "",
 			"Secret key for signing Imagor URL")
@@ -52,9 +47,9 @@ func NewImagor(fs *flag.FlagSet, cb Callback, funcs ...Func) *imagor.Imagor {
 		imagorDisableParamsEndpoint = fs.Bool("imagor-disable-params-endpoint", false, "Imagor disable /params endpoint")
 		imagorSignerType            = fs.String("imagor-signer-type", "sha1", "Imagor URL signature hasher type sha1 or sha256")
 		imagorSignerTruncate        = fs.Int("imagor-signer-truncate", 0, "Imagor URL signature truncate at length")
-	)
 
-	var options, logger, isDebug = applyFuncs(fs, cb, funcs...)
+		logger, isDebug = cb()
+	)
 
 	var alg = sha1.New
 	if strings.ToLower(*imagorSignerType) == "sha256" {
@@ -63,8 +58,7 @@ func NewImagor(fs *flag.FlagSet, cb Callback, funcs ...Func) *imagor.Imagor {
 		alg = sha512.New
 	}
 
-	return imagor.New(append(
-		options,
+	return imagor.WithOptions(
 		imagor.WithSigner(imagorpath.NewHMACSigner(
 			alg, *imagorSignerTruncate, *imagorSecret,
 		)),
@@ -86,32 +80,5 @@ func NewImagor(fs *flag.FlagSet, cb Callback, funcs ...Func) *imagor.Imagor {
 		imagor.WithUnsafe(*imagorUnsafe),
 		imagor.WithLogger(logger),
 		imagor.WithDebug(isDebug),
-	)...)
-}
-
-func applyFuncs(
-	fs *flag.FlagSet, cb Callback, funcs ...Func,
-) (options []imagor.Option, logger *zap.Logger, isDebug bool) {
-	if len(funcs) == 0 {
-		logger, isDebug = cb()
-		return
-	} else {
-		var last = len(funcs) - 1
-		var called bool
-		if funcs[last] == nil {
-			return applyFuncs(fs, cb, funcs[:last]...)
-		}
-		options = append(options, funcs[last](fs, func() (*zap.Logger, bool) {
-			options, logger, isDebug = applyFuncs(fs, cb, funcs[:last]...)
-			called = true
-			return logger, isDebug
-		}))
-		if !called {
-			var opts []imagor.Option
-			opts, logger, isDebug = applyFuncs(fs, cb, funcs[:last]...)
-			options = append(opts, options...)
-			return options, logger, isDebug
-		}
-		return
-	}
+	)
 }

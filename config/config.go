@@ -10,6 +10,21 @@ import (
 	"runtime"
 )
 
+type Callback func() (logger *zap.Logger, isDebug bool)
+
+type Func func(fs *flag.FlagSet, cb Callback) imagor.Option
+
+var baseConfig = []Func{
+	withImagorOptions,
+	withFile,
+	withHTTPLoader,
+}
+
+func NewImagor(fs *flag.FlagSet, cb Callback, funcs ...Func) *imagor.Imagor {
+	var options, _, _ = applyFuncs(fs, cb, append(funcs, baseConfig...)...)
+	return imagor.New(options...)
+}
+
 func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
 	var (
 		fs     = flag.NewFlagSet("imagor", flag.ExitOnError)
@@ -56,7 +71,7 @@ func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
 			}
 		}
 		return logger, *debug
-	}, append(funcs, WithFile, WithHTTPLoader)...)
+	}, funcs...)
 
 	if *version {
 		fmt.Println(imagor.Version)

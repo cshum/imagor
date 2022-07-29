@@ -6,7 +6,7 @@ import (
 	"github.com/cshum/imagor/storage/filestorage"
 )
 
-func WithFile(fs *flag.FlagSet, cb Callback) imagor.Option {
+func withFile(fs *flag.FlagSet, cb Callback) imagor.Option {
 	var (
 		fileSafeChars = fs.String("file-safe-chars", "",
 			"File safe characters to be excluded from image key escape")
