@@ -40,4 +40,4 @@ git-tag:
 	git tag "v$(VERSION)"
 	git push --tags
 
-release: test build docker-tag git-tag docker-latest-tag
+release: build docker-tag git-tag docker-latest-tag
