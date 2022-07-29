@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type Func func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option
+type Func func(fs *flag.FlagSet, cb func() (logger *zap.Logger, isDebug bool)) imagor.Option
 
 func applyFuncs(
 	fs *flag.FlagSet, cb func() (*zap.Logger, bool), funcs ...Func,
