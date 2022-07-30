@@ -23,7 +23,7 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 			"HTTP Loader to use HTTP transport with InsecureSkipVerify true")
 		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
 			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
-		httpLoaderAccept = fs.String("http-loader-accept", "image/*,application/pdf",
+		httpLoaderAccept = fs.String("http-loader-accept", "*/*",
 			"HTTP Loader set request Accept header and validate response Content-Type header")
 		httpLoaderProxyURLs = fs.String("http-loader-proxy-urls", "",
 			"HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port")
