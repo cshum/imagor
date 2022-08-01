@@ -61,12 +61,25 @@ jobs:
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
+        if: github.repository == 'cshum/imagor'
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: |
             ghcr.io/cshum/imagor
             shumc/imagor
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Extract Docker metadata on fork
+        if: github.repository != 'cshum/imagor'
+        id: meta-fork
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
