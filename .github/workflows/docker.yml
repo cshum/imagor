@@ -58,23 +58,12 @@ jobs:
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
-        if: github.repository == 'cshum/imagor'
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: |
-            ghcr.io/cshum/imagor
-            shumc/imagor
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-
-      - name: Extract Docker metadata for fork
-        if: github.repository != 'cshum/imagor'
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ghcr.io/${{ github.repository }}
+            format('ghcr.io/{0}', github.repository)
+            ((github.action_repository == 'cshum' && 'shumc/imagor') || '')
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -83,7 +72,7 @@ jobs:
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image tag
         if: github.ref_type == 'tag'
-        id: build-and-push
+        id: build-and-push-tag
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -94,7 +83,7 @@ jobs:
 
       - name: Build and push Docker image branch
         if: github.event.ref_type == 'branch'
-        id: build-and-push
+        id: build-and-push-branch
         uses: docker/build-push-action@v3
         with:
           context: .
