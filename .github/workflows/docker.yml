@@ -9,8 +9,6 @@ on:
   push:
     branches: [ master ]
     tags: [ 'v*.*.*' ]
-#  pull_request:
-#    branches: [ master ]
 
 jobs:
   build:
@@ -44,7 +42,6 @@ jobs:
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -52,7 +49,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: github.repository == 'cshum/imagor'
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -70,10 +67,9 @@ jobs:
             shumc/imagor
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
 
-      - name: Extract Docker metadata on fork
+      - name: Extract Docker metadata for fork
         if: github.repository != 'cshum/imagor'
         id: meta-fork
         uses: docker/metadata-action@v4
@@ -81,7 +77,6 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
 
       # Build and push Docker image with Buildx (don't push on PR)
@@ -93,7 +88,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -104,6 +99,6 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
