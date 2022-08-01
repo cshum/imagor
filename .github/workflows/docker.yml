@@ -71,7 +71,7 @@ jobs:
 
       - name: Extract Docker metadata for fork
         if: github.repository != 'cshum/imagor'
-        id: meta-fork
+        id: meta
         uses: docker/metadata-action@v4
         with:
           images: ghcr.io/${{ github.repository }}
@@ -81,9 +81,9 @@ jobs:
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
-      - name: Build and push Docker image on semver
-        if: startsWith(github.ref, 'refs/tags/v')
-        id: build-and-push-semver
+      - name: Build and push Docker image tag
+        if: github.ref_type == 'tag'
+        id: build-and-push
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -92,9 +92,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Build and push Docker image on branch
-        if: startsWith(github.ref, 'refs/heads')
-        id: build-and-push-branch
+      - name: Build and push Docker image branch
+        if: github.event.ref_type == 'branch'
+        id: build-and-push
         uses: docker/build-push-action@v3
         with:
           context: .
