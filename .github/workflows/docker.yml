@@ -62,8 +62,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            format('ghcr.io/{0}', github.repository)
-            ((github.action_repository == 'cshum' && 'shumc/imagor') || '')
+            name=${{ format('ghcr.io/{0}', github.repository) }},enable=true
+            name=shumc/imagor,enable=${{ github.action_repository == 'cshum' }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
