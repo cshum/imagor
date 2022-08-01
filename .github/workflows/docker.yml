@@ -8,6 +8,7 @@ name: docker
 on:
   push:
 #    branches: [ master ]
+    branches: [ next ]
     tags: [ 'v*.*.*' ]
 #  pull_request:
 #    branches: [ master ]

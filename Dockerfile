@@ -4,7 +4,7 @@ FROM golang:${GOLANG_VERSION}-bullseye as builder
 ARG VIPS_VERSION=8.13.0
 ARG CGIF_VERSION=0.3.0
 ARG LIBSPNG_VERSION=0.7.2
-ARG RUN_TEST
+ARG TARGETARCH
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
@@ -70,7 +70,7 @@ RUN go mod download
 
 COPY . .
 
-RUN if [ "$RUN_TEST" = 1 ]; then go test ./...; fi
+RUN if [[ $TARGETARCH == "amd64" ]]; then go test ./...; fi
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
 FROM debian:bullseye-slim
