@@ -12,7 +12,7 @@ var pathRegex = regexp.MustCompile(
 		// params
 		"(params/)?" +
 		// hash
-		"((unsafe/)|([A-Za-z0-9-_=]{26,30})/)?" +
+		"((unsafe/)|([A-Za-z0-9-_=]{8,})/)?" +
 		// path
 		"(.+)?",
 )
@@ -66,7 +66,7 @@ func Apply(p Params, path string) Params {
 	index += 1
 	if match[index+1] == "unsafe/" {
 		p.Unsafe = true
-	} else if len(match[index+2]) <= 28 {
+	} else if len(match[index+2]) > 8 {
 		p.Hash = match[index+2]
 	}
 	index += 3
