@@ -404,10 +404,11 @@ func (app *Imagor) load(
 		err = ErrNotFound
 	}
 	if app.Debug {
+		k := sanitise(key)
 		if err == nil {
-			app.Logger.Debug("loaded", zap.String("key", sanitise(key)))
+			app.Logger.Debug("loaded", zap.String("key", k))
 		} else {
-			app.Logger.Debug("load", zap.String("key", sanitise(key)), zap.Error(err))
+			app.Logger.Debug("load", zap.String("key", k), zap.Error(err))
 		}
 	}
 	return
@@ -434,9 +435,11 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 		go func(storage Storage) {
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
-				app.Logger.Warn("save", zap.String("key", sanitise(key)), zap.Error(err))
+				k := sanitise(key)
+				app.Logger.Warn("save", zap.String("key", k), zap.Error(err))
 			} else if app.Debug {
-				app.Logger.Debug("saved", zap.String("key", sanitise(key)))
+				k := sanitise(key)
+				app.Logger.Debug("saved", zap.String("key", k))
 			}
 		}(storage)
 	}
@@ -451,9 +454,11 @@ func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
 		go func(storage Storage) {
 			defer wg.Done()
 			if err := storage.Delete(ctx, key); err != nil {
-				app.Logger.Warn("delete", zap.String("key", sanitise(key)), zap.Error(err))
+				k := sanitise(key)
+				app.Logger.Warn("delete", zap.String("key", k), zap.Error(err))
 			} else if app.Debug {
-				app.Logger.Debug("deleted", zap.String("key", sanitise(key)))
+				k := sanitise(key)
+				app.Logger.Debug("deleted", zap.String("key", k))
 			}
 		}(storage)
 	}
@@ -470,7 +475,8 @@ func (app *Imagor) suppress(
 	key string, fn func(ctx context.Context) (*Blob, error),
 ) (blob *Blob, err error) {
 	if app.Debug {
-		app.Logger.Debug("suppress", zap.String("key", sanitise(key)))
+		k := sanitise(key)
+		app.Logger.Debug("suppress", zap.String("key", k))
 	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
