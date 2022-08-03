@@ -136,7 +136,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	path := r.URL.EscapedPath()
+	path := breaksCleaner.Replace(r.URL.EscapedPath())
 	if path == "/" || path == "" {
 		if app.BasePathRedirect == "" {
 			writeJSON(w, r, json.RawMessage(fmt.Sprintf(
@@ -598,3 +598,14 @@ func getType(v interface{}) string {
 		return t.Name()
 	}
 }
+
+var breaksCleaner = strings.NewReplacer(
+	"\r\n", "",
+	"\r", "",
+	"\n", "",
+	"\v", "",
+	"\f", "",
+	"\u0085", "",
+	"\u2028", "",
+	"\u2029", "",
+)
