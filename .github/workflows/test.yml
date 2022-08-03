@@ -36,7 +36,7 @@ jobs:
           libpoppler-glib-dev libxml2-dev \
           libopenslide-dev libcfitsio-dev liborc-0.4-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
-          libopenjp2-7 libcgif-dev
+          libopenjp2-7-dev libcgif-dev
           sudo pip3 install meson
       - name: Vips cache
         uses: actions/cache@v1
@@ -57,6 +57,7 @@ jobs:
           --prefix=/usr/local \
           --libdir=lib \
           -Dgtk_doc=false \
+          -Dmagick=disabled \
           -Dintrospection=false
           ninja -C _build
           sudo ninja -C _build install
@@ -67,6 +68,12 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Auto commit golden files
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "test(vips): update golden files"
+          file_pattern: "testdata/golden"
 
       - name: Coveralls
         if: matrix.os == 'ubuntu-20.04'
