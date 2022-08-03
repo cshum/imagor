@@ -3,6 +3,7 @@ package imagor
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -167,6 +168,34 @@ func TestWithSigner(t *testing.T) {
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/_-19cQt1szHeUV0WyWFntvTIm/foo.jpg", nil))
+	assert.Equal(t, 403, w.Code)
+	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/foo.jpg", nil))
+	assert.Equal(t, 403, w.Code)
+	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
+}
+
+func TestWithCustomSigner(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithSigner(imagorpath.NewHMACSigner(sha256.New, 40, "1234")))
+	assert.Equal(t, true, app.Debug)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/91DBDJtTFePFnbaj5Qq8JLvq5sM5VTipE685f4Gp/foo.jpg", nil))
+	assert.Equal(t, 200, w.Code)
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/_-19cQt1szHeUV0WyWFntvTImDI=/foo.jpg", nil))
 	assert.Equal(t, 403, w.Code)
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 
