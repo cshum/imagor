@@ -99,12 +99,17 @@ func (s *Server) accessLogHandler(next http.Handler) http.Handler {
 			Status:         200,
 		}
 		next.ServeHTTP(wr, r)
+		var (
+			uri = sanitise(r.URL.RequestURI())
+			ip  = sanitise(RealIP(r))
+			ua  = sanitise(r.UserAgent())
+		)
 		s.Logger.Info("access",
 			zap.Int("status", wr.Status),
 			zap.String("method", r.Method),
-			zap.String("uri", sanitise(r.URL.RequestURI())),
-			zap.String("ip", sanitise(RealIP(r))),
-			zap.String("user-agent", sanitise(r.UserAgent())),
+			zap.String("uri", uri),
+			zap.String("ip", ip),
+			zap.String("user-agent", ua),
 			zap.Duration("took", time.Since(start)),
 		)
 	})
