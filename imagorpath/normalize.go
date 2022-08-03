@@ -103,6 +103,17 @@ func escape(s string, shouldEscape func(c byte) bool) string {
 	return string(t)
 }
 
+var breaksCleaner = strings.NewReplacer(
+	"\r\n", "",
+	"\r", "",
+	"\n", "",
+	"\v", "",
+	"\f", "",
+	"\u0085", "",
+	"\u2028", "",
+	"\u2029", "",
+)
+
 // Normalize imagor path to be file path friendly,
 // optional escapeByte func for custom SafeChars
 func Normalize(image string, safeChars SafeChars) string {

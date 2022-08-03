@@ -55,7 +55,7 @@ func Parse(path string) Params {
 
 // Apply Params struct from Imagor endpoint URI on top of existing Params
 func Apply(p Params, path string) Params {
-	match := pathRegex.FindStringSubmatch(path)
+	match := pathRegex.FindStringSubmatch(breaksCleaner.Replace(path))
 	if len(match) < 6 {
 		return p
 	}
