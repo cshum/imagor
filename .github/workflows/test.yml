@@ -23,7 +23,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install linux deps
-        if: matrix.os == 'ubuntu-20.04'
         run: |
           sudo add-apt-repository -y ppa:lovell/cgif
           sudo add-apt-repository -y ppa:strukturag/libde265
@@ -38,8 +37,9 @@ jobs:
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
           libopenjp2-7-dev libcgif-dev
           sudo pip3 install meson
+
       - name: Vips cache
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: vips-${{ env.VIPS_VERSION }}
           key: ${{ runner.os }}-vips-${{ env.VIPS_VERSION }}
@@ -63,6 +63,16 @@ jobs:
           sudo ninja -C _build install
           sudo ldconfig
 
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - name: Get dependencies
         run: make get
 
@@ -76,7 +86,6 @@ jobs:
           file_pattern: "testdata/golden"
 
       - name: Coveralls
-        if: matrix.os == 'ubuntu-20.04'
         uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: profile.cov
