@@ -14,7 +14,7 @@ func TestParseGenerate(t *testing.T) {
 		name   string
 		uri    string
 		params Params
-		secret string
+		signer Signer
 	}{
 		{
 			name: "non url image",
@@ -148,10 +148,38 @@ func TestParseGenerate(t *testing.T) {
 		{
 			name:   "non url image with hash",
 			uri:    "VTAq7YIRbEXgtwAcsTMhAjvBuT8=/meta/10x11:12x13/fit-in/-300x-200/5x6/left/top/smart/filters:some_filter()/img",
-			secret: "1234",
+			signer: NewDefaultSigner("1234"),
 			params: Params{
 				Path:          "meta/10x11:12x13/fit-in/-300x-200/5x6/left/top/smart/filters:some_filter()/img",
 				Hash:          "VTAq7YIRbEXgtwAcsTMhAjvBuT8=",
+				Image:         "img",
+				CropLeft:      10,
+				CropTop:       11,
+				CropRight:     12,
+				CropBottom:    13,
+				Width:         300,
+				Height:        200,
+				Meta:          true,
+				HFlip:         true,
+				VFlip:         true,
+				HAlign:        "left",
+				VAlign:        "top",
+				Smart:         true,
+				FitIn:         true,
+				PaddingLeft:   5,
+				PaddingTop:    6,
+				PaddingRight:  5,
+				PaddingBottom: 6,
+				Filters:       []Filter{{Name: "some_filter"}},
+			},
+		},
+		{
+			name:   "non url image with hash and custom signer",
+			uri:    "XBCO7esuLsNQuSF2v9ie36pESRGx2rzLjhUxXWnV/meta/10x11:12x13/fit-in/-300x-200/5x6/left/top/smart/filters:some_filter()/img",
+			signer: NewHMACSigner(sha256.New, 40, "1234"),
+			params: Params{
+				Path:          "meta/10x11:12x13/fit-in/-300x-200/5x6/left/top/smart/filters:some_filter()/img",
+				Hash:          "XBCO7esuLsNQuSF2v9ie36pESRGx2rzLjhUxXWnV",
 				Image:         "img",
 				CropLeft:      10,
 				CropTop:       11,
@@ -209,12 +237,11 @@ func TestParseGenerate(t *testing.T) {
 			if !reflect.DeepEqual(resp, test.params) {
 				t.Errorf(" = %s, want %s", string(respJSON), string(expectedJSON))
 			}
-			signer := NewDefaultSigner(test.secret)
-			if test.secret != "" && signer.Sign(resp.Path) != resp.Hash {
-				t.Errorf("signature mismatch = %s, want %s", resp.Hash, signer.Sign(resp.Path))
+			if test.signer != nil && test.signer.Sign(resp.Path) != resp.Hash {
+				t.Errorf("signature mismatch = %s, want %s", resp.Hash, test.signer.Sign(resp.Path))
 			}
-			if test.params.Hash != "" {
-				if uri := Generate(test.params, signer); uri != test.uri {
+			if test.params.Hash != "" && test.signer != nil {
+				if uri := Generate(test.params, test.signer); uri != test.uri {
 					t.Errorf(" = %s, want = %s", uri, test.uri)
 				}
 			} else if test.params.Unsafe {
