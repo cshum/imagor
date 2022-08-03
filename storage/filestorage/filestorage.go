@@ -46,24 +46,24 @@ func New(baseDir string, options ...Option) *FileStorage {
 }
 
 func (s *FileStorage) Path(image string) (string, bool) {
-	image = "/" + imagorpath.Normalize(image, s.safeChars)
+	path := "/" + imagorpath.Normalize(image, s.safeChars)
 	for _, blacklist := range s.Blacklists {
-		if blacklist.MatchString(image) {
+		if blacklist.MatchString(path) {
 			return "", false
 		}
 	}
-	if !strings.HasPrefix(image, s.PathPrefix) {
+	if !strings.HasPrefix(path, s.PathPrefix) {
 		return "", false
 	}
-	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
+	return filepath.Join(s.BaseDir, strings.TrimPrefix(path, s.PathPrefix)), true
 }
 
 func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
-	image, ok := s.Path(image)
+	path, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	stats, err := os.Stat(image)
+	stats, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, imagor.ErrNotFound
@@ -74,17 +74,17 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 		return nil, imagor.ErrExpired
 	}
 	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
-		r, err := os.Open(image)
+		r, err := os.Open(path)
 		return r, stats.Size(), err
 	}), nil
 }
 
 func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (err error) {
-	image, ok := s.Path(image)
+	path, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
 	}
-	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
+	if err = os.MkdirAll(filepath.Dir(path), s.MkdirPermission); err != nil {
 		return
 	}
 	reader, _, err := blob.NewReader()
@@ -98,7 +98,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	if s.SaveErrIfExists {
 		flag = os.O_RDWR | os.O_CREATE | os.O_EXCL
 	}
-	w, err := os.OpenFile(image, flag, s.WritePermission)
+	w, err := os.OpenFile(path, flag, s.WritePermission)
 	if err != nil {
 		return
 	}
@@ -110,7 +110,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	}
 	if blob.Meta != nil {
 		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
-			w, err := os.OpenFile(image+".meta.json", flag, s.WritePermission)
+			w, err := os.OpenFile(path+".meta.json", flag, s.WritePermission)
 			if err != nil {
 				return err
 			}
@@ -124,19 +124,19 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 }
 
 func (s *FileStorage) Delete(_ context.Context, image string) error {
-	image, ok := s.Path(image)
+	path, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
 	}
-	return os.Remove(image)
+	return os.Remove(path)
 }
 
 func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, err error) {
-	image, ok := s.Path(image)
+	path, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	stats, err := os.Stat(image)
+	stats, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, imagor.ErrNotFound
@@ -150,11 +150,11 @@ func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, 
 }
 
 func (s *FileStorage) Meta(_ context.Context, image string) (*imagor.Meta, error) {
-	image, ok := s.Path(image)
+	path, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	key := image + ".meta.json"
+	key := path + ".meta.json"
 
 	if s.Expiration > 0 {
 		stats, err := os.Stat(key)
