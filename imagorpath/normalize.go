@@ -118,6 +118,7 @@ var breaksCleaner = strings.NewReplacer(
 // optional escapeByte func for custom SafeChars
 func Normalize(image string, safeChars SafeChars) string {
 	image = path.Clean(image)
+	image = breaksCleaner.Replace(image)
 	image = strings.Trim(image, "/")
 	if safeChars == nil {
 		return escape(image, defaultSafeChars.ShouldEscape)
