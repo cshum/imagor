@@ -36,7 +36,7 @@ jobs:
           libpoppler-glib-dev libxml2-dev \
           libopenslide-dev libcfitsio-dev liborc-0.4-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
-          libopenjp2-7 libcgif-dev
+          libopenjp2-7-dev libcgif-dev
           sudo pip3 install meson
       - name: Vips cache
         uses: actions/cache@v1
@@ -57,6 +57,7 @@ jobs:
           --prefix=/usr/local \
           --libdir=lib \
           -Dgtk_doc=false \
+          -Dmagick=disable \
           -Dintrospection=false
           ninja -C _build
           sudo ninja -C _build install
