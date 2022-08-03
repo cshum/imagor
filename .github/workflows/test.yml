@@ -69,10 +69,10 @@ jobs:
       - name: Test
         run: make test
 
-      - name: Auto commit golden files
+      - name: Commit golden files
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: "test(vips): update golden files"
+          commit_message: "test: update golden files"
           file_pattern: "testdata/golden"
 
       - name: Coveralls
