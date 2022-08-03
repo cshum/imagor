@@ -52,7 +52,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
     --prefix=/usr/local \
     --libdir=lib \
     -Dgtk_doc=false \
-    -Dmagick=disable \
+    -Dmagick=disabled \
     -Dintrospection=false && \
     ninja -C _build && \
     ninja -C _build install && \
