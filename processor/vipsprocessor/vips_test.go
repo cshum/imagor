@@ -40,11 +40,11 @@ type test struct {
 }
 
 func TestVipsProcessor(t *testing.T) {
-	doGoldenTests(t, "parent", []test{}, WithDebug(true), WithLogger(zap.NewExample()))
+	doGoldenTests(t, "placeholder", nil)
 	t.Parallel()
 	t.Run("vips", func(t *testing.T) {
-		var resultDir = filepath.Join(testDataDir, "result")
-		var tests = []test{
+		var resultDir = filepath.Join(testDataDir, "golden")
+		doGoldenTests(t, resultDir, []test{
 			{name: "original", path: "gopher-front.png"},
 			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png", checkTypeOnly: true},
@@ -125,32 +125,29 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "watermark frames animated", path: "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
 			{name: "watermark frames animated repeated", path: "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif,repeat,repeat,0,33,33):format(gif)/gopher.png"},
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
-		}
-		doGoldenTests(t, resultDir, tests, WithDebug(true), WithLogger(zap.NewExample()))
+		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("max frames", func(t *testing.T) {
-		var resultDir = filepath.Join(testDataDir, "result/max-frames")
-		var tests = []test{
+		var resultDir = filepath.Join(testDataDir, "golden/max-frames")
+		doGoldenTests(t, resultDir, []test{
 			{name: "original", path: "gopher-front.png"},
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
 			{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
 			{name: "resize top animated", path: "200x100/top/dancing-banana.gif"},
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
-		}
-		doGoldenTests(t, resultDir, tests, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(100))
+		}, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(100))
 	})
 	t.Run("max frames limited", func(t *testing.T) {
-		var resultDir = filepath.Join(testDataDir, "result/max-frames-limited")
-		var tests = []test{
+		var resultDir = filepath.Join(testDataDir, "golden/max-frames-limited")
+		doGoldenTests(t, resultDir, []test{
 			{name: "original", path: "gopher-front.png"},
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
 			{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
 			{name: "resize top animated", path: "200x100/top/dancing-banana.gif"},
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
-		}
-		doGoldenTests(t, resultDir, tests, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(3))
+		}, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(3))
 	})
 	t.Run("unsupported", func(t *testing.T) {
 		loader := filestorage.New(testDataDir + "/../")
