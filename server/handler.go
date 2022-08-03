@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
+	"html"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -100,10 +102,25 @@ func (s *Server) accessLogHandler(next http.Handler) http.Handler {
 		s.Logger.Info("access",
 			zap.Int("status", wr.Status),
 			zap.String("method", r.Method),
-			zap.String("uri", r.URL.RequestURI()),
-			zap.String("ip", RealIP(r)),
-			zap.String("user-agent", r.UserAgent()),
+			zap.String("uri", sanitise(r.URL.RequestURI())),
+			zap.String("ip", sanitise(RealIP(r))),
+			zap.String("user-agent", sanitise(r.UserAgent())),
 			zap.Duration("took", time.Since(start)),
 		)
 	})
+}
+
+var breaksCleaner = strings.NewReplacer(
+	"\r\n", "",
+	"\r", "",
+	"\n", "",
+	"\v", "",
+	"\f", "",
+	"\u0085", "",
+	"\u2028", "",
+	"\u2029", "",
+)
+
+func sanitise(s string) string {
+	return html.EscapeString(breaksCleaner.Replace(s))
 }

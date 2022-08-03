@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
+	"html"
 	"io"
 	"net/http"
 	"reflect"
@@ -404,9 +405,9 @@ func (app *Imagor) load(
 	}
 	if app.Debug {
 		if err == nil {
-			app.Logger.Debug("loaded", zap.String("key", key))
+			app.Logger.Debug("loaded", zap.String("key", sanitise(key)))
 		} else {
-			app.Logger.Debug("load", zap.String("key", key), zap.Error(err))
+			app.Logger.Debug("load", zap.String("key", sanitise(key)), zap.Error(err))
 		}
 	}
 	return
@@ -433,9 +434,9 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 		go func(storage Storage) {
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
-				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
+				app.Logger.Warn("save", zap.String("key", sanitise(key)), zap.Error(err))
 			} else if app.Debug {
-				app.Logger.Debug("saved", zap.String("key", key))
+				app.Logger.Debug("saved", zap.String("key", sanitise(key)))
 			}
 		}(storage)
 	}
@@ -450,9 +451,9 @@ func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
 		go func(storage Storage) {
 			defer wg.Done()
 			if err := storage.Delete(ctx, key); err != nil {
-				app.Logger.Warn("delete", zap.String("key", key), zap.Error(err))
+				app.Logger.Warn("delete", zap.String("key", sanitise(key)), zap.Error(err))
 			} else if app.Debug {
-				app.Logger.Debug("deleted", zap.String("key", key))
+				app.Logger.Debug("deleted", zap.String("key", sanitise(key)))
 			}
 		}(storage)
 	}
@@ -469,7 +470,7 @@ func (app *Imagor) suppress(
 	key string, fn func(ctx context.Context) (*Blob, error),
 ) (blob *Blob, err error) {
 	if app.Debug {
-		app.Logger.Debug("suppress", zap.String("key", key))
+		app.Logger.Debug("suppress", zap.String("key", sanitise(key)))
 	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
@@ -589,6 +590,21 @@ func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, siz
 			_, _ = w.Write(buf)
 		}
 	}
+}
+
+var breaksCleaner = strings.NewReplacer(
+	"\r\n", "",
+	"\r", "",
+	"\n", "",
+	"\v", "",
+	"\f", "",
+	"\u0085", "",
+	"\u2028", "",
+	"\u2029", "",
+)
+
+func sanitise(s string) string {
+	return html.EscapeString(breaksCleaner.Replace(s))
 }
 
 func getType(v interface{}) string {
