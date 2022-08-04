@@ -152,6 +152,13 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
 		}, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(3))
 	})
+	t.Run("disable animation", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/no-animation")
+		doGoldenTests(t, resultDir, []test{
+			{name: "png", path: "gopher-front.png"},
+			{name: "gif", path: "dancing-banana.gif"},
+		}, WithDebug(true), WithMaxAnimationFrames(-167))
+	})
 	t.Run("unsupported", func(t *testing.T) {
 		loader := filestorage.New(testDataDir + "/../")
 		app := imagor.New(
