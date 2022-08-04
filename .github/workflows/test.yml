@@ -48,8 +48,11 @@ jobs:
 
       - name: Build libvips from source
         run: |
-          wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
-          tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+          if [ ! -d "vips-${{ env.VIPS_VERSION }}" ]
+          then
+            wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
+            tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+          fi
           cd vips-${{ env.VIPS_VERSION }}
           meson setup _build \
           --buildtype=release \
