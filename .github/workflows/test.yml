@@ -80,11 +80,10 @@ jobs:
         run: make test
 
       - name: Commit golden files
+        if: github.event_name != 'pull_request'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "test: update golden files"
-          skip_fetch: ${{ github.event_name != 'pull_request' }}
-          skip_checkout: ${{ github.event_name != 'pull_request' }}
           file_pattern: "testdata/golden"
 
       - name: Coveralls
