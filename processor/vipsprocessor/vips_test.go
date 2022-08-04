@@ -125,6 +125,7 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "watermark frames animated", path: "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png"},
 			{name: "watermark frames animated repeated", path: "fit-in/200x200/filters:fill(white):frames(3,200):watermark(dancing-banana.gif,repeat,repeat,0,33,33):format(gif)/gopher.png"},
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
+			{name: "animated fill round_corner", path: "filters:fill(cyan):round_corner(60)/dancing-banana.gif"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("max frames", func(t *testing.T) {
