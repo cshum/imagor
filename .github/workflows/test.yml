@@ -5,13 +5,10 @@ on: [push, pull_request]
 jobs:
   build:
     name: Test
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-20.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
       VIPS_VERSION: 8.13.0
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
 
     steps:
       - name: Set up Go 1.x
@@ -38,7 +35,7 @@ jobs:
           libopenjp2-7-dev libcgif-dev
           sudo pip3 install meson
 
-      - name: Vips cache
+      - name: Cache libvips
         uses: actions/cache@v3
         with:
           path: vips-${{ env.VIPS_VERSION }}
@@ -66,7 +63,7 @@ jobs:
           sudo ninja -C _build install
           sudo ldconfig
 
-      - name: Cache dependencies
+      - name: Cache Go dependencies
         uses: actions/cache@v3
         with:
           path: |
@@ -76,7 +73,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Get dependencies
+      - name: Get Go dependencies
         run: make get
 
       - name: Test
