@@ -132,6 +132,9 @@ func (v *VipsProcessor) process(
 					return err
 				}
 			}
+			if _, err := v.checkResolution(img, nil); err != nil {
+				return err
+			}
 		}
 	}
 	if p.HFlip {

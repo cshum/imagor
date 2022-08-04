@@ -31,6 +31,7 @@ type VipsProcessor struct {
 	MaxCacheSize       int
 	MaxWidth           int
 	MaxHeight          int
+	MaxResolution      int
 	MaxAnimationFrames int
 	MozJPEG            bool
 	Debug              bool
@@ -40,6 +41,7 @@ func New(options ...Option) *VipsProcessor {
 	v := &VipsProcessor{
 		MaxWidth:           9999,
 		MaxHeight:          9999,
+		MaxResolution:      16800000,
 		Concurrency:        1,
 		MaxFilterOps:       -1,
 		MaxAnimationFrames: -1,

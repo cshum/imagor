@@ -189,6 +189,36 @@ func TestVipsProcessor(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, buf, w.Body.Bytes(), "should return original file")
 	})
+	t.Run("resolution exceeded", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(New(
+				WithMaxResolution(300*300),
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/gopher-front.png", nil))
+		assert.Equal(t, 200, w.Code)
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/gopher.png", nil))
+		assert.Equal(t, 422, w.Code)
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/trim/1000x0/gopher-front.png", nil))
+		assert.Equal(t, 422, w.Code)
+	})
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {

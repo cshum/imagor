@@ -525,10 +525,12 @@ Usage of imagor:
         VIPS disable filters by csv e.g. blur,watermark,rgb
   -vips-max-filter-ops int
         VIPS maximum number of filter operations allowed. Set -1 for unlimited (default -1)
-  -vips-max-height int
-        VIPS max image height
   -vips-max-width int
         VIPS max image width
+  -vips-max-height int
+        VIPS max image height
+  -vips-max-resolution int
+        VIPS max image resolution
   -vips-concurrency int
         VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
   -vips-max-cache-files int
