@@ -162,7 +162,7 @@ func TestVipsProcessor(t *testing.T) {
 	t.Run("max-filter-ops", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden/max-filter-ops")
 		doGoldenTests(t, resultDir, []test{
-			{name: "max-filter-ops within", path: "fit-in/200x150/filters:fill(yellow)"},
+			{name: "max-filter-ops within", path: "fit-in/200x150/filters:fill(yellow)/dancing-banana.gif"},
 			{name: "max-filter-ops exceeded no ops", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif"},
 		}, WithDebug(true), WithMaxFilterOps(1))
 	})
