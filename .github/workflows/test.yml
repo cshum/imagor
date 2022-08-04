@@ -5,13 +5,10 @@ on: [push, pull_request]
 jobs:
   build:
     name: Test
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-20.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
       VIPS_VERSION: 8.13.0
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
 
     steps:
       - name: Set up Go 1.x
@@ -38,7 +35,7 @@ jobs:
           libopenjp2-7-dev libcgif-dev
           sudo pip3 install meson
 
-      - name: Vips cache
+      - name: Cache libvips
         uses: actions/cache@v3
         with:
           path: vips-${{ env.VIPS_VERSION }}
@@ -48,8 +45,11 @@ jobs:
 
       - name: Build libvips from source
         run: |
-          wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
-          tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+          if [ ! -d "vips-${{ env.VIPS_VERSION }}" ]
+          then
+            wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
+            tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+          fi
           cd vips-${{ env.VIPS_VERSION }}
           meson setup _build \
           --buildtype=release \
