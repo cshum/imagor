@@ -52,25 +52,24 @@ func (v *VipsProcessor) newThumbnail(
 		}
 	} else if blob.BlobType() == imagor.BlobTypePNG {
 		// avoid vips pngload error
-		return v.checkRes(newThumbnailFix(buf, width, height, crop, size))
+		return v.newThumbnailFix(buf, width, height, crop, size)
 	} else {
 		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
 	}
 	return v.checkRes(img, wrapErr(err))
 }
 
-func newThumbnailFix(
+func (v *VipsProcessor) newThumbnailFix(
 	buf []byte, width, height int, crop vips.Interesting, size vips.Size,
 ) (img *vips.ImageRef, err error) {
-	if img, err = vips.NewImageFromBuffer(buf); err != nil {
+	if img, err = v.checkRes(vips.NewImageFromBuffer(buf)); err != nil {
 		return
 	}
 	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
 		img.Close()
 		return
 	}
-	err = wrapErr(err)
-	return
+	return v.checkRes(img, wrapErr(err))
 }
 
 func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, error) {
