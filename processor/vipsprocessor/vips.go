@@ -383,8 +383,8 @@ func (v *VipsProcessor) Process(
 }
 
 func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
-	format, ok := vips.ImageTypes[meta.Format]
-	contentType, ok2 := imageMimeTypeMap[format]
+	format := vips.ImageTypes[meta.Format]
+	contentType := imageMimeTypeMap[format]
 
 	// govips returns "image/heif" for avif image content types
 	if meta.Format == vips.ImageTypeAVIF {
@@ -392,14 +392,9 @@ func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
 		contentType = "image/avif"
 	}
 
-	if !ok || !ok2 {
-		format = "jpeg"
-		contentType = "image/jpeg"
-	}
-
-	pages := meta.Pages
-	if pages < 1 {
-		pages = 1
+	pages := 1
+	if p := meta.Pages; p > 1 {
+		pages = p
 	}
 	return &imagor.Meta{
 		Format:      format,
@@ -499,11 +494,8 @@ func wrapErr(err error) error {
 	if err == nil {
 		return nil
 	}
-	if err == vips.ErrUnsupportedImageFormat {
-		return imagor.ErrUnsupportedFormat
-	}
 	msg := err.Error()
-	if strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
+	if err == vips.ErrUnsupportedImageFormat || strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
 		return imagor.ErrUnsupportedFormat
 	}
 	if idx := strings.Index(msg, "Stack:"); idx > -1 {
