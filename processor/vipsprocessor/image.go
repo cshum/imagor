@@ -54,10 +54,9 @@ func (v *VipsProcessor) newThumbnail(
 		// avoid vips pngload error
 		return v.checkRes(newThumbnailFix(buf, width, height, crop, size))
 	} else {
-		img, err = v.checkRes(
-			vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil))
+		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
 	}
-	return img, wrapErr(err)
+	return v.checkRes(img, wrapErr(err))
 }
 
 func newThumbnailFix(
