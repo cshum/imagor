@@ -83,7 +83,6 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "test: update golden files"
-          skip_fetch: true
           skip_checkout: true
           file_pattern: "testdata/golden"
 
