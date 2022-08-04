@@ -16,10 +16,10 @@ jobs:
         with:
           go-version: ^1.18
 
-      - name: Check out code into the Go module directory
+      - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Install linux deps
+      - name: Install linux dependencies
         run: |
           sudo add-apt-repository -y ppa:lovell/cgif
           sudo add-apt-repository -y ppa:strukturag/libde265
