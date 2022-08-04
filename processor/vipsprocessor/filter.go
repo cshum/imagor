@@ -356,11 +356,11 @@ func proportion(_ context.Context, img *vips.ImageRef, _ imagor.LoadFunc, args .
 	if scale <= 0 {
 		return // no ops
 	}
-	if scale > 1 {
-		scale /= 100
-	}
 	if scale > 100 {
 		scale = 100
+	}
+	if scale > 1 {
+		scale /= 100
 	}
 	width := int(float64(img.Width()) * scale)
 	height := int(float64(img.PageHeight()) * scale)
