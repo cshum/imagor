@@ -16,10 +16,10 @@ jobs:
         with:
           go-version: ^1.18
 
-      - name: Check out code into the Go module directory
+      - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Install linux deps
+      - name: Install linux dependencies
         run: |
           sudo add-apt-repository -y ppa:lovell/cgif
           sudo add-apt-repository -y ppa:strukturag/libde265
@@ -80,6 +80,7 @@ jobs:
         run: make test
 
       - name: Commit golden files
+        if: github.event_name != 'pull_request'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "test: update golden files"
