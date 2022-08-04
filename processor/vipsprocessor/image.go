@@ -26,7 +26,9 @@ func (v *VipsProcessor) newThumbnail(
 			params.NumPages.Set(-1)
 		}
 		if crop == vips.InterestingNone || size == vips.SizeForce {
-			if img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params); err != nil {
+			if img, err = v.checkSize(
+				vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params),
+			); err != nil {
 				return nil, wrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
@@ -35,7 +37,7 @@ func (v *VipsProcessor) newThumbnail(
 				return v.newThumbnail(blob, width, height, crop, size, -n)
 			}
 		} else {
-			if img, err = vips.LoadImageFromBuffer(buf, params); err != nil {
+			if img, err = v.checkSize(vips.LoadImageFromBuffer(buf, params)); err != nil {
 				return nil, wrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
@@ -50,9 +52,10 @@ func (v *VipsProcessor) newThumbnail(
 		}
 	} else if blob.BlobType() == imagor.BlobTypePNG {
 		// avoid vips pngload error
-		return newThumbnailFix(buf, width, height, crop, size)
+		return v.checkSize(newThumbnailFix(buf, width, height, crop, size))
 	} else {
-		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
+		img, err = v.checkSize(
+			vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil))
 	}
 	return img, wrapErr(err)
 }
@@ -87,7 +90,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 		} else {
 			params.NumPages.Set(-1)
 		}
-		img, err := vips.LoadImageFromBuffer(buf, params)
+		img, err := v.checkSize(vips.LoadImageFromBuffer(buf, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -99,7 +102,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 			return img, nil
 		}
 	} else {
-		img, err := vips.LoadImageFromBuffer(buf, params)
+		img, err := v.checkSize(vips.LoadImageFromBuffer(buf, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -158,6 +161,18 @@ func (v *VipsProcessor) animatedThumbnailWithCrop(
 		top = (img.PageHeight() - h) / 2
 	}
 	return img.ExtractArea(left, top, w, h)
+}
+
+func (v *VipsProcessor) checkSize(img *vips.ImageRef, err error) (*vips.ImageRef, error) {
+	if err != nil || img == nil {
+		return img, err
+	}
+	if img.Width() > v.MaxWidth || img.PageHeight() > v.MaxHeight ||
+		(img.Width()*img.PageHeight()) > v.MaxResolution {
+		img.Close()
+		return nil, imagor.ErrMaxSizeExceeded
+	}
+	return img, nil
 }
 
 func isBlobAnimated(blob *imagor.Blob, n int) bool {

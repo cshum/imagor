@@ -116,3 +116,11 @@ func WithMaxHeight(height int) Option {
 		}
 	}
 }
+
+func WithMaxResolution(res int) Option {
+	return func(v *VipsProcessor) {
+		if res > 0 {
+			v.MaxResolution = res
+		}
+	}
+}

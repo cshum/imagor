@@ -25,10 +25,12 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS max cache size")
 		vipsMaxCacheMem = fs.Int("vips-max-cache-mem", 0,
 			"VIPS max cache mem")
-		vipsMaxWidth = fs.Int("vips-max-width", 0,
+		vipsMaxWidth = fs.Int("vips-max-width", 9999,
 			"VIPS max image width")
-		vipsMaxHeight = fs.Int("vips-max-height", 0,
+		vipsMaxHeight = fs.Int("vips-max-height", 9999,
 			"VIPS max image height")
+		vipsMaxResolution = fs.Int("vips-max-resolution", 16800000,
+			"VIPS max image resolution")
 		vipsMozJPEG = fs.Bool("vips-mozjpeg", false,
 			"VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed")
 
@@ -46,6 +48,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
 			vipsprocessor.WithMaxWidth(*vipsMaxWidth),
 			vipsprocessor.WithMaxHeight(*vipsMaxHeight),
+			vipsprocessor.WithMaxResolution(*vipsMaxResolution),
 			vipsprocessor.WithMozJPEG(*vipsMozJPEG),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
