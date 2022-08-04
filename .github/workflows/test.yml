@@ -63,7 +63,7 @@ jobs:
           sudo ninja -C _build install
           sudo ldconfig
 
-      - name: Cache Go dependencies
+      - name: Cache dependencies
         uses: actions/cache@v3
         with:
           path: |
@@ -73,7 +73,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Get Go dependencies
+      - name: Get dependencies
         run: make get
 
       - name: Test
