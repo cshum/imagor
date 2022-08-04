@@ -25,9 +25,9 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS max cache size")
 		vipsMaxCacheMem = fs.Int("vips-max-cache-mem", 0,
 			"VIPS max cache mem")
-		vipsMaxWidth = fs.Int("vips-max-width", 9999,
+		vipsMaxWidth = fs.Int("vips-max-width", 0,
 			"VIPS max image width")
-		vipsMaxHeight = fs.Int("vips-max-height", 9999,
+		vipsMaxHeight = fs.Int("vips-max-height", 0,
 			"VIPS max image height")
 		vipsMaxResolution = fs.Int("vips-max-resolution", 16800000,
 			"VIPS max image resolution")
