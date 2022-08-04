@@ -26,7 +26,7 @@ func (v *VipsProcessor) newThumbnail(
 			params.NumPages.Set(-1)
 		}
 		if crop == vips.InterestingNone || size == vips.SizeForce {
-			if img, err = v.checkSize(
+			if img, err = v.checkRes(
 				vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params),
 			); err != nil {
 				return nil, wrapErr(err)
@@ -37,7 +37,7 @@ func (v *VipsProcessor) newThumbnail(
 				return v.newThumbnail(blob, width, height, crop, size, -n)
 			}
 		} else {
-			if img, err = v.checkSize(vips.LoadImageFromBuffer(buf, params)); err != nil {
+			if img, err = v.checkRes(vips.LoadImageFromBuffer(buf, params)); err != nil {
 				return nil, wrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
@@ -52,9 +52,9 @@ func (v *VipsProcessor) newThumbnail(
 		}
 	} else if blob.BlobType() == imagor.BlobTypePNG {
 		// avoid vips pngload error
-		return v.checkSize(newThumbnailFix(buf, width, height, crop, size))
+		return v.checkRes(newThumbnailFix(buf, width, height, crop, size))
 	} else {
-		img, err = v.checkSize(
+		img, err = v.checkRes(
 			vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil))
 	}
 	return img, wrapErr(err)
@@ -90,7 +90,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 		} else {
 			params.NumPages.Set(-1)
 		}
-		img, err := v.checkSize(vips.LoadImageFromBuffer(buf, params))
+		img, err := v.checkRes(vips.LoadImageFromBuffer(buf, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -102,7 +102,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 			return img, nil
 		}
 	} else {
-		img, err := v.checkSize(vips.LoadImageFromBuffer(buf, params))
+		img, err := v.checkRes(vips.LoadImageFromBuffer(buf, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -163,14 +163,14 @@ func (v *VipsProcessor) animatedThumbnailWithCrop(
 	return img.ExtractArea(left, top, w, h)
 }
 
-func (v *VipsProcessor) checkSize(img *vips.ImageRef, err error) (*vips.ImageRef, error) {
+func (v *VipsProcessor) checkRes(img *vips.ImageRef, err error) (*vips.ImageRef, error) {
 	if err != nil || img == nil {
 		return img, err
 	}
 	if img.Width() > v.MaxWidth || img.PageHeight() > v.MaxHeight ||
 		(img.Width()*img.PageHeight()) > v.MaxResolution {
 		img.Close()
-		return nil, imagor.ErrMaxSizeExceeded
+		return nil, imagor.ErrMaxResolutionExceeded
 	}
 	return img, nil
 }

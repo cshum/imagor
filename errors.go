@@ -11,16 +11,17 @@ import (
 )
 
 var (
-	ErrNotFound          = NewError("not found", http.StatusNotFound)
-	ErrPass              = NewError("pass", http.StatusBadRequest)
-	ErrInvalid           = NewError("invalid", http.StatusBadRequest)
-	ErrMethodNotAllowed  = NewError("method not allowed", http.StatusMethodNotAllowed)
-	ErrSignatureMismatch = NewError("url signature mismatch", http.StatusForbidden)
-	ErrTimeout           = NewError("timeout", http.StatusRequestTimeout)
-	ErrExpired           = NewError("expired", http.StatusGone)
-	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
-	ErrMaxSizeExceeded   = NewError("maximum size exceeded", http.StatusBadRequest)
-	ErrInternal          = NewError("internal error", http.StatusInternalServerError)
+	ErrNotFound              = NewError("not found", http.StatusNotFound)
+	ErrPass                  = NewError("pass", http.StatusBadRequest)
+	ErrInvalid               = NewError("invalid", http.StatusBadRequest)
+	ErrMethodNotAllowed      = NewError("method not allowed", http.StatusMethodNotAllowed)
+	ErrSignatureMismatch     = NewError("url signature mismatch", http.StatusForbidden)
+	ErrTimeout               = NewError("timeout", http.StatusRequestTimeout)
+	ErrExpired               = NewError("expired", http.StatusGone)
+	ErrUnsupportedFormat     = NewError("unsupported format", http.StatusNotAcceptable)
+	ErrMaxSizeExceeded       = NewError("maximum size exceeded", http.StatusBadRequest)
+	ErrMaxResolutionExceeded = NewError("maximum resolution exceeded", http.StatusUnprocessableEntity)
+	ErrInternal              = NewError("internal error", http.StatusInternalServerError)
 )
 
 const errPrefix = "imagor:"

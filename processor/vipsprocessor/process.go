@@ -132,7 +132,7 @@ func (v *VipsProcessor) process(
 					return err
 				}
 			}
-			if _, err := v.checkSize(img, nil); err != nil {
+			if _, err := v.checkRes(img, nil); err != nil {
 				return err
 			}
 		}

@@ -212,12 +212,12 @@ func TestVipsProcessor(t *testing.T) {
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/gopher.png", nil))
-		assert.Equal(t, 400, w.Code)
+		assert.Equal(t, 422, w.Code)
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/trim/1000x0/gopher-front.png", nil))
-		assert.Equal(t, 400, w.Code)
+		assert.Equal(t, 422, w.Code)
 	})
 }
 
