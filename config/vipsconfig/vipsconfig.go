@@ -29,7 +29,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS max image width")
 		vipsMaxHeight = fs.Int("vips-max-height", 0,
 			"VIPS max image height")
-		vipsMaxResolution = fs.Int("vips-max-resolution", 16800000,
+		vipsMaxResolution = fs.Int("vips-max-resolution", 0,
 			"VIPS max image resolution")
 		vipsMozJPEG = fs.Bool("vips-mozjpeg", false,
 			"VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed")

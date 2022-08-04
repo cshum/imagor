@@ -189,7 +189,7 @@ func TestVipsProcessor(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, buf, w.Body.Bytes(), "should return original file")
 	})
-	t.Run("size exceeded", func(t *testing.T) {
+	t.Run("resolution exceeded", func(t *testing.T) {
 		app := imagor.New(
 			imagor.WithLoaders(filestorage.New(testDataDir)),
 			imagor.WithUnsafe(true),
