@@ -96,6 +96,7 @@ jobs:
         uses: snok/container-retention-policy@v1
         with:
           image-names: imagor
+          cut-off: 1 hour ago UTC
           account-type: personal
           keep-at-least: 1
           untagged-only: true
