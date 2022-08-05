@@ -650,6 +650,30 @@ func TestWithResultKey(t *testing.T) {
 	assert.Equal(t, 1, resultStore.SaveCnt["prefix:foo"])
 }
 
+func TestClientCancel(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			time.Sleep(time.Second)
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+	)
+	for i := 0; i < 5; i++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(time.Millisecond)
+			cancel()
+		}()
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/foo", nil).WithContext(ctx)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 499, w.Code)
+		assert.Empty(t, w.Body.String())
+	}
+}
+
 func TestWithProcessQueueSize(t *testing.T) {
 	n := 20
 	conn := 3
