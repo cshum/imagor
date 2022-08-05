@@ -140,9 +140,6 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
 		assert.Equal(t, imagor.ErrInvalid, err)
 
-		_, err = s.Meta(context.Background(), "/bar/fooo/asdf")
-		assert.Equal(t, imagor.ErrInvalid, err)
-
 		_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
@@ -157,12 +154,6 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		assert.Equal(t, imagor.ErrInvalid, s.Delete(context.Background(), "/bar/fooo/asdf"))
 
 		blob := imagor.NewBlobFromBytes([]byte("bar"))
-		blob.Meta = &imagor.Meta{
-			Format:      "abc",
-			ContentType: "def",
-			Width:       167,
-			Height:      169,
-		}
 
 		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
@@ -175,10 +166,6 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		stat, err := s.Stat(context.Background(), "/foo/fooo/asdf")
 		require.NoError(t, err)
 		assert.True(t, stat.ModifiedTime.Before(time.Now()))
-
-		meta, err := s.Meta(context.Background(), "/foo/fooo/asdf")
-		require.NoError(t, err)
-		assert.Equal(t, meta, blob.Meta)
 
 		err = s.Delete(context.Background(), "/foo/fooo/asdf")
 		require.NoError(t, err)
@@ -197,8 +184,6 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
-		_, err = s.Meta(context.Background(), "/foo/tar/asdf")
-		assert.Equal(t, imagor.ErrNotFound, err)
 	})
 
 	t.Run("expiration", func(t *testing.T) {
@@ -207,15 +192,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
-		_, err = s.Meta(ctx, "/foo/bar/asdf")
-		assert.Equal(t, imagor.ErrNotFound, err)
 		blob := imagor.NewBlobFromBytes([]byte("bar"))
-		blob.Meta = &imagor.Meta{
-			Format:      "abc",
-			ContentType: "def",
-			Width:       167,
-			Height:      169,
-		}
 		require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
 		b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
 		require.NoError(t, err)
@@ -223,14 +200,8 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
 
-		meta, err := s.Meta(context.Background(), "/foo/bar/asdf")
-		require.NoError(t, err)
-		assert.Equal(t, meta, blob.Meta)
-
 		time.Sleep(time.Second)
 		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
-		require.ErrorIs(t, err, imagor.ErrExpired)
-		_, err = s.Meta(context.Background(), "/foo/bar/asdf")
 		require.ErrorIs(t, err, imagor.ErrExpired)
 	})
 }
