@@ -422,12 +422,8 @@ func (app *Imagor) load(
 	if err == nil && isBlobEmpty(blob) && !metaMode {
 		err = ErrNotFound
 	}
-	if app.Debug {
-		if err == nil {
-			app.Logger.Debug("loaded", zap.String("key", key))
-		} else {
-			app.Logger.Debug("load", zap.String("key", key), zap.Error(err))
-		}
+	if err != nil && app.Debug {
+		app.Logger.Debug("load", zap.String("key", key), zap.Error(err))
 	}
 	return
 }
