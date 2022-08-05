@@ -7,7 +7,7 @@ on:
 
 jobs:
   ghcr-cleanup:
-    name: Delete untagged container images
+    name: GHCR Cleanup
     runs-on: ubuntu-latest
     steps:
       - name: Delete untagged container images
