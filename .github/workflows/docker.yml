@@ -7,13 +7,15 @@ name: docker
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, ghcr-cleanup ]
     tags: [ 'v*.*.*' ]
 
 jobs:
   build:
     name: Docker
     runs-on: ubuntu-latest
+    env:
+      HAS_PAT: ${{ secrets.PAT != '' }}
     permissions:
       contents: read
       packages: write
@@ -93,6 +95,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Delete untagged container images
+        if: env.HAVE_SONAR_TOKEN == 'true'
         uses: snok/container-retention-policy@v1
         with:
           image-names: imagor
