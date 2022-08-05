@@ -490,8 +490,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return ctx.Err()
 			}),
 		),
-		WithProcessConcurrency(500),
-		WithProcessQueueSize(1000),
 		WithResultStorages(resultStore),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
@@ -650,6 +648,38 @@ func TestWithResultKey(t *testing.T) {
 	assert.Equal(t, 1, store.SaveCnt["foo"])
 	assert.Equal(t, 1, resultStore.LoadCnt["prefix:foo"])
 	assert.Equal(t, 1, resultStore.SaveCnt["prefix:foo"])
+}
+
+func TestWithProcessQueueSize(t *testing.T) {
+	n := 20
+	size := 6
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithLogger(zap.NewExample()),
+		WithProcessQueueSize(int64(size)),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			time.Sleep(time.Millisecond * 10)
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+	)
+	cnt := make(chan int, n)
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%d", i), nil))
+			//fmt.Println(w.Body.String())
+			cnt <- w.Code
+		}(i)
+	}
+	result := map[int]int{}
+	for i := 0; i < n; i++ {
+		code := <-cnt
+		result[code]++
+	}
+	assert.Equal(t, size, result[200])
+	assert.Equal(t, n-size, result[429])
 }
 
 func TestWithModifiedTimeCheck(t *testing.T) {

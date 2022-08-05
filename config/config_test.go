@@ -49,6 +49,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-load-timeout", "7s",
 		"-imagor-process-timeout", "19s",
 		"-imagor-process-concurrency", "199",
+		"-imagor-process-queue-size", "1999",
 		"-imagor-base-path-redirect", "https://www.google.com",
 		"-imagor-base-params", "fitlers:watermark(example.jpg)",
 		"-imagor-cache-header-ttl", "169h",
@@ -68,6 +69,7 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, time.Second*7, app.LoadTimeout)
 	assert.Equal(t, time.Second*19, app.ProcessTimeout)
 	assert.Equal(t, int64(199), app.ProcessConcurrency)
+	assert.Equal(t, int64(1999), app.ProcessQueueSize)
 	assert.Equal(t, "https://www.google.com", app.BasePathRedirect)
 	assert.Equal(t, "fitlers:watermark(example.jpg)/", app.BaseParams)
 	assert.Equal(t, time.Hour*169, app.CacheHeaderTTL)
