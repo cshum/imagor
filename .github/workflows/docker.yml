@@ -7,7 +7,7 @@ name: docker
 
 on:
   push:
-    branches: [ master, ghcr-cleanup ]
+    branches: [ master ]
     tags: [ 'v*.*.*' ]
 
 jobs:
