@@ -650,14 +650,16 @@ func TestWithResultKey(t *testing.T) {
 	assert.Equal(t, 1, resultStore.SaveCnt["prefix:foo"])
 }
 
-func TestWithProcessQueueSize(t *testing.T) {
+func TestSemaphore(t *testing.T) {
 	n := 20
+	conn := 3
 	size := 6
 	app := New(
 		WithDebug(true),
 		WithUnsafe(true),
 		WithLogger(zap.NewExample()),
 		WithProcessQueueSize(int64(size)),
+		WithProcessConcurrency(int64(conn)),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			time.Sleep(time.Millisecond * 10)
 			return NewBlobFromBytes([]byte(image)), nil
@@ -678,8 +680,8 @@ func TestWithProcessQueueSize(t *testing.T) {
 		code := <-cnt
 		result[code]++
 	}
-	assert.Equal(t, size, result[200])
-	assert.Equal(t, n-size, result[429])
+	assert.Equal(t, size+conn, result[200])
+	assert.Equal(t, n-size-conn, result[429])
 }
 
 func TestWithModifiedTimeCheck(t *testing.T) {
