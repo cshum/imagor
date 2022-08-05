@@ -490,7 +490,8 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return ctx.Err()
 			}),
 		),
-		WithProcessConcurrency(1000),
+		WithProcessConcurrency(500),
+		WithProcessQueueSize(1000),
 		WithResultStorages(resultStore),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {

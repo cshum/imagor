@@ -384,7 +384,9 @@ Usage of imagor:
   -imagor-process-timeout duration
         Timeout for image processing (default 20s)
   -imagor-process-concurrency int
-        Imagor semaphore size for process concurrency control. Set -1 for no limit (default -1)
+        Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit (default -1)
+  -imagor-process-queue-size int
+        Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429. Set -1 for no limit (default -1)
   -imagor-base-path-redirect string
         URL to redirect for Imagor / base path e.g. https://www.google.com
   -imagor-modified-time-check

@@ -385,14 +385,12 @@ func (v *VipsProcessor) Process(
 func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
 	format := vips.ImageTypes[meta.Format]
 	contentType := imageMimeTypeMap[format]
-
+	pages := 1
 	// govips returns "image/heif" for avif image content types
 	if meta.Format == vips.ImageTypeAVIF {
 		format = "avif"
 		contentType = "image/avif"
 	}
-
-	pages := 1
 	if p := meta.Pages; p > 1 {
 		pages = p
 	}

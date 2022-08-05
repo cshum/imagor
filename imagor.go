@@ -65,6 +65,7 @@ type Imagor struct {
 	CacheHeaderTTL        time.Duration
 	CacheHeaderSWR        time.Duration
 	ProcessConcurrency    int64
+	ProcessQueueSize      int64
 	AutoWebP              bool
 	AutoAVIF              bool
 	ModifiedTimeCheck     bool
@@ -77,6 +78,7 @@ type Imagor struct {
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
+	queueSema  *semaphore.Weighted
 	baseParams imagorpath.Params
 }
 
@@ -96,6 +98,9 @@ func New(options ...Option) *Imagor {
 	}
 	if app.ProcessConcurrency > 0 {
 		app.sema = semaphore.NewWeighted(app.ProcessConcurrency)
+	}
+	if app.ProcessQueueSize > 0 {
+		app.queueSema = semaphore.NewWeighted(app.ProcessQueueSize + app.ProcessConcurrency)
 	}
 	if app.Debug {
 		app.debugLog()
@@ -258,16 +263,30 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				return blob, nil
 			}
 		}
+		if app.queueSema != nil {
+			if !app.queueSema.TryAcquire(1) {
+				err = ErrTooManyRequests
+				if app.Debug {
+					app.Logger.Debug("queue-acquire", zap.Error(err))
+				}
+				return blob, err
+			}
+			defer app.queueSema.Release(1)
+		}
 		if app.sema != nil {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
-				app.Logger.Debug("acquire", zap.Error(err))
+				if app.Debug {
+					app.Logger.Debug("acquire", zap.Error(err))
+				}
 				return blob, err
 			}
 			defer app.sema.Release(1)
 		}
 		var isSave bool
 		if blob, isSave, err = app.loadStorage(r, p.Image); err != nil {
-			app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+			if app.Debug {
+				app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+			}
 			return blob, err
 		}
 		if isBlobEmpty(blob) {
