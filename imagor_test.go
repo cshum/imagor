@@ -490,7 +490,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				return ctx.Err()
 			}),
 		),
-		WithProcessConcurrency(1000),
 		WithResultStorages(resultStore),
 		WithProcessors(
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
@@ -673,6 +672,71 @@ func TestClientCancel(t *testing.T) {
 		assert.Equal(t, 499, w.Code)
 		assert.Empty(t, w.Body.String())
 	}
+}
+
+func TestWithProcessQueueSize(t *testing.T) {
+	n := 20
+	conn := 3
+	size := 6
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithLogger(zap.NewExample()),
+		WithProcessQueueSize(int64(size)),
+		WithProcessConcurrency(int64(conn)),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			time.Sleep(time.Millisecond * 10)
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+	)
+	cnt := make(chan int, n)
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%d", i), nil))
+			//fmt.Println(w.Body.String())
+			cnt <- w.Code
+		}(i)
+	}
+	result := map[int]int{}
+	for i := 0; i < n; i++ {
+		code := <-cnt
+		result[code]++
+	}
+	assert.Equal(t, size+conn, result[200])
+	assert.Equal(t, n-size-conn, result[429])
+}
+
+func TestWithProcessConcurrency(t *testing.T) {
+	n := 5
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithLogger(zap.NewExample()),
+		WithProcessConcurrency(1),
+		WithRequestTimeout(time.Millisecond*13),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			time.Sleep(time.Millisecond * 10)
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+	)
+	cnt := make(chan int, n)
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%d", i), nil))
+			cnt <- w.Code
+		}(i)
+	}
+	result := map[int]int{}
+	for i := 0; i < n; i++ {
+		code := <-cnt
+		result[code]++
+	}
+	assert.Equal(t, 1, result[200])
+	assert.Equal(t, 4, result[408])
 }
 
 func TestWithModifiedTimeCheck(t *testing.T) {

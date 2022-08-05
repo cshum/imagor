@@ -21,6 +21,7 @@ var (
 	ErrUnsupportedFormat     = NewError("unsupported format", http.StatusNotAcceptable)
 	ErrMaxSizeExceeded       = NewError("maximum size exceeded", http.StatusBadRequest)
 	ErrMaxResolutionExceeded = NewError("maximum resolution exceeded", http.StatusUnprocessableEntity)
+	ErrTooManyRequests       = NewError("too many requests", http.StatusTooManyRequests)
 	ErrInternal              = NewError("internal error", http.StatusInternalServerError)
 )
 

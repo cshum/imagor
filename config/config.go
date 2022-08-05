@@ -46,7 +46,9 @@ func NewImagor(
 		imagorBaseParams = fs.String("imagor-base-params", "",
 			"Imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)")
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
-			-1, "Imagor semaphore size for process concurrency control. Set -1 for no limit")
+			-1, "Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit")
+		imagorProcessQueueSize = fs.Int64("imagor-process-queue-size",
+			-1, "Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429. Set -1 for no limit")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
 			time.Hour*24*7, "Imagor HTTP Cache-Control header TTL for successful image response")
 		imagorCacheHeaderSWR = fs.Duration("imagor-cache-header-swr",
@@ -83,6 +85,7 @@ func NewImagor(
 		imagor.WithSaveTimeout(*imagorSaveTimeout),
 		imagor.WithProcessTimeout(*imagorProcessTimeout),
 		imagor.WithProcessConcurrency(*imagorProcessConcurrency),
+		imagor.WithProcessQueueSize(*imagorProcessQueueSize),
 		imagor.WithCacheHeaderTTL(*imagorCacheHeaderTTL),
 		imagor.WithCacheHeaderSWR(*imagorCacheHeaderSWR),
 		imagor.WithCacheHeaderNoCache(*imagorCacheHeaderNoCache),

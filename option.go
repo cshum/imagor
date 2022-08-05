@@ -104,6 +104,14 @@ func WithProcessConcurrency(concurrency int64) Option {
 	}
 }
 
+func WithProcessQueueSize(size int64) Option {
+	return func(app *Imagor) {
+		if size > 0 {
+			app.ProcessQueueSize = size
+		}
+	}
+}
+
 func WithUnsafe(unsafe bool) Option {
 	return func(app *Imagor) {
 		app.Unsafe = unsafe
