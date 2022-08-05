@@ -269,12 +269,13 @@ The URL signature hash is based on SHA digest, created by taking the URL path (e
 An example in Node.js:
 
 ```javascript
-var hmacSHA1 = require("crypto-js/hmac-sha1")
-var Base64 = require("crypto-js/enc-base64")
+const crypto = require('crypto');
 
 function sign(path, secret) {
-  var hash = hmacSHA1(path, secret)
-  hash = Base64.stringify(hash).replace(/\+/g, '-').replace(/\//g, '_')
+  const hash = crypto.createHmac('sha1', secret)
+          .update(path)
+          .digest('base64')
+          .replace(/\+/g, '-').replace(/\//g, '_')
   return hash + '/' + path
 }
 
@@ -288,25 +289,30 @@ Imagor uses SHA1 HMAC signer by default, the same one used by [Thumbor](https://
 
 ```dotenv
 IMAGOR_SIGNER_TYPE=sha256
-IMAGOR_SIGNER_TRUNCATE=32
+IMAGOR_SIGNER_TRUNCATE=40
 ```
 
-The URL signature generator then becomes:
+The Node.js example then becomes:
 
 ```javascript
-var hmacSHA256 = require("crypto-js/hmac-sha256")
-var Base64 = require("crypto-js/enc-base64")
+const crypto = require('crypto');
 
 function sign(path, secret) {
-  var hash = hmacSHA256(path, secret)
-  hash = Base64.stringify(hash).slice(0, 32).replace(/\+/g, '-').replace(/\//g, '_')
+  const hash = crypto.createHmac('sha256', secret)
+          .update(path)
+          .digest('base64')
+          .slice(0, 40)
+          .replace(/\+/g, '-').replace(/\//g, '_')
   return hash + '/' + path
 }
+
+console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png', 'mysecret'))
+// IGEn3TxngivD0jy4uuiZim2bdUCvhcnVi1Nm0xGy/500x500/top/raw.g…ubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
 #### Image Bombs Prevention
 
-Imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big, which protects from so-called "image bombs". You can set the max allowed image resolution and dimensions using `VIPS_MAX_RESOLUTION`, `VIPS_MAX_WIDTH` and `VIPS_MAX_HEIGHT` e.g.:
+Imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big, which protects from so-called "image bombs". You can set the max allowed image resolution and dimensions using `VIPS_MAX_RESOLUTION`, `VIPS_MAX_WIDTH`, `VIPS_MAX_HEIGHT`:
 
 ```dotenv
 VIPS_MAX_RESOLUTION=16800000
