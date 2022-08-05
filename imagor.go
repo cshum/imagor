@@ -164,6 +164,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
+			w.WriteHeader(499)
 			return
 		}
 		e := WrapError(err)
