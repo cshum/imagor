@@ -306,13 +306,31 @@ function sign(path, secret) {
 
 #### Image Bombs Prevention
 
-Imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big (you can set the max allowed image resolution using `VIPS_MAX_RESOLUTION`), which protects from so-called "image bombs".
+Imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big, which protects from so-called "image bombs". You can set the max allowed image resolution and dimensions using `VIPS_MAX_RESOLUTION`, `VIPS_MAX_WIDTH` and `VIPS_MAX_HEIGHT` e.g.:
+
+```dotenv
+VIPS_MAX_RESOLUTION=16800000
+VIPS_MAX_WIDTH=5000
+VIPS_MAX_HEIGHT=5000
+```
 
 #### Allowed Sources
+
 Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES`. Accept csv wth glob pattern e.g.:
 
 ```dotenv
 HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
+```
+
+#### Error Response Body
+
+By default, when image processing failed, Imagor returns error status code with the original source as response body. 
+This is with assumption that the image source is fully controlled, so that the original source can be served as fallback in case of failure.
+
+However, if the source image involves user generated content, it is advised to disable the original source fallback using `IMAGOR_DISABLE_ERROR_BODY`, to prevent uncontrolled content being loaded:
+
+```dotenv
+IMAGOR_DISABLE_ERROR_BODY=1
 ```
 
 ### Configuration

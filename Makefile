@@ -26,6 +26,6 @@ docker-dev: docker-dev-build docker-dev-run
 
 git-tag:
 	git tag "v$(VERSION)"
-	git push --tags
+	git push origin "refs/tags/v$(VERSION)"
 
 release: build git-tag
