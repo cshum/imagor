@@ -306,7 +306,7 @@ function sign(path, secret) {
 
 #### Image Bombs Prevention
 
-Imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big (you can set the max allowed image resolution using `-vips-max-resolution`), which protects from so-called "image bombs".
+Imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big (you can set the max allowed image resolution using `VIPS_MAX_RESOLUTION`), which protects from so-called "image bombs".
 
 #### Allowed Sources
 Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES`. Accept csv wth glob pattern e.g.:
