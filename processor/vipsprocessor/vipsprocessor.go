@@ -490,6 +490,9 @@ func wrapErr(err error) error {
 	if err == nil {
 		return nil
 	}
+	if e, ok := err.(imagor.Error); ok {
+		return e
+	}
 	msg := strings.TrimSpace(err.Error())
 	if strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
 		return imagor.ErrUnsupportedFormat
