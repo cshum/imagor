@@ -90,7 +90,7 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 		return nil
 	}
 	if v.Debug {
-		LoggingSettings(func(domain string, level LogLevel, msg string) {
+		loggingSettings(func(domain string, level LogLevel, msg string) {
 			switch level {
 			case LogLevelDebug:
 				v.Logger.Debug(domain, zap.String("log", msg))
@@ -103,7 +103,7 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 			}
 		}, LogLevelDebug)
 	} else {
-		LoggingSettings(func(domain string, level LogLevel, msg string) {
+		loggingSettings(func(domain string, level LogLevel, msg string) {
 			v.Logger.Error(domain, zap.String("log", msg))
 		}, LogLevelError)
 	}

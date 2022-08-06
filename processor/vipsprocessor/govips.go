@@ -79,11 +79,6 @@ func startup(config *config) {
 	cName := C.CString("govips")
 	defer freeCString(cName)
 
-	// Initialize govips logging handler and verbosity filter to historical default
-	if !currentLoggingOverridden {
-		govipsLoggingSettings(nil, LogLevelInfo)
-	}
-
 	// Override default glib logging handler to intercept logging messages
 	enableLogging()
 
