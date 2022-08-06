@@ -1,5 +1,3 @@
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html
-
 #include <stdlib.h>
 #include <vips/vips.h>
 
@@ -34,3 +32,24 @@ int composite2_image(VipsImage *base, VipsImage *overlay, VipsImage **out,
 int is_16bit(VipsInterpretation interpretation);
 
 int replicate(VipsImage *in, VipsImage **out, int across, int down);
+
+
+int linear(VipsImage *in, VipsImage **out, double *a, double *b, int n);
+int find_trim(VipsImage *in, int *left, int *top, int *width, int *height,
+              double threshold, double r, double g, double b);
+int getpoint(VipsImage *in, double **vector, int n, int x, int y);
+
+int to_colorspace(VipsImage *in, VipsImage **out, VipsInterpretation space);
+
+int gaussian_blur_image(VipsImage *in, VipsImage **out, double sigma);
+int sharpen_image(VipsImage *in, VipsImage **out, double sigma, double x1,
+                  double m2);
+
+int remove_icc_profile(VipsImage *in);
+
+int get_meta_orientation(VipsImage *in);
+int get_image_n_pages(VipsImage *in);
+int get_page_height(VipsImage *in);
+void set_page_height(VipsImage *in, int height);
+int get_meta_loader(const VipsImage *in, const char **out);
+void set_image_delay(VipsImage *in, const int *array, int n);

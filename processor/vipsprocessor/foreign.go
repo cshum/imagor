@@ -6,6 +6,42 @@ import (
 	"unsafe"
 )
 
+// ImageType represents an image type
+type ImageType int
+
+// ImageType enum
+const (
+	ImageTypeUnknown ImageType = C.UNKNOWN
+	ImageTypeGIF     ImageType = C.GIF
+	ImageTypeJPEG    ImageType = C.JPEG
+	ImageTypeMagick  ImageType = C.MAGICK
+	ImageTypePDF     ImageType = C.PDF
+	ImageTypePNG     ImageType = C.PNG
+	ImageTypeSVG     ImageType = C.SVG
+	ImageTypeTIFF    ImageType = C.TIFF
+	ImageTypeWEBP    ImageType = C.WEBP
+	ImageTypeHEIF    ImageType = C.HEIF
+	ImageTypeBMP     ImageType = C.BMP
+	ImageTypeAVIF    ImageType = C.AVIF
+	ImageTypeJP2K    ImageType = C.JP2K
+)
+
+// ImageTypes defines the various image types supported by govips
+var ImageTypes = map[ImageType]string{
+	ImageTypeGIF:    "gif",
+	ImageTypeJPEG:   "jpeg",
+	ImageTypeMagick: "magick",
+	ImageTypePDF:    "pdf",
+	ImageTypePNG:    "png",
+	ImageTypeSVG:    "svg",
+	ImageTypeTIFF:   "tiff",
+	ImageTypeWEBP:   "webp",
+	ImageTypeHEIF:   "heif",
+	ImageTypeBMP:    "bmp",
+	ImageTypeAVIF:   "avif",
+	ImageTypeJP2K:   "jp2k",
+}
+
 func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, error) {
 	p := C.create_save_params(C.JPEG)
 	p.inputImage = in

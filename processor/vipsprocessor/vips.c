@@ -1,4 +1,5 @@
-#include "conversion.h"
+#include "vips.h"
+#include <unistd.h>
 
 int copy_image(VipsImage *in, VipsImage **out) {
   return vips_copy(in, out, NULL);
@@ -239,4 +240,82 @@ int composite2_image(VipsImage *base, VipsImage *overlay, VipsImage **out,
 
 int replicate(VipsImage *in, VipsImage **out, int across, int down) {
   return vips_replicate(in, out, across, down, NULL);
+}
+
+int linear(VipsImage *in, VipsImage **out, double *a, double *b, int n) {
+  return vips_linear(in, out, a, b, n, NULL);
+}
+
+int find_trim(VipsImage *in, int *left, int *top, int *width, int *height,
+              double threshold, double r, double g, double b) {
+
+  if (in->Type == VIPS_INTERPRETATION_RGB16 || in->Type == VIPS_INTERPRETATION_GREY16) {
+    r = 65535 * r / 255;
+    g = 65535 * g / 255;
+    b = 65535 * b / 255;
+  }
+
+  double background[3] = {r, g, b};
+  VipsArrayDouble *vipsBackground = vips_array_double_new(background, 3);
+
+  int code = vips_find_trim(in, left, top, width, height, "threshold", threshold, "background", vipsBackground, NULL);
+
+  vips_area_unref(VIPS_AREA(vipsBackground));
+  return code;
+}
+
+int getpoint(VipsImage *in, double **vector, int n, int x, int y) {
+  return vips_getpoint(in, vector, &n, x, y, NULL);
+}
+
+int to_colorspace(VipsImage *in, VipsImage **out, VipsInterpretation space) {
+  return vips_colourspace(in, out, space, NULL);
+}
+
+int gaussian_blur_image(VipsImage *in, VipsImage **out, double sigma) {
+  return vips_gaussblur(in, out, sigma, NULL);
+}
+
+int sharpen_image(VipsImage *in, VipsImage **out, double sigma, double x1,
+                  double m2) {
+  return vips_sharpen(in, out, "sigma", sigma, "x1", x1, "m2", m2, NULL);
+}
+
+gboolean remove_icc_profile(VipsImage *in) {
+  return vips_image_remove(in, VIPS_META_ICC_NAME);
+}
+
+int get_meta_orientation(VipsImage *in) {
+  int orientation = 0;
+  if (vips_image_get_typeof(in, VIPS_META_ORIENTATION) != 0) {
+    vips_image_get_int(in, VIPS_META_ORIENTATION, &orientation);
+  }
+
+  return orientation;
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-header.html#vips-image-get-n-pages
+int get_image_n_pages(VipsImage *in) {
+  int n_pages = 0;
+  n_pages = vips_image_get_n_pages(in);
+  return n_pages;
+}
+
+// https://www.libvips.org/API/current/libvips-header.html#vips-image-get-page-height
+int get_page_height(VipsImage *in) {
+  int page_height = 0;
+  page_height = vips_image_get_page_height(in);
+  return page_height;
+}
+
+void set_page_height(VipsImage *in, int height) {
+  vips_image_set_int(in, VIPS_META_PAGE_HEIGHT, height);
+}
+
+int get_meta_loader(const VipsImage *in, const char **out) {
+  return vips_image_get_string(in, VIPS_META_LOADER, out);
+}
+
+void set_image_delay(VipsImage *in, const int *array, int n) {
+  return vips_image_set_array_int(in, "delay", array, n);
 }

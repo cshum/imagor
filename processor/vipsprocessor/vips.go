@@ -1,7 +1,11 @@
 package vipsprocessor
 
-// #include "conversion.h"
+// #include "vips.h"
 import "C"
+import (
+	"strings"
+	"unsafe"
+)
 
 // https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-copy
 func vipsCopyImage(in *C.VipsImage) (*C.VipsImage, error) {
@@ -165,4 +169,154 @@ func vipsReplicate(in *C.VipsImage, across int, down int) (*C.VipsImage, error) 
 		return nil, handleImageError(out)
 	}
 	return out, nil
+}
+
+//  https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
+func vipsLinear(in *C.VipsImage, a, b []float64, n int) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.linear(in, &out, (*C.double)(&a[0]), (*C.double)(&b[0]), C.int(n)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-find-trim
+func vipsFindTrim(in *C.VipsImage, threshold float64, backgroundColor *Color) (int, int, int, int, error) {
+	var left, top, width, height C.int
+
+	if err := C.find_trim(in, &left, &top, &width, &height, C.double(threshold), C.double(backgroundColor.R),
+		C.double(backgroundColor.G), C.double(backgroundColor.B)); err != 0 {
+		return -1, -1, -1, -1, handleVipsError()
+	}
+
+	return int(left), int(top), int(width), int(height), nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-getpoint
+func vipsGetPoint(in *C.VipsImage, n int, x int, y int) ([]float64, error) {
+	var out *C.double
+	defer gFreePointer(unsafe.Pointer(out))
+
+	if err := C.getpoint(in, &out, C.int(n), C.int(x), C.int(y)); err != 0 {
+		return nil, handleVipsError()
+	}
+
+	// maximum n is 4
+	return (*[4]float64)(unsafe.Pointer(out))[:n:n], nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-colour.html#vips-colourspace
+func vipsToColorSpace(in *C.VipsImage, interpretation Interpretation) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	inter := C.VipsInterpretation(interpretation)
+
+	if err := C.to_colorspace(in, &out, inter); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-convolution.html#vips-gaussblur
+func vipsGaussianBlur(in *C.VipsImage, sigma float64) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.gaussian_blur_image(in, &out, C.double(sigma)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-convolution.html#vips-sharpen
+func vipsSharpen(in *C.VipsImage, sigma float64, x1 float64, m2 float64) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.sharpen_image(in, &out, C.double(sigma), C.double(x1), C.double(m2)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsRemoveICCProfile(in *C.VipsImage) bool {
+	return fromGboolean(C.remove_icc_profile(in))
+}
+
+func vipsGetMetaOrientation(in *C.VipsImage) int {
+	return int(C.get_meta_orientation(in))
+}
+
+func vipsGetImageNPages(in *C.VipsImage) int {
+	return int(C.get_image_n_pages(in))
+}
+
+func vipsGetPageHeight(in *C.VipsImage) int {
+	return int(C.get_page_height(in))
+}
+
+func vipsSetPageHeight(in *C.VipsImage, height int) {
+	C.set_page_height(in, C.int(height))
+}
+
+func vipsImageGetMetaLoader(in *C.VipsImage) (string, bool) {
+	var out *C.char
+	defer gFreePointer(unsafe.Pointer(out))
+	code := int(C.get_meta_loader(in, &out))
+	return C.GoString(out), code == 0
+}
+
+func vipsImageSetDelay(in *C.VipsImage, data []C.int) error {
+	if n := len(data); n > 0 {
+		C.set_image_delay(in, &data[0], C.int(n))
+	}
+	return nil
+}
+
+// vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
+func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
+	if in == nil {
+		return ImageTypeUnknown
+	}
+	vipsLoader, ok := vipsImageGetMetaLoader(in)
+	if vipsLoader == "" || !ok {
+		return ImageTypeUnknown
+	}
+	if strings.HasPrefix(vipsLoader, "jpeg") {
+		return ImageTypeJPEG
+	}
+	if strings.HasPrefix(vipsLoader, "png") {
+		return ImageTypePNG
+	}
+	if strings.HasPrefix(vipsLoader, "gif") {
+		return ImageTypeGIF
+	}
+	if strings.HasPrefix(vipsLoader, "svg") {
+		return ImageTypeSVG
+	}
+	if strings.HasPrefix(vipsLoader, "webp") {
+		return ImageTypeWEBP
+	}
+	if strings.HasPrefix(vipsLoader, "avif") {
+		return ImageTypeAVIF
+	}
+	if strings.HasPrefix(vipsLoader, "heif") {
+		return ImageTypeHEIF
+	}
+	if strings.HasPrefix(vipsLoader, "tiff") {
+		return ImageTypeTIFF
+	}
+	if strings.HasPrefix(vipsLoader, "pdf") {
+		return ImageTypePDF
+	}
+	if strings.HasPrefix(vipsLoader, "jp2k") {
+		return ImageTypeJP2K
+	}
+	if strings.HasPrefix(vipsLoader, "magick") {
+		return ImageTypeMagick
+	}
+	return ImageTypeUnknown
 }

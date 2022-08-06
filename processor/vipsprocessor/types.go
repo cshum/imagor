@@ -1,5 +1,6 @@
 package vipsprocessor
 
+// #include "vips.h"
 import "C"
 
 // Color represents an RGB
@@ -177,42 +178,6 @@ const (
 	VipsForeignSubsampleOff  SubsampleMode = C.VIPS_FOREIGN_JPEG_SUBSAMPLE_OFF
 	VipsForeignSubsampleLast SubsampleMode = C.VIPS_FOREIGN_JPEG_SUBSAMPLE_LAST
 )
-
-// ImageType represents an image type
-type ImageType int
-
-// ImageType enum
-const (
-	ImageTypeUnknown ImageType = C.UNKNOWN
-	ImageTypeGIF     ImageType = C.GIF
-	ImageTypeJPEG    ImageType = C.JPEG
-	ImageTypeMagick  ImageType = C.MAGICK
-	ImageTypePDF     ImageType = C.PDF
-	ImageTypePNG     ImageType = C.PNG
-	ImageTypeSVG     ImageType = C.SVG
-	ImageTypeTIFF    ImageType = C.TIFF
-	ImageTypeWEBP    ImageType = C.WEBP
-	ImageTypeHEIF    ImageType = C.HEIF
-	ImageTypeBMP     ImageType = C.BMP
-	ImageTypeAVIF    ImageType = C.AVIF
-	ImageTypeJP2K    ImageType = C.JP2K
-)
-
-// ImageTypes defines the various image types supported by govips
-var ImageTypes = map[ImageType]string{
-	ImageTypeGIF:    "gif",
-	ImageTypeJPEG:   "jpeg",
-	ImageTypeMagick: "magick",
-	ImageTypePDF:    "pdf",
-	ImageTypePNG:    "png",
-	ImageTypeSVG:    "svg",
-	ImageTypeTIFF:   "tiff",
-	ImageTypeWEBP:   "webp",
-	ImageTypeHEIF:   "heif",
-	ImageTypeBMP:    "bmp",
-	ImageTypeAVIF:   "avif",
-	ImageTypeJP2K:   "jp2k",
-}
 
 // TiffCompression represents method for compressing a tiff at export
 type TiffCompression int
