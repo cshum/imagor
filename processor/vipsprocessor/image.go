@@ -12,11 +12,6 @@ import (
 	"sync"
 )
 
-// PreMultiplicationState stores the pre-multiplication band format of the image
-type PreMultiplicationState struct {
-	bandFormat BandFormat
-}
-
 // ImageRef contains a libvips image and manages its lifecycle.
 type ImageRef struct {
 	// NOTE: We keep a reference to this so that the input buffer is
@@ -26,7 +21,6 @@ type ImageRef struct {
 	image               *C.VipsImage
 	format              ImageType
 	lock                sync.Mutex
-	preMultiplication   *PreMultiplicationState
 	optimizedIccProfile string
 }
 
@@ -78,18 +72,6 @@ func (p *IntParameter) Get() int {
 	return p.value.(int)
 }
 
-type Float64Parameter struct {
-	Parameter
-}
-
-func (p *Float64Parameter) Set(v float64) {
-	p.set(v)
-}
-
-func (p *Float64Parameter) Get() float64 {
-	return p.value.(float64)
-}
-
 // ImportParams are options for loading an image. Some are type-specific.
 // For default loading, use NewImportParams() or specify nil
 type ImportParams struct {
@@ -139,13 +121,6 @@ func (i *ImportParams) OptionString() string {
 		values = append(values, "thumbnail="+boolToStr(v.Get()))
 	}
 	return strings.Join(values, ",")
-}
-
-func boolToStr(v bool) string {
-	if v {
-		return "TRUE"
-	}
-	return "FALSE"
 }
 
 // JpegExportParams are options when exporting a JPEG to file or buffer

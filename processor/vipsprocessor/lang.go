@@ -23,6 +23,13 @@ func boolToInt(b bool) int {
 	return 0
 }
 
+func boolToStr(v bool) string {
+	if v {
+		return "TRUE"
+	}
+	return "FALSE"
+}
+
 func toGboolean(b bool) C.gboolean {
 	if b {
 		return C.gboolean(1)
