@@ -52,7 +52,12 @@ func TestVipsProcessor(t *testing.T) {
 	t.Run("vips", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{
-			{name: "original", path: "gopher-front.png"},
+			{name: "png", path: "gopher-front.png"},
+			{name: "jpeg", path: "fit-in/100x100/demo1.jpg"},
+			{name: "webp", path: "fit-in/100x100/demo3.webp"},
+			{name: "avif", path: "fit-in/100x100/gopher-front.avif"},
+			{name: "tiff", path: "fit-in/100x100/gopher.tiff"},
+			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
