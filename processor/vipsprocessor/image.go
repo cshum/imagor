@@ -1,6 +1,6 @@
 package vipsprocessor
 
-// #include "image.h"
+// #include "vips.h"
 import "C"
 
 import (
@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unsafe"
 )
 
 // PreMultiplicationState stores the pre-multiplication band format of the image
@@ -901,38 +900,6 @@ func (r *ImageRef) setImage(image *C.VipsImage) {
 	}
 
 	r.image = image
-}
-
-func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageType, error) {
-	src := buf
-	// Reference src here so it's not garbage collected during image initialization.
-	defer runtime.KeepAlive(src)
-
-	var out *C.VipsImage
-	var code C.int
-
-	if params == nil {
-		code = C.image_new_from_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out)
-	} else {
-		cOptionString := C.CString(params.OptionString())
-		defer freeCString(cOptionString)
-
-		code = C.image_new_from_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, cOptionString)
-	}
-	if code != 0 {
-		return nil, ImageTypeUnknown, handleImageError(out)
-	}
-
-	imageType := vipsDetermineImageTypeFromMetaLoader(out)
-	return out, imageType, nil
-}
-
-func vipsHasAlpha(in *C.VipsImage) bool {
-	return int(C.has_alpha_channel(in)) > 0
-}
-
-func clearImage(ref *C.VipsImage) {
-	C.clear_image(&ref)
 }
 
 func (r *ImageRef) newMetadata(format ImageType) *ImageMetadata {

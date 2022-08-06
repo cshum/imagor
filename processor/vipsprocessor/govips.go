@@ -2,6 +2,7 @@ package vipsprocessor
 
 // #cgo pkg-config: vips
 // #include <vips/vips.h>
+// #include <stdlib.h>
 // #include "govips.h"
 import "C"
 import (
@@ -197,4 +198,19 @@ func initTypes() {
 			}
 		}
 	})
+}
+
+func handleImageError(out *C.VipsImage) error {
+	if out != nil {
+		clearImage(out)
+	}
+
+	return handleVipsError()
+}
+
+func handleVipsError() error {
+	s := C.GoString(C.vips_error_buffer())
+	C.vips_error_clear()
+
+	return fmt.Errorf("%v", s)
 }

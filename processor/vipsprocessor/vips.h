@@ -1,6 +1,22 @@
 #include <stdlib.h>
 #include <vips/vips.h>
 
+int image_new_from_buffer(const void *buf, size_t len, VipsImage **out);
+
+int image_new_from_buffer_with_option(const void *buf, size_t len, VipsImage **out, const char *option_string);
+
+int thumbnail_image(VipsImage *in, VipsImage **out, int width, int height,
+                    int crop, int size);
+int thumbnail_buffer(void *buf, size_t len, VipsImage **out, int width, int height,
+                    int crop, int size);
+int thumbnail_buffer_with_option(void *buf, size_t len, VipsImage **out,
+                    int width, int height, int crop, int size,
+                    const char *option_string);
+
+int has_alpha_channel(VipsImage *image);
+
+void clear_image(VipsImage **image);
+
 int copy_image(VipsImage *in, VipsImage **out);
 
 int embed_image(VipsImage *in, VipsImage **out, int left, int top, int width,
