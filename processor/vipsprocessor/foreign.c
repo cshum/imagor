@@ -1,7 +1,5 @@
 #include "foreign.h"
 
-#include "lang.h"
-
 typedef int (*SetSaveOptionsFn)(VipsOperation *operation, SaveParams *params);
 
 int save_buffer(const char *operationName, SaveParams *params,

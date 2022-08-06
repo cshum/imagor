@@ -4,15 +4,8 @@ package vipsprocessor
 import "C"
 
 import (
-	"errors"
 	"fmt"
-	dbg "runtime/debug"
 	"unsafe"
-)
-
-var (
-	// ErrUnsupportedImageFormat when image type is unsupported
-	ErrUnsupportedImageFormat = errors.New("unsupported image format")
 )
 
 func handleImageError(out *C.VipsImage) error {
@@ -35,5 +28,5 @@ func handleVipsError() error {
 	s := C.GoString(C.vips_error_buffer())
 	C.vips_error_clear()
 
-	return fmt.Errorf("%v\nStack:\n%s", s, dbg.Stack())
+	return fmt.Errorf("%v", s)
 }

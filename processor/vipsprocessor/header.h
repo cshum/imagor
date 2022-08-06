@@ -3,10 +3,8 @@
 #include <stdlib.h>
 #include <vips/vips.h>
 
-unsigned long has_icc_profile(VipsImage *in);
 int remove_icc_profile(VipsImage *in);
 
-unsigned long has_iptc(VipsImage *in);
 char** image_get_fields(VipsImage *in);
 void remove_field(VipsImage *in, char *field);
 

@@ -223,7 +223,18 @@ func vipsSmartCrop(in *C.VipsImage, width int, height int, interesting Interesti
 func vipsRotate(in *C.VipsImage, angle Angle) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
-	if err := C.rot_image(in, &out, C.VipsAngle(angle)); err != 0 {
+	if err := C.rotate_image(in, &out, C.VipsAngle(angle)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-rot
+func vipsRotateMultiPage(in *C.VipsImage, angle Angle) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.rotate_image_multi_page(in, &out, C.VipsAngle(angle)); err != 0 {
 		return nil, handleImageError(out)
 	}
 
@@ -234,7 +245,7 @@ func vipsRotate(in *C.VipsImage, angle Angle) (*C.VipsImage, error) {
 func vipsAutoRotate(in *C.VipsImage) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
-	if err := C.autorot_image(in, &out); err != 0 {
+	if err := C.autorotate_image(in, &out); err != 0 {
 		return nil, handleImageError(out)
 	}
 
@@ -279,28 +290,6 @@ func vipsAddAlpha(in *C.VipsImage) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
 	if err := C.add_alpha(in, &out); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-premultiply
-func vipsPremultiplyAlpha(in *C.VipsImage) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.premultiply_alpha(in, &out); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-unpremultiply
-func vipsUnpremultiplyAlpha(in *C.VipsImage) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.unpremultiply_alpha(in, &out); err != 0 {
 		return nil, handleImageError(out)
 	}
 
@@ -358,43 +347,11 @@ func vipsInsert(main *C.VipsImage, sub *C.VipsImage, x, y int, expand bool, back
 	return out, nil
 }
 
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-join
-func vipsJoin(input1 *C.VipsImage, input2 *C.VipsImage, dir Direction) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	defer C.g_object_unref(C.gpointer(input1))
-	defer C.g_object_unref(C.gpointer(input2))
-	if err := C.join(input1, input2, &out, C.int(dir)); err != 0 {
-		return nil, handleVipsError()
-	}
-	return out, nil
-}
-
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-arrayjoin
-func vipsArrayJoin(inputs []*C.VipsImage, across int) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.arrayjoin(&inputs[0], &out, C.int(len(inputs)), C.int(across)); err != 0 {
-		return nil, handleVipsError()
-	}
-	return out, nil
-}
-
 // https://www.libvips.org/API/current/libvips-conversion.html#vips-replicate
 func vipsReplicate(in *C.VipsImage, across int, down int) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
 	if err := C.replicate(in, &out, C.int(across), C.int(down)); err != 0 {
-		return nil, handleImageError(out)
-	}
-	return out, nil
-}
-
-// https://www.libvips.org/API/current/libvips-conversion.html#vips-grid
-func vipsGrid(in *C.VipsImage, tileHeight, across, down int) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.grid(in, &out, C.int(tileHeight), C.int(across), C.int(down)); err != 0 {
 		return nil, handleImageError(out)
 	}
 	return out, nil

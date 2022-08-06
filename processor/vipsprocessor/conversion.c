@@ -150,23 +150,47 @@ int extract_area_multi_page(VipsImage *in, VipsImage **out, int left, int top, i
   return 0;
 }
 
-int extract_band(VipsImage *in, VipsImage **out, int band, int num) {
-  if (num > 0) {
-    return vips_extract_band(in, out, band, "n", num, NULL);
-  }
-  return vips_extract_band(in, out, band, NULL);
-}
-
-int rot_image(VipsImage *in, VipsImage **out, VipsAngle angle) {
+int rotate_image(VipsImage *in, VipsImage **out, VipsAngle angle) {
   return vips_rot(in, out, angle, NULL);
 }
 
-int autorot_image(VipsImage *in, VipsImage **out) {
-  return vips_autorot(in, out, NULL);
+int rotate_image_multi_page(VipsImage *in, VipsImage **out, VipsAngle angle) {
+  VipsObject *base = VIPS_OBJECT(vips_image_new());
+  int page_height = vips_image_get_page_height(in);
+  int in_width = in->Xsize;
+  int n_pages = in->Ysize / page_height;
+
+  VipsImage **page = (VipsImage **) vips_object_local_array(base, n_pages);
+  VipsImage **copy = (VipsImage **) vips_object_local_array(base, 1);
+
+  // split image into cropped frames
+  for (int i = 0; i < n_pages; i++) {
+    if (
+      vips_extract_area(in, &page[i], 0, page_height * i, in_width, page_height, NULL) ||
+      vips_rot(page[i], &page[i], angle, NULL)
+    ) {
+      g_object_unref(base);
+      return -1;
+    }
+  }
+  // reassemble frames and set page height if rotate 90 or 270
+  // copy before modifying metadata
+  if(
+    vips_arrayjoin(page, &copy[0], n_pages, "across", 1, NULL) ||
+    vips_copy(copy[0], out, NULL)
+  ) {
+    g_object_unref(base);
+    return -1;
+  }
+  if (angle == VIPS_ANGLE_D90 || angle == VIPS_ANGLE_D270) {
+    vips_image_set_int(*out, VIPS_META_PAGE_HEIGHT, in_width);
+  }
+  g_object_unref(base);
+  return 0;
 }
 
-int zoom_image(VipsImage *in, VipsImage **out, int xfac, int yfac) {
-  return vips_zoom(in, out, xfac, yfac, NULL);
+int autorotate_image(VipsImage *in, VipsImage **out) {
+  return vips_autorot(in, out, NULL);
 }
 
 int bandjoin(VipsImage **in, VipsImage **out, int n) {
@@ -175,36 +199,6 @@ int bandjoin(VipsImage **in, VipsImage **out, int n) {
 
 int bandjoin_const(VipsImage *in, VipsImage **out, double constants[], int n) {
   return vips_bandjoin_const(in, out, constants, n, NULL);
-}
-
-int similarity(VipsImage *in, VipsImage **out, double scale, double angle,
-               double r, double g, double b, double a, double idx, double idy,
-               double odx, double ody) {
-  if (is_16bit(in->Type)) {
-    r = 65535 * r / 255;
-    g = 65535 * g / 255;
-    b = 65535 * b / 255;
-    a = 65535 * a / 255;
-  }
-
-  double background[3] = {r, g, b};
-  double backgroundRGBA[4] = {r, g, b, a};
-
-  VipsArrayDouble *vipsBackground;
-
-  // Ignore the alpha channel if the image doesn't have one
-  if (in->Bands <= 3) {
-    vipsBackground = vips_array_double_new(background, 3);
-  } else {
-    vipsBackground = vips_array_double_new(backgroundRGBA, 4);
-  }
-
-  int code = vips_similarity(in, out, "scale", scale, "angle", angle,
-                             "background", vipsBackground, "idx", idx, "idy",
-                             idy, "odx", odx, "ody", ody, NULL);
-
-  vips_area_unref(VIPS_AREA(vipsBackground));
-  return code;
 }
 
 int smartcrop(VipsImage *in, VipsImage **out, int width, int height,
@@ -238,14 +232,6 @@ int is_16bit(VipsInterpretation interpretation) {
 
 int add_alpha(VipsImage *in, VipsImage **out) {
   return vips_addalpha(in, out, NULL);
-}
-
-int premultiply_alpha(VipsImage *in, VipsImage **out) {
-  return vips_premultiply(in, out, "max_alpha", max_alpha(in), NULL);
-}
-
-int unpremultiply_alpha(VipsImage *in, VipsImage **out) {
-  return vips_unpremultiply(in, out, NULL);
 }
 
 int cast(VipsImage *in, VipsImage **out, int bandFormat) {
@@ -307,18 +293,6 @@ int insert_image(VipsImage *main, VipsImage *sub, VipsImage **out, int x, int y,
   return code;
 }
 
-int join(VipsImage *in1, VipsImage *in2, VipsImage **out, int direction) {
-  return vips_join(in1, in2, out, direction, NULL);
-}
-
-int arrayjoin(VipsImage **in, VipsImage **out, int n, int across) {
-  return vips_arrayjoin(in, out, n, "across", across, NULL);
-}
-
 int replicate(VipsImage *in, VipsImage **out, int across, int down) {
   return vips_replicate(in, out, across, down, NULL);
-}
-
-int grid(VipsImage *in, VipsImage **out, int tileHeight, int across, int down){
-  return vips_grid(in, out, tileHeight, across, down, NULL);
 }

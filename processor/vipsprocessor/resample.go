@@ -33,22 +33,6 @@ const (
 	SizeLast  Size = C.VIPS_SIZE_LAST
 )
 
-// https://libvips.github.io/libvips/API/current/libvips-resample.html#vips-resize
-func vipsResizeWithVScale(in *C.VipsImage, hscale, vscale float64, kernel Kernel) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	// libvips recommends Lanczos3 as the default kernel
-	if kernel == KernelAuto {
-		kernel = KernelLanczos3
-	}
-
-	if err := C.resize_image(in, &out, C.double(hscale), C.double(vscale), C.int(kernel)); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
 func vipsThumbnail(in *C.VipsImage, width, height int, crop Interesting, size Size) (*C.VipsImage, error) {
 	var out *C.VipsImage
 

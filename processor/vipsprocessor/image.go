@@ -782,56 +782,6 @@ func (r *ImageRef) Insert(sub *ImageRef, x, y int, expand bool, background *Colo
 	return nil
 }
 
-// Join joins this image with another in the direction specified
-func (r *ImageRef) Join(in *ImageRef, dir Direction) error {
-	out, err := vipsJoin(r.image, in.image, dir)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-	return nil
-}
-
-// ArrayJoin joins an array of images together wrapping at each n images
-func (r *ImageRef) ArrayJoin(images []*ImageRef, across int) error {
-	allImages := append([]*ImageRef{r}, images...)
-	inputs := make([]*C.VipsImage, len(allImages))
-	for i := range inputs {
-		inputs[i] = allImages[i].image
-	}
-	out, err := vipsArrayJoin(inputs, across)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-	return nil
-}
-
-// BandJoin joins a set of images together, bandwise.
-func (r *ImageRef) BandJoin(images ...*ImageRef) error {
-	vipsImages := []*C.VipsImage{r.image}
-	for _, vipsImage := range images {
-		vipsImages = append(vipsImages, vipsImage.image)
-	}
-
-	out, err := vipsBandJoin(vipsImages)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-	return nil
-}
-
-// BandJoinConst appends a set of constant bands to an image.
-func (r *ImageRef) BandJoinConst(constants []float64) error {
-	out, err := vipsBandJoinConst(r.image, constants)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-	return nil
-}
-
 // AddAlpha adds an alpha channel to the associated image.
 func (r *ImageRef) AddAlpha() error {
 	if vipsHasAlpha(r.image) {
@@ -842,49 +792,6 @@ func (r *ImageRef) AddAlpha() error {
 	if err != nil {
 		return err
 	}
-	r.setImage(out)
-	return nil
-}
-
-// PremultiplyAlpha premultiplies the alpha channel.
-// See https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-premultiply
-func (r *ImageRef) PremultiplyAlpha() error {
-	if r.preMultiplication != nil || !vipsHasAlpha(r.image) {
-		return nil
-	}
-
-	band := r.BandFormat()
-
-	out, err := vipsPremultiplyAlpha(r.image)
-	if err != nil {
-		return err
-	}
-	r.preMultiplication = &PreMultiplicationState{
-		bandFormat: band,
-	}
-	r.setImage(out)
-	return nil
-}
-
-// UnpremultiplyAlpha unpremultiplies any alpha channel.
-// See https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-unpremultiply
-func (r *ImageRef) UnpremultiplyAlpha() error {
-	if r.preMultiplication == nil {
-		return nil
-	}
-
-	unpremultiplied, err := vipsUnpremultiplyAlpha(r.image)
-	if err != nil {
-		return err
-	}
-	defer clearImage(unpremultiplied)
-
-	out, err := vipsCast(unpremultiplied, r.preMultiplication.bandFormat)
-	if err != nil {
-		return err
-	}
-
-	r.preMultiplication = nil
 	r.setImage(out)
 	return nil
 }
@@ -914,25 +821,6 @@ func (r *ImageRef) Linear(a, b []float64) error {
 	return nil
 }
 
-// GetRotationAngleFromExif returns the angle which the image is currently rotated in.
-// First returned value is the angle and second is a boolean indicating whether image is flipped.
-// This is based on the EXIF orientation tag standard.
-// If no proper orientation number is provided, the picture will be assumed to be upright.
-func GetRotationAngleFromExif(orientation int) (Angle, bool) {
-	switch orientation {
-	case 0, 1, 2:
-		return Angle0, orientation == 2
-	case 3, 4:
-		return Angle180, orientation == 4
-	case 5, 8:
-		return Angle90, orientation == 5
-	case 6, 7:
-		return Angle270, orientation == 7
-	}
-
-	return Angle0, false
-}
-
 // AutoRotate rotates the image upright based on the EXIF Orientation tag.
 // It also resets the orientation information in the EXIF tag to be 1 (i.e. upright).
 // N.B. libvips does not flip images currently (i.e. no support for orientations 2, 4, 5 and 7).
@@ -940,11 +828,14 @@ func GetRotationAngleFromExif(orientation int) (Angle, bool) {
 // Thus, calling AutoRotate for HEIF images is not needed.
 // todo: use https://www.libvips.org/API/current/libvips-conversion.html#vips-autorot-remove-angle
 func (r *ImageRef) AutoRotate() error {
-	out, err := vipsAutoRotate(r.image)
-	if err != nil {
-		return err
+	if r.Height() == r.PageHeight() {
+		// only auto rotate if not animation
+		out, err := vipsAutoRotate(r.image)
+		if err != nil {
+			return err
+		}
+		r.setImage(out)
 	}
-	r.setImage(out)
 	return nil
 }
 
@@ -1091,43 +982,6 @@ func (r *ImageRef) Modulate(brightness, saturation, hue float64) error {
 	return nil
 }
 
-// ModulateHSV modulates the image HSV values based on the supplier parameters.
-func (r *ImageRef) ModulateHSV(brightness, saturation float64, hue int) error {
-	var err error
-	var multiplications []float64
-	var additions []float64
-
-	colorspace := r.ColorSpace()
-	if colorspace == InterpretationRGB {
-		colorspace = InterpretationSRGB
-	}
-
-	if r.HasAlpha() {
-		multiplications = []float64{1, saturation, brightness, 1}
-		additions = []float64{float64(hue), 0, 0, 0}
-	} else {
-		multiplications = []float64{1, saturation, brightness}
-		additions = []float64{float64(hue), 0, 0}
-	}
-
-	err = r.ToColorSpace(InterpretationHSV)
-	if err != nil {
-		return err
-	}
-
-	err = r.Linear(multiplications, additions)
-	if err != nil {
-		return err
-	}
-
-	err = r.ToColorSpace(colorspace)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // FindTrim returns the bounding box of the non-border part of the image
 // Returned values are left, top, width, height
 func (r *ImageRef) FindTrim(threshold float64, backgroundColor *Color) (int, int, int, int, error) {
@@ -1142,41 +996,6 @@ func (r *ImageRef) GetPoint(x int, y int) ([]float64, error) {
 		n = 4
 	}
 	return vipsGetPoint(r.image, n, x, y)
-}
-
-// Resize resizes the image based on the scale, maintaining aspect ratio
-func (r *ImageRef) Resize(scale float64, kernel Kernel) error {
-	return r.ResizeWithVScale(scale, -1, kernel)
-}
-
-// ResizeWithVScale resizes the image with both horizontal and vertical scaling.
-// The parameters are the scaling factors.
-func (r *ImageRef) ResizeWithVScale(hScale, vScale float64, kernel Kernel) error {
-	if err := r.PremultiplyAlpha(); err != nil {
-		return err
-	}
-
-	pages := r.Pages()
-	pageHeight := r.GetPageHeight()
-
-	out, err := vipsResizeWithVScale(r.image, hScale, vScale, kernel)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-
-	if pages > 1 {
-		scale := hScale
-		if vScale != -1 {
-			scale = vScale
-		}
-		newPageHeight := int(float64(pageHeight) * scale)
-		if err := r.SetPageHeight(newPageHeight); err != nil {
-			return err
-		}
-	}
-
-	return r.UnpremultiplyAlpha()
 }
 
 // Thumbnail resizes the image to the given width and height.
@@ -1272,50 +1091,21 @@ func (r *ImageRef) Flip(direction Direction) error {
 	return nil
 }
 
-// Rotate rotates the image by multiples of 90 degrees. To rotate by arbitrary angles use Similarity.
+// Rotate rotates the image by multiples of 90 degrees
 func (r *ImageRef) Rotate(angle Angle) error {
-	width := r.Width()
-
-	if r.Pages() > 1 && (angle == Angle90 || angle == Angle270) {
-		if angle == Angle270 {
-			if err := r.Flip(DirectionHorizontal); err != nil {
-				return err
-			}
-		}
-
-		if err := r.Grid(r.GetPageHeight(), r.Pages(), 1); err != nil {
+	if r.Height() > r.PageHeight() {
+		out, err := vipsRotateMultiPage(r.image, angle)
+		if err != nil {
 			return err
 		}
-
-		if angle == Angle270 {
-			if err := r.Flip(DirectionHorizontal); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	out, err := vipsRotate(r.image, angle)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-
-	if r.Pages() > 1 && (angle == Angle90 || angle == Angle270) {
-		if err := r.SetPageHeight(width); err != nil {
+		r.setImage(out)
+	} else {
+		out, err := vipsRotate(r.image, angle)
+		if err != nil {
 			return err
 		}
+		r.setImage(out)
 	}
-	return nil
-}
-
-// Grid tiles the image pages into a matrix across*down
-func (r *ImageRef) Grid(tileHeight, across, down int) error {
-	out, err := vipsGrid(r.image, tileHeight, across, down)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
 	return nil
 }
 
@@ -1337,26 +1127,6 @@ func (r *ImageRef) Replicate(across int, down int) error {
 	}
 	r.setImage(out)
 	return nil
-}
-
-// ToBytes writes the image to memory in VIPs format and returns the raw bytes, useful for storage.
-func (r *ImageRef) ToBytes() ([]byte, error) {
-	var cSize C.size_t
-	cData := C.vips_image_write_to_memory(r.image, &cSize)
-	if cData == nil {
-		return nil, errors.New("failed to write image to memory")
-	}
-	defer C.free(cData)
-
-	data := C.GoBytes(unsafe.Pointer(cData), C.int(cSize))
-	return data, nil
-}
-
-func (r *ImageRef) determineInputICCProfile() (inputProfile string) {
-	if r.Interpretation() == InterpretationCMYK {
-		inputProfile = "cmyk"
-	}
-	return
 }
 
 // setImage resets the image for this image and frees the previous one

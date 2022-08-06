@@ -2,16 +2,8 @@
 
 #include <unistd.h>
 
-unsigned long has_icc_profile(VipsImage *in) {
-  return vips_image_get_typeof(in, VIPS_META_ICC_NAME);
-}
-
 gboolean remove_icc_profile(VipsImage *in) {
   return vips_image_remove(in, VIPS_META_ICC_NAME);
-}
-
-unsigned long has_iptc(VipsImage *in) {
-  return vips_image_get_typeof(in, VIPS_META_IPTC_NAME);
 }
 
 char** image_get_fields(VipsImage *in) {

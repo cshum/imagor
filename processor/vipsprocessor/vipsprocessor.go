@@ -487,7 +487,7 @@ func wrapErr(err error) error {
 		return nil
 	}
 	msg := err.Error()
-	if err == ErrUnsupportedImageFormat || strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
+	if strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
 		return imagor.ErrUnsupportedFormat
 	}
 	if idx := strings.Index(msg, "Stack:"); idx > -1 {

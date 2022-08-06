@@ -24,4 +24,3 @@ int image_new_from_file(const char *name, VipsImage **out) {
   if (!*out) return 1;
   return 0;
 }
-
