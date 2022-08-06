@@ -69,20 +69,23 @@ func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
 	if strings.HasPrefix(vipsLoader, "webp") {
 		return ImageTypeWEBP
 	}
+	if strings.HasPrefix(vipsLoader, "avif") {
+		return ImageTypeAVIF
+	}
+	if strings.HasPrefix(vipsLoader, "heif") {
+		return ImageTypeHEIF
+	}
+	if strings.HasPrefix(vipsLoader, "tiff") {
+		return ImageTypeTIFF
+	}
+	if strings.HasPrefix(vipsLoader, "pdf") {
+		return ImageTypePDF
+	}
 	if strings.HasPrefix(vipsLoader, "jp2k") {
 		return ImageTypeJP2K
 	}
 	if strings.HasPrefix(vipsLoader, "magick") {
 		return ImageTypeMagick
-	}
-	if strings.HasPrefix(vipsLoader, "tiff") {
-		return ImageTypeTIFF
-	}
-	if strings.HasPrefix(vipsLoader, "heif") {
-		return ImageTypeHEIF
-	}
-	if strings.HasPrefix(vipsLoader, "pdf") {
-		return ImageTypePDF
 	}
 	return ImageTypeUnknown
 }
