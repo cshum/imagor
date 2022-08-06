@@ -40,7 +40,7 @@ type test struct {
 }
 
 func TestVipsProcessor(t *testing.T) {
-	v := New()
+	v := New(WithDebug(true))
 	require.NoError(t, v.Startup(context.Background()))
 	t.Cleanup(func() {
 		require.NoError(t, v.Shutdown(context.Background()))
