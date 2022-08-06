@@ -252,28 +252,6 @@ func vipsAutoRotate(in *C.VipsImage) (*C.VipsImage, error) {
 	return out, nil
 }
 
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-bandjoin
-func vipsBandJoin(ins []*C.VipsImage) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.bandjoin(&ins[0], &out, C.int(len(ins))); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
-// http://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-bandjoin-const
-func vipsBandJoinConst(in *C.VipsImage, constants []float64) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.bandjoin_const(in, &out, (*C.double)(&constants[0]), C.int(len(constants))); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
 // https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-flatten
 func vipsFlatten(in *C.VipsImage, color *Color) (*C.VipsImage, error) {
 	var out *C.VipsImage
@@ -300,17 +278,6 @@ func vipsCast(in *C.VipsImage, bandFormat BandFormat) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
 	if err := C.cast(in, &out, C.int(bandFormat)); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-composite
-func vipsComposite(ins []*C.VipsImage, modes []C.int, xs, ys []C.int) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.composite_image(&ins[0], &out, C.int(len(ins)), &modes[0], &xs[0], &ys[0]); err != 0 {
 		return nil, handleImageError(out)
 	}
 
