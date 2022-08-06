@@ -173,7 +173,7 @@ func shutdown() {
 	running = false
 }
 
-// MemoryStats is a data structure that houses various memory statistics from ReadVipsMemStats()
+// MemoryStats is a data structure that houses various memory statistics from readVipsMemStats()
 type MemoryStats struct {
 	Mem     int64
 	MemHigh int64
@@ -181,19 +181,12 @@ type MemoryStats struct {
 	Allocs  int64
 }
 
-// ReadVipsMemStats returns various memory statistics such as allocated memory and open files.
-func ReadVipsMemStats(stats *MemoryStats) {
+// readVipsMemStats returns various memory statistics such as allocated memory and open files.
+func readVipsMemStats(stats *MemoryStats) {
 	stats.Mem = int64(C.vips_tracked_get_mem())
 	stats.MemHigh = int64(C.vips_tracked_get_mem_highwater())
 	stats.Allocs = int64(C.vips_tracked_get_allocs())
 	stats.Files = int64(C.vips_tracked_get_files())
-}
-
-func startupIfNeeded() {
-	if !running {
-		govipsLog("govips", LogLevelInfo, "libvips was forcibly started automatically, consider calling Startup/shutdown yourself")
-		startup(nil)
-	}
 }
 
 // InitTypes initializes caches and figures out which image types are supported
