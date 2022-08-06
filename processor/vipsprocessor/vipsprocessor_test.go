@@ -44,7 +44,7 @@ func TestVipsProcessor(t *testing.T) {
 	require.NoError(t, v.Startup(context.Background()))
 	t.Cleanup(func() {
 		stats := &MemoryStats{}
-		readVipsMemStats(stats)
+		ReadVipsMemStats(stats)
 		fmt.Println(stats)
 		require.NoError(t, v.Shutdown(context.Background()))
 	})

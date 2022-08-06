@@ -7,7 +7,6 @@ import "C"
 import (
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 )
 
@@ -35,9 +34,7 @@ var (
 	running             = false
 	hasShutdown         = false
 	initLock            sync.Mutex
-	statCollectorDone   chan struct{}
 	once                sync.Once
-	typeLoaders         = make(map[string]ImageType)
 	supportedImageTypes = make(map[ImageType]bool)
 )
 
@@ -53,12 +50,12 @@ type config struct {
 // Startup sets up the libvips support and ensures the versions are correct. Pass in nil for
 // default configuration.
 func startup(config *config) {
+	initLock.Lock()
+	defer initLock.Unlock()
+
 	if hasShutdown {
 		panic("govips cannot be stopped and restarted")
 	}
-
-	initLock.Lock()
-	defer initLock.Unlock()
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -146,14 +143,10 @@ func disableLogging() {
 }
 
 func shutdown() {
-	hasShutdown = true
-
-	if statCollectorDone != nil {
-		statCollectorDone <- struct{}{}
-	}
-
 	initLock.Lock()
 	defer initLock.Unlock()
+
+	hasShutdown = true
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -168,7 +161,7 @@ func shutdown() {
 	running = false
 }
 
-// MemoryStats is a data structure that houses various memory statistics from readVipsMemStats()
+// MemoryStats is a data structure that houses various memory statistics from ReadVipsMemStats()
 type MemoryStats struct {
 	Mem     int64
 	MemHigh int64
@@ -176,8 +169,8 @@ type MemoryStats struct {
 	Allocs  int64
 }
 
-// readVipsMemStats returns various memory statistics such as allocated memory and open files.
-func readVipsMemStats(stats *MemoryStats) {
+// ReadVipsMemStats returns various memory statistics such as allocated memory and open files.
+func ReadVipsMemStats(stats *MemoryStats) {
 	stats.Mem = int64(C.vips_tracked_get_mem())
 	stats.MemHigh = int64(C.vips_tracked_get_mem_highwater())
 	stats.Allocs = int64(C.vips_tracked_get_allocs())
@@ -191,10 +184,6 @@ func initTypes() {
 		defer freeCString(cType)
 
 		for k, v := range ImageTypes {
-			name := strings.ToLower("VipsForeignLoad" + v)
-			typeLoaders[name] = k
-			typeLoaders[name+"buffer"] = k
-
 			cFunc := C.CString(v + "load")
 			//noinspection GoDeferInLoop
 			defer freeCString(cFunc)
@@ -204,7 +193,7 @@ func initTypes() {
 			supportedImageTypes[k] = int(ret) != 0
 
 			if supportedImageTypes[k] {
-				govipsLog("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
+				govipsLog("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
 			}
 		}
 	})
