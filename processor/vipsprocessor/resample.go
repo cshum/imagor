@@ -46,13 +46,7 @@ func vipsThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, si
 		code = C.thumbnail_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size), cOptionString)
 	}
 	if code != 0 {
-		err := handleImageError(out)
-		if isBMP(src) {
-			if src2, err2 := bmpToPNG(src); err2 == nil {
-				return vipsThumbnailFromBuffer(src2, width, height, crop, size, params)
-			}
-		}
-		return nil, ImageTypeUnknown, err
+		return nil, ImageTypeUnknown, handleImageError(out)
 	}
 
 	imageType := vipsDetermineImageTypeFromMetaLoader(out)

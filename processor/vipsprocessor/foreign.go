@@ -3,11 +3,7 @@ package vipsprocessor
 // #include "foreign.h"
 import "C"
 import (
-	"bytes"
-	"image/png"
 	"unsafe"
-
-	"golang.org/x/image/bmp"
 )
 
 // SubsampleMode correlates to a libvips subsample mode
@@ -95,30 +91,6 @@ const (
 	PngFilterPaeth PngFilter = C.VIPS_FOREIGN_PNG_FILTER_PAETH
 	PngFilterAll   PngFilter = C.VIPS_FOREIGN_PNG_FILTER_ALL
 )
-
-var bmpHeader = []byte("BM")
-
-func isBMP(buf []byte) bool {
-	return bytes.Equal(buf[:2], bmpHeader)
-}
-
-func bmpToPNG(src []byte) ([]byte, error) {
-	i, err := bmp.Decode(bytes.NewReader(src))
-	if err != nil {
-		return nil, err
-	}
-
-	var w bytes.Buffer
-	pngEnc := png.Encoder{
-		CompressionLevel: png.NoCompression,
-	}
-	err = pngEnc.Encode(&w, i)
-	if err != nil {
-		return nil, err
-	}
-
-	return w.Bytes(), nil
-}
 
 func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, error) {
 	p := C.create_save_params(C.JPEG)

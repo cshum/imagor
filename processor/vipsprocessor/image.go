@@ -1021,13 +1021,7 @@ func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageT
 		code = C.image_new_from_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, cOptionString)
 	}
 	if code != 0 {
-		err := handleImageError(out)
-		if isBMP(src) {
-			if src2, err2 := bmpToPNG(src); err2 == nil {
-				return vipsImageFromBuffer(src2, params)
-			}
-		}
-		return nil, ImageTypeUnknown, err
+		return nil, ImageTypeUnknown, handleImageError(out)
 	}
 
 	imageType := vipsDetermineImageTypeFromMetaLoader(out)
