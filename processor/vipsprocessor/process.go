@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/processor/vipsprocessor/vips"
 	"go.uber.org/zap"
 	"golang.org/x/image/colornames"
 	"image/color"
@@ -14,7 +13,7 @@ import (
 )
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
+	ctx context.Context, img *ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
 		origWidth  = float64(img.Width())
@@ -89,33 +88,33 @@ func (v *VipsProcessor) process(
 	if !thumbnail {
 		if p.FitIn {
 			if upscale || w < img.Width() || h < img.PageHeight() {
-				if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
+				if err := img.Thumbnail(w, h, InterestingNone); err != nil {
 					return err
 				}
 			}
 		} else if stretch {
 			if upscale || (w < img.Width() && h < img.PageHeight()) {
 				if err := img.ThumbnailWithSize(
-					w, h, vips.InterestingNone, vips.SizeForce,
+					w, h, InterestingNone, SizeForce,
 				); err != nil {
 					return err
 				}
 			}
 		} else if upscale || w < img.Width() || h < img.PageHeight() {
-			interest := vips.InterestingCentre
+			interest := InterestingCentre
 			if p.Smart {
-				interest = vips.InterestingAttention
+				interest = InterestingAttention
 			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 				if p.VAlign == imagorpath.VAlignTop {
-					interest = vips.InterestingLow
+					interest = InterestingLow
 				} else if p.VAlign == imagorpath.VAlignBottom {
-					interest = vips.InterestingHigh
+					interest = InterestingHigh
 				}
 			} else {
 				if p.HAlign == imagorpath.HAlignLeft {
-					interest = vips.InterestingLow
+					interest = InterestingLow
 				} else if p.HAlign == imagorpath.HAlignRight {
-					interest = vips.InterestingHigh
+					interest = InterestingHigh
 				}
 			}
 			if p.Smart && len(focalRects) > 0 {
@@ -128,7 +127,7 @@ func (v *VipsProcessor) process(
 					return err
 				}
 			} else {
-				if err := v.thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
+				if err := v.thumbnail(img, w, h, interest, SizeBoth); err != nil {
 					return err
 				}
 			}
@@ -138,12 +137,12 @@ func (v *VipsProcessor) process(
 		}
 	}
 	if p.HFlip {
-		if err := img.Flip(vips.DirectionHorizontal); err != nil {
+		if err := img.Flip(DirectionHorizontal); err != nil {
 			return err
 		}
 	}
 	if p.VFlip {
-		if err := img.Flip(vips.DirectionVertical); err != nil {
+		if err := img.Flip(DirectionVertical); err != nil {
 			return err
 		}
 	}
@@ -204,7 +203,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 }
 
 func findTrim(
-	ctx context.Context, img *vips.ImageRef, pos string, tolerance int,
+	ctx context.Context, img *ImageRef, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
 	if IsAnimated(ctx) {
 		// skip animation support
@@ -222,22 +221,22 @@ func findTrim(
 	if err != nil {
 		return
 	}
-	l, t, w, h, err = img.FindTrim(float64(tolerance), &vips.Color{
+	l, t, w, h, err = img.FindTrim(float64(tolerance), &Color{
 		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
 	})
 	return
 }
 
-func isBlack(c *vips.Color) bool {
+func isBlack(c *Color) bool {
 	return c.R == 0x00 && c.G == 0x00 && c.B == 0x00
 }
 
-func isWhite(c *vips.Color) bool {
+func isWhite(c *Color) bool {
 	return c.R == 0xff && c.G == 0xff && c.B == 0xff
 }
 
-func getColor(img *vips.ImageRef, color string) *vips.Color {
-	vc := &vips.Color{}
+func getColor(img *ImageRef, color string) *Color {
+	vc := &Color{}
 	args := strings.Split(strings.ToLower(color), ",")
 	mode := ""
 	name := strings.TrimPrefix(args[0], "#")

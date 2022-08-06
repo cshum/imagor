@@ -3,7 +3,6 @@ package vipsprocessor
 import (
 	"context"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/processor/vipsprocessor/vips"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
@@ -24,7 +23,7 @@ func TestWithOption(t *testing.T) {
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
 			WithDisableFilters("rgb", "fill, watermark"),
-			WithFilter("noop", func(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error) {
+			WithFilter("noop", func(ctx context.Context, img *ImageRef, load imagor.LoadFunc, args ...string) (err error) {
 				return nil
 			}),
 		)

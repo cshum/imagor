@@ -1,5 +1,5 @@
 // Package vips provides go bindings for libvips, a fast image processing library.
-package vips
+package vipsprocessor
 
 // #cgo pkg-config: vips
 // #include <vips/vips.h>

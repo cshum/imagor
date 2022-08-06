@@ -1,4 +1,4 @@
-package vips
+package vipsprocessor
 
 // #include "draw.h"
 import "C"

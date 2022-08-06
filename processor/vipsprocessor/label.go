@@ -1,4 +1,4 @@
-package vips
+package vipsprocessor
 
 // #include "label.h"
 import "C"

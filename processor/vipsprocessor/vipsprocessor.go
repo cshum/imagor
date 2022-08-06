@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/processor/vipsprocessor/vips"
 	"go.uber.org/zap"
 	"runtime"
 	"strconv"
@@ -12,7 +11,7 @@ import (
 	"sync"
 )
 
-type FilterFunc func(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
+type FilterFunc func(ctx context.Context, img *ImageRef, load imagor.LoadFunc, args ...string) (err error)
 
 type FilterMap map[string]FilterFunc
 
@@ -91,24 +90,24 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 		return nil
 	}
 	if v.Debug {
-		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
+		LoggingSettings(func(domain string, level LogLevel, msg string) {
 			switch level {
-			case vips.LogLevelDebug:
+			case LogLevelDebug:
 				v.Logger.Debug(domain, zap.String("log", msg))
-			case vips.LogLevelMessage, vips.LogLevelInfo:
+			case LogLevelMessage, LogLevelInfo:
 				v.Logger.Info(domain, zap.String("log", msg))
-			case vips.LogLevelWarning, vips.LogLevelCritical:
+			case LogLevelWarning, LogLevelCritical:
 				v.Logger.Warn(domain, zap.String("log", msg))
-			case vips.LogLevelError:
+			case LogLevelError:
 				v.Logger.Error(domain, zap.String("log", msg))
 			}
-		}, vips.LogLevelDebug)
+		}, LogLevelDebug)
 	} else {
-		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
+		LoggingSettings(func(domain string, level LogLevel, msg string) {
 			v.Logger.Error(domain, zap.String("log", msg))
-		}, vips.LogLevelError)
+		}, LogLevelError)
 	}
-	vips.Startup(&vips.Config{
+	Startup(&Config{
 		MaxCacheFiles:    v.MaxCacheFiles,
 		MaxCacheMem:      v.MaxCacheMem,
 		MaxCacheSize:     v.MaxCacheSize,
@@ -125,7 +124,7 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 	}
 	cnt--
 	if cnt == 0 {
-		vips.Shutdown()
+		Shutdown()
 	}
 	return nil
 }
@@ -142,8 +141,8 @@ func (v *VipsProcessor) Process(
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
-		img                   *vips.ImageRef
-		format                = vips.ImageTypeUnknown
+		img                   *ImageRef
+		format                = ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
 		focalRects            []focal
@@ -165,7 +164,7 @@ func (v *VipsProcessor) Process(
 		case "format":
 			if typ, ok := imageTypeMap[p.Args]; ok {
 				format = typ
-				if format != vips.ImageTypeGIF && format != vips.ImageTypeWEBP {
+				if format != ImageTypeGIF && format != ImageTypeWEBP {
 					// no frames if export format not support animation
 					maxN = 1
 				}
@@ -212,12 +211,12 @@ func (v *VipsProcessor) Process(
 				if h == 0 {
 					h = v.MaxHeight
 				}
-				size := vips.SizeDown
+				size := SizeDown
 				if upscale {
-					size = vips.SizeBoth
+					size = SizeBoth
 				}
 				if img, err = v.newThumbnail(
-					blob, w, h, vips.InterestingNone, size, maxN,
+					blob, w, h, InterestingNone, size, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -227,7 +226,7 @@ func (v *VipsProcessor) Process(
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.newThumbnail(
 					blob, p.Width, p.Height,
-					vips.InterestingNone, vips.SizeForce, maxN,
+					InterestingNone, SizeForce, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -235,27 +234,27 @@ func (v *VipsProcessor) Process(
 			}
 		} else {
 			if p.Width > 0 && p.Height > 0 {
-				interest := vips.InterestingNone
+				interest := InterestingNone
 				if p.Smart {
-					interest = vips.InterestingAttention
+					interest = InterestingAttention
 					thumbnail = true
 				} else if (p.VAlign == imagorpath.VAlignTop && p.HAlign == "") ||
 					(p.HAlign == imagorpath.HAlignLeft && p.VAlign == "") {
-					interest = vips.InterestingLow
+					interest = InterestingLow
 					thumbnail = true
 				} else if (p.VAlign == imagorpath.VAlignBottom && p.HAlign == "") ||
 					(p.HAlign == imagorpath.HAlignRight && p.VAlign == "") {
-					interest = vips.InterestingHigh
+					interest = InterestingHigh
 					thumbnail = true
 				} else if (p.VAlign == "" || p.VAlign == "middle") &&
 					(p.HAlign == "" || p.HAlign == "center") {
-					interest = vips.InterestingCentre
+					interest = InterestingCentre
 					thumbnail = true
 				}
 				if thumbnail {
 					if img, err = v.newThumbnail(
 						blob, p.Width, p.Height,
-						interest, vips.SizeBoth, maxN,
+						interest, SizeBoth, maxN,
 					); err != nil {
 						return nil, err
 					}
@@ -263,7 +262,7 @@ func (v *VipsProcessor) Process(
 			} else if p.Width > 0 && p.Height == 0 {
 				if img, err = v.newThumbnail(
 					blob, p.Width, v.MaxHeight,
-					vips.InterestingNone, vips.SizeBoth, maxN,
+					InterestingNone, SizeBoth, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -271,7 +270,7 @@ func (v *VipsProcessor) Process(
 			} else if p.Height > 0 && p.Width == 0 {
 				if img, err = v.newThumbnail(
 					blob, v.MaxWidth, p.Height,
-					vips.InterestingNone, vips.SizeBoth, maxN,
+					InterestingNone, SizeBoth, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -287,7 +286,7 @@ func (v *VipsProcessor) Process(
 		} else {
 			if img, err = v.newThumbnail(
 				blob, v.MaxWidth, v.MaxHeight,
-				vips.InterestingNone, vips.SizeDown, maxN,
+				InterestingNone, SizeDown, maxN,
 			); err != nil {
 				return nil, err
 			}
@@ -300,7 +299,7 @@ func (v *VipsProcessor) Process(
 		origWidth  = float64(img.Width())
 		origHeight = float64(img.PageHeight())
 	)
-	if format == vips.ImageTypeUnknown {
+	if format == ImageTypeUnknown {
 		format = img.Format()
 	}
 	SetPageN(ctx, pageN)
@@ -317,7 +316,7 @@ func (v *VipsProcessor) Process(
 			quality, _ = strconv.Atoi(p.Args)
 			break
 		case "autojpg":
-			format = vips.ImageTypeJPEG
+			format = ImageTypeJPEG
 			break
 		case "focal":
 			if args := strings.FieldsFunc(p.Args, focalSplit); len(args) == 4 {
@@ -347,7 +346,7 @@ func (v *VipsProcessor) Process(
 		if err != nil {
 			return nil, wrapErr(err)
 		}
-		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePNG {
+		if maxBytes > 0 && (quality > 10 || quality == 0) && format != ImageTypePNG {
 			ln := len(buf)
 			if v.Debug {
 				v.Logger.Debug("max_bytes",
@@ -382,12 +381,12 @@ func (v *VipsProcessor) Process(
 	}
 }
 
-func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
-	format := vips.ImageTypes[meta.Format]
+func getMeta(meta *ImageMetadata) *imagor.Meta {
+	format := ImageTypes[meta.Format]
 	contentType := imageMimeTypeMap[format]
 	pages := 1
 	// govips returns "image/heif" for avif image content types
-	if meta.Format == vips.ImageTypeAVIF {
+	if meta.Format == ImageTypeAVIF {
 		format = "avif"
 		contentType = "image/avif"
 	}
@@ -404,20 +403,20 @@ func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
 	}
 }
 
-var imageTypeMap = map[string]vips.ImageType{
-	"gif":    vips.ImageTypeGIF,
-	"jpeg":   vips.ImageTypeJPEG,
-	"jpg":    vips.ImageTypeJPEG,
-	"magick": vips.ImageTypeMagick,
-	"pdf":    vips.ImageTypePDF,
-	"png":    vips.ImageTypePNG,
-	"svg":    vips.ImageTypeSVG,
-	"tiff":   vips.ImageTypeTIFF,
-	"webp":   vips.ImageTypeWEBP,
-	"heif":   vips.ImageTypeHEIF,
-	"bmp":    vips.ImageTypeBMP,
-	"avif":   vips.ImageTypeAVIF,
-	"jp2":    vips.ImageTypeJP2K,
+var imageTypeMap = map[string]ImageType{
+	"gif":    ImageTypeGIF,
+	"jpeg":   ImageTypeJPEG,
+	"jpg":    ImageTypeJPEG,
+	"magick": ImageTypeMagick,
+	"pdf":    ImageTypePDF,
+	"png":    ImageTypePNG,
+	"svg":    ImageTypeSVG,
+	"tiff":   ImageTypeTIFF,
+	"webp":   ImageTypeWEBP,
+	"heif":   ImageTypeHEIF,
+	"bmp":    ImageTypeBMP,
+	"avif":   ImageTypeAVIF,
+	"jp2":    ImageTypeJP2K,
 }
 
 var imageMimeTypeMap = map[string]string{
@@ -435,43 +434,43 @@ var imageMimeTypeMap = map[string]string{
 	"jp2":  "image/jp2",
 }
 
-func (v *VipsProcessor) export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
+func (v *VipsProcessor) export(image *ImageRef, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
 	switch format {
-	case vips.ImageTypePNG:
-		opts := vips.NewPngExportParams()
+	case ImageTypePNG:
+		opts := NewPngExportParams()
 		return image.ExportPng(opts)
-	case vips.ImageTypeWEBP:
-		opts := vips.NewWebpExportParams()
+	case ImageTypeWEBP:
+		opts := NewWebpExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
 		return image.ExportWebp(opts)
-	case vips.ImageTypeTIFF:
-		opts := vips.NewTiffExportParams()
+	case ImageTypeTIFF:
+		opts := NewTiffExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
 		return image.ExportTiff(opts)
-	case vips.ImageTypeGIF:
-		opts := vips.NewGifExportParams()
+	case ImageTypeGIF:
+		opts := NewGifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
 		return image.ExportGIF(opts)
-	case vips.ImageTypeAVIF:
-		opts := vips.NewAvifExportParams()
+	case ImageTypeAVIF:
+		opts := NewAvifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
 		return image.ExportAvif(opts)
-	case vips.ImageTypeJP2K:
-		opts := vips.NewJp2kExportParams()
+	case ImageTypeJP2K:
+		opts := NewJp2kExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
 		return image.ExportJp2k(opts)
 	default:
-		opts := vips.NewJpegExportParams()
+		opts := NewJpegExportParams()
 		if v.MozJPEG {
 			opts.Quality = 75
 			opts.StripMetadata = true
@@ -493,7 +492,7 @@ func wrapErr(err error) error {
 		return nil
 	}
 	msg := err.Error()
-	if err == vips.ErrUnsupportedImageFormat || strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
+	if err == ErrUnsupportedImageFormat || strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
 		return imagor.ErrUnsupportedFormat
 	}
 	if idx := strings.Index(msg, "Stack:"); idx > -1 {

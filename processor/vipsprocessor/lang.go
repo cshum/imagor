@@ -1,4 +1,4 @@
-package vips
+package vipsprocessor
 
 // #include <vips/vips.h>
 // #include <stdlib.h>

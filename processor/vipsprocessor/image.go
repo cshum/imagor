@@ -2,13 +2,12 @@ package vipsprocessor
 
 import (
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/processor/vipsprocessor/vips"
 	"math"
 )
 
 func (v *VipsProcessor) newThumbnail(
-	blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size, n int,
-) (*vips.ImageRef, error) {
+	blob *imagor.Blob, width, height int, crop Interesting, size Size, n int,
+) (*ImageRef, error) {
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
@@ -16,18 +15,18 @@ func (v *VipsProcessor) newThumbnail(
 	if err != nil {
 		return nil, err
 	}
-	var params *vips.ImportParams
-	var img *vips.ImageRef
+	var params *ImportParams
+	var img *ImageRef
 	if isBlobAnimated(blob, n) {
-		params = vips.NewImportParams()
+		params = NewImportParams()
 		if n < -1 {
 			params.NumPages.Set(-n)
 		} else {
 			params.NumPages.Set(-1)
 		}
-		if crop == vips.InterestingNone || size == vips.SizeForce {
+		if crop == InterestingNone || size == SizeForce {
 			if img, err = v.checkResolution(
-				vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, params),
+				LoadThumbnailFromBuffer(buf, width, height, crop, size, params),
 			); err != nil {
 				return nil, wrapErr(err)
 			}
@@ -37,7 +36,7 @@ func (v *VipsProcessor) newThumbnail(
 				return v.newThumbnail(blob, width, height, crop, size, -n)
 			}
 		} else {
-			if img, err = v.checkResolution(vips.LoadImageFromBuffer(buf, params)); err != nil {
+			if img, err = v.checkResolution(LoadImageFromBuffer(buf, params)); err != nil {
 				return nil, wrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
@@ -53,15 +52,15 @@ func (v *VipsProcessor) newThumbnail(
 	} else if blob.BlobType() == imagor.BlobTypePNG {
 		return v.newThumbnailPNG(buf, width, height, crop, size)
 	} else {
-		img, err = vips.LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
+		img, err = LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
 	}
 	return v.checkResolution(img, wrapErr(err))
 }
 
 func (v *VipsProcessor) newThumbnailPNG(
-	buf []byte, width, height int, crop vips.Interesting, size vips.Size,
-) (img *vips.ImageRef, err error) {
-	if img, err = v.checkResolution(vips.NewImageFromBuffer(buf)); err != nil {
+	buf []byte, width, height int, crop Interesting, size Size,
+) (img *ImageRef, err error) {
+	if img, err = v.checkResolution(NewImageFromBuffer(buf)); err != nil {
 		return
 	}
 	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
@@ -71,7 +70,7 @@ func (v *VipsProcessor) newThumbnailPNG(
 	return v.checkResolution(img, wrapErr(err))
 }
 
-func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, error) {
+func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*ImageRef, error) {
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
@@ -79,15 +78,15 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 	if err != nil {
 		return nil, err
 	}
-	var params *vips.ImportParams
+	var params *ImportParams
 	if isBlobAnimated(blob, n) {
-		params = vips.NewImportParams()
+		params = NewImportParams()
 		if n < -1 {
 			params.NumPages.Set(-n)
 		} else {
 			params.NumPages.Set(-1)
 		}
-		img, err := v.checkResolution(vips.LoadImageFromBuffer(buf, params))
+		img, err := v.checkResolution(LoadImageFromBuffer(buf, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -99,7 +98,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 			return img, nil
 		}
 	} else {
-		img, err := v.checkResolution(vips.LoadImageFromBuffer(buf, params))
+		img, err := v.checkResolution(LoadImageFromBuffer(buf, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -108,21 +107,21 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*vips.ImageRef, erro
 }
 
 func (v *VipsProcessor) thumbnail(
-	img *vips.ImageRef, width, height int, crop vips.Interesting, size vips.Size,
+	img *ImageRef, width, height int, crop Interesting, size Size,
 ) error {
-	if crop == vips.InterestingNone || size == vips.SizeForce || img.Height() == img.PageHeight() {
+	if crop == InterestingNone || size == SizeForce || img.Height() == img.PageHeight() {
 		return img.ThumbnailWithSize(width, height, crop, size)
 	}
 	return v.animatedThumbnailWithCrop(img, width, height, crop, size)
 }
 
-func (v *VipsProcessor) focalThumbnail(img *vips.ImageRef, w, h int, fx, fy float64) (err error) {
+func (v *VipsProcessor) focalThumbnail(img *ImageRef, w, h int, fx, fy float64) (err error) {
 	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
-		if err = img.Thumbnail(w, v.MaxHeight, vips.InterestingNone); err != nil {
+		if err = img.Thumbnail(w, v.MaxHeight, InterestingNone); err != nil {
 			return
 		}
 	} else {
-		if err = img.Thumbnail(v.MaxWidth, h, vips.InterestingNone); err != nil {
+		if err = img.Thumbnail(v.MaxWidth, h, InterestingNone); err != nil {
 			return
 		}
 	}
@@ -135,32 +134,32 @@ func (v *VipsProcessor) focalThumbnail(img *vips.ImageRef, w, h int, fx, fy floa
 }
 
 func (v *VipsProcessor) animatedThumbnailWithCrop(
-	img *vips.ImageRef, w, h int, crop vips.Interesting, size vips.Size,
+	img *ImageRef, w, h int, crop Interesting, size Size,
 ) (err error) {
-	if size == vips.SizeDown && img.Width() < w && img.PageHeight() < h {
+	if size == SizeDown && img.Width() < w && img.PageHeight() < h {
 		return
 	}
 	var top, left int
 	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
-		if err = img.ThumbnailWithSize(w, v.MaxHeight, vips.InterestingNone, size); err != nil {
+		if err = img.ThumbnailWithSize(w, v.MaxHeight, InterestingNone, size); err != nil {
 			return
 		}
 	} else {
-		if err = img.ThumbnailWithSize(v.MaxWidth, h, vips.InterestingNone, size); err != nil {
+		if err = img.ThumbnailWithSize(v.MaxWidth, h, InterestingNone, size); err != nil {
 			return
 		}
 	}
-	if crop == vips.InterestingHigh {
+	if crop == InterestingHigh {
 		left = img.Width() - w
 		top = img.PageHeight() - h
-	} else if crop == vips.InterestingCentre || crop == vips.InterestingAttention {
+	} else if crop == InterestingCentre || crop == InterestingAttention {
 		left = (img.Width() - w) / 2
 		top = (img.PageHeight() - h) / 2
 	}
 	return img.ExtractArea(left, top, w, h)
 }
 
-func (v *VipsProcessor) checkResolution(img *vips.ImageRef, err error) (*vips.ImageRef, error) {
+func (v *VipsProcessor) checkResolution(img *ImageRef, err error) (*ImageRef, error) {
 	if err != nil || img == nil {
 		return img, err
 	}

@@ -2,18 +2,17 @@ package vipsprocessor
 
 import (
 	"context"
-	"github.com/cshum/imagor/processor/vipsprocessor/vips"
 )
 
 type imageRefKey struct{}
 
 type imageRefs struct {
-	imageRefs []*vips.ImageRef
+	imageRefs []*ImageRef
 	Rotate90  bool
 	PageN     int
 }
 
-func (r *imageRefs) Add(img *vips.ImageRef) {
+func (r *imageRefs) Add(img *ImageRef) {
 	r.imageRefs = append(r.imageRefs, img)
 }
 
@@ -30,7 +29,7 @@ func withInitImageRefs(ctx context.Context) context.Context {
 }
 
 // AddImageRef context add vips image ref for keeping track of gc
-func AddImageRef(ctx context.Context, img *vips.ImageRef) {
+func AddImageRef(ctx context.Context, img *ImageRef) {
 	if r, ok := ctx.Value(imageRefKey{}).(*imageRefs); ok {
 		r.Add(img)
 	}

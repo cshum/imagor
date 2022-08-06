@@ -1,4 +1,4 @@
-package vips
+package vipsprocessor
 
 // #include "resample.h"
 import "C"
