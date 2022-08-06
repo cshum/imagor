@@ -43,6 +43,37 @@ var ImageTypes = map[ImageType]string{
 	ImageTypeJP2K:   "jp2k",
 }
 
+var imageTypeMap = map[string]ImageType{
+	"gif":    ImageTypeGIF,
+	"jpeg":   ImageTypeJPEG,
+	"jpg":    ImageTypeJPEG,
+	"magick": ImageTypeMagick,
+	"pdf":    ImageTypePDF,
+	"png":    ImageTypePNG,
+	"svg":    ImageTypeSVG,
+	"tiff":   ImageTypeTIFF,
+	"webp":   ImageTypeWEBP,
+	"heif":   ImageTypeHEIF,
+	"bmp":    ImageTypeBMP,
+	"avif":   ImageTypeAVIF,
+	"jp2":    ImageTypeJP2K,
+}
+
+var imageMimeTypeMap = map[string]string{
+	"gif":  "image/gif",
+	"jpeg": "image/jpeg",
+	"jpg":  "image/jpeg",
+	"pdf":  "application/pdf",
+	"png":  "image/png",
+	"svg":  "image/svg+xml",
+	"tiff": "image/tiff",
+	"webp": "image/webp",
+	"heif": "image/heif",
+	"bmp":  "image/bmp",
+	"avif": "image/avif",
+	"jp2":  "image/jp2",
+}
+
 // vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
 func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
 	if in != nil {

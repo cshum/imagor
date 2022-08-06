@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"golang.org/x/image/colornames"
+	"image/color"
 	"math"
 	"net/url"
 	"strconv"
@@ -503,4 +505,76 @@ func linearRGB(img *ImageRef, a, b []float64) error {
 		b = append(b, 0)
 	}
 	return img.Linear(a, b)
+}
+
+func isBlack(c *Color) bool {
+	return c.R == 0x00 && c.G == 0x00 && c.B == 0x00
+}
+
+func isWhite(c *Color) bool {
+	return c.R == 0xff && c.G == 0xff && c.B == 0xff
+}
+
+func getColor(img *ImageRef, color string) *Color {
+	vc := &Color{}
+	args := strings.Split(strings.ToLower(color), ",")
+	mode := ""
+	name := strings.TrimPrefix(args[0], "#")
+	if len(args) > 1 {
+		mode = args[1]
+	}
+	if name == "auto" {
+		if img != nil {
+			x := 0
+			y := 0
+			if mode == "bottom-right" {
+				x = img.Width() - 1
+				y = img.PageHeight() - 1
+			}
+			p, _ := img.GetPoint(x, y)
+			if len(p) >= 3 {
+				vc.R = uint8(p[0])
+				vc.G = uint8(p[1])
+				vc.B = uint8(p[2])
+			}
+		}
+	} else if c, ok := colornames.Map[name]; ok {
+		vc.R = c.R
+		vc.G = c.G
+		vc.B = c.B
+	} else if c, ok := parseHexColor(name); ok {
+		vc.R = c.R
+		vc.G = c.G
+		vc.B = c.B
+	}
+	return vc
+}
+
+func parseHexColor(s string) (c color.RGBA, ok bool) {
+	c.A = 0xff
+	switch len(s) {
+	case 6:
+		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
+		c.G = hexToByte(s[2])<<4 + hexToByte(s[3])
+		c.B = hexToByte(s[4])<<4 + hexToByte(s[5])
+		ok = true
+	case 3:
+		c.R = hexToByte(s[0]) * 17
+		c.G = hexToByte(s[1]) * 17
+		c.B = hexToByte(s[2]) * 17
+		ok = true
+	}
+	return
+}
+
+func hexToByte(b byte) byte {
+	switch {
+	case b >= '0' && b <= '9':
+		return b - '0'
+	case b >= 'a' && b <= 'f':
+		return b - 'a' + 10
+	case b >= 'A' && b <= 'F':
+		return b - 'A' + 10
+	}
+	return 0
 }
