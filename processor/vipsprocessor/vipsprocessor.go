@@ -385,11 +385,6 @@ func getMeta(meta *ImageMetadata) *imagor.Meta {
 	format := ImageTypes[meta.Format]
 	contentType := imageMimeTypeMap[format]
 	pages := 1
-	// govips returns "image/heif" for avif image content types
-	if meta.Format == ImageTypeAVIF {
-		format = "avif"
-		contentType = "image/avif"
-	}
 	if p := meta.Pages; p > 1 {
 		pages = p
 	}
