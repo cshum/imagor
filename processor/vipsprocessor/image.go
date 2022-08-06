@@ -484,19 +484,6 @@ func (r *ImageRef) SetOrientation(orientation int) error {
 	return nil
 }
 
-// RemoveOrientation removes the EXIF orientation information of the image.
-func (r *ImageRef) RemoveOrientation() error {
-	out, err := vipsCopyImage(r.image)
-	if err != nil {
-		return err
-	}
-
-	vipsRemoveMetaOrientation(out)
-
-	r.setImage(out)
-	return nil
-}
-
 // ResX returns the X resolution
 func (r *ImageRef) ResX() float64 {
 	return float64(r.image.Xres)
@@ -840,36 +827,6 @@ func (r *ImageRef) RemoveICCProfile() error {
 
 	r.setImage(out)
 	return nil
-}
-
-// RemoveMetadata removes the EXIF metadata from the image.
-// N.B. this function won't remove the ICC profile, orientation and pages metadata
-// because govips needs it to correctly display the image.
-func (r *ImageRef) RemoveMetadata(keep ...string) error {
-	out, err := vipsCopyImage(r.image)
-	if err != nil {
-		return err
-	}
-
-	vipsRemoveMetadata(out, keep...)
-
-	r.setImage(out)
-
-	return nil
-}
-
-func (r *ImageRef) ImageFields() []string {
-	return vipsImageGetFields(r.image)
-}
-
-func (r *ImageRef) HasExif() bool {
-	for _, field := range r.ImageFields() {
-		if strings.HasPrefix(field, "exif-") {
-			return true
-		}
-	}
-
-	return false
 }
 
 // ToColorSpace changes the color space of the image to the interpretation supplied as the parameter.

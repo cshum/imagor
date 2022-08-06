@@ -5,11 +5,7 @@
 
 int remove_icc_profile(VipsImage *in);
 
-char** image_get_fields(VipsImage *in);
-void remove_field(VipsImage *in, char *field);
-
 int get_meta_orientation(VipsImage *in);
-void remove_meta_orientation(VipsImage *in);
 void set_meta_orientation(VipsImage *in, int orientation);
 int get_image_n_pages(VipsImage *in);
 void set_image_n_pages(VipsImage *in, int n_pages);

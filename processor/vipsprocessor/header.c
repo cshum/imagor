@@ -6,14 +6,6 @@ gboolean remove_icc_profile(VipsImage *in) {
   return vips_image_remove(in, VIPS_META_ICC_NAME);
 }
 
-char** image_get_fields(VipsImage *in) {
-  return vips_image_get_fields(in);
-}
-
-void remove_field(VipsImage *in, char *field) {
-  vips_image_remove(in, field);
-}
-
 int get_meta_orientation(VipsImage *in) {
   int orientation = 0;
   if (vips_image_get_typeof(in, VIPS_META_ORIENTATION) != 0) {
@@ -21,10 +13,6 @@ int get_meta_orientation(VipsImage *in) {
   }
 
   return orientation;
-}
-
-void remove_meta_orientation(VipsImage *in) {
-  vips_image_remove(in, VIPS_META_ORIENTATION);
 }
 
 void set_meta_orientation(VipsImage *in, int orientation) {

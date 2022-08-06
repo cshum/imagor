@@ -11,63 +11,8 @@ func vipsRemoveICCProfile(in *C.VipsImage) bool {
 	return fromGboolean(C.remove_icc_profile(in))
 }
 
-func vipsImageGetFields(in *C.VipsImage) (fields []string) {
-	const maxFields = 256
-
-	rawFields := C.image_get_fields(in)
-	defer C.g_strfreev(rawFields)
-
-	cFields := (*[maxFields]*C.char)(unsafe.Pointer(rawFields))[:maxFields:maxFields]
-
-	for _, field := range cFields {
-		if field == nil {
-			break
-		}
-		fields = append(fields, C.GoString(field))
-	}
-	return
-}
-
-func vipsRemoveMetadata(in *C.VipsImage, keep ...string) {
-	fields := vipsImageGetFields(in)
-
-	retain := append(keep, technicalMetadata...)
-
-	for _, field := range fields {
-		if contains(retain, field) {
-			continue
-		}
-
-		cField := C.CString(field)
-
-		C.remove_field(in, cField)
-
-		C.free(unsafe.Pointer(cField))
-	}
-}
-
-var technicalMetadata = []string{
-	C.VIPS_META_ICC_NAME,
-	C.VIPS_META_ORIENTATION,
-	C.VIPS_META_N_PAGES,
-	C.VIPS_META_PAGE_HEIGHT,
-}
-
-func contains(a []string, x string) bool {
-	for _, n := range a {
-		if x == n {
-			return true
-		}
-	}
-	return false
-}
-
 func vipsGetMetaOrientation(in *C.VipsImage) int {
 	return int(C.get_meta_orientation(in))
-}
-
-func vipsRemoveMetaOrientation(in *C.VipsImage) {
-	C.remove_meta_orientation(in)
 }
 
 func vipsSetMetaOrientation(in *C.VipsImage, orientation int) {
