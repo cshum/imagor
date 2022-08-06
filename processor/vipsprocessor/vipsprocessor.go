@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/davidbyttow/govips/v2/vips"
+	"github.com/cshum/imagor/processor/vipsprocessor/vips"
 	"go.uber.org/zap"
 	"runtime"
 	"strconv"

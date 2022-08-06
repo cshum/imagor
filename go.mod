@@ -5,7 +5,6 @@ go 1.18
 require (
 	cloud.google.com/go/storage v1.24.0
 	github.com/aws/aws-sdk-go v1.44.66
-	github.com/davidbyttow/govips/v2 v2.11.0
 	github.com/fsouza/fake-gcs-server v1.38.2
 	github.com/johannesboyne/gofakes3 v0.0.0-20220517215058-83a58ec253b6
 	github.com/peterbourgon/ff/v3 v3.2.0-rc.1
@@ -13,6 +12,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
+	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 )
 
@@ -32,6 +32,7 @@ require (
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pkg/xattr v0.4.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
@@ -40,7 +41,6 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9 // indirect
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 // indirect
 	golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c // indirect
 	golang.org/x/text v0.3.7 // indirect
@@ -51,5 +51,6 @@ require (
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
 	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

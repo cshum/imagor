@@ -2,7 +2,7 @@ package vipsprocessor
 
 import (
 	"github.com/cshum/imagor"
-	"github.com/davidbyttow/govips/v2/vips"
+	"github.com/cshum/imagor/processor/vipsprocessor/vips"
 	"math"
 )
 
