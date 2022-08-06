@@ -729,16 +729,6 @@ func (r *ImageRef) Composite(overlay *ImageRef, mode BlendMode, x, y int) error 
 	return nil
 }
 
-// Insert draws the image on top of the associated image at the given coordinates.
-func (r *ImageRef) Insert(sub *ImageRef, x, y int, expand bool, background *ColorRGBA) error {
-	out, err := vipsInsert(r.image, sub.image, x, y, expand, background)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-	return nil
-}
-
 // AddAlpha adds an alpha channel to the associated image.
 func (r *ImageRef) AddAlpha() error {
 	if vipsHasAlpha(r.image) {
@@ -775,24 +765,6 @@ func (r *ImageRef) Linear(a, b []float64) error {
 		return err
 	}
 	r.setImage(out)
-	return nil
-}
-
-// AutoRotate rotates the image upright based on the EXIF Orientation tag.
-// It also resets the orientation information in the EXIF tag to be 1 (i.e. upright).
-// N.B. libvips does not flip images currently (i.e. no support for orientations 2, 4, 5 and 7).
-// N.B. due to the HEIF image standard, HEIF images are always autorotated by default on load.
-// Thus, calling AutoRotate for HEIF images is not needed.
-// todo: use https://www.libvips.org/API/current/libvips-conversion.html#vips-autorot-remove-angle
-func (r *ImageRef) AutoRotate() error {
-	if r.Height() == r.PageHeight() {
-		// only auto rotate if not animation
-		out, err := vipsAutoRotate(r.image)
-		if err != nil {
-			return err
-		}
-		r.setImage(out)
-	}
 	return nil
 }
 
@@ -1033,16 +1005,6 @@ func (r *ImageRef) Rotate(angle Angle) error {
 		}
 		r.setImage(out)
 	}
-	return nil
-}
-
-// SmartCrop will crop the image based on interesting factor
-func (r *ImageRef) SmartCrop(width int, height int, interesting Interesting) error {
-	out, err := vipsSmartCrop(r.image, width, height, interesting)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
 	return nil
 }
 

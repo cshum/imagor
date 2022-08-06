@@ -208,17 +208,6 @@ func vipsExtractAreaMultiPage(in *C.VipsImage, left, top, width, height int) (*C
 	return out, nil
 }
 
-// http://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-smartcrop
-func vipsSmartCrop(in *C.VipsImage, width int, height int, interesting Interesting) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.smartcrop(in, &out, C.int(width), C.int(height), C.int(interesting)); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
 // https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-rot
 func vipsRotate(in *C.VipsImage, angle Angle) (*C.VipsImage, error) {
 	var out *C.VipsImage
@@ -235,17 +224,6 @@ func vipsRotateMultiPage(in *C.VipsImage, angle Angle) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
 	if err := C.rotate_image_multi_page(in, &out, C.VipsAngle(angle)); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
-// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-autorot
-func vipsAutoRotate(in *C.VipsImage) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.autorotate_image(in, &out); err != 0 {
 		return nil, handleImageError(out)
 	}
 
@@ -289,25 +267,6 @@ func vipsComposite2(base *C.VipsImage, overlay *C.VipsImage, mode BlendMode, x, 
 	var out *C.VipsImage
 
 	if err := C.composite2_image(base, overlay, &out, C.int(mode), C.gint(x), C.gint(y)); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
-func vipsInsert(main *C.VipsImage, sub *C.VipsImage, x, y int, expand bool, background *ColorRGBA) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if background == nil {
-		background = &ColorRGBA{R: 0.0, G: 0.0, B: 0.0, A: 255.0}
-	}
-
-	expandInt := 0
-	if expand {
-		expandInt = 1
-	}
-
-	if err := C.insert_image(main, sub, &out, C.int(x), C.int(y), C.int(expandInt), C.double(background.R), C.double(background.G), C.double(background.B), C.double(background.A)); err != 0 {
 		return nil, handleImageError(out)
 	}
 

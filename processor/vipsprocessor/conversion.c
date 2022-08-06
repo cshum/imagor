@@ -189,24 +189,6 @@ int rotate_image_multi_page(VipsImage *in, VipsImage **out, VipsAngle angle) {
   return 0;
 }
 
-int autorotate_image(VipsImage *in, VipsImage **out) {
-  return vips_autorot(in, out, NULL);
-}
-
-int bandjoin(VipsImage **in, VipsImage **out, int n) {
-  return vips_bandjoin(in, out, n, NULL);
-}
-
-int bandjoin_const(VipsImage *in, VipsImage **out, double constants[], int n) {
-  return vips_bandjoin_const(in, out, constants, n, NULL);
-}
-
-int smartcrop(VipsImage *in, VipsImage **out, int width, int height,
-              int interesting) {
-  return vips_smartcrop(in, out, width, height, "interesting", interesting,
-                        NULL);
-}
-
 int flatten_image(VipsImage *in, VipsImage **out, double r, double g,
                   double b) {
   if (is_16bit(in->Type)) {
@@ -250,47 +232,9 @@ double max_alpha(VipsImage *in) {
   }
 }
 
-int composite_image(VipsImage **in, VipsImage **out, int n, int *mode, int *x,
-                    int *y) {
-  VipsArrayInt *xs = vips_array_int_new(x, n - 1);
-  VipsArrayInt *ys = vips_array_int_new(y, n - 1);
-
-  int code = vips_composite(in, out, n, mode, "x", xs, "y", ys, NULL);
-
-  vips_area_unref(VIPS_AREA(xs));
-  vips_area_unref(VIPS_AREA(ys));
-  return code;
-}
-
 int composite2_image(VipsImage *base, VipsImage *overlay, VipsImage **out,
                      int mode, gint x, gint y) {
   return vips_composite2(base, overlay, out, mode, "x", x, "y", y, NULL);
-}
-
-int insert_image(VipsImage *main, VipsImage *sub, VipsImage **out, int x, int y, int expand, double r, double g, double b, double a) {
-  if (is_16bit(main->Type)) {
-    r = 65535 * r / 255;
-    g = 65535 * g / 255;
-    b = 65535 * b / 255;
-    a = 65535 * a / 255;
-  }
-
-  double background[3] = {r, g, b};
-  double backgroundRGBA[4] = {r, g, b, a};
-
-  VipsArrayDouble *vipsBackground;
-
-  // Ignore the alpha channel if the image doesn't have one
-  if (main->Bands <= 3) {
-    vipsBackground = vips_array_double_new(background, 3);
-  } else {
-    vipsBackground = vips_array_double_new(backgroundRGBA, 4);
-  }
-  int code = vips_insert(main, sub, out, x, y, "expand", expand, "background", vipsBackground, NULL);
-
-  vips_area_unref(VIPS_AREA(vipsBackground));
-
-  return code;
 }
 
 int replicate(VipsImage *in, VipsImage **out, int across, int down) {
