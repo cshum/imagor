@@ -40,7 +40,11 @@ type test struct {
 }
 
 func TestVipsProcessor(t *testing.T) {
-	doGoldenTests(t, "init", nil, WithDebug(true))
+	v := New()
+	require.NoError(t, v.Startup(context.Background()))
+	t.Cleanup(func() {
+		require.NoError(t, v.Shutdown(context.Background()))
+	})
 	t.Parallel()
 	t.Run("vips", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
@@ -235,9 +239,9 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 		imagor.WithLogger(zap.NewExample()),
 		imagor.WithProcessors(processor),
 	)
-	require.NoError(t, processor.Startup(context.Background()))
+	require.NoError(t, app.Startup(context.Background()))
 	t.Cleanup(func() {
-		assert.NoError(t, processor.Shutdown(context.Background()))
+		assert.NoError(t, app.Shutdown(context.Background()))
 	})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
