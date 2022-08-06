@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <vips/vips.h>
 
-int thumbnail(const char *filename, VipsImage **out, int width, int height,
-                    int crop, int size);
 int thumbnail_image(VipsImage *in, VipsImage **out, int width, int height,
                     int crop, int size);
 int thumbnail_buffer(void *buf, size_t len, VipsImage **out, int width, int height,

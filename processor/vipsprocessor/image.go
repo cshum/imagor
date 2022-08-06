@@ -6,7 +6,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"runtime"
 	"strconv"
 	"strings"
@@ -320,20 +319,6 @@ func NewJp2kExportParams() *Jp2kExportParams {
 	}
 }
 
-// LoadImageFromFile loads an image from file and creates a new ImageRef
-func LoadImageFromFile(file string, params *ImportParams) (*ImageRef, error) {
-	startupIfNeeded()
-
-	vipsImage, format, err := vipsImageFromFile(file, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, nil)
-	govipsLog("govips", LogLevelDebug, fmt.Sprintf("creating imageRef from file %s", file))
-	return ref, nil
-}
-
 // LoadImageFromBuffer loads an image buffer and creates a new Image
 func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
 	startupIfNeeded()
@@ -350,21 +335,6 @@ func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
 	ref := newImageRef(vipsImage, format, buf)
 
 	govipsLog("govips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
-	return ref, nil
-}
-
-// LoadThumbnailFromFile loads an image from file and creates a new ImageRef with thumbnail crop and size
-func LoadThumbnailFromFile(file string, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
-	startupIfNeeded()
-
-	vipsImage, format, err := vipsThumbnailFromFile(file, width, height, crop, size, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, nil)
-
-	govipsLog("govips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
 	return ref, nil
 }
 
@@ -1055,32 +1025,6 @@ func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageT
 		if isBMP(src) {
 			if src2, err2 := bmpToPNG(src); err2 == nil {
 				return vipsImageFromBuffer(src2, params)
-			}
-		}
-		return nil, ImageTypeUnknown, err
-	}
-
-	imageType := vipsDetermineImageTypeFromMetaLoader(out)
-	return out, imageType, nil
-}
-
-// https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-file
-func vipsImageFromFile(filename string, params *ImportParams) (*C.VipsImage, ImageType, error) {
-	var out *C.VipsImage
-	filenameOption := filename
-	if params != nil {
-		filenameOption += "[" + params.OptionString() + "]"
-	}
-	cFileName := C.CString(filenameOption)
-	defer freeCString(cFileName)
-
-	if code := C.image_new_from_file(cFileName, &out); code != 0 {
-		err := handleImageError(out)
-		if src, err2 := ioutil.ReadFile(filename); err2 == nil {
-			if isBMP(src) {
-				if src2, err3 := bmpToPNG(src); err3 == nil {
-					return vipsImageFromBuffer(src2, params)
-				}
 			}
 		}
 		return nil, ImageTypeUnknown, err

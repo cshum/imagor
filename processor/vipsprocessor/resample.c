@@ -1,11 +1,5 @@
 #include "resample.h"
 
-int thumbnail(const char *filename, VipsImage **out,
-                    int width, int height, int crop, int size) {
-  return vips_thumbnail(filename, out, width, "height", height,
-                              "crop", crop, "size", size, NULL);
-}
-
 int thumbnail_image(VipsImage *in, VipsImage **out, int width, int height,
                     int crop, int size) {
   return vips_thumbnail_image(in, out, width, "height", height, "crop", crop,

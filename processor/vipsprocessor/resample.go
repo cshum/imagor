@@ -3,7 +3,6 @@ package vipsprocessor
 // #include "resample.h"
 import "C"
 import (
-	"io/ioutil"
 	"runtime"
 	"unsafe"
 )
@@ -27,34 +26,6 @@ func vipsThumbnail(in *C.VipsImage, width, height int, crop Interesting, size Si
 	}
 
 	return out, nil
-}
-
-// https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail
-func vipsThumbnailFromFile(filename string, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {
-	var out *C.VipsImage
-
-	filenameOption := filename
-	if params != nil {
-		filenameOption += "[" + params.OptionString() + "]"
-	}
-
-	cFileName := C.CString(filenameOption)
-	defer freeCString(cFileName)
-
-	if err := C.thumbnail(cFileName, &out, C.int(width), C.int(height), C.int(crop), C.int(size)); err != 0 {
-		err := handleImageError(out)
-		if src, err2 := ioutil.ReadFile(filename); err2 == nil {
-			if isBMP(src) {
-				if src2, err3 := bmpToPNG(src); err3 == nil {
-					return vipsThumbnailFromBuffer(src2, width, height, crop, size, params)
-				}
-			}
-		}
-		return nil, ImageTypeUnknown, err
-	}
-
-	imageType := vipsDetermineImageTypeFromMetaLoader(out)
-	return out, imageType, nil
 }
 
 // https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail-buffer
