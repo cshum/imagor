@@ -22,10 +22,6 @@ int get_image_n_pages(VipsImage *in) {
   return n_pages;
 }
 
-void set_image_n_pages(VipsImage *in, int n_pages) {
-  vips_image_set_int(in, VIPS_META_N_PAGES, n_pages);
-}
-
 // https://www.libvips.org/API/current/libvips-header.html#vips-image-get-page-height
 int get_page_height(VipsImage *in) {
   int page_height = 0;

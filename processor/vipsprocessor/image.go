@@ -149,25 +149,6 @@ func boolToStr(v bool) string {
 	return "FALSE"
 }
 
-// ExportParams are options when exporting an image to file or buffer.
-// Deprecated: Use format-specific params
-type ExportParams struct {
-	Format             ImageType
-	Quality            int
-	Compression        int
-	Interlaced         bool
-	Lossless           bool
-	Effort             int
-	StripMetadata      bool
-	OptimizeCoding     bool          // jpeg param
-	SubsampleMode      SubsampleMode // jpeg param
-	TrellisQuant       bool          // jpeg param
-	OvershootDeringing bool          // jpeg param
-	OptimizeScans      bool          // jpeg param
-	QuantTable         int           // jpeg param
-	Speed              int           // avif param
-}
-
 // JpegExportParams are options when exporting a JPEG to file or buffer
 type JpegExportParams struct {
 	StripMetadata      bool
@@ -436,31 +417,6 @@ func (r *ImageRef) Orientation() int {
 	return vipsGetMetaOrientation(r.image)
 }
 
-// Deprecated: use Orientation() instead
-func (r *ImageRef) GetOrientation() int {
-	return r.Orientation()
-}
-
-// ResX returns the X resolution
-func (r *ImageRef) ResX() float64 {
-	return float64(r.image.Xres)
-}
-
-// ResY returns the Y resolution
-func (r *ImageRef) ResY() float64 {
-	return float64(r.image.Yres)
-}
-
-// OffsetX returns the X offset
-func (r *ImageRef) OffsetX() int {
-	return int(r.image.Xoffset)
-}
-
-// OffsetY returns the Y offset
-func (r *ImageRef) OffsetY() int {
-	return int(r.image.Yoffset)
-}
-
 // BandFormat returns the current band format
 func (r *ImageRef) BandFormat() BandFormat {
 	return BandFormat(int(r.image.BandFmt))
@@ -498,33 +454,8 @@ func (r *ImageRef) Pages() int {
 	return vipsGetImageNPages(r.image)
 }
 
-// Deprecated: use Pages() instead
-func (r *ImageRef) GetPages() int {
-	return r.Pages()
-}
-
-// SetPages sets the number of pages in the Image
-// For animated images this corresponds to the number of frames
-func (r *ImageRef) SetPages(pages int) error {
-	out, err := vipsCopyImage(r.image)
-	if err != nil {
-		return err
-	}
-
-	vipsSetImageNPages(r.image, pages)
-
-	r.setImage(out)
-	return nil
-}
-
 // PageHeight return the height of a single page
 func (r *ImageRef) PageHeight() int {
-	return vipsGetPageHeight(r.image)
-}
-
-// GetPageHeight return the height of a single page
-// Deprecated use PageHeight() instead
-func (r *ImageRef) GetPageHeight() int {
 	return vipsGetPageHeight(r.image)
 }
 

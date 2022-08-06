@@ -7,7 +7,6 @@ int remove_icc_profile(VipsImage *in);
 
 int get_meta_orientation(VipsImage *in);
 int get_image_n_pages(VipsImage *in);
-void set_image_n_pages(VipsImage *in, int n_pages);
 int get_page_height(VipsImage *in);
 void set_page_height(VipsImage *in, int height);
 int get_meta_loader(const VipsImage *in, const char **out);

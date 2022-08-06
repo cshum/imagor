@@ -19,10 +19,6 @@ func vipsGetImageNPages(in *C.VipsImage) int {
 	return int(C.get_image_n_pages(in))
 }
 
-func vipsSetImageNPages(in *C.VipsImage, pages int) {
-	C.set_image_n_pages(in, C.int(pages))
-}
-
 func vipsGetPageHeight(in *C.VipsImage) int {
 	return int(C.get_page_height(in))
 }
