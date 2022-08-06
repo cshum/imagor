@@ -8,20 +8,6 @@ import (
 	"unsafe"
 )
 
-// Kernel represents VipsKernel type
-type Kernel int
-
-// Kernel enum
-const (
-	KernelAuto     Kernel = -1
-	KernelNearest  Kernel = C.VIPS_KERNEL_NEAREST
-	KernelLinear   Kernel = C.VIPS_KERNEL_LINEAR
-	KernelCubic    Kernel = C.VIPS_KERNEL_CUBIC
-	KernelLanczos2 Kernel = C.VIPS_KERNEL_LANCZOS2
-	KernelLanczos3 Kernel = C.VIPS_KERNEL_LANCZOS3
-	KernelMitchell Kernel = C.VIPS_KERNEL_MITCHELL
-)
-
 // Size represents VipsSize type
 type Size int
 
