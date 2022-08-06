@@ -11,4 +11,4 @@ void set_image_n_pages(VipsImage *in, int n_pages);
 int get_page_height(VipsImage *in);
 void set_page_height(VipsImage *in, int height);
 int get_meta_loader(const VipsImage *in, const char **out);
-void set_image_delay(VipsImage *in, const int *array, int n)
+void set_image_delay(VipsImage *in, const int *array, int n);
