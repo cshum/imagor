@@ -935,17 +935,6 @@ func clearImage(ref *C.VipsImage) {
 	C.clear_image(&ref)
 }
 
-// Coding represents VIPS_CODING type
-type Coding int
-
-// Coding enum
-const (
-	CodingError Coding = C.VIPS_CODING_ERROR
-	CodingNone  Coding = C.VIPS_CODING_NONE
-	CodingLABQ  Coding = C.VIPS_CODING_LABQ
-	CodingRAD   Coding = C.VIPS_CODING_RAD
-)
-
 func (r *ImageRef) newMetadata(format ImageType) *ImageMetadata {
 	return &ImageMetadata{
 		Format:      format,

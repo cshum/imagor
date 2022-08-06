@@ -7,17 +7,6 @@ import (
 	"unsafe"
 )
 
-// Size represents VipsSize type
-type Size int
-
-const (
-	SizeBoth  Size = C.VIPS_SIZE_BOTH
-	SizeUp    Size = C.VIPS_SIZE_UP
-	SizeDown  Size = C.VIPS_SIZE_DOWN
-	SizeForce Size = C.VIPS_SIZE_FORCE
-	SizeLast  Size = C.VIPS_SIZE_LAST
-)
-
 func vipsThumbnail(in *C.VipsImage, width, height int, crop Interesting, size Size) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
