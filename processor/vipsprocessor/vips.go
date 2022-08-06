@@ -4,7 +4,6 @@ package vipsprocessor
 import "C"
 import (
 	"runtime"
-	"strings"
 	"unsafe"
 )
 
@@ -342,49 +341,4 @@ func vipsImageSetDelay(in *C.VipsImage, data []C.int) error {
 		C.set_image_delay(in, &data[0], C.int(n))
 	}
 	return nil
-}
-
-// vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
-func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
-	if in == nil {
-		return ImageTypeUnknown
-	}
-	vipsLoader, ok := vipsImageGetMetaLoader(in)
-	if vipsLoader == "" || !ok {
-		return ImageTypeUnknown
-	}
-	if strings.HasPrefix(vipsLoader, "jpeg") {
-		return ImageTypeJPEG
-	}
-	if strings.HasPrefix(vipsLoader, "png") {
-		return ImageTypePNG
-	}
-	if strings.HasPrefix(vipsLoader, "gif") {
-		return ImageTypeGIF
-	}
-	if strings.HasPrefix(vipsLoader, "svg") {
-		return ImageTypeSVG
-	}
-	if strings.HasPrefix(vipsLoader, "webp") {
-		return ImageTypeWEBP
-	}
-	if strings.HasPrefix(vipsLoader, "avif") {
-		return ImageTypeAVIF
-	}
-	if strings.HasPrefix(vipsLoader, "heif") {
-		return ImageTypeHEIF
-	}
-	if strings.HasPrefix(vipsLoader, "tiff") {
-		return ImageTypeTIFF
-	}
-	if strings.HasPrefix(vipsLoader, "pdf") {
-		return ImageTypePDF
-	}
-	if strings.HasPrefix(vipsLoader, "jp2k") {
-		return ImageTypeJP2K
-	}
-	if strings.HasPrefix(vipsLoader, "magick") {
-		return ImageTypeMagick
-	}
-	return ImageTypeUnknown
 }
