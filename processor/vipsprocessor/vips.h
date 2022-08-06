@@ -39,7 +39,6 @@ int rotate_image(VipsImage *in, VipsImage **out, VipsAngle angle);
 int rotate_image_multi_page(VipsImage *in, VipsImage **out, VipsAngle angle);
 int flatten_image(VipsImage *in, VipsImage **out, double r, double g, double b);
 int add_alpha(VipsImage *in, VipsImage **out);
-int cast(VipsImage *in, VipsImage **out, int bandFormat);
 double max_alpha(VipsImage *in);
 
 int composite2_image(VipsImage *base, VipsImage *overlay, VipsImage **out,

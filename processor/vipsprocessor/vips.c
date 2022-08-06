@@ -256,10 +256,6 @@ int add_alpha(VipsImage *in, VipsImage **out) {
   return vips_addalpha(in, out, NULL);
 }
 
-int cast(VipsImage *in, VipsImage **out, int bandFormat) {
-  return vips_cast(in, out, bandFormat, NULL);
-}
-
 double max_alpha(VipsImage *in) {
   switch (in->BandFmt) {
     case VIPS_FORMAT_USHORT:

@@ -370,7 +370,7 @@ func proportion(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...str
 }
 
 func grayscale(_ context.Context, img *ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
-	return img.Modulate(1, 0, 0)
+	return img.ToColorSpace(InterpretationBW)
 }
 
 func brightness(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {

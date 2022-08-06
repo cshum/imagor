@@ -586,16 +586,6 @@ func (r *ImageRef) AddAlpha() error {
 	return nil
 }
 
-// Cast converts the image to a target band format
-func (r *ImageRef) Cast(format BandFormat) error {
-	out, err := vipsCast(r.image, format)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-	return nil
-}
-
 // Linear passes an image through a linear transformation (i.e. output = input * a + b).
 // See https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
 func (r *ImageRef) Linear(a, b []float64) error {
