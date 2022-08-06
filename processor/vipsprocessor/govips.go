@@ -51,7 +51,6 @@ type Config struct {
 	MaxCacheSize     int
 	ReportLeaks      bool
 	CacheTrace       bool
-	CollectStats     bool
 }
 
 // Startup sets up the libvips support and ensures the versions are correct. Pass in nil for
@@ -101,9 +100,6 @@ func Startup(config *Config) {
 	running = true
 
 	if config != nil {
-		if config.CollectStats {
-			statCollectorDone = collectStats()
-		}
 
 		C.vips_leak_set(toGboolean(config.ReportLeaks))
 

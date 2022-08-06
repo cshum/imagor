@@ -2,9 +2,6 @@ package vipsprocessor
 
 // #include "color.h"
 import "C"
-import (
-	"unsafe"
-)
 
 // Color represents an RGB
 type Color struct {
@@ -61,37 +58,11 @@ func vipsIsColorSpaceSupported(in *C.VipsImage) bool {
 
 // https://libvips.github.io/libvips/API/current/libvips-colour.html#vips-colourspace
 func vipsToColorSpace(in *C.VipsImage, interpretation Interpretation) (*C.VipsImage, error) {
-	incOpCounter("to_colorspace")
 	var out *C.VipsImage
 
 	inter := C.VipsInterpretation(interpretation)
 
 	if err := C.to_colorspace(in, &out, inter); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
-func vipsICCTransform(in *C.VipsImage, outputProfile string, inputProfile string, intent Intent, depth int,
-	embedded bool) (*C.VipsImage, error) {
-	var out *C.VipsImage
-	var cInputProfile *C.char
-	var cEmbedded C.gboolean
-
-	cOutputProfile := C.CString(outputProfile)
-	defer C.free(unsafe.Pointer(cOutputProfile))
-
-	if inputProfile != "" {
-		cInputProfile = C.CString(inputProfile)
-		defer C.free(unsafe.Pointer(cInputProfile))
-	}
-
-	if embedded {
-		cEmbedded = C.TRUE
-	}
-
-	if res := C.icc_transform(in, &out, cOutputProfile, cInputProfile, C.VipsIntent(intent), C.int(depth), cEmbedded); res != 0 {
 		return nil, handleImageError(out)
 	}
 

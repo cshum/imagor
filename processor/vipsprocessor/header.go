@@ -106,7 +106,6 @@ func vipsImageGetMetaLoader(in *C.VipsImage) (string, bool) {
 }
 
 func vipsImageGetDelay(in *C.VipsImage, n int) ([]int, error) {
-	incOpCounter("imageGetDelay")
 	var out *C.int
 	defer gFreePointer(unsafe.Pointer(out))
 
@@ -117,7 +116,6 @@ func vipsImageGetDelay(in *C.VipsImage, n int) ([]int, error) {
 }
 
 func vipsImageSetDelay(in *C.VipsImage, data []C.int) error {
-	incOpCounter("imageSetDelay")
 	if n := len(data); n > 0 {
 		C.set_image_delay(in, &data[0], C.int(n))
 	}

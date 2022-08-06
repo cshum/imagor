@@ -332,7 +332,6 @@ func createImportParams(format ImageType, params *ImportParams) C.LoadParams {
 }
 
 func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, error) {
-	incOpCounter("save_jpeg_buffer")
 
 	p := C.create_save_params(C.JPEG)
 	p.inputImage = in
@@ -350,7 +349,6 @@ func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, err
 }
 
 func vipsSavePNGToBuffer(in *C.VipsImage, params PngExportParams) ([]byte, error) {
-	incOpCounter("save_png_buffer")
 
 	p := C.create_save_params(C.PNG)
 	p.inputImage = in
@@ -367,7 +365,6 @@ func vipsSavePNGToBuffer(in *C.VipsImage, params PngExportParams) ([]byte, error
 }
 
 func vipsSaveWebPToBuffer(in *C.VipsImage, params WebpExportParams) ([]byte, error) {
-	incOpCounter("save_webp_buffer")
 
 	p := C.create_save_params(C.WEBP)
 	p.inputImage = in
@@ -386,7 +383,6 @@ func vipsSaveWebPToBuffer(in *C.VipsImage, params WebpExportParams) ([]byte, err
 }
 
 func vipsSaveTIFFToBuffer(in *C.VipsImage, params TiffExportParams) ([]byte, error) {
-	incOpCounter("save_tiff_buffer")
 
 	p := C.create_save_params(C.TIFF)
 	p.inputImage = in
@@ -398,7 +394,6 @@ func vipsSaveTIFFToBuffer(in *C.VipsImage, params TiffExportParams) ([]byte, err
 }
 
 func vipsSaveHEIFToBuffer(in *C.VipsImage, params HeifExportParams) ([]byte, error) {
-	incOpCounter("save_heif_buffer")
 
 	p := C.create_save_params(C.HEIF)
 	p.inputImage = in
@@ -410,7 +405,6 @@ func vipsSaveHEIFToBuffer(in *C.VipsImage, params HeifExportParams) ([]byte, err
 }
 
 func vipsSaveAVIFToBuffer(in *C.VipsImage, params AvifExportParams) ([]byte, error) {
-	incOpCounter("save_heif_buffer")
 
 	p := C.create_save_params(C.AVIF)
 	p.inputImage = in
@@ -423,7 +417,6 @@ func vipsSaveAVIFToBuffer(in *C.VipsImage, params AvifExportParams) ([]byte, err
 }
 
 func vipsSaveJP2KToBuffer(in *C.VipsImage, params Jp2kExportParams) ([]byte, error) {
-	incOpCounter("save_jp2k_buffer")
 
 	p := C.create_save_params(C.JP2K)
 	p.inputImage = in
@@ -438,7 +431,6 @@ func vipsSaveJP2KToBuffer(in *C.VipsImage, params Jp2kExportParams) ([]byte, err
 }
 
 func vipsSaveGIFToBuffer(in *C.VipsImage, params GifExportParams) ([]byte, error) {
-	incOpCounter("save_gif_buffer")
 
 	p := C.create_save_params(C.GIF)
 	p.inputImage = in
