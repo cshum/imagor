@@ -32,10 +32,7 @@ const (
 )
 
 var (
-	running             = false
-	hasShutdown         = false
 	initLock            sync.Mutex
-	once                sync.Once
 	supportedImageTypes = make(map[ImageType]bool)
 )
 
@@ -54,17 +51,8 @@ func startup(config *config) {
 	initLock.Lock()
 	defer initLock.Unlock()
 
-	if hasShutdown {
-		panic("govips cannot be stopped and restarted")
-	}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-
-	if running {
-		govipsLog("govips", LogLevelInfo, "warning libvips already started")
-		return
-	}
 
 	if C.VIPS_MAJOR_VERSION < 8 {
 		panic("govips requires libvips version 8.10+")
@@ -84,8 +72,6 @@ func startup(config *config) {
 	if err != 0 {
 		panic(fmt.Sprintf("Failed to start vips code=%v", err))
 	}
-
-	running = true
 
 	if config != nil {
 
@@ -132,7 +118,22 @@ func startup(config *config) {
 		int(C.vips_cache_get_max_mem()),
 		int(C.vips_cache_get_max())))
 
-	initTypes()
+	cType := C.CString("VipsOperation")
+	defer freeCString(cType)
+
+	for k, v := range ImageTypes {
+		cFunc := C.CString(v + "load")
+		//noinspection GoDeferInLoop
+		defer freeCString(cFunc)
+
+		ret := C.vips_type_find(cType, cFunc)
+
+		supportedImageTypes[k] = int(ret) != 0
+
+		if supportedImageTypes[k] {
+			govipsLog("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
+		}
+	}
 }
 
 func enableLogging() {
@@ -147,19 +148,11 @@ func shutdown() {
 	initLock.Lock()
 	defer initLock.Unlock()
 
-	hasShutdown = true
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if !running {
-		govipsLog("govips", LogLevelInfo, "warning libvips not started")
-		return
-	}
-
 	C.vips_shutdown()
 	disableLogging()
-	running = false
 }
 
 // MemoryStats is a data structure that houses various memory statistics from ReadVipsMemStats()
@@ -176,28 +169,6 @@ func ReadVipsMemStats(stats *MemoryStats) {
 	stats.MemHigh = int64(C.vips_tracked_get_mem_highwater())
 	stats.Allocs = int64(C.vips_tracked_get_allocs())
 	stats.Files = int64(C.vips_tracked_get_files())
-}
-
-// InitTypes initializes caches and figures out which image types are supported
-func initTypes() {
-	once.Do(func() {
-		cType := C.CString("VipsOperation")
-		defer freeCString(cType)
-
-		for k, v := range ImageTypes {
-			cFunc := C.CString(v + "load")
-			//noinspection GoDeferInLoop
-			defer freeCString(cFunc)
-
-			ret := C.vips_type_find(cType, cFunc)
-
-			supportedImageTypes[k] = int(ret) != 0
-
-			if supportedImageTypes[k] {
-				govipsLog("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
-			}
-		}
-	})
 }
 
 func handleImageError(out *C.VipsImage) error {
