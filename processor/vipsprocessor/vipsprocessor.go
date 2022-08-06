@@ -107,7 +107,7 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 			v.Logger.Error(domain, zap.String("log", msg))
 		}, LogLevelError)
 	}
-	Startup(&Config{
+	startup(&config{
 		MaxCacheFiles:    v.MaxCacheFiles,
 		MaxCacheMem:      v.MaxCacheMem,
 		MaxCacheSize:     v.MaxCacheSize,
@@ -124,7 +124,7 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 	}
 	cnt--
 	if cnt == 0 {
-		Shutdown()
+		shutdown()
 	}
 	return nil
 }

@@ -227,16 +227,17 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 		resultDir,
 		filestorage.WithSaveErrIfExists(true),
 	)
+	processor := New(opts...)
 	app := imagor.New(
 		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
-		imagor.WithProcessors(New(opts...)),
+		imagor.WithProcessors(processor),
 	)
-	require.NoError(t, app.Startup(context.Background()))
+	require.NoError(t, processor.Startup(context.Background()))
 	t.Cleanup(func() {
-		assert.NoError(t, app.Shutdown(context.Background()))
+		assert.NoError(t, processor.Shutdown(context.Background()))
 	})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -41,8 +41,7 @@ var (
 	supportedImageTypes = make(map[ImageType]bool)
 )
 
-// Config allows fine-tuning of libvips library
-type Config struct {
+type config struct {
 	ConcurrencyLevel int
 	MaxCacheFiles    int
 	MaxCacheMem      int
@@ -53,7 +52,7 @@ type Config struct {
 
 // Startup sets up the libvips support and ensures the versions are correct. Pass in nil for
 // default configuration.
-func Startup(config *Config) {
+func startup(config *config) {
 	if hasShutdown {
 		panic("govips cannot be stopped and restarted")
 	}
@@ -151,15 +150,7 @@ func disableLogging() {
 	C.vips_unset_logging_handler()
 }
 
-// consoleLogging overrides the Govips logging handler and makes glib
-// use its default logging handler which outputs everything to console.
-// Needed for CI unit testing due to a macOS bug in Go (doesn't clean cgo callbacks on exit)
-func consoleLogging() {
-	C.vips_default_logging_handler()
-}
-
-// Shutdown libvips
-func Shutdown() {
+func shutdown() {
 	hasShutdown = true
 
 	if statCollectorDone != nil {
@@ -182,17 +173,6 @@ func Shutdown() {
 	running = false
 }
 
-// ShutdownThread clears the cache for for the given thread. This needs to be
-// called when a thread using vips exits.
-func ShutdownThread() {
-	C.vips_thread_shutdown()
-}
-
-// ClearCache drops the whole operation cache, handy for leak tracking.
-func ClearCache() {
-	C.vips_cache_drop_all()
-}
-
 // MemoryStats is a data structure that houses various memory statistics from ReadVipsMemStats()
 type MemoryStats struct {
 	Mem     int64
@@ -211,8 +191,8 @@ func ReadVipsMemStats(stats *MemoryStats) {
 
 func startupIfNeeded() {
 	if !running {
-		govipsLog("govips", LogLevelInfo, "libvips was forcibly started automatically, consider calling Startup/Shutdown yourself")
-		Startup(nil)
+		govipsLog("govips", LogLevelInfo, "libvips was forcibly started automatically, consider calling Startup/shutdown yourself")
+		startup(nil)
 	}
 }
 
