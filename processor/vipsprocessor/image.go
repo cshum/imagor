@@ -320,11 +320,6 @@ func NewJp2kExportParams() *Jp2kExportParams {
 	}
 }
 
-// NewImageFromFile loads an image from file and creates a new ImageRef
-func NewImageFromFile(file string) (*ImageRef, error) {
-	return LoadImageFromFile(file, nil)
-}
-
 // LoadImageFromFile loads an image from file and creates a new ImageRef
 func LoadImageFromFile(file string, params *ImportParams) (*ImageRef, error) {
 	startupIfNeeded()
@@ -337,11 +332,6 @@ func LoadImageFromFile(file string, params *ImportParams) (*ImageRef, error) {
 	ref := newImageRef(vipsImage, format, nil)
 	govipsLog("govips", LogLevelDebug, fmt.Sprintf("creating imageRef from file %s", file))
 	return ref, nil
-}
-
-// NewImageFromBuffer loads an image buffer and creates a new Image
-func NewImageFromBuffer(buf []byte) (*ImageRef, error) {
-	return LoadImageFromBuffer(buf, nil)
 }
 
 // LoadImageFromBuffer loads an image buffer and creates a new Image
@@ -363,21 +353,6 @@ func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
 	return ref, nil
 }
 
-// NewThumbnailFromFile loads an image from file and creates a new ImageRef with thumbnail crop
-func NewThumbnailFromFile(file string, width, height int, crop Interesting) (*ImageRef, error) {
-	return LoadThumbnailFromFile(file, width, height, crop, SizeBoth, nil)
-}
-
-// NewThumbnailFromBuffer loads an image buffer and creates a new Image with thumbnail crop
-func NewThumbnailFromBuffer(buf []byte, width, height int, crop Interesting) (*ImageRef, error) {
-	return LoadThumbnailFromBuffer(buf, width, height, crop, SizeBoth, nil)
-}
-
-// NewThumbnailWithSizeFromFile loads an image from file and creates a new ImageRef with thumbnail crop and size
-func NewThumbnailWithSizeFromFile(file string, width, height int, crop Interesting, size Size) (*ImageRef, error) {
-	return LoadThumbnailFromFile(file, width, height, crop, size, nil)
-}
-
 // LoadThumbnailFromFile loads an image from file and creates a new ImageRef with thumbnail crop and size
 func LoadThumbnailFromFile(file string, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
 	startupIfNeeded()
@@ -391,11 +366,6 @@ func LoadThumbnailFromFile(file string, width, height int, crop Interesting, siz
 
 	govipsLog("govips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
 	return ref, nil
-}
-
-// NewThumbnailWithSizeFromBuffer loads an image buffer and creates a new Image with thumbnail crop and size
-func NewThumbnailWithSizeFromBuffer(buf []byte, width, height int, crop Interesting, size Size) (*ImageRef, error) {
-	return LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
 }
 
 // LoadThumbnailFromBuffer loads an image buffer and creates a new Image with thumbnail crop and size

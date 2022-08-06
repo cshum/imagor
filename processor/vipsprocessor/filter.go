@@ -265,13 +265,13 @@ func roundCorner(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...
 	var rounded *ImageRef
 	var w = img.Width()
 	var h = img.PageHeight()
-	if rounded, err = NewThumbnailFromBuffer([]byte(fmt.Sprintf(`
+	if rounded, err = LoadImageFromBuffer([]byte(fmt.Sprintf(`
 		<svg viewBox="0 0 %d %d">
 			<rect rx="%d" ry="%d" 
 			 x="0" y="0" width="%d" height="%d" 
 			 fill="#fff"/>
 		</svg>
-	`, w, h, rx, ry, w, h)), w, h, InterestingNone); err != nil {
+	`, w, h, rx, ry, w, h)), nil); err != nil {
 		return
 	}
 	AddImageRef(ctx, rounded)

@@ -60,7 +60,7 @@ func (v *VipsProcessor) newThumbnail(
 func (v *VipsProcessor) newThumbnailPNG(
 	buf []byte, width, height int, crop Interesting, size Size,
 ) (img *ImageRef, err error) {
-	if img, err = v.checkResolution(NewImageFromBuffer(buf)); err != nil {
+	if img, err = v.checkResolution(LoadImageFromBuffer(buf, nil)); err != nil {
 		return
 	}
 	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
