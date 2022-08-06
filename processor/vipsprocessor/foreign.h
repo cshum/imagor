@@ -28,49 +28,6 @@ typedef enum types {
   JP2K
 } ImageType;
 
-typedef enum ParamType {
-  PARAM_TYPE_NULL,
-  PARAM_TYPE_BOOL,
-  PARAM_TYPE_INT,
-  PARAM_TYPE_DOUBLE,
-} ParamType;
-
-typedef struct Param {
-  ParamType type;
-
-  union Value {
-    gboolean b;
-    gint i;
-    gdouble d;
-  } value;
-
-  gboolean is_set;
-
-} Param;
-
-void set_bool_param(Param *p, gboolean b);
-void set_int_param(Param *p, gint i);
-void set_double_param(Param *p, gdouble d);
-
-typedef struct LoadParams {
-  ImageType inputFormat;
-  VipsBlob *inputBlob;
-  VipsImage *outputImage;
-
-  Param autorotate;
-  Param fail;
-  Param page;
-  Param n;
-  Param dpi;
-  Param jpegShrink;
-  Param heifThumbnail;
-  Param svgUnlimited;
-
-} LoadParams;
-
-LoadParams create_load_params(ImageType inputFormat);
-int load_from_buffer(LoadParams *params, void *buf, size_t len);
-
 typedef struct SaveParams {
   VipsImage *inputImage;
   void *outputBuffer;

@@ -94,18 +94,17 @@ func vipsThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, si
 	defer runtime.KeepAlive(src)
 
 	var out *C.VipsImage
-
-	var err C.int
+	var code C.int
 
 	if params == nil {
-		err = C.thumbnail_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size))
+		code = C.thumbnail_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size))
 	} else {
 		cOptionString := C.CString(params.OptionString())
 		defer freeCString(cOptionString)
 
-		err = C.thumbnail_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size), cOptionString)
+		code = C.thumbnail_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size), cOptionString)
 	}
-	if err != 0 {
+	if code != 0 {
 		err := handleImageError(out)
 		if isBMP(src) {
 			if src2, err2 := bmpToPNG(src); err2 == nil {

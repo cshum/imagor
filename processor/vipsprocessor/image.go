@@ -363,7 +363,7 @@ func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
 		params = NewImportParams()
 	}
 
-	vipsImage, format, err := vipsLoadFromBuffer(buf, params)
+	vipsImage, format, err := vipsImageFromBuffer(buf, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1386,6 +1386,36 @@ func (r *ImageRef) setImage(image *C.VipsImage) {
 	r.image = image
 }
 
+func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageType, error) {
+	src := buf
+	// Reference src here so it's not garbage collected during image initialization.
+	defer runtime.KeepAlive(src)
+
+	var out *C.VipsImage
+	var code C.int
+
+	if params == nil {
+		code = C.image_new_from_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out)
+	} else {
+		cOptionString := C.CString(params.OptionString())
+		defer freeCString(cOptionString)
+
+		code = C.image_new_from_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, cOptionString)
+	}
+	if code != 0 {
+		err := handleImageError(out)
+		if isBMP(src) {
+			if src2, err2 := bmpToPNG(src); err2 == nil {
+				return vipsImageFromBuffer(src2, params)
+			}
+		}
+		return nil, ImageTypeUnknown, err
+	}
+
+	imageType := vipsDetermineImageTypeFromMetaLoader(out)
+	return out, imageType, nil
+}
+
 // https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-file
 func vipsImageFromFile(filename string, params *ImportParams) (*C.VipsImage, ImageType, error) {
 	var out *C.VipsImage
@@ -1401,7 +1431,7 @@ func vipsImageFromFile(filename string, params *ImportParams) (*C.VipsImage, Ima
 		if src, err2 := ioutil.ReadFile(filename); err2 == nil {
 			if isBMP(src) {
 				if src2, err3 := bmpToPNG(src); err3 == nil {
-					return vipsLoadFromBuffer(src2, params)
+					return vipsImageFromBuffer(src2, params)
 				}
 			}
 		}

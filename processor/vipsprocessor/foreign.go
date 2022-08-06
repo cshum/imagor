@@ -4,15 +4,10 @@ package vipsprocessor
 import "C"
 import (
 	"bytes"
-	"encoding/xml"
-	"fmt"
 	"image/png"
-	"math"
-	"runtime"
 	"unsafe"
 
 	"golang.org/x/image/bmp"
-	"golang.org/x/net/html/charset"
 )
 
 // SubsampleMode correlates to a libvips subsample mode
@@ -116,172 +111,10 @@ const (
 	PngFilterAll   PngFilter = C.VIPS_FOREIGN_PNG_FILTER_ALL
 )
 
-// FileExt returns the canonical extension for the ImageType
-func (i ImageType) FileExt() string {
-	if ext, ok := imageTypeExtensionMap[i]; ok {
-		return ext
-	}
-	return ""
-}
-
-// IsTypeSupported checks whether given image type is supported by govips
-func IsTypeSupported(imageType ImageType) bool {
-	startupIfNeeded()
-
-	return supportedImageTypes[imageType]
-}
-
-// DetermineImageType attempts to determine the image type of the given buffer
-func DetermineImageType(buf []byte) ImageType {
-	if len(buf) < 12 {
-		return ImageTypeUnknown
-	} else if isJPEG(buf) {
-		return ImageTypeJPEG
-	} else if isPNG(buf) {
-		return ImageTypePNG
-	} else if isGIF(buf) {
-		return ImageTypeGIF
-	} else if isTIFF(buf) {
-		return ImageTypeTIFF
-	} else if isWEBP(buf) {
-		return ImageTypeWEBP
-	} else if isAVIF(buf) {
-		return ImageTypeAVIF
-	} else if isHEIF(buf) {
-		return ImageTypeHEIF
-	} else if isSVG(buf) {
-		return ImageTypeSVG
-	} else if isPDF(buf) {
-		return ImageTypePDF
-	} else if isBMP(buf) {
-		return ImageTypeBMP
-	} else if isJP2K(buf) {
-		return ImageTypeJP2K
-	} else {
-		return ImageTypeUnknown
-	}
-}
-
-var jpeg = []byte("\xFF\xD8\xFF")
-
-func isJPEG(buf []byte) bool {
-	return bytes.HasPrefix(buf, jpeg)
-}
-
-var gifHeader = []byte("\x47\x49\x46")
-
-func isGIF(buf []byte) bool {
-	return bytes.HasPrefix(buf, gifHeader)
-}
-
-var pngHeader = []byte("\x89\x50\x4E\x47")
-
-func isPNG(buf []byte) bool {
-	return bytes.HasPrefix(buf, pngHeader)
-}
-
-var tifII = []byte("\x49\x49\x2A\x00")
-var tifMM = []byte("\x4D\x4D\x00\x2A")
-
-func isTIFF(buf []byte) bool {
-	return bytes.HasPrefix(buf, tifII) || bytes.HasPrefix(buf, tifMM)
-}
-
-var webpHeader = []byte("\x57\x45\x42\x50")
-
-func isWEBP(buf []byte) bool {
-	return bytes.Equal(buf[8:12], webpHeader)
-}
-
-// https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
-var ftyp = []byte("ftyp")
-var heic = []byte("heic")
-var mif1 = []byte("mif1")
-var msf1 = []byte("msf1")
-var avif = []byte("avif")
-
-func isHEIF(buf []byte) bool {
-	return bytes.Equal(buf[4:8], ftyp) && (bytes.Equal(buf[8:12], heic) ||
-		bytes.Equal(buf[8:12], mif1) ||
-		bytes.Equal(buf[8:12], msf1)) ||
-		isAVIF(buf)
-}
-
-func isAVIF(buf []byte) bool {
-	return bytes.Equal(buf[4:8], ftyp) && bytes.Equal(buf[8:12], avif)
-}
-
-var svg = []byte("<svg")
-
-func isSVG(buf []byte) bool {
-	sub := buf[:int(math.Min(1024.0, float64(len(buf))))]
-	if bytes.Contains(sub, svg) {
-		data := &struct {
-			XMLName xml.Name `xml:"svg"`
-		}{}
-		reader := bytes.NewReader(buf)
-		decoder := xml.NewDecoder(reader)
-		decoder.Strict = false
-		decoder.CharsetReader = charset.NewReaderLabel
-
-		err := decoder.Decode(data)
-
-		return err == nil && data.XMLName.Local == "svg"
-	}
-
-	return false
-}
-
-var pdf = []byte("\x25\x50\x44\x46")
-
-func isPDF(buf []byte) bool {
-	return bytes.HasPrefix(buf, pdf)
-}
-
 var bmpHeader = []byte("BM")
 
 func isBMP(buf []byte) bool {
-	return bytes.HasPrefix(buf, bmpHeader)
-}
-
-//X'0000 000C 6A50 2020 0D0A 870A'
-var jp2kHeader = []byte("\x00\x00\x00\x0C\x6A\x50\x20\x20\x0D\x0A\x87\x0A")
-
-// https://datatracker.ietf.org/doc/html/rfc3745
-func isJP2K(buf []byte) bool {
-	return bytes.HasPrefix(buf, jp2kHeader)
-}
-
-func vipsLoadFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageType, error) {
-	src := buf
-	// Reference src here so it's not garbage collected during image initialization.
-	defer runtime.KeepAlive(src)
-
-	var err error
-
-	imageType := DetermineImageType(src)
-
-	if imageType == ImageTypeBMP {
-		src, err = bmpToPNG(src)
-		if err != nil {
-			return nil, ImageTypeUnknown, err
-		}
-
-		imageType = ImageTypePNG
-	}
-
-	if !IsTypeSupported(imageType) {
-		govipsLog("govips", LogLevelInfo, fmt.Sprintf("failed to understand image format size=%d", len(src)))
-		return nil, ImageTypeUnknown, ErrUnsupportedImageFormat
-	}
-
-	importParams := createImportParams(imageType, params)
-
-	if err := C.load_from_buffer(&importParams, unsafe.Pointer(&src[0]), C.size_t(len(src))); err != 0 {
-		return nil, ImageTypeUnknown, handleImageError(importParams.outputImage)
-	}
-
-	return importParams.outputImage, imageType, nil
+	return bytes.Equal(buf[:2], bmpHeader)
 }
 
 func bmpToPNG(src []byte) ([]byte, error) {
@@ -300,35 +133,6 @@ func bmpToPNG(src []byte) ([]byte, error) {
 	}
 
 	return w.Bytes(), nil
-}
-
-func maybeSetBoolParam(p BoolParameter, cp *C.Param) {
-	if p.IsSet() {
-		C.set_bool_param(cp, toGboolean(p.Get()))
-	}
-}
-
-func maybeSetIntParam(p IntParameter, cp *C.Param) {
-	if p.IsSet() {
-		C.set_int_param(cp, C.int(p.Get()))
-	}
-}
-
-func createImportParams(format ImageType, params *ImportParams) C.LoadParams {
-	p := C.create_load_params(C.ImageType(format))
-
-	maybeSetBoolParam(params.AutoRotate, &p.autorotate)
-	maybeSetBoolParam(params.FailOnError, &p.fail)
-	maybeSetIntParam(params.Page, &p.page)
-	maybeSetIntParam(params.NumPages, &p.n)
-	maybeSetIntParam(params.JpegShrinkFactor, &p.jpegShrink)
-	maybeSetBoolParam(params.HeifThumbnail, &p.heifThumbnail)
-	maybeSetBoolParam(params.SvgUnlimited, &p.svgUnlimited)
-
-	if params.Density.IsSet() {
-		C.set_double_param(&p.dpi, C.gdouble(params.Density.Get()))
-	}
-	return p
 }
 
 func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, error) {
