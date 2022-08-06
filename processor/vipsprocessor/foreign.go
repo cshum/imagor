@@ -41,21 +41,6 @@ const (
 	ImageTypeJP2K    ImageType = C.JP2K
 )
 
-var imageTypeExtensionMap = map[ImageType]string{
-	ImageTypeGIF:    ".gif",
-	ImageTypeJPEG:   ".jpeg",
-	ImageTypeMagick: ".magick",
-	ImageTypePDF:    ".pdf",
-	ImageTypePNG:    ".png",
-	ImageTypeSVG:    ".svg",
-	ImageTypeTIFF:   ".tiff",
-	ImageTypeWEBP:   ".webp",
-	ImageTypeHEIF:   ".heic",
-	ImageTypeBMP:    ".bmp",
-	ImageTypeAVIF:   ".avif",
-	ImageTypeJP2K:   ".jp2",
-}
-
 // ImageTypes defines the various image types supported by govips
 var ImageTypes = map[ImageType]string{
 	ImageTypeGIF:    "gif",

@@ -1,4 +1,3 @@
-// Package vips provides go bindings for libvips, a fast image processing library.
 package vipsprocessor
 
 // #cgo pkg-config: vips
@@ -7,7 +6,6 @@ package vipsprocessor
 import "C"
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -95,8 +93,6 @@ func Startup(config *Config) {
 		panic(fmt.Sprintf("Failed to start vips code=%v", err))
 	}
 
-	initializeICCProfiles()
-
 	running = true
 
 	if config != nil {
@@ -181,8 +177,6 @@ func Shutdown() {
 		return
 	}
 
-	os.RemoveAll(temporaryDirectory)
-
 	C.vips_shutdown()
 	disableLogging()
 	running = false
@@ -197,18 +191,6 @@ func ShutdownThread() {
 // ClearCache drops the whole operation cache, handy for leak tracking.
 func ClearCache() {
 	C.vips_cache_drop_all()
-}
-
-// PrintCache prints the whole operation cache to stdout for debugging purposes.
-func PrintCache() {
-	C.vips_cache_print()
-}
-
-// PrintObjectReport outputs all of the current internal objects in libvips
-func PrintObjectReport(label string) {
-	govipsLog("govips", LogLevelInfo, fmt.Sprintf("\n=======================================\nvips live objects: %s...\n", label))
-	C.vips_object_print_all()
-	govipsLog("govips", LogLevelInfo, "=======================================\n\n")
 }
 
 // MemoryStats is a data structure that houses various memory statistics from ReadVipsMemStats()

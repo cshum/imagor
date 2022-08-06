@@ -6,7 +6,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"runtime"
 	"strconv"
@@ -319,16 +318,6 @@ func NewJp2kExportParams() *Jp2kExportParams {
 		TileWidth:  512,
 		TileHeight: 512,
 	}
-}
-
-// NewImageFromReader loads an ImageRef from the given reader
-func NewImageFromReader(r io.Reader) (*ImageRef, error) {
-	buf, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewImageFromBuffer(buf)
 }
 
 // NewImageFromFile loads an image from file and creates a new ImageRef

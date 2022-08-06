@@ -7,16 +7,8 @@ import (
 	"unsafe"
 )
 
-func vipsHasICCProfile(in *C.VipsImage) bool {
-	return int(C.has_icc_profile(in)) != 0
-}
-
 func vipsRemoveICCProfile(in *C.VipsImage) bool {
 	return fromGboolean(C.remove_icc_profile(in))
-}
-
-func vipsHasIPTC(in *C.VipsImage) bool {
-	return int(C.has_iptc(in)) != 0
 }
 
 func vipsImageGetFields(in *C.VipsImage) (fields []string) {
