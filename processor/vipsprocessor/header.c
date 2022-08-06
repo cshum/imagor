@@ -15,10 +15,6 @@ int get_meta_orientation(VipsImage *in) {
   return orientation;
 }
 
-void set_meta_orientation(VipsImage *in, int orientation) {
-  vips_image_set_int(in, VIPS_META_ORIENTATION, orientation);
-}
-
 // https://libvips.github.io/libvips/API/current/libvips-header.html#vips-image-get-n-pages
 int get_image_n_pages(VipsImage *in) {
   int n_pages = 0;
@@ -43,10 +39,6 @@ void set_page_height(VipsImage *in, int height) {
 
 int get_meta_loader(const VipsImage *in, const char **out) {
   return vips_image_get_string(in, VIPS_META_LOADER, out);
-}
-
-int get_image_delay(VipsImage *in, int **out) {
-  return vips_image_get_array_int(in, "delay", out, NULL);
 }
 
 void set_image_delay(VipsImage *in, const int *array, int n) {

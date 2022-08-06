@@ -441,19 +441,6 @@ func (r *ImageRef) GetOrientation() int {
 	return r.Orientation()
 }
 
-// SetOrientation sets the orientation in the EXIF header of the associated image.
-func (r *ImageRef) SetOrientation(orientation int) error {
-	out, err := vipsCopyImage(r.image)
-	if err != nil {
-		return err
-	}
-
-	vipsSetMetaOrientation(out, orientation)
-
-	r.setImage(out)
-	return nil
-}
-
 // ResX returns the X resolution
 func (r *ImageRef) ResX() float64 {
 	return float64(r.image.Xres)
@@ -553,16 +540,6 @@ func (r *ImageRef) SetPageHeight(height int) error {
 
 	r.setImage(out)
 	return nil
-}
-
-// PageDelay get the page delay array for animation
-func (r *ImageRef) PageDelay() ([]int, error) {
-	n := vipsGetImageNPages(r.image)
-	if n <= 1 {
-		// should not call if not multi page
-		return nil, nil
-	}
-	return vipsImageGetDelay(r.image, n)
 }
 
 // SetPageDelay set the page delay array for animation

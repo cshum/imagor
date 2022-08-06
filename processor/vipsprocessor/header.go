@@ -15,10 +15,6 @@ func vipsGetMetaOrientation(in *C.VipsImage) int {
 	return int(C.get_meta_orientation(in))
 }
 
-func vipsSetMetaOrientation(in *C.VipsImage, orientation int) {
-	C.set_meta_orientation(in, C.int(orientation))
-}
-
 func vipsGetImageNPages(in *C.VipsImage) int {
 	return int(C.get_image_n_pages(in))
 }
@@ -40,16 +36,6 @@ func vipsImageGetMetaLoader(in *C.VipsImage) (string, bool) {
 	defer gFreePointer(unsafe.Pointer(out))
 	code := int(C.get_meta_loader(in, &out))
 	return C.GoString(out), code == 0
-}
-
-func vipsImageGetDelay(in *C.VipsImage, n int) ([]int, error) {
-	var out *C.int
-	defer gFreePointer(unsafe.Pointer(out))
-
-	if err := C.get_image_delay(in, &out); err != 0 {
-		return nil, handleVipsError()
-	}
-	return fromCArrayInt(out, n), nil
 }
 
 func vipsImageSetDelay(in *C.VipsImage, data []C.int) error {

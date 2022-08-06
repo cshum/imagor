@@ -5,20 +5,11 @@ import "C"
 
 import (
 	"fmt"
-	"unsafe"
 )
 
 func handleImageError(out *C.VipsImage) error {
 	if out != nil {
 		clearImage(out)
-	}
-
-	return handleVipsError()
-}
-
-func handleSaveBufferError(out unsafe.Pointer) error {
-	if out != nil {
-		gFreePointer(out)
 	}
 
 	return handleVipsError()

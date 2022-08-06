@@ -197,7 +197,10 @@ func vipsSaveGIFToBuffer(in *C.VipsImage, params GifExportParams) ([]byte, error
 
 func vipsSaveToBuffer(params C.struct_SaveParams) ([]byte, error) {
 	if err := C.save_to_buffer(&params); err != 0 {
-		return nil, handleSaveBufferError(params.outputBuffer)
+		if params.outputBuffer != nil {
+			gFreePointer(params.outputBuffer)
+		}
+		return nil, handleVipsError()
 	}
 
 	buf := C.GoBytes(params.outputBuffer, C.int(params.outputLen))
