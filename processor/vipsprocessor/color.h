@@ -3,5 +3,4 @@
 #include <stdlib.h>
 #include <vips/vips.h>
 
-int is_colorspace_supported(VipsImage *in);
 int to_colorspace(VipsImage *in, VipsImage **out, VipsInterpretation space);

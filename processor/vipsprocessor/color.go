@@ -52,10 +52,6 @@ const (
 	IntentLast       Intent = C.VIPS_INTENT_LAST
 )
 
-func vipsIsColorSpaceSupported(in *C.VipsImage) bool {
-	return C.is_colorspace_supported(in) == 1
-}
-
 // https://libvips.github.io/libvips/API/current/libvips-colour.html#vips-colourspace
 func vipsToColorSpace(in *C.VipsImage, interpretation Interpretation) (*C.VipsImage, error) {
 	var out *C.VipsImage

@@ -437,11 +437,6 @@ func (r *ImageRef) ColorSpace() Interpretation {
 	return r.Interpretation()
 }
 
-// IsColorSpaceSupported returns a boolean whether the image's color space is supported by libvips.
-func (r *ImageRef) IsColorSpaceSupported() bool {
-	return vipsIsColorSpaceSupported(r.image)
-}
-
 // Pages returns the number of pages in the Image
 // For animated images this corresponds to the number of frames
 func (r *ImageRef) Pages() int {
