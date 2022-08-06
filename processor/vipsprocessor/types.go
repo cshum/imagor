@@ -52,24 +52,6 @@ const (
 	IntentLast       Intent = C.VIPS_INTENT_LAST
 )
 
-// BandFormat represents VIPS_FORMAT type
-type BandFormat int
-
-// BandFormat enum
-const (
-	BandFormatNotSet    BandFormat = C.VIPS_FORMAT_NOTSET
-	BandFormatUchar     BandFormat = C.VIPS_FORMAT_UCHAR
-	BandFormatChar      BandFormat = C.VIPS_FORMAT_CHAR
-	BandFormatUshort    BandFormat = C.VIPS_FORMAT_USHORT
-	BandFormatShort     BandFormat = C.VIPS_FORMAT_SHORT
-	BandFormatUint      BandFormat = C.VIPS_FORMAT_UINT
-	BandFormatInt       BandFormat = C.VIPS_FORMAT_INT
-	BandFormatFloat     BandFormat = C.VIPS_FORMAT_FLOAT
-	BandFormatComplex   BandFormat = C.VIPS_FORMAT_COMPLEX
-	BandFormatDouble    BandFormat = C.VIPS_FORMAT_DOUBLE
-	BandFormatDpComplex BandFormat = C.VIPS_FORMAT_DPCOMPLEX
-)
-
 // BlendMode gives the various Porter-Duff and PDF blend modes.
 // See https://libvips.github.io/libvips/API/current/libvips-conversion.html#VipsBlendMode
 type BlendMode int
@@ -227,15 +209,4 @@ const (
 	SizeDown  Size = C.VIPS_SIZE_DOWN
 	SizeForce Size = C.VIPS_SIZE_FORCE
 	SizeLast  Size = C.VIPS_SIZE_LAST
-)
-
-// Coding represents VIPS_CODING type
-type Coding int
-
-// Coding enum
-const (
-	CodingError Coding = C.VIPS_CODING_ERROR
-	CodingNone  Coding = C.VIPS_CODING_NONE
-	CodingLABQ  Coding = C.VIPS_CODING_LABQ
-	CodingRAD   Coding = C.VIPS_CODING_RAD
 )

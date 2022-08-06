@@ -387,16 +387,6 @@ func (r *ImageRef) Orientation() int {
 	return vipsGetMetaOrientation(r.image)
 }
 
-// BandFormat returns the current band format
-func (r *ImageRef) BandFormat() BandFormat {
-	return BandFormat(int(r.image.BandFmt))
-}
-
-// Coding returns the image coding
-func (r *ImageRef) Coding() Coding {
-	return Coding(int(r.image.Coding))
-}
-
 // Interpretation returns the current interpretation of the color space of the image.
 func (r *ImageRef) Interpretation() Interpretation {
 	return Interpretation(int(r.image.Type))
