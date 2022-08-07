@@ -31,16 +31,6 @@ func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageT
 	return out, imageType, nil
 }
 
-func vipsThumbnail(in *C.VipsImage, width, height int, crop Interesting, size Size) (*C.VipsImage, error) {
-	var out *C.VipsImage
-
-	if err := C.thumbnail_image(in, &out, C.int(width), C.int(height), C.int(crop), C.int(size)); err != 0 {
-		return nil, handleImageError(out)
-	}
-
-	return out, nil
-}
-
 // https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail-buffer
 func vipsThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {
 	src := buf
@@ -66,12 +56,12 @@ func vipsThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, si
 	return out, imageType, nil
 }
 
-func vipsHasAlpha(in *C.VipsImage) bool {
-	return int(C.has_alpha_channel(in)) > 0
-}
-
 func clearImage(ref *C.VipsImage) {
 	C.clear_image(&ref)
+}
+
+func vipsHasAlpha(in *C.VipsImage) bool {
+	return int(C.has_alpha_channel(in)) > 0
 }
 
 // https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-copy
@@ -79,6 +69,16 @@ func vipsCopyImage(in *C.VipsImage) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
 	if err := C.copy_image(in, &out); int(err) != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsThumbnail(in *C.VipsImage, width, height int, crop Interesting, size Size) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.thumbnail_image(in, &out, C.int(width), C.int(height), C.int(crop), C.int(size)); err != 0 {
 		return nil, handleImageError(out)
 	}
 
