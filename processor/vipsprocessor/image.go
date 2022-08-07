@@ -306,12 +306,16 @@ func LoadThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, si
 
 // Metadata returns the metadata (ImageMetadata struct) of the associated ImageRef
 func (r *ImageRef) Metadata() *ImageMetadata {
+	return r.metadata(r.format)
+}
+
+func (r *ImageRef) metadata(format ImageType) *ImageMetadata {
 	return &ImageMetadata{
-		Format:      r.Format(),
+		Format:      format,
 		Width:       r.Width(),
 		Height:      r.Height(),
-		Orientation: r.Orientation(),
 		Colorspace:  r.ColorSpace(),
+		Orientation: r.Orientation(),
 		Pages:       r.Pages(),
 	}
 }
@@ -448,7 +452,7 @@ func (r *ImageRef) ExportJpeg(params *JpegExportParams) ([]byte, *ImageMetadata,
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypeJPEG), nil
+	return buf, r.metadata(ImageTypeJPEG), nil
 }
 
 // ExportPng exports the image as PNG to a buffer.
@@ -462,7 +466,7 @@ func (r *ImageRef) ExportPng(params *PngExportParams) ([]byte, *ImageMetadata, e
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypePNG), nil
+	return buf, r.metadata(ImageTypePNG), nil
 }
 
 // ExportWebp exports the image as WEBP to a buffer.
@@ -479,7 +483,7 @@ func (r *ImageRef) ExportWebp(params *WebpExportParams) ([]byte, *ImageMetadata,
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypeWEBP), nil
+	return buf, r.metadata(ImageTypeWEBP), nil
 }
 
 // ExportHeif exports the image as HEIF to a buffer.
@@ -493,7 +497,7 @@ func (r *ImageRef) ExportHeif(params *HeifExportParams) ([]byte, *ImageMetadata,
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypeHEIF), nil
+	return buf, r.metadata(ImageTypeHEIF), nil
 }
 
 // ExportTiff exports the image as TIFF to a buffer.
@@ -507,7 +511,7 @@ func (r *ImageRef) ExportTiff(params *TiffExportParams) ([]byte, *ImageMetadata,
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypeTIFF), nil
+	return buf, r.metadata(ImageTypeTIFF), nil
 }
 
 // ExportGIF exports the image as GIF to a buffer.
@@ -521,7 +525,7 @@ func (r *ImageRef) ExportGIF(params *GifExportParams) ([]byte, *ImageMetadata, e
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypeGIF), nil
+	return buf, r.metadata(ImageTypeGIF), nil
 }
 
 // ExportAvif exports the image as AVIF to a buffer.
@@ -535,7 +539,7 @@ func (r *ImageRef) ExportAvif(params *AvifExportParams) ([]byte, *ImageMetadata,
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypeAVIF), nil
+	return buf, r.metadata(ImageTypeAVIF), nil
 }
 
 // ExportJp2k exports the image as JPEG2000 to a buffer.
@@ -549,7 +553,7 @@ func (r *ImageRef) ExportJp2k(params *Jp2kExportParams) ([]byte, *ImageMetadata,
 		return nil, nil, err
 	}
 
-	return buf, r.newMetadata(ImageTypeJP2K), nil
+	return buf, r.metadata(ImageTypeJP2K), nil
 }
 
 // Composite composites the given overlay image on top of the associated image with provided blending mode.
@@ -855,15 +859,4 @@ func (r *ImageRef) setImage(image *C.VipsImage) {
 	}
 
 	r.image = image
-}
-
-func (r *ImageRef) newMetadata(format ImageType) *ImageMetadata {
-	return &ImageMetadata{
-		Format:      format,
-		Width:       r.Width(),
-		Height:      r.Height(),
-		Colorspace:  r.ColorSpace(),
-		Orientation: r.Orientation(),
-		Pages:       r.Pages(),
-	}
 }

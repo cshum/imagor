@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-func focalSplit(r rune) bool {
-	return r == 'x' || r == ',' || r == ':'
-}
-
 func (v *VipsProcessor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
@@ -201,7 +197,7 @@ func (v *VipsProcessor) Process(
 			format = ImageTypeJPEG
 			break
 		case "focal":
-			if args := strings.FieldsFunc(p.Args, focalSplit); len(args) == 4 {
+			if args := strings.FieldsFunc(p.Args, argSplit); len(args) == 4 {
 				f := focal{}
 				f.Left, _ = strconv.ParseFloat(args[0], 64)
 				f.Top, _ = strconv.ParseFloat(args[1], 64)
@@ -431,6 +427,10 @@ func (v *VipsProcessor) process(
 		}
 	}
 	return nil
+}
+
+func argSplit(r rune) bool {
+	return r == 'x' || r == ',' || r == ':'
 }
 
 type focal struct {
