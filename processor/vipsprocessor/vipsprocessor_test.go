@@ -268,20 +268,20 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				assert.Equal(t, bc.ContentType(), b.ContentType())
 				assert.Equal(t, bc.BlobType(), b.BlobType())
 			} else {
-				if bb := w.Body.Bytes(); reflect.DeepEqual(buf, bb) {
-					return
-				}
 				img1, err := LoadImageFromFile(path, nil)
 				require.NoError(t, err)
 				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
 				require.NoError(t, err)
-				require.Equal(t, img1.Format(), img2.Format())
 				require.Equal(t, img1.Metadata(), img2.Metadata(), "image meta not equal")
-				buf1, _, err := img1.ExportJpeg(nil)
-				require.NoError(t, err)
-				buf2, _, err := img1.ExportJpeg(nil)
-				require.NoError(t, err)
-				require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
+				if bb := w.Body.Bytes(); reflect.DeepEqual(buf, bb) {
+					return
+				} else {
+					buf1, _, err := img1.ExportJpeg(nil)
+					require.NoError(t, err)
+					buf2, _, err := img1.ExportJpeg(nil)
+					require.NoError(t, err)
+					require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
+				}
 			}
 		})
 	}
