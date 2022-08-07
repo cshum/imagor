@@ -49,7 +49,7 @@ type config struct {
 
 // Startup sets up the libvips support and ensures the versions are correct. Pass in nil for
 // default configuration.
-func startup(config *config) {
+func Startup(config *config) {
 	initLock.Lock()
 	defer initLock.Unlock()
 
@@ -146,7 +146,7 @@ func disableLogging() {
 	C.vips_unset_logging_handler()
 }
 
-func shutdown() {
+func Shutdown() {
 	initLock.Lock()
 	defer initLock.Unlock()
 
