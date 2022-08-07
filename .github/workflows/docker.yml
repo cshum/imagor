@@ -14,8 +14,6 @@ jobs:
   build:
     name: Docker
     runs-on: ubuntu-latest
-    env:
-      HAS_PAT: ${{ secrets.PAT != '' }}
     permissions:
       contents: read
       packages: write
@@ -93,15 +91,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Delete untagged container images
-        if: env.HAS_PAT == 'true'
-        uses: snok/container-retention-policy@v1
-        with:
-          image-names: imagor
-          cut-off: 1 hour ago UTC
-          account-type: personal
-          keep-at-least: 1
-          untagged-only: true
-          skip-tags: latest, *.*.*
-          token: ${{ secrets.PAT }}
