@@ -96,7 +96,7 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "fill auto", path: "fit-in/400x400/filters:fill(auto)/find_trim.png"},
 			{name: "fill auto bottom-right", path: "fit-in/400x400/filters:fill(auto,bottom-right)/find_trim.png"},
 			{name: "resize top flip blur", path: "200x-210/top/filters:blur(5):sharpen(5):background_color(ffff00):format(jpeg):quality(70)/gopher.png"},
-			{name: "blur sharpen 2", path: "200x-210/top/filters:blur(1,2),:sharpen(1,2):background_color(ff0):format(jpeg):quality(70)/gopher.png"},
+			{name: "blur sharpen 2", path: "200x-210/top/filters:blur(1,2):sharpen(1,2):background_color(ff0):format(jpeg):quality(70)/gopher.png"},
 			{name: "crop stretch top flip", path: "10x20:3000x5000/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
 			{name: "crop-percent stretch top flip", path: "0.006120x0.008993:1.0x1.0/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
 			{name: "padding rotation fill blur grayscale", path: "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
