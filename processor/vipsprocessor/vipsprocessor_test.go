@@ -260,7 +260,6 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 			assert.Equal(t, 200, w.Code)
 			b := imagor.NewBlobFromBytes(w.Body.Bytes())
-			require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
 			_ = resStorage.Put(context.Background(), tt.path, b)
 			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
 
@@ -268,6 +267,7 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			buf, err := bc.ReadAll()
 			require.NoError(t, err)
 			if tt.checkTypeOnly {
+				require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
 				assert.Equal(t, bc.ContentType(), b.ContentType())
 				assert.Equal(t, bc.BlobType(), b.BlobType())
 			} else {
