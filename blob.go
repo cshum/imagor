@@ -12,7 +12,7 @@ import (
 
 type BlobType int
 
-const maxBodySize = int64(10 << 20) // 10mb
+const maxBodySize = int64(32 << 20) // 32MB
 
 const (
 	BlobTypeUnknown BlobType = iota
@@ -52,6 +52,7 @@ type Blob struct {
 	size       int64
 
 	blobType    BlobType
+	filepath    string
 	contentType string
 
 	Meta *Meta
@@ -61,18 +62,29 @@ func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Bl
 	return &Blob{newReader: newReader}
 }
 
-func NewBlobFromPath(filepath string) *Blob {
-	return NewBlob(func() (io.ReadCloser, int64, error) {
-		stats, err := os.Stat(filepath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				err = ErrNotFound
+func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
+	stat, err := os.Stat(filepath)
+	if os.IsNotExist(err) {
+		err = ErrNotFound
+	}
+	if err == nil {
+		for _, check := range checks {
+			if err = check(stat); err != nil {
+				break
 			}
-			return nil, 0, err
 		}
-		reader, err := os.Open(filepath)
-		return reader, stats.Size(), err
-	})
+	}
+	return &Blob{
+		err:      err,
+		filepath: filepath,
+		newReader: func() (io.ReadCloser, int64, error) {
+			if err != nil {
+				return nil, 0, err
+			}
+			reader, err := os.Open(filepath)
+			return reader, stat.Size(), err
+		},
+	}
 }
 
 func NewBlobFromBytes(buf []byte) *Blob {
@@ -114,7 +126,9 @@ func (b *Blob) init() {
 	b.once.Do(func() {
 		b.blobType = BlobTypeUnknown
 		b.contentType = "application/octet-stream"
-
+		if b.err != nil {
+			return
+		}
 		if b.newReader == nil {
 			b.blobType = BlobTypeEmpty
 			b.newReader = newEmptyReader
@@ -210,6 +224,15 @@ func (b *Blob) BlobType() BlobType {
 func (b *Blob) Sniff() []byte {
 	b.init()
 	return b.buf
+}
+
+func (b *Blob) Size() int64 {
+	b.init()
+	return b.size
+}
+
+func (b *Blob) FilePath() string {
+	return b.filepath
 }
 
 func (b *Blob) ContentType() string {

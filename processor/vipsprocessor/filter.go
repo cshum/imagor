@@ -46,13 +46,13 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *ImageRef, load imago
 			h, _ = strconv.Atoi(args[5])
 			h = img.PageHeight() * h / 100
 		}
-		if overlay, err = v.newThumbnail(
+		if overlay, err = v.NewThumbnail(
 			blob, w, h, InterestingNone, SizeDown, n,
 		); err != nil {
 			return
 		}
 	} else {
-		if overlay, err = v.newThumbnail(
+		if overlay, err = v.NewThumbnail(
 			blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n,
 		); err != nil {
 			return

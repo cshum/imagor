@@ -64,12 +64,18 @@ func TestBlobTypes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := NewBlobFromPath("testdata/" + tt.path)
+			filepath := "testdata/" + tt.path
+			b := NewBlobFromFile(filepath, func(info os.FileInfo) error {
+				// noop
+				return nil
+			})
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
+			assert.Equal(t, filepath, b.FilePath())
 			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			assert.NotEmpty(t, b.Sniff())
+			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
 
 			buf, err := b.ReadAll()
@@ -81,6 +87,7 @@ func TestBlobTypes(t *testing.T) {
 			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			assert.NotEmpty(t, b.Sniff())
+			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
 		})
 	}
@@ -100,6 +107,7 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 	assert.Empty(t, b.Sniff())
+	assert.Empty(t, b.Size())
 
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)
@@ -108,6 +116,7 @@ func TestNewEmptyBlob(t *testing.T) {
 	r, size, err := b.NewReader()
 	assert.NoError(t, err)
 	assert.Empty(t, size)
+	assert.Empty(t, b.Size())
 
 	buf, err = io.ReadAll(r)
 	assert.NoError(t, err)
@@ -118,10 +127,11 @@ func TestNewEmptyBlob(t *testing.T) {
 	defer f.Close()
 	defer os.Remove(f.Name())
 	fmt.Println(f.Name())
-	b = NewBlobFromPath(f.Name())
+	b = NewBlobFromFile(f.Name())
 	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 	assert.Empty(t, b.Sniff())
+	assert.Empty(t, b.Size())
 
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)

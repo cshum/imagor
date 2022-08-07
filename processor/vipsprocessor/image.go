@@ -156,6 +156,23 @@ func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
 	return ref, nil
 }
 
+// LoadThumbnailFromFile loads an image from file and creates a new ImageRef with thumbnail crop and size
+func LoadThumbnailFromFile(file string, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
+	if params == nil {
+		params = NewImportParams()
+	}
+
+	vipsImage, format, err := vipsThumbnailFromFile(file, width, height, crop, size, params)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := newImageRef(vipsImage, format, nil)
+
+	govipsLog("govips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
+	return ref, nil
+}
+
 // LoadThumbnailFromBuffer loads an image buffer and creates a new Image with thumbnail crop and size
 func LoadThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
 	if params == nil {

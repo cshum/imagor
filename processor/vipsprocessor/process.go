@@ -93,7 +93,7 @@ func (v *VipsProcessor) Process(
 				if upscale {
 					size = SizeBoth
 				}
-				if img, err = v.newThumbnail(
+				if img, err = v.NewThumbnail(
 					blob, w, h, InterestingNone, size, maxN,
 				); err != nil {
 					return nil, err
@@ -102,7 +102,7 @@ func (v *VipsProcessor) Process(
 			}
 		} else if stretch {
 			if p.Width > 0 && p.Height > 0 {
-				if img, err = v.newThumbnail(
+				if img, err = v.NewThumbnail(
 					blob, p.Width, p.Height,
 					InterestingNone, SizeForce, maxN,
 				); err != nil {
@@ -130,7 +130,7 @@ func (v *VipsProcessor) Process(
 					thumbnail = true
 				}
 				if thumbnail {
-					if img, err = v.newThumbnail(
+					if img, err = v.NewThumbnail(
 						blob, p.Width, p.Height,
 						interest, SizeBoth, maxN,
 					); err != nil {
@@ -138,7 +138,7 @@ func (v *VipsProcessor) Process(
 					}
 				}
 			} else if p.Width > 0 && p.Height == 0 {
-				if img, err = v.newThumbnail(
+				if img, err = v.NewThumbnail(
 					blob, p.Width, v.MaxHeight,
 					InterestingNone, SizeBoth, maxN,
 				); err != nil {
@@ -146,7 +146,7 @@ func (v *VipsProcessor) Process(
 				}
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
-				if img, err = v.newThumbnail(
+				if img, err = v.NewThumbnail(
 					blob, v.MaxWidth, p.Height,
 					InterestingNone, SizeBoth, maxN,
 				); err != nil {
@@ -158,11 +158,11 @@ func (v *VipsProcessor) Process(
 	}
 	if !thumbnail {
 		if thumbnailNotSupported {
-			if img, err = v.newImage(blob, maxN); err != nil {
+			if img, err = v.NewImage(blob, maxN); err != nil {
 				return nil, err
 			}
 		} else {
-			if img, err = v.newThumbnail(
+			if img, err = v.NewThumbnail(
 				blob, v.MaxWidth, v.MaxHeight,
 				InterestingNone, SizeDown, maxN,
 			); err != nil {
@@ -222,12 +222,12 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
-		return nil, wrapErr(err)
+		return nil, WrapErr(err)
 	}
 	for {
 		buf, meta, err := v.export(img, format, quality)
 		if err != nil {
-			return nil, wrapErr(err)
+			return nil, WrapErr(err)
 		}
 		if maxBytes > 0 && (quality > 10 || quality == 0) && format != ImageTypePNG {
 			ln := len(buf)
@@ -251,7 +251,7 @@ func (v *VipsProcessor) Process(
 					quality = quality * 75 / 100
 				}
 				if err := ctx.Err(); err != nil {
-					return nil, wrapErr(err)
+					return nil, WrapErr(err)
 				}
 				continue
 			}
@@ -371,7 +371,7 @@ func (v *VipsProcessor) process(
 			}
 			if p.Smart && len(focalRects) > 0 {
 				focalX, focalY := parseFocalPoint(focalRects...)
-				if err := v.focalThumbnail(
+				if err := v.FocalThumbnail(
 					img, w, h,
 					(focalX-cropLeft)/float64(img.Width()),
 					(focalY-cropTop)/float64(img.PageHeight()),
@@ -379,11 +379,11 @@ func (v *VipsProcessor) process(
 					return err
 				}
 			} else {
-				if err := v.thumbnail(img, w, h, interest, SizeBoth); err != nil {
+				if err := v.Thumbnail(img, w, h, interest, SizeBoth); err != nil {
 					return err
 				}
 			}
-			if _, err := v.checkResolution(img, nil); err != nil {
+			if _, err := v.CheckResolution(img, nil); err != nil {
 				return err
 			}
 		}

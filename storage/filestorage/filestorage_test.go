@@ -134,13 +134,13 @@ func TestFileStorage_Load_Save(t *testing.T) {
 	t.Run("CRUD", func(t *testing.T) {
 		s := New(dir, WithPathPrefix("/foo"), WithMkdirPermission("0755"), WithWritePermission("0666"))
 
-		_, err := s.Get(&http.Request{}, "/bar/fooo/asdf")
+		_, err := checkBlob(s.Get(&http.Request{}, "/bar/fooo/asdf"))
 		assert.Equal(t, imagor.ErrInvalid, err)
 
 		_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
 		assert.Equal(t, imagor.ErrInvalid, err)
 
-		_, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+		_, err = checkBlob(s.Get(&http.Request{}, "/foo/fooo/asdf"))
 		assert.Equal(t, imagor.ErrNotFound, err)
 
 		_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
@@ -157,7 +157,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
-		b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+		b, err := checkBlob(s.Get(&http.Request{}, "/foo/fooo/asdf"))
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
@@ -170,7 +170,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		err = s.Delete(context.Background(), "/foo/fooo/asdf")
 		require.NoError(t, err)
 
-		b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+		b, err = checkBlob(s.Get(&http.Request{}, "/foo/fooo/asdf"))
 		assert.Equal(t, imagor.ErrNotFound, err)
 
 	})
@@ -179,7 +179,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		s := New(dir, WithSaveErrIfExists(true))
 		require.NoError(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBlobFromBytes([]byte("bar"))))
 		assert.Error(t, s.Put(ctx, "/foo/tar/asdf", imagor.NewBlobFromBytes([]byte("boo"))))
-		b, err := s.Get(&http.Request{}, "/foo/tar/asdf")
+		b, err := checkBlob(s.Get(&http.Request{}, "/foo/tar/asdf"))
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
@@ -190,18 +190,25 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		s := New(dir, WithExpiration(time.Millisecond*10))
 		var err error
 
-		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+		_, err = checkBlob(s.Get(&http.Request{}, "/foo/bar/asdf"))
 		assert.Equal(t, imagor.ErrNotFound, err)
 		blob := imagor.NewBlobFromBytes([]byte("bar"))
 		require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
-		b, err := s.Get(&http.Request{}, "/foo/bar/asdf")
+		b, err := checkBlob(s.Get(&http.Request{}, "/foo/bar/asdf"))
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
 
 		time.Sleep(time.Second)
-		_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
+		_, err = checkBlob(s.Get(&http.Request{}, "/foo/bar/asdf"))
 		require.ErrorIs(t, err, imagor.ErrExpired)
 	})
+}
+
+func checkBlob(blob *imagor.Blob, err error) (*imagor.Blob, error) {
+	if blob != nil && err == nil {
+		err = blob.Err()
+	}
+	return blob, err
 }
