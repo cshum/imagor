@@ -128,17 +128,49 @@ func (v *VipsProcessor) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func (v *VipsProcessor) newThumbnail(
-	blob *imagor.Blob, width, height int, crop Interesting, size Size, n int,
+func LoadImageFromBlob(blob *imagor.Blob, params *ImportParams) (*ImageRef, error) {
+	if blob == nil || blob.IsEmpty() {
+		return nil, imagor.ErrNotFound
+	}
+	if filepath := blob.FilePath(); filepath != "" {
+		if err := blob.Err(); err != nil {
+			return nil, err
+		}
+		return LoadImageFromFile(filepath, params)
+	} else {
+		buf, err := blob.ReadAll()
+		if err != nil {
+			return nil, err
+		}
+		return LoadImageFromBuffer(buf, params)
+	}
+}
+
+func LoadThumbnailFromBlob(
+	blob *imagor.Blob, width, height int, crop Interesting, size Size, params *ImportParams,
 ) (*ImageRef, error) {
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
-	buf, err := blob.ReadAll()
-	if err != nil {
-		return nil, err
+	if filepath := blob.FilePath(); filepath != "" {
+		if err := blob.Err(); err != nil {
+			return nil, err
+		}
+		return LoadThumbnailFromFile(filepath, width, height, crop, size, params)
+	} else {
+		buf, err := blob.ReadAll()
+		if err != nil {
+			return nil, err
+		}
+		return LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
 	}
+}
+
+func (v *VipsProcessor) newThumbnail(
+	blob *imagor.Blob, width, height int, crop Interesting, size Size, n int,
+) (*ImageRef, error) {
 	var params *ImportParams
+	var err error
 	var img *ImageRef
 	if isBlobAnimated(blob, n) {
 		params = NewImportParams()
@@ -149,7 +181,7 @@ func (v *VipsProcessor) newThumbnail(
 		}
 		if crop == InterestingNone || size == SizeForce {
 			if img, err = v.checkResolution(
-				LoadThumbnailFromBuffer(buf, width, height, crop, size, params),
+				LoadThumbnailFromBlob(blob, width, height, crop, size, params),
 			); err != nil {
 				return nil, wrapErr(err)
 			}
@@ -159,7 +191,7 @@ func (v *VipsProcessor) newThumbnail(
 				return v.newThumbnail(blob, width, height, crop, size, -n)
 			}
 		} else {
-			if img, err = v.checkResolution(LoadImageFromBuffer(buf, params)); err != nil {
+			if img, err = v.checkResolution(LoadImageFromBlob(blob, params)); err != nil {
 				return nil, wrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
@@ -173,17 +205,17 @@ func (v *VipsProcessor) newThumbnail(
 			}
 		}
 	} else if blob.BlobType() == imagor.BlobTypePNG {
-		return v.newThumbnailPNG(buf, width, height, crop, size)
+		return v.newThumbnailPNG(blob, width, height, crop, size)
 	} else {
-		img, err = LoadThumbnailFromBuffer(buf, width, height, crop, size, nil)
+		img, err = LoadThumbnailFromBlob(blob, width, height, crop, size, nil)
 	}
 	return v.checkResolution(img, wrapErr(err))
 }
 
 func (v *VipsProcessor) newThumbnailPNG(
-	buf []byte, width, height int, crop Interesting, size Size,
+	blob *imagor.Blob, width, height int, crop Interesting, size Size,
 ) (img *ImageRef, err error) {
-	if img, err = v.checkResolution(LoadImageFromBuffer(buf, nil)); err != nil {
+	if img, err = v.checkResolution(LoadImageFromBlob(blob, nil)); err != nil {
 		return
 	}
 	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
@@ -194,13 +226,6 @@ func (v *VipsProcessor) newThumbnailPNG(
 }
 
 func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*ImageRef, error) {
-	if blob == nil || blob.IsEmpty() {
-		return nil, imagor.ErrNotFound
-	}
-	buf, err := blob.ReadAll()
-	if err != nil {
-		return nil, err
-	}
 	var params *ImportParams
 	if isBlobAnimated(blob, n) {
 		params = NewImportParams()
@@ -209,7 +234,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*ImageRef, error) {
 		} else {
 			params.NumPages.Set(-1)
 		}
-		img, err := v.checkResolution(LoadImageFromBuffer(buf, params))
+		img, err := v.checkResolution(LoadImageFromBlob(blob, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}
@@ -221,7 +246,7 @@ func (v *VipsProcessor) newImage(blob *imagor.Blob, n int) (*ImageRef, error) {
 			return img, nil
 		}
 	} else {
-		img, err := v.checkResolution(LoadImageFromBuffer(buf, params))
+		img, err := v.checkResolution(LoadImageFromBlob(blob, params))
 		if err != nil {
 			return nil, wrapErr(err)
 		}

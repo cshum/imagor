@@ -52,6 +52,26 @@ func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageT
 	return out, imageType, nil
 }
 
+// https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail
+func vipsThumbnailFromFile(filename string, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {
+	var out *C.VipsImage
+
+	filenameOption := filename
+	if params != nil {
+		filenameOption += "[" + params.OptionString() + "]"
+	}
+
+	cFileName := C.CString(filenameOption)
+	defer freeCString(cFileName)
+
+	if code := C.thumbnail(cFileName, &out, C.int(width), C.int(height), C.int(crop), C.int(size)); code != 0 {
+		return nil, ImageTypeUnknown, handleImageError(out)
+	}
+
+	imageType := vipsDetermineImageTypeFromMetaLoader(out)
+	return out, imageType, nil
+}
+
 // https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail-buffer
 func vipsThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {
 	src := buf
