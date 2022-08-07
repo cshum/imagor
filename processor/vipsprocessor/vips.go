@@ -1,504 +1,359 @@
 package vipsprocessor
 
+// #include "vips.h"
+import "C"
 import (
-	"context"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/davidbyttow/govips/v2/vips"
-	"go.uber.org/zap"
 	"runtime"
-	"strconv"
-	"strings"
-	"sync"
+	"unsafe"
 )
 
-type FilterFunc func(ctx context.Context, img *vips.ImageRef, load imagor.LoadFunc, args ...string) (err error)
+// https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-file
+func vipsImageFromFile(filename string, params *ImportParams) (*C.VipsImage, ImageType, error) {
+	var out *C.VipsImage
+	filenameOption := filename
+	if params != nil {
+		filenameOption += "[" + params.OptionString() + "]"
+	}
+	cFileName := C.CString(filenameOption)
+	defer freeCString(cFileName)
 
-type FilterMap map[string]FilterFunc
+	if code := C.image_new_from_file(cFileName, &out); code != 0 {
+		return nil, ImageTypeUnknown, handleImageError(out)
+	}
 
-var l sync.RWMutex
-var cnt int
-
-type VipsProcessor struct {
-	Filters            FilterMap
-	DisableBlur        bool
-	DisableFilters     []string
-	MaxFilterOps       int
-	Logger             *zap.Logger
-	Concurrency        int
-	MaxCacheFiles      int
-	MaxCacheMem        int
-	MaxCacheSize       int
-	MaxWidth           int
-	MaxHeight          int
-	MaxResolution      int
-	MaxAnimationFrames int
-	MozJPEG            bool
-	Debug              bool
+	imageType := vipsDetermineImageTypeFromMetaLoader(out)
+	return out, imageType, nil
 }
 
-func New(options ...Option) *VipsProcessor {
-	v := &VipsProcessor{
-		MaxWidth:           9999,
-		MaxHeight:          9999,
-		MaxResolution:      16800000,
-		Concurrency:        1,
-		MaxFilterOps:       -1,
-		MaxAnimationFrames: -1,
-		Logger:             zap.NewNop(),
-	}
-	v.Filters = FilterMap{
-		"watermark":        v.watermark,
-		"round_corner":     roundCorner,
-		"rotate":           rotate,
-		"grayscale":        grayscale,
-		"brightness":       brightness,
-		"background_color": backgroundColor,
-		"contrast":         contrast,
-		"modulate":         modulate,
-		"hue":              hue,
-		"saturation":       saturation,
-		"rgb":              rgb,
-		"blur":             blur,
-		"sharpen":          sharpen,
-		"strip_icc":        stripIcc,
-		"strip_exif":       stripIcc,
-		"trim":             trim,
-		"frames":           frames,
-		"padding":          v.padding,
-		"proportion":       proportion,
-	}
-	for _, option := range options {
-		option(v)
-	}
-	if v.DisableBlur {
-		v.DisableFilters = append(v.DisableFilters, "blur", "sharpen")
-	}
-	for _, name := range v.DisableFilters {
-		delete(v.Filters, name)
-	}
-	if v.Concurrency == -1 {
-		v.Concurrency = runtime.NumCPU()
-	}
-	return v
-}
+func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageType, error) {
+	src := buf
+	// Reference src here so it's not garbage collected during image initialization.
+	defer runtime.KeepAlive(src)
 
-func (v *VipsProcessor) Startup(_ context.Context) error {
-	l.Lock()
-	defer l.Unlock()
-	cnt++
-	if cnt > 1 {
-		return nil
+	var out *C.VipsImage
+	var code C.int
+	var optionString string
+	if params != nil {
+		optionString = params.OptionString()
 	}
-	if v.Debug {
-		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
-			switch level {
-			case vips.LogLevelDebug:
-				v.Logger.Debug(domain, zap.String("log", msg))
-			case vips.LogLevelMessage, vips.LogLevelInfo:
-				v.Logger.Info(domain, zap.String("log", msg))
-			case vips.LogLevelWarning, vips.LogLevelCritical:
-				v.Logger.Warn(domain, zap.String("log", msg))
-			case vips.LogLevelError:
-				v.Logger.Error(domain, zap.String("log", msg))
-			}
-		}, vips.LogLevelDebug)
+	if optionString == "" {
+		code = C.image_new_from_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out)
 	} else {
-		vips.LoggingSettings(func(domain string, level vips.LogLevel, msg string) {
-			v.Logger.Error(domain, zap.String("log", msg))
-		}, vips.LogLevelError)
+		cOptionString := C.CString(optionString)
+		defer freeCString(cOptionString)
+
+		code = C.image_new_from_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, cOptionString)
 	}
-	vips.Startup(&vips.Config{
-		MaxCacheFiles:    v.MaxCacheFiles,
-		MaxCacheMem:      v.MaxCacheMem,
-		MaxCacheSize:     v.MaxCacheSize,
-		ConcurrencyLevel: v.Concurrency,
-	})
+	if code != 0 {
+		return nil, ImageTypeUnknown, handleImageError(out)
+	}
+
+	imageType := vipsDetermineImageTypeFromMetaLoader(out)
+	return out, imageType, nil
+}
+
+// https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail-buffer
+func vipsThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {
+	src := buf
+	// Reference src here so it's not garbage collected during image initialization.
+	defer runtime.KeepAlive(src)
+
+	var out *C.VipsImage
+	var code C.int
+	var optionString string
+	if params != nil {
+		optionString = params.OptionString()
+	}
+
+	if optionString == "" {
+		code = C.thumbnail_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size))
+	} else {
+		cOptionString := C.CString(optionString)
+		defer freeCString(cOptionString)
+
+		code = C.thumbnail_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size), cOptionString)
+	}
+	if code != 0 {
+		return nil, ImageTypeUnknown, handleImageError(out)
+	}
+
+	imageType := vipsDetermineImageTypeFromMetaLoader(out)
+	return out, imageType, nil
+}
+
+func clearImage(ref *C.VipsImage) {
+	C.clear_image(&ref)
+}
+
+func vipsHasAlpha(in *C.VipsImage) bool {
+	return int(C.has_alpha_channel(in)) > 0
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-copy
+func vipsCopyImage(in *C.VipsImage) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.copy_image(in, &out); int(err) != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsThumbnail(in *C.VipsImage, width, height int, crop Interesting, size Size) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.thumbnail_image(in, &out, C.int(width), C.int(height), C.int(crop), C.int(size)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-embed
+func vipsEmbed(in *C.VipsImage, left, top, width, height int, extend ExtendStrategy) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.embed_image(in, &out, C.int(left), C.int(top), C.int(width), C.int(height), C.int(extend)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-embed
+func vipsEmbedBackground(in *C.VipsImage, left, top, width, height int, backgroundColor *ColorRGBA) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.embed_image_background(in, &out, C.int(left), C.int(top), C.int(width),
+		C.int(height), C.double(backgroundColor.R),
+		C.double(backgroundColor.G), C.double(backgroundColor.B), C.double(backgroundColor.A)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsEmbedMultiPage(in *C.VipsImage, left, top, width, height int, extend ExtendStrategy) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.embed_multi_page_image(in, &out, C.int(left), C.int(top), C.int(width), C.int(height), C.int(extend)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsEmbedMultiPageBackground(in *C.VipsImage, left, top, width, height int, backgroundColor *ColorRGBA) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.embed_multi_page_image_background(in, &out, C.int(left), C.int(top), C.int(width),
+		C.int(height), C.double(backgroundColor.R),
+		C.double(backgroundColor.G), C.double(backgroundColor.B), C.double(backgroundColor.A)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-flip
+func vipsFlip(in *C.VipsImage, direction Direction) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.flip_image(in, &out, C.int(direction)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-extract-area
+func vipsExtractArea(in *C.VipsImage, left, top, width, height int) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.extract_image_area(in, &out, C.int(left), C.int(top), C.int(width), C.int(height)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsExtractAreaMultiPage(in *C.VipsImage, left, top, width, height int) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.extract_area_multi_page(in, &out, C.int(left), C.int(top), C.int(width), C.int(height)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-rot
+func vipsRotate(in *C.VipsImage, angle Angle) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.rotate_image(in, &out, C.VipsAngle(angle)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-rot
+func vipsRotateMultiPage(in *C.VipsImage, angle Angle) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.rotate_image_multi_page(in, &out, C.VipsAngle(angle)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-flatten
+func vipsFlatten(in *C.VipsImage, color *Color) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	err := C.flatten_image(in, &out, C.double(color.R), C.double(color.G), C.double(color.B))
+	if int(err) != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsAddAlpha(in *C.VipsImage) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.add_alpha(in, &out); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-composite2
+func vipsComposite2(base *C.VipsImage, overlay *C.VipsImage, mode BlendMode, x, y int) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.composite2_image(base, overlay, &out, C.int(mode), C.gint(x), C.gint(y)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://www.libvips.org/API/current/libvips-conversion.html#vips-replicate
+func vipsReplicate(in *C.VipsImage, across int, down int) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.replicate(in, &out, C.int(across), C.int(down)); err != 0 {
+		return nil, handleImageError(out)
+	}
+	return out, nil
+}
+
+//  https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
+func vipsLinear(in *C.VipsImage, a, b []float64, n int) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.linear(in, &out, (*C.double)(&a[0]), (*C.double)(&b[0]), C.int(n)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-find-trim
+func vipsFindTrim(in *C.VipsImage, threshold float64, backgroundColor *Color) (int, int, int, int, error) {
+	var left, top, width, height C.int
+
+	if err := C.find_trim(in, &left, &top, &width, &height, C.double(threshold), C.double(backgroundColor.R),
+		C.double(backgroundColor.G), C.double(backgroundColor.B)); err != 0 {
+		return -1, -1, -1, -1, handleVipsError()
+	}
+
+	return int(left), int(top), int(width), int(height), nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-getpoint
+func vipsGetPoint(in *C.VipsImage, n int, x int, y int) ([]float64, error) {
+	var out *C.double
+	defer gFreePointer(unsafe.Pointer(out))
+
+	if err := C.getpoint(in, &out, C.int(n), C.int(x), C.int(y)); err != 0 {
+		return nil, handleVipsError()
+	}
+
+	// maximum n is 4
+	return (*[4]float64)(unsafe.Pointer(out))[:n:n], nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-colour.html#vips-colourspace
+func vipsToColorSpace(in *C.VipsImage, interpretation Interpretation) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	inter := C.VipsInterpretation(interpretation)
+
+	if err := C.to_colorspace(in, &out, inter); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-convolution.html#vips-gaussblur
+func vipsGaussianBlur(in *C.VipsImage, sigma float64) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.gaussian_blur_image(in, &out, C.double(sigma)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+// https://libvips.github.io/libvips/API/current/libvips-convolution.html#vips-sharpen
+func vipsSharpen(in *C.VipsImage, sigma float64, x1 float64, m2 float64) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.sharpen_image(in, &out, C.double(sigma), C.double(x1), C.double(m2)); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
+func vipsRemoveICCProfile(in *C.VipsImage) bool {
+	return fromGboolean(C.remove_icc_profile(in))
+}
+
+func vipsGetMetaOrientation(in *C.VipsImage) int {
+	return int(C.get_meta_orientation(in))
+}
+
+func vipsGetImageNPages(in *C.VipsImage) int {
+	return int(C.get_image_n_pages(in))
+}
+
+func vipsGetPageHeight(in *C.VipsImage) int {
+	return int(C.get_page_height(in))
+}
+
+func vipsSetPageHeight(in *C.VipsImage, height int) {
+	C.set_page_height(in, C.int(height))
+}
+
+func vipsImageGetMetaLoader(in *C.VipsImage) (string, bool) {
+	var out *C.char
+	defer gFreePointer(unsafe.Pointer(out))
+	code := int(C.get_meta_loader(in, &out))
+	return C.GoString(out), code == 0
+}
+
+func vipsImageSetDelay(in *C.VipsImage, data []C.int) error {
+	if n := len(data); n > 0 {
+		C.set_image_delay(in, &data[0], C.int(n))
+	}
 	return nil
-}
-
-func (v *VipsProcessor) Shutdown(_ context.Context) error {
-	l.Lock()
-	defer l.Unlock()
-	if cnt <= 0 {
-		return nil
-	}
-	cnt--
-	if cnt == 0 {
-		vips.Shutdown()
-	}
-	return nil
-}
-
-func focalSplit(r rune) bool {
-	return r == 'x' || r == ',' || r == ':'
-}
-
-func (v *VipsProcessor) Process(
-	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
-) (*imagor.Blob, error) {
-	var (
-		thumbnailNotSupported bool
-		upscale               = true
-		stretch               = p.Stretch
-		thumbnail             = false
-		img                   *vips.ImageRef
-		format                = vips.ImageTypeUnknown
-		maxN                  = v.MaxAnimationFrames
-		maxBytes              int
-		focalRects            []focal
-		err                   error
-	)
-	ctx = withInitImageRefs(ctx)
-	defer closeImageRefs(ctx)
-	if p.Trim {
-		thumbnailNotSupported = true
-	}
-	if p.FitIn {
-		upscale = false
-	}
-	if maxN == 0 || maxN < -1 {
-		maxN = 1
-	}
-	for _, p := range p.Filters {
-		switch p.Name {
-		case "format":
-			if typ, ok := imageTypeMap[p.Args]; ok {
-				format = typ
-				if format != vips.ImageTypeGIF && format != vips.ImageTypeWEBP {
-					// no frames if export format not support animation
-					maxN = 1
-				}
-			}
-			break
-		case "stretch":
-			stretch = true
-			break
-		case "upscale":
-			upscale = true
-			break
-		case "no_upscale":
-			upscale = false
-			break
-		case "fill", "background_color":
-			if args := strings.Split(p.Args, ","); args[0] == "auto" {
-				thumbnailNotSupported = true
-			}
-			break
-		case "max_bytes":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
-				maxBytes = n
-				thumbnailNotSupported = true
-			}
-			break
-		case "focal":
-			thumbnailNotSupported = true
-			break
-		case "trim":
-			thumbnailNotSupported = true
-			break
-		}
-	}
-	if !thumbnailNotSupported &&
-		p.CropBottom == 0.0 && p.CropTop == 0.0 && p.CropLeft == 0.0 && p.CropRight == 0.0 {
-		// apply shrink-on-load where possible
-		if p.FitIn {
-			if p.Width > 0 || p.Height > 0 {
-				w := p.Width
-				h := p.Height
-				if w == 0 {
-					w = v.MaxWidth
-				}
-				if h == 0 {
-					h = v.MaxHeight
-				}
-				size := vips.SizeDown
-				if upscale {
-					size = vips.SizeBoth
-				}
-				if img, err = v.newThumbnail(
-					blob, w, h, vips.InterestingNone, size, maxN,
-				); err != nil {
-					return nil, err
-				}
-				thumbnail = true
-			}
-		} else if stretch {
-			if p.Width > 0 && p.Height > 0 {
-				if img, err = v.newThumbnail(
-					blob, p.Width, p.Height,
-					vips.InterestingNone, vips.SizeForce, maxN,
-				); err != nil {
-					return nil, err
-				}
-				thumbnail = true
-			}
-		} else {
-			if p.Width > 0 && p.Height > 0 {
-				interest := vips.InterestingNone
-				if p.Smart {
-					interest = vips.InterestingAttention
-					thumbnail = true
-				} else if (p.VAlign == imagorpath.VAlignTop && p.HAlign == "") ||
-					(p.HAlign == imagorpath.HAlignLeft && p.VAlign == "") {
-					interest = vips.InterestingLow
-					thumbnail = true
-				} else if (p.VAlign == imagorpath.VAlignBottom && p.HAlign == "") ||
-					(p.HAlign == imagorpath.HAlignRight && p.VAlign == "") {
-					interest = vips.InterestingHigh
-					thumbnail = true
-				} else if (p.VAlign == "" || p.VAlign == "middle") &&
-					(p.HAlign == "" || p.HAlign == "center") {
-					interest = vips.InterestingCentre
-					thumbnail = true
-				}
-				if thumbnail {
-					if img, err = v.newThumbnail(
-						blob, p.Width, p.Height,
-						interest, vips.SizeBoth, maxN,
-					); err != nil {
-						return nil, err
-					}
-				}
-			} else if p.Width > 0 && p.Height == 0 {
-				if img, err = v.newThumbnail(
-					blob, p.Width, v.MaxHeight,
-					vips.InterestingNone, vips.SizeBoth, maxN,
-				); err != nil {
-					return nil, err
-				}
-				thumbnail = true
-			} else if p.Height > 0 && p.Width == 0 {
-				if img, err = v.newThumbnail(
-					blob, v.MaxWidth, p.Height,
-					vips.InterestingNone, vips.SizeBoth, maxN,
-				); err != nil {
-					return nil, err
-				}
-				thumbnail = true
-			}
-		}
-	}
-	if !thumbnail {
-		if thumbnailNotSupported {
-			if img, err = v.newImage(blob, maxN); err != nil {
-				return nil, err
-			}
-		} else {
-			if img, err = v.newThumbnail(
-				blob, v.MaxWidth, v.MaxHeight,
-				vips.InterestingNone, vips.SizeDown, maxN,
-			); err != nil {
-				return nil, err
-			}
-		}
-	}
-	AddImageRef(ctx, img)
-	var (
-		quality    int
-		pageN      = img.Height() / img.PageHeight()
-		origWidth  = float64(img.Width())
-		origHeight = float64(img.PageHeight())
-	)
-	if format == vips.ImageTypeUnknown {
-		format = img.Format()
-	}
-	SetPageN(ctx, pageN)
-	if v.Debug {
-		v.Logger.Debug("image",
-			zap.Int("width", img.Width()),
-			zap.Int("height", img.Height()),
-			zap.Int("page_height", img.PageHeight()),
-			zap.Int("page_n", pageN))
-	}
-	for _, p := range p.Filters {
-		switch p.Name {
-		case "quality":
-			quality, _ = strconv.Atoi(p.Args)
-			break
-		case "autojpg":
-			format = vips.ImageTypeJPEG
-			break
-		case "focal":
-			if args := strings.FieldsFunc(p.Args, focalSplit); len(args) == 4 {
-				f := focal{}
-				f.Left, _ = strconv.ParseFloat(args[0], 64)
-				f.Top, _ = strconv.ParseFloat(args[1], 64)
-				f.Right, _ = strconv.ParseFloat(args[2], 64)
-				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
-				if f.Left < 1 && f.Top < 1 && f.Right <= 1 && f.Bottom <= 1 {
-					f.Left *= origWidth
-					f.Right *= origWidth
-					f.Top *= origHeight
-					f.Bottom *= origHeight
-				}
-				if f.Right > f.Left && f.Bottom > f.Top {
-					focalRects = append(focalRects, f)
-				}
-			}
-			break
-		}
-	}
-	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
-		return nil, wrapErr(err)
-	}
-	for {
-		buf, meta, err := v.export(img, format, quality)
-		if err != nil {
-			return nil, wrapErr(err)
-		}
-		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePNG {
-			ln := len(buf)
-			if v.Debug {
-				v.Logger.Debug("max_bytes",
-					zap.Int("bytes", ln),
-					zap.Int("quality", quality),
-				)
-			}
-			if ln > maxBytes {
-				if quality == 0 {
-					quality = 80
-				}
-				delta := float64(ln) / float64(maxBytes)
-				switch {
-				case delta > 3:
-					quality = quality * 25 / 100
-				case delta > 1.5:
-					quality = quality * 50 / 100
-				default:
-					quality = quality * 75 / 100
-				}
-				if err := ctx.Err(); err != nil {
-					return nil, wrapErr(err)
-				}
-				continue
-			}
-		}
-		b := imagor.NewBlobFromBytes(buf)
-		if meta != nil {
-			b.Meta = getMeta(meta)
-		}
-		return b, nil
-	}
-}
-
-func getMeta(meta *vips.ImageMetadata) *imagor.Meta {
-	format := vips.ImageTypes[meta.Format]
-	contentType := imageMimeTypeMap[format]
-	pages := 1
-	// govips returns "image/heif" for avif image content types
-	if meta.Format == vips.ImageTypeAVIF {
-		format = "avif"
-		contentType = "image/avif"
-	}
-	if p := meta.Pages; p > 1 {
-		pages = p
-	}
-	return &imagor.Meta{
-		Format:      format,
-		ContentType: contentType,
-		Width:       meta.Width,
-		Height:      meta.Height / pages,
-		Orientation: meta.Orientation,
-		Pages:       pages,
-	}
-}
-
-var imageTypeMap = map[string]vips.ImageType{
-	"gif":    vips.ImageTypeGIF,
-	"jpeg":   vips.ImageTypeJPEG,
-	"jpg":    vips.ImageTypeJPEG,
-	"magick": vips.ImageTypeMagick,
-	"pdf":    vips.ImageTypePDF,
-	"png":    vips.ImageTypePNG,
-	"svg":    vips.ImageTypeSVG,
-	"tiff":   vips.ImageTypeTIFF,
-	"webp":   vips.ImageTypeWEBP,
-	"heif":   vips.ImageTypeHEIF,
-	"bmp":    vips.ImageTypeBMP,
-	"avif":   vips.ImageTypeAVIF,
-	"jp2":    vips.ImageTypeJP2K,
-}
-
-var imageMimeTypeMap = map[string]string{
-	"gif":  "image/gif",
-	"jpeg": "image/jpeg",
-	"jpg":  "image/jpeg",
-	"pdf":  "application/pdf",
-	"png":  "image/png",
-	"svg":  "image/svg+xml",
-	"tiff": "image/tiff",
-	"webp": "image/webp",
-	"heif": "image/heif",
-	"bmp":  "image/bmp",
-	"avif": "image/avif",
-	"jp2":  "image/jp2",
-}
-
-func (v *VipsProcessor) export(image *vips.ImageRef, format vips.ImageType, quality int) ([]byte, *vips.ImageMetadata, error) {
-	switch format {
-	case vips.ImageTypePNG:
-		opts := vips.NewPngExportParams()
-		return image.ExportPng(opts)
-	case vips.ImageTypeWEBP:
-		opts := vips.NewWebpExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportWebp(opts)
-	case vips.ImageTypeTIFF:
-		opts := vips.NewTiffExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportTiff(opts)
-	case vips.ImageTypeGIF:
-		opts := vips.NewGifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportGIF(opts)
-	case vips.ImageTypeAVIF:
-		opts := vips.NewAvifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportAvif(opts)
-	case vips.ImageTypeJP2K:
-		opts := vips.NewJp2kExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportJp2k(opts)
-	default:
-		opts := vips.NewJpegExportParams()
-		if v.MozJPEG {
-			opts.Quality = 75
-			opts.StripMetadata = true
-			opts.OptimizeCoding = true
-			opts.Interlace = true
-			opts.OptimizeScans = true
-			opts.TrellisQuant = true
-			opts.QuantTable = 3
-		}
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportJpeg(opts)
-	}
-}
-
-func wrapErr(err error) error {
-	if err == nil {
-		return nil
-	}
-	msg := err.Error()
-	if err == vips.ErrUnsupportedImageFormat || strings.HasPrefix(msg, "VipsForeignLoad: buffer is not in a known format") {
-		return imagor.ErrUnsupportedFormat
-	}
-	if idx := strings.Index(msg, "Stack:"); idx > -1 {
-		msg = strings.TrimSpace(msg[:idx]) // neglect govips stacks from err msg
-		return imagor.NewError(msg, 406)
-	}
-	return err
 }

@@ -9,21 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"image"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
-
-	_ "golang.org/x/image/tiff"
-	_ "golang.org/x/image/webp"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
 )
 
 var testDataDir string
@@ -40,16 +32,34 @@ type test struct {
 }
 
 func TestVipsProcessor(t *testing.T) {
-	doGoldenTests(t, "init", nil, WithDebug(true))
+	v := New(WithDebug(true))
+	require.NoError(t, v.Startup(context.Background()))
+	t.Cleanup(func() {
+		stats := &MemoryStats{}
+		ReadVipsMemStats(stats)
+		fmt.Println(stats)
+		require.NoError(t, v.Shutdown(context.Background()))
+	})
 	t.Parallel()
-	t.Run("vips", func(t *testing.T) {
+	t.Run("vips basic", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{
-			{name: "original", path: "gopher-front.png"},
-			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png", checkTypeOnly: true},
-			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png", checkTypeOnly: true},
-			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
-			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "png", path: "gopher-front.png"},
+			{name: "jpeg", path: "fit-in/100x100/demo1.jpg"},
+			{name: "webp", path: "fit-in/100x100/demo3.webp"},
+			{name: "avif", path: "fit-in/100x100/gopher-front.avif"},
+			{name: "tiff", path: "fit-in/100x100/gopher.tiff"},
+			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
+			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
+			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png"},
+			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png"},
+			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
+			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
+		}, WithDebug(true), WithLogger(zap.NewExample()))
+	})
+	t.Run("vips ops", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden")
+		doGoldenTests(t, resultDir, []test{
 			{name: "no-ops", path: "filters:background_color():frames():frames(0):round_corner():padding():rotate():proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
 			{name: "no-ops 2", path: "trim/filters:watermark():blur(2):sharpen(2):brightness():contrast():hue():saturation():rgb():modulate()/dancing-banana.gif"},
 			{name: "no-ops 3", path: "filters:proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
@@ -95,12 +105,14 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "trim position tolerance filter", path: "50x50:0x0/filters:trim(50,bottom-right)/find_trim.png"},
 			{name: "trim filter", path: "/fit-in/100x100/filters:fill(auto):trim(50)/find_trim.png"},
 			{name: "watermark", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
+			{name: "watermark non alpha", path: "filters:watermark(demo1.jpg,repeat,repeat,40,25,50)/demo1.jpg"},
 			{name: "watermark float", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,0.1,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-0.1)/gopher.png"},
 			{name: "watermark align", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,left,top,30,20,20):watermark(gopher.png,right,center,30,30,30):watermark(gopher-front.png,-20,-10)/gopher.png"},
 
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
 			{name: "original animated quality", path: "filters:quality(60)/dancing-banana.gif"},
+			{name: "rotate animated", path: "fit-in/100x150/filters:rotate(90):fill(yellow)/dancing-banana.gif"},
 			{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
 			{name: "crop-percent animated", path: "0.1x0.2:0.89x0.72/dancing-banana.gif"},
 			{name: "smart focal animated", path: "100x30/smart/filters:focal(0.1x0:0.89x0.72)/dancing-banana.gif"},
@@ -226,12 +238,13 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 		resultDir,
 		filestorage.WithSaveErrIfExists(true),
 	)
+	processor := New(opts...)
 	app := imagor.New(
 		imagor.WithLoaders(filestorage.New(testDataDir)),
 		imagor.WithUnsafe(true),
 		imagor.WithDebug(true),
 		imagor.WithLogger(zap.NewExample()),
-		imagor.WithProcessors(New(opts...)),
+		imagor.WithProcessors(processor),
 	)
 	require.NoError(t, app.Startup(context.Background()))
 	t.Cleanup(func() {
@@ -244,7 +257,6 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
 			assert.Equal(t, 200, w.Code)
 			b := imagor.NewBlobFromBytes(w.Body.Bytes())
-			require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
 			_ = resStorage.Put(context.Background(), tt.path, b)
 			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
 
@@ -252,48 +264,23 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			buf, err := bc.ReadAll()
 			require.NoError(t, err)
 			if tt.checkTypeOnly {
+				require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
 				assert.Equal(t, bc.ContentType(), b.ContentType())
 				assert.Equal(t, bc.BlobType(), b.BlobType())
 			} else {
-				if bb := w.Body.Bytes(); reflect.DeepEqual(buf, bb) {
-					return
+				img1, err := LoadImageFromFile(path, nil)
+				require.NoError(t, err)
+				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
+				require.NoError(t, err)
+				require.Equal(t, img1.Metadata(), img2.Metadata(), "image meta not equal")
+				if !reflect.DeepEqual(buf, w.Body.Bytes()) {
+					buf1, _, err := img1.ExportJpeg(nil)
+					require.NoError(t, err)
+					buf2, _, err := img1.ExportJpeg(nil)
+					require.NoError(t, err)
+					require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
 				}
-				existingImageFile, err := os.Open(path)
-				require.NoError(t, err)
-				defer existingImageFile.Close()
-				img1, imageType, err := image.Decode(existingImageFile)
-				require.NoError(t, err)
-				img2, imageType2, err := image.Decode(w.Body)
-				require.NoError(t, err)
-				require.Equal(t, imageType, imageType2, "%s %s", imageType, imageType2)
-				require.Equalf(t, img1.Bounds(), img2.Bounds(), "image bounds not equal: %+v, %+v", img1.Bounds(), img2.Bounds())
-				require.True(t, pixelCompare(img1, img2) < 10, "image pixel mismatch")
 			}
 		})
 	}
-}
-
-func pixelCompare(img1, img2 image.Image) (accuErr int64) {
-	b := img1.Bounds()
-	for i := 0; i < b.Dx(); i++ {
-		for j := 0; j < b.Dy(); j++ {
-			r1, g1, b1, a1 := img1.At(i, j).RGBA()
-			r2, g2, b2, a2 := img2.At(i, j).RGBA()
-			dr, dg, db, da := r1-r2, g1-g2, b1-b2, a1-a2
-			if dr < 0 {
-				dr = -dr
-			}
-			if dg < 0 {
-				dg = -dg
-			}
-			if db < 0 {
-				db = -db
-			}
-			if da < 0 {
-				da = -da
-			}
-			accuErr += int64(dr + dg + db + da)
-		}
-	}
-	return
 }

@@ -4,17 +4,268 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/davidbyttow/govips/v2/vips"
 	"go.uber.org/zap"
-	"golang.org/x/image/colornames"
-	"image/color"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 )
 
+func (v *VipsProcessor) Process(
+	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
+) (*imagor.Blob, error) {
+	var (
+		thumbnailNotSupported bool
+		upscale               = true
+		stretch               = p.Stretch
+		thumbnail             = false
+		img                   *ImageRef
+		format                = ImageTypeUnknown
+		maxN                  = v.MaxAnimationFrames
+		maxBytes              int
+		focalRects            []focal
+		err                   error
+	)
+	ctx = withInitImageRefs(ctx)
+	defer closeImageRefs(ctx)
+	if p.Trim {
+		thumbnailNotSupported = true
+	}
+	if p.FitIn {
+		upscale = false
+	}
+	if maxN == 0 || maxN < -1 {
+		maxN = 1
+	}
+	for _, p := range p.Filters {
+		switch p.Name {
+		case "format":
+			if typ, ok := imageTypeMap[p.Args]; ok {
+				format = typ
+				if format != ImageTypeGIF && format != ImageTypeWEBP {
+					// no frames if export format not support animation
+					maxN = 1
+				}
+			}
+			break
+		case "stretch":
+			stretch = true
+			break
+		case "upscale":
+			upscale = true
+			break
+		case "no_upscale":
+			upscale = false
+			break
+		case "fill", "background_color":
+			if args := strings.Split(p.Args, ","); args[0] == "auto" {
+				thumbnailNotSupported = true
+			}
+			break
+		case "max_bytes":
+			if n, _ := strconv.Atoi(p.Args); n > 0 {
+				maxBytes = n
+				thumbnailNotSupported = true
+			}
+			break
+		case "focal":
+			thumbnailNotSupported = true
+			break
+		case "trim":
+			thumbnailNotSupported = true
+			break
+		}
+	}
+	if !thumbnailNotSupported &&
+		p.CropBottom == 0.0 && p.CropTop == 0.0 && p.CropLeft == 0.0 && p.CropRight == 0.0 {
+		// apply shrink-on-load where possible
+		if p.FitIn {
+			if p.Width > 0 || p.Height > 0 {
+				w := p.Width
+				h := p.Height
+				if w == 0 {
+					w = v.MaxWidth
+				}
+				if h == 0 {
+					h = v.MaxHeight
+				}
+				size := SizeDown
+				if upscale {
+					size = SizeBoth
+				}
+				if img, err = v.newThumbnail(
+					blob, w, h, InterestingNone, size, maxN,
+				); err != nil {
+					return nil, err
+				}
+				thumbnail = true
+			}
+		} else if stretch {
+			if p.Width > 0 && p.Height > 0 {
+				if img, err = v.newThumbnail(
+					blob, p.Width, p.Height,
+					InterestingNone, SizeForce, maxN,
+				); err != nil {
+					return nil, err
+				}
+				thumbnail = true
+			}
+		} else {
+			if p.Width > 0 && p.Height > 0 {
+				interest := InterestingNone
+				if p.Smart {
+					interest = InterestingAttention
+					thumbnail = true
+				} else if (p.VAlign == imagorpath.VAlignTop && p.HAlign == "") ||
+					(p.HAlign == imagorpath.HAlignLeft && p.VAlign == "") {
+					interest = InterestingLow
+					thumbnail = true
+				} else if (p.VAlign == imagorpath.VAlignBottom && p.HAlign == "") ||
+					(p.HAlign == imagorpath.HAlignRight && p.VAlign == "") {
+					interest = InterestingHigh
+					thumbnail = true
+				} else if (p.VAlign == "" || p.VAlign == "middle") &&
+					(p.HAlign == "" || p.HAlign == "center") {
+					interest = InterestingCentre
+					thumbnail = true
+				}
+				if thumbnail {
+					if img, err = v.newThumbnail(
+						blob, p.Width, p.Height,
+						interest, SizeBoth, maxN,
+					); err != nil {
+						return nil, err
+					}
+				}
+			} else if p.Width > 0 && p.Height == 0 {
+				if img, err = v.newThumbnail(
+					blob, p.Width, v.MaxHeight,
+					InterestingNone, SizeBoth, maxN,
+				); err != nil {
+					return nil, err
+				}
+				thumbnail = true
+			} else if p.Height > 0 && p.Width == 0 {
+				if img, err = v.newThumbnail(
+					blob, v.MaxWidth, p.Height,
+					InterestingNone, SizeBoth, maxN,
+				); err != nil {
+					return nil, err
+				}
+				thumbnail = true
+			}
+		}
+	}
+	if !thumbnail {
+		if thumbnailNotSupported {
+			if img, err = v.newImage(blob, maxN); err != nil {
+				return nil, err
+			}
+		} else {
+			if img, err = v.newThumbnail(
+				blob, v.MaxWidth, v.MaxHeight,
+				InterestingNone, SizeDown, maxN,
+			); err != nil {
+				return nil, err
+			}
+		}
+	}
+	AddImageRef(ctx, img)
+	var (
+		quality    int
+		pageN      = img.Height() / img.PageHeight()
+		origWidth  = float64(img.Width())
+		origHeight = float64(img.PageHeight())
+	)
+	if format == ImageTypeUnknown {
+		if blob.BlobType() == imagor.BlobTypeAVIF {
+			// meta loader determined as heif
+			format = ImageTypeAVIF
+		} else {
+			format = img.Format()
+		}
+	}
+	SetPageN(ctx, pageN)
+	if v.Debug {
+		v.Logger.Debug("image",
+			zap.Int("width", img.Width()),
+			zap.Int("height", img.Height()),
+			zap.Int("page_height", img.PageHeight()),
+			zap.Int("page_n", pageN))
+	}
+	for _, p := range p.Filters {
+		switch p.Name {
+		case "quality":
+			quality, _ = strconv.Atoi(p.Args)
+			break
+		case "autojpg":
+			format = ImageTypeJPEG
+			break
+		case "focal":
+			if args := strings.FieldsFunc(p.Args, argSplit); len(args) == 4 {
+				f := focal{}
+				f.Left, _ = strconv.ParseFloat(args[0], 64)
+				f.Top, _ = strconv.ParseFloat(args[1], 64)
+				f.Right, _ = strconv.ParseFloat(args[2], 64)
+				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
+				if f.Left < 1 && f.Top < 1 && f.Right <= 1 && f.Bottom <= 1 {
+					f.Left *= origWidth
+					f.Right *= origWidth
+					f.Top *= origHeight
+					f.Bottom *= origHeight
+				}
+				if f.Right > f.Left && f.Bottom > f.Top {
+					focalRects = append(focalRects, f)
+				}
+			}
+			break
+		}
+	}
+	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
+		return nil, wrapErr(err)
+	}
+	for {
+		buf, meta, err := v.export(img, format, quality)
+		if err != nil {
+			return nil, wrapErr(err)
+		}
+		if maxBytes > 0 && (quality > 10 || quality == 0) && format != ImageTypePNG {
+			ln := len(buf)
+			if v.Debug {
+				v.Logger.Debug("max_bytes",
+					zap.Int("bytes", ln),
+					zap.Int("quality", quality),
+				)
+			}
+			if ln > maxBytes {
+				if quality == 0 {
+					quality = 80
+				}
+				delta := float64(ln) / float64(maxBytes)
+				switch {
+				case delta > 3:
+					quality = quality * 25 / 100
+				case delta > 1.5:
+					quality = quality * 50 / 100
+				default:
+					quality = quality * 75 / 100
+				}
+				if err := ctx.Err(); err != nil {
+					return nil, wrapErr(err)
+				}
+				continue
+			}
+		}
+		b := imagor.NewBlobFromBytes(buf)
+		if meta != nil {
+			b.Meta = getMeta(meta)
+		}
+		return b, nil
+	}
+}
+
 func (v *VipsProcessor) process(
-	ctx context.Context, img *vips.ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
+	ctx context.Context, img *ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
 		origWidth  = float64(img.Width())
@@ -89,33 +340,33 @@ func (v *VipsProcessor) process(
 	if !thumbnail {
 		if p.FitIn {
 			if upscale || w < img.Width() || h < img.PageHeight() {
-				if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
+				if err := img.Thumbnail(w, h, InterestingNone); err != nil {
 					return err
 				}
 			}
 		} else if stretch {
 			if upscale || (w < img.Width() && h < img.PageHeight()) {
 				if err := img.ThumbnailWithSize(
-					w, h, vips.InterestingNone, vips.SizeForce,
+					w, h, InterestingNone, SizeForce,
 				); err != nil {
 					return err
 				}
 			}
 		} else if upscale || w < img.Width() || h < img.PageHeight() {
-			interest := vips.InterestingCentre
+			interest := InterestingCentre
 			if p.Smart {
-				interest = vips.InterestingAttention
+				interest = InterestingAttention
 			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 				if p.VAlign == imagorpath.VAlignTop {
-					interest = vips.InterestingLow
+					interest = InterestingLow
 				} else if p.VAlign == imagorpath.VAlignBottom {
-					interest = vips.InterestingHigh
+					interest = InterestingHigh
 				}
 			} else {
 				if p.HAlign == imagorpath.HAlignLeft {
-					interest = vips.InterestingLow
+					interest = InterestingLow
 				} else if p.HAlign == imagorpath.HAlignRight {
-					interest = vips.InterestingHigh
+					interest = InterestingHigh
 				}
 			}
 			if p.Smart && len(focalRects) > 0 {
@@ -128,7 +379,7 @@ func (v *VipsProcessor) process(
 					return err
 				}
 			} else {
-				if err := v.thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
+				if err := v.thumbnail(img, w, h, interest, SizeBoth); err != nil {
 					return err
 				}
 			}
@@ -138,12 +389,12 @@ func (v *VipsProcessor) process(
 		}
 	}
 	if p.HFlip {
-		if err := img.Flip(vips.DirectionHorizontal); err != nil {
+		if err := img.Flip(DirectionHorizontal); err != nil {
 			return err
 		}
 	}
 	if p.VFlip {
-		if err := img.Flip(vips.DirectionVertical); err != nil {
+		if err := img.Flip(DirectionVertical); err != nil {
 			return err
 		}
 	}
@@ -183,6 +434,86 @@ func (v *VipsProcessor) process(
 	return nil
 }
 
+func getMeta(meta *ImageMetadata) *imagor.Meta {
+	format := ImageTypes[meta.Format]
+	contentType := imageMimeTypeMap[format]
+	pages := 1
+	if p := meta.Pages; p > 1 {
+		pages = p
+	}
+	return &imagor.Meta{
+		Format:      format,
+		ContentType: contentType,
+		Width:       meta.Width,
+		Height:      meta.Height / pages,
+		Orientation: meta.Orientation,
+		Pages:       pages,
+	}
+}
+
+func (v *VipsProcessor) export(image *ImageRef, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
+	switch format {
+	case ImageTypePNG:
+		opts := NewPngExportParams()
+		return image.ExportPng(opts)
+	case ImageTypeWEBP:
+		opts := NewWebpExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportWebp(opts)
+	case ImageTypeTIFF:
+		opts := NewTiffExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportTiff(opts)
+	case ImageTypeGIF:
+		opts := NewGifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportGIF(opts)
+	case ImageTypeAVIF:
+		opts := NewAvifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportAvif(opts)
+	case ImageTypeHEIF:
+		opts := NewHeifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportHeif(opts)
+	case ImageTypeJP2K:
+		opts := NewJp2kExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportJp2k(opts)
+	default:
+		opts := NewJpegExportParams()
+		if v.MozJPEG {
+			opts.Quality = 75
+			opts.StripMetadata = true
+			opts.OptimizeCoding = true
+			opts.Interlace = true
+			opts.OptimizeScans = true
+			opts.TrellisQuant = true
+			opts.QuantTable = 3
+		}
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportJpeg(opts)
+	}
+}
+
+func argSplit(r rune) bool {
+	return r == 'x' || r == ',' || r == ':'
+}
+
 type focal struct {
 	Left   float64
 	Right  float64
@@ -204,7 +535,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 }
 
 func findTrim(
-	ctx context.Context, img *vips.ImageRef, pos string, tolerance int,
+	ctx context.Context, img *ImageRef, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
 	if IsAnimated(ctx) {
 		// skip animation support
@@ -222,80 +553,8 @@ func findTrim(
 	if err != nil {
 		return
 	}
-	l, t, w, h, err = img.FindTrim(float64(tolerance), &vips.Color{
+	l, t, w, h, err = img.FindTrim(float64(tolerance), &Color{
 		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
 	})
 	return
-}
-
-func isBlack(c *vips.Color) bool {
-	return c.R == 0x00 && c.G == 0x00 && c.B == 0x00
-}
-
-func isWhite(c *vips.Color) bool {
-	return c.R == 0xff && c.G == 0xff && c.B == 0xff
-}
-
-func getColor(img *vips.ImageRef, color string) *vips.Color {
-	vc := &vips.Color{}
-	args := strings.Split(strings.ToLower(color), ",")
-	mode := ""
-	name := strings.TrimPrefix(args[0], "#")
-	if len(args) > 1 {
-		mode = args[1]
-	}
-	if name == "auto" {
-		if img != nil {
-			x := 0
-			y := 0
-			if mode == "bottom-right" {
-				x = img.Width() - 1
-				y = img.PageHeight() - 1
-			}
-			p, _ := img.GetPoint(x, y)
-			if len(p) >= 3 {
-				vc.R = uint8(p[0])
-				vc.G = uint8(p[1])
-				vc.B = uint8(p[2])
-			}
-		}
-	} else if c, ok := colornames.Map[name]; ok {
-		vc.R = c.R
-		vc.G = c.G
-		vc.B = c.B
-	} else if c, ok := parseHexColor(name); ok {
-		vc.R = c.R
-		vc.G = c.G
-		vc.B = c.B
-	}
-	return vc
-}
-
-func parseHexColor(s string) (c color.RGBA, ok bool) {
-	c.A = 0xff
-	switch len(s) {
-	case 6:
-		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
-		c.G = hexToByte(s[2])<<4 + hexToByte(s[3])
-		c.B = hexToByte(s[4])<<4 + hexToByte(s[5])
-		ok = true
-	case 3:
-		c.R = hexToByte(s[0]) * 17
-		c.G = hexToByte(s[1]) * 17
-		c.B = hexToByte(s[2]) * 17
-		ok = true
-	}
-	return
-}
-
-func hexToByte(b byte) byte {
-	switch {
-	case b >= '0' && b <= '9':
-		return b - '0'
-	case b >= 'a' && b <= 'f':
-		return b - 'a' + 10
-	case b >= 'A' && b <= 'F':
-		return b - 'A' + 10
-	}
-	return 0
 }
