@@ -12,7 +12,7 @@ import (
 
 type BlobType int
 
-const maxBodySize = int64(100 << 20) // 100MB
+const maxBodySize = int64(32 << 20) // 32MB
 
 const (
 	BlobTypeUnknown BlobType = iota
