@@ -344,6 +344,12 @@ func (v *VipsProcessor) export(image *ImageRef, format ImageType, quality int) (
 			opts.Quality = quality
 		}
 		return image.ExportAvif(opts)
+	case ImageTypeHEIF:
+		opts := NewHeifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportHeif(opts)
 	case ImageTypeJP2K:
 		opts := NewJp2kExportParams()
 		if quality > 0 {
