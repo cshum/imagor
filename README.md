@@ -2,8 +2,8 @@
 
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
 [![Coverage Status](https://img.shields.io/coveralls/github/cshum/imagor)](https://coveralls.io/github/cshum/imagor?branch=master)
-[![GitHub Container Registry](https://ghcr-badge.herokuapp.com/cshum/imagor/latest_tag?trim=major&label=ghcr.io&ignore=next,master&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
+[![GitHub Container Registry](https://ghcr-badge.herokuapp.com/cshum/imagor/latest_tag?trim=major&label=ghcr.io&ignore=next,master&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
 
 Imagor is a fast, Docker-ready image processing server written in Go.
 
@@ -17,7 +17,7 @@ Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#
 ### Quick Start
 
 ```bash
-docker run -p 8000:8000 ghcr.io/cshum/imagor -imagor-unsafe -imagor-auto-webp
+docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
 ```
 
 Original images:
@@ -164,7 +164,7 @@ Docker Compose example with file system, using mounted volume:
 version: "3"
 services:
   imagor:
-    image: ghcr.io/cshum/imagor:latest
+    image: shumc/imagor:latest
     volumes:
       - ./:/mnt/data
     environment:
@@ -192,7 +192,7 @@ Docker Compose example with AWS S3. Also works with S3 compatible such as MinIO,
 version: "3"
 services:
   imagor:
-    image: ghcr.io/cshum/imagor:latest
+    image: shumc/imagor:latest
     environment:
       PORT: 8000
       IMAGOR_SECRET: mysecret # secret key for URL signature
@@ -237,7 +237,7 @@ Docker Compose example with Google Cloud Storage:
 version: "3"
 services:
   imagor:
-    image: ghcr.io/cshum/imagor:latest
+    image: shumc/imagor:latest
     volumes:
       - ./googlesecret:/etc/secrets/google
     environment:
