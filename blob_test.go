@@ -70,6 +70,7 @@ func TestBlobTypes(t *testing.T) {
 			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			assert.NotEmpty(t, b.Sniff())
+			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
 
 			buf, err := b.ReadAll()
@@ -81,6 +82,7 @@ func TestBlobTypes(t *testing.T) {
 			assert.Equal(t, tt.bytesType, b.BlobType())
 			assert.False(t, b.IsEmpty())
 			assert.NotEmpty(t, b.Sniff())
+			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
 		})
 	}
@@ -100,6 +102,7 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 	assert.Empty(t, b.Sniff())
+	assert.Empty(t, b.Size())
 
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)
@@ -108,6 +111,7 @@ func TestNewEmptyBlob(t *testing.T) {
 	r, size, err := b.NewReader()
 	assert.NoError(t, err)
 	assert.Empty(t, size)
+	assert.Empty(t, b.Size())
 
 	buf, err = io.ReadAll(r)
 	assert.NoError(t, err)
@@ -122,6 +126,7 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 	assert.Empty(t, b.Sniff())
+	assert.Empty(t, b.Size())
 
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)

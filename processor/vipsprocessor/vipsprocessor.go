@@ -183,7 +183,7 @@ func (v *VipsProcessor) NewThumbnail(
 			if img, err = v.CheckResolution(
 				LoadThumbnailFromBlob(blob, width, height, crop, size, params),
 			); err != nil {
-				return nil, wrapErr(err)
+				return nil, WrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
 				// reload image to restrict frames loaded
@@ -192,7 +192,7 @@ func (v *VipsProcessor) NewThumbnail(
 			}
 		} else {
 			if img, err = v.CheckResolution(LoadImageFromBlob(blob, params)); err != nil {
-				return nil, wrapErr(err)
+				return nil, WrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
 				// reload image to restrict frames loaded
@@ -201,7 +201,7 @@ func (v *VipsProcessor) NewThumbnail(
 			}
 			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
 				img.Close()
-				return nil, wrapErr(err)
+				return nil, WrapErr(err)
 			}
 		}
 	} else if blob.BlobType() == imagor.BlobTypePNG {
@@ -209,7 +209,7 @@ func (v *VipsProcessor) NewThumbnail(
 	} else {
 		img, err = LoadThumbnailFromBlob(blob, width, height, crop, size, nil)
 	}
-	return v.CheckResolution(img, wrapErr(err))
+	return v.CheckResolution(img, WrapErr(err))
 }
 
 func (v *VipsProcessor) newThumbnailPNG(
@@ -222,7 +222,7 @@ func (v *VipsProcessor) newThumbnailPNG(
 		img.Close()
 		return
 	}
-	return v.CheckResolution(img, wrapErr(err))
+	return v.CheckResolution(img, WrapErr(err))
 }
 
 func (v *VipsProcessor) NewImage(blob *imagor.Blob, n int) (*ImageRef, error) {
@@ -236,7 +236,7 @@ func (v *VipsProcessor) NewImage(blob *imagor.Blob, n int) (*ImageRef, error) {
 		}
 		img, err := v.CheckResolution(LoadImageFromBlob(blob, params))
 		if err != nil {
-			return nil, wrapErr(err)
+			return nil, WrapErr(err)
 		}
 		// reload image to restrict frames loaded
 		if n > 1 && img.Pages() > n {
@@ -248,7 +248,7 @@ func (v *VipsProcessor) NewImage(blob *imagor.Blob, n int) (*ImageRef, error) {
 	} else {
 		img, err := v.CheckResolution(LoadImageFromBlob(blob, params))
 		if err != nil {
-			return nil, wrapErr(err)
+			return nil, WrapErr(err)
 		}
 		return img, nil
 	}
@@ -323,7 +323,7 @@ func isBlobAnimated(blob *imagor.Blob, n int) bool {
 	return blob != nil && blob.SupportsAnimation() && n != 1 && n != 0
 }
 
-func wrapErr(err error) error {
+func WrapErr(err error) error {
 	if err == nil {
 		return nil
 	}

@@ -126,7 +126,9 @@ func (b *Blob) init() {
 	b.once.Do(func() {
 		b.blobType = BlobTypeUnknown
 		b.contentType = "application/octet-stream"
-
+		if b.err != nil {
+			return
+		}
 		if b.newReader == nil {
 			b.blobType = BlobTypeEmpty
 			b.newReader = newEmptyReader
@@ -222,6 +224,11 @@ func (b *Blob) BlobType() BlobType {
 func (b *Blob) Sniff() []byte {
 	b.init()
 	return b.buf
+}
+
+func (b *Blob) Size() int64 {
+	b.init()
+	return b.size
 }
 
 func (b *Blob) FilePath() string {

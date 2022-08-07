@@ -222,12 +222,12 @@ func (v *VipsProcessor) Process(
 		}
 	}
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
-		return nil, wrapErr(err)
+		return nil, WrapErr(err)
 	}
 	for {
 		buf, meta, err := v.export(img, format, quality)
 		if err != nil {
-			return nil, wrapErr(err)
+			return nil, WrapErr(err)
 		}
 		if maxBytes > 0 && (quality > 10 || quality == 0) && format != ImageTypePNG {
 			ln := len(buf)
@@ -251,7 +251,7 @@ func (v *VipsProcessor) Process(
 					quality = quality * 75 / 100
 				}
 				if err := ctx.Err(); err != nil {
-					return nil, wrapErr(err)
+					return nil, WrapErr(err)
 				}
 				continue
 			}
