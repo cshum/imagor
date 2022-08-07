@@ -1,6 +1,12 @@
 #include "vips.h"
 #include <unistd.h>
 
+int image_new_from_file(const char *name, VipsImage **out) {
+  *out = vips_image_new_from_file(name, NULL);
+  if (!*out) return 1;
+  return 0;
+}
+
 int image_new_from_buffer(const void *buf, size_t len, VipsImage **out) {
   *out = vips_image_new_from_buffer(buf, len, "", NULL);
   if (!*out) return 1;

@@ -9,21 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"image"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"testing"
-
-	_ "golang.org/x/image/tiff"
-	_ "golang.org/x/image/webp"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
 )
 
 var testDataDir string
@@ -49,7 +41,7 @@ func TestVipsProcessor(t *testing.T) {
 		require.NoError(t, v.Shutdown(context.Background()))
 	})
 	t.Parallel()
-	t.Run("vips", func(t *testing.T) {
+	t.Run("vips basic", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{
 			{name: "png", path: "gopher-front.png"},
@@ -63,6 +55,11 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png"},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
 			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png"},
+		}, WithDebug(true), WithLogger(zap.NewExample()))
+	})
+	t.Run("vips ops", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden")
+		doGoldenTests(t, resultDir, []test{
 			{name: "no-ops", path: "filters:background_color():frames():frames(0):round_corner():padding():rotate():proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
 			{name: "no-ops 2", path: "trim/filters:watermark():blur(2):sharpen(2):brightness():contrast():hue():saturation():rgb():modulate()/dancing-banana.gif"},
 			{name: "no-ops 3", path: "filters:proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
@@ -274,42 +271,18 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				if bb := w.Body.Bytes(); reflect.DeepEqual(buf, bb) {
 					return
 				}
-				existingImageFile, err := os.Open(path)
+				img1, err := LoadImageFromFile(path, nil)
 				require.NoError(t, err)
-				defer existingImageFile.Close()
-				img1, imageType, err := image.Decode(existingImageFile)
+				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
 				require.NoError(t, err)
-				img2, imageType2, err := image.Decode(w.Body)
+				require.Equal(t, img1.Format(), img2.Format())
+				require.Equal(t, img1.Metadata(), img2.Metadata(), "image meta not equal")
+				buf1, _, err := img1.ExportJpeg(nil)
 				require.NoError(t, err)
-				require.Equal(t, imageType, imageType2, "%s %s", imageType, imageType2)
-				require.Equalf(t, img1.Bounds(), img2.Bounds(), "image bounds not equal: %+v, %+v", img1.Bounds(), img2.Bounds())
-				require.True(t, pixelCompare(img1, img2) < 10, "image pixel mismatch")
+				buf2, _, err := img1.ExportJpeg(nil)
+				require.NoError(t, err)
+				require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
 			}
 		})
 	}
-}
-
-func pixelCompare(img1, img2 image.Image) (accuErr int64) {
-	b := img1.Bounds()
-	for i := 0; i < b.Dx(); i++ {
-		for j := 0; j < b.Dy(); j++ {
-			r1, g1, b1, a1 := img1.At(i, j).RGBA()
-			r2, g2, b2, a2 := img2.At(i, j).RGBA()
-			dr, dg, db, da := r1-r2, g1-g2, b1-b2, a1-a2
-			if dr < 0 {
-				dr = -dr
-			}
-			if dg < 0 {
-				dg = -dg
-			}
-			if db < 0 {
-				db = -db
-			}
-			if da < 0 {
-				da = -da
-			}
-			accuErr += int64(dr + dg + db + da)
-		}
-	}
-	return
 }

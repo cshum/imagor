@@ -179,7 +179,7 @@ func (v *VipsProcessor) Process(
 	)
 	if format == ImageTypeUnknown {
 		if blob.BlobType() == imagor.BlobTypeAVIF {
-			// metaloader determined as heif
+			// meta loader determined as heif
 			format = ImageTypeAVIF
 		} else {
 			format = img.Format()
