@@ -22,6 +22,7 @@ const (
 	BlobTypeGIF
 	BlobTypeWEBP
 	BlobTypeAVIF
+	BlobTypeHEIF
 	BlobTypeTIFF
 )
 
@@ -92,6 +93,9 @@ var pngHeader = []byte("\x89\x50\x4E\x47")
 
 // https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
 var ftyp = []byte("ftyp")
+var heic = []byte("heic")
+var mif1 = []byte("mif1")
+var msf1 = []byte("msf1")
 var avif = []byte("avif")
 
 var tifII = []byte("\x49\x49\x2A\x00")
@@ -159,6 +163,10 @@ func (b *Blob) init() {
 				b.blobType = BlobTypeWEBP
 			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
 				b.blobType = BlobTypeAVIF
+			} else if bytes.Equal(b.buf[4:8], ftyp) && (bytes.Equal(b.buf[8:12], heic) ||
+				bytes.Equal(b.buf[8:12], mif1) ||
+				bytes.Equal(b.buf[8:12], msf1)) {
+				b.blobType = BlobTypeHEIF
 			} else if bytes.Equal(b.buf[:4], tifII) || bytes.Equal(b.buf[:4], tifMM) {
 				b.blobType = BlobTypeTIFF
 			}
@@ -174,6 +182,8 @@ func (b *Blob) init() {
 			b.contentType = "image/webp"
 		case BlobTypeAVIF:
 			b.contentType = "image/avif"
+		case BlobTypeHEIF:
+			b.contentType = "image/heif"
 		case BlobTypeTIFF:
 			b.contentType = "image/tiff"
 		default:

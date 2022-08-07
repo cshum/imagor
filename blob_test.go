@@ -55,6 +55,12 @@ func TestBlobTypes(t *testing.T) {
 			contentType: "image/avif",
 			bytesType:   BlobTypeAVIF,
 		},
+		{
+			name:        "heif",
+			path:        "gopher-front.heif",
+			contentType: "image/heif",
+			bytesType:   BlobTypeHEIF,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

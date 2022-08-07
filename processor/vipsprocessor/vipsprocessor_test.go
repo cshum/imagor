@@ -54,7 +54,7 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png"},
 			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png"},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
-			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png"},
+			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips ops", func(t *testing.T) {
@@ -273,9 +273,7 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
 				require.NoError(t, err)
 				require.Equal(t, img1.Metadata(), img2.Metadata(), "image meta not equal")
-				if bb := w.Body.Bytes(); reflect.DeepEqual(buf, bb) {
-					return
-				} else {
+				if !reflect.DeepEqual(buf, w.Body.Bytes()) {
 					buf1, _, err := img1.ExportJpeg(nil)
 					require.NoError(t, err)
 					buf2, _, err := img1.ExportJpeg(nil)
