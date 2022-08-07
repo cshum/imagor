@@ -62,10 +62,17 @@ func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Bl
 	return &Blob{newReader: newReader}
 }
 
-func NewBlobFromFile(filepath string, checks ...func(stats os.FileInfo) error) *Blob {
-	stats, err := os.Stat(filepath)
+func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
+	stat, err := os.Stat(filepath)
 	if os.IsNotExist(err) {
 		err = ErrNotFound
+	}
+	if err == nil {
+		for _, check := range checks {
+			if err = check(stat); err != nil {
+				break
+			}
+		}
 	}
 	return &Blob{
 		err:      err,
@@ -74,13 +81,8 @@ func NewBlobFromFile(filepath string, checks ...func(stats os.FileInfo) error) *
 			if err != nil {
 				return nil, 0, err
 			}
-			for _, check := range checks {
-				if err := check(stats); err != nil {
-					return nil, stats.Size(), err
-				}
-			}
 			reader, err := os.Open(filepath)
-			return reader, stats.Size(), err
+			return reader, stat.Size(), err
 		},
 	}
 }
