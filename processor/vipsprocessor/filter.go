@@ -573,8 +573,6 @@ func hexToByte(b byte) byte {
 		return b - '0'
 	case b >= 'a' && b <= 'f':
 		return b - 'a' + 10
-	case b >= 'A' && b <= 'F':
-		return b - 'A' + 10
 	}
 	return 0
 }
