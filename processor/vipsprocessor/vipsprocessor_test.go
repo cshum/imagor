@@ -30,7 +30,7 @@ func init() {
 type test struct {
 	name          string
 	path          string
-	checkTypeOnly bool
+	checkMetaOnly bool
 }
 
 func TestVipsProcessor(t *testing.T) {
@@ -56,7 +56,7 @@ func TestVipsProcessor(t *testing.T) {
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png"},
 			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png"},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
-			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkMetaOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips operations", func(t *testing.T) {
@@ -277,16 +277,18 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				bc := imagor.NewBlobFromFile(path)
 				buf, err := bc.ReadAll()
 				require.NoError(t, err)
-				if tt.checkTypeOnly {
+				if tt.checkMetaOnly {
 					require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
 					assert.Equal(t, bc.ContentType(), b.ContentType())
 					assert.Equal(t, bc.BlobType(), b.BlobType())
-				} else if !reflect.DeepEqual(buf, w.Body.Bytes()) {
-					img1, err := LoadImageFromFile(path, nil)
-					require.NoError(t, err)
-					img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
-					require.NoError(t, err)
-					require.Equal(t, img1.Metadata(), img2.Metadata(), "image meta not equal")
+					return
+				}
+				img1, err := LoadImageFromFile(path, nil)
+				require.NoError(t, err)
+				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
+				require.NoError(t, err)
+				require.Equal(t, img1.Metadata(), img2.Metadata(), "image meta not equal")
+				if !reflect.DeepEqual(buf, w.Body.Bytes()) {
 					buf1, _, err := img1.ExportJpeg(nil)
 					require.NoError(t, err)
 					buf2, _, err := img1.ExportJpeg(nil)
