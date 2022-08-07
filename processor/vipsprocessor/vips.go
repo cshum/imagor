@@ -14,11 +14,14 @@ func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageT
 
 	var out *C.VipsImage
 	var code C.int
-
-	if params == nil {
+	var optionString string
+	if params != nil {
+		optionString = params.OptionString()
+	}
+	if optionString == "" {
 		code = C.image_new_from_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out)
 	} else {
-		cOptionString := C.CString(params.OptionString())
+		cOptionString := C.CString(optionString)
 		defer freeCString(cOptionString)
 
 		code = C.image_new_from_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, cOptionString)
@@ -39,11 +42,15 @@ func vipsThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, si
 
 	var out *C.VipsImage
 	var code C.int
+	var optionString string
+	if params != nil {
+		optionString = params.OptionString()
+	}
 
-	if params == nil {
+	if optionString == "" {
 		code = C.thumbnail_buffer(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size))
 	} else {
-		cOptionString := C.CString(params.OptionString())
+		cOptionString := C.CString(optionString)
 		defer freeCString(cOptionString)
 
 		code = C.thumbnail_buffer_with_option(unsafe.Pointer(&src[0]), C.size_t(len(src)), &out, C.int(width), C.int(height), C.int(crop), C.int(size), cOptionString)
