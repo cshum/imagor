@@ -178,7 +178,12 @@ func (v *VipsProcessor) Process(
 		origHeight = float64(img.PageHeight())
 	)
 	if format == ImageTypeUnknown {
-		format = img.Format()
+		if blob.BlobType() == imagor.BlobTypeAVIF {
+			// metaloader determined as heif
+			format = ImageTypeAVIF
+		} else {
+			format = img.Format()
+		}
 	}
 	SetPageN(ctx, pageN)
 	if v.Debug {
@@ -427,6 +432,82 @@ func (v *VipsProcessor) process(
 		}
 	}
 	return nil
+}
+
+func getMeta(meta *ImageMetadata) *imagor.Meta {
+	format := ImageTypes[meta.Format]
+	contentType := imageMimeTypeMap[format]
+	pages := 1
+	if p := meta.Pages; p > 1 {
+		pages = p
+	}
+	return &imagor.Meta{
+		Format:      format,
+		ContentType: contentType,
+		Width:       meta.Width,
+		Height:      meta.Height / pages,
+		Orientation: meta.Orientation,
+		Pages:       pages,
+	}
+}
+
+func (v *VipsProcessor) export(image *ImageRef, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
+	switch format {
+	case ImageTypePNG:
+		opts := NewPngExportParams()
+		return image.ExportPng(opts)
+	case ImageTypeWEBP:
+		opts := NewWebpExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportWebp(opts)
+	case ImageTypeTIFF:
+		opts := NewTiffExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportTiff(opts)
+	case ImageTypeGIF:
+		opts := NewGifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportGIF(opts)
+	case ImageTypeAVIF:
+		opts := NewAvifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportAvif(opts)
+	case ImageTypeHEIF:
+		opts := NewHeifExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportHeif(opts)
+	case ImageTypeJP2K:
+		opts := NewJp2kExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportJp2k(opts)
+	default:
+		opts := NewJpegExportParams()
+		if v.MozJPEG {
+			opts.Quality = 75
+			opts.StripMetadata = true
+			opts.OptimizeCoding = true
+			opts.Interlace = true
+			opts.OptimizeScans = true
+			opts.TrellisQuant = true
+			opts.QuantTable = 3
+		}
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		return image.ExportJpeg(opts)
+	}
 }
 
 func argSplit(r rune) bool {
