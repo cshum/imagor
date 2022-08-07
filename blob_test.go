@@ -64,7 +64,7 @@ func TestBlobTypes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := NewBlobFromPath("testdata/" + tt.path)
+			b := NewBlobFromFile("testdata/" + tt.path)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
 			assert.Equal(t, tt.bytesType, b.BlobType())
@@ -118,7 +118,7 @@ func TestNewEmptyBlob(t *testing.T) {
 	defer f.Close()
 	defer os.Remove(f.Name())
 	fmt.Println(f.Name())
-	b = NewBlobFromPath(f.Name())
+	b = NewBlobFromFile(f.Name())
 	assert.Equal(t, BlobTypeEmpty, b.BlobType())
 	assert.True(t, b.IsEmpty())
 	assert.Empty(t, b.Sniff())

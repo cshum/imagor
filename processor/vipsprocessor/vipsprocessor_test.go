@@ -260,7 +260,7 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			_ = resStorage.Put(context.Background(), tt.path, b)
 			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
 
-			bc := imagor.NewBlobFromPath(path)
+			bc := imagor.NewBlobFromFile(path)
 			buf, err := bc.ReadAll()
 			require.NoError(t, err)
 			if tt.checkTypeOnly {

@@ -208,7 +208,7 @@ func TestWithCustomSigner(t *testing.T) {
 
 func TestNewBlobFromPathNotFound(t *testing.T) {
 	loader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
-		return NewBlobFromPath("./non-exists-path"), nil
+		return NewBlobFromFile("./non-exists-path"), nil
 	})
 	app := New(
 		WithDebug(true),

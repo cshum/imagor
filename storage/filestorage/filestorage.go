@@ -61,19 +61,11 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	stats, err := os.Stat(image)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, imagor.ErrNotFound
+	return imagor.NewBlobFromFile(image, func(stats os.FileInfo) error {
+		if s.Expiration > 0 && time.Now().Sub(stats.ModTime()) > s.Expiration {
+			return imagor.ErrExpired
 		}
-		return nil, err
-	}
-	if s.Expiration > 0 && time.Now().Sub(stats.ModTime()) > s.Expiration {
-		return nil, imagor.ErrExpired
-	}
-	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
-		r, err := os.Open(image)
-		return r, stats.Size(), err
+		return nil
 	}), nil
 }
 

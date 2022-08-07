@@ -12,7 +12,7 @@ import (
 
 type BlobType int
 
-const maxBodySize = int64(10 << 20) // 10mb
+const maxBodySize = int64(100 << 20) // 100MB
 
 const (
 	BlobTypeUnknown BlobType = iota
@@ -61,7 +61,7 @@ func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Bl
 	return &Blob{newReader: newReader}
 }
 
-func NewBlobFromPath(filepath string) *Blob {
+func NewBlobFromFile(filepath string, checks ...func(stats os.FileInfo) error) *Blob {
 	return NewBlob(func() (io.ReadCloser, int64, error) {
 		stats, err := os.Stat(filepath)
 		if err != nil {
@@ -69,6 +69,11 @@ func NewBlobFromPath(filepath string) *Blob {
 				err = ErrNotFound
 			}
 			return nil, 0, err
+		}
+		for _, check := range checks {
+			if err := check(stats); err != nil {
+				return nil, stats.Size(), err
+			}
 		}
 		reader, err := os.Open(filepath)
 		return reader, stats.Size(), err
