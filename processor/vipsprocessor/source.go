@@ -12,7 +12,7 @@ import (
 type Source struct {
 	reader io.ReadCloser
 	seeker io.Seeker
-	ref    *C.VipsSourceCustom
+	src    *C.VipsSourceCustom
 	ptr    unsafe.Pointer
 }
 
@@ -25,7 +25,7 @@ func NewSource(reader io.ReadCloser) *Source {
 		s.seeker = seeker
 	}
 	s.ptr = pointer.Save(s)
-	s.ref = C.create_go_custom_source(s.ptr)
+	s.src = C.create_go_custom_source(s.ptr)
 	return s
 }
 
@@ -34,7 +34,7 @@ func (s *Source) LoadImage(params *ImportParams) (*ImageRef, error) {
 		params = NewImportParams()
 	}
 
-	vipsImage, format, err := vipsImageFromSource(s.ref, params)
+	vipsImage, format, err := vipsImageFromSource(s.src, params)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (s *Source) LoadImage(params *ImportParams) (*ImageRef, error) {
 
 func (s *Source) Close() {
 	if s.ptr != nil {
-		C.clear_source(&s.ref)
+		C.clear_source(&s.src)
 		pointer.Unref(s.ptr)
 		s.ptr = nil
 		_ = s.reader.Close()
