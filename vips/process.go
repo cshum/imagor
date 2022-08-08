@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/vips/vipscontext"
 	"go.uber.org/zap"
 	"math"
 	"strconv"
@@ -26,8 +27,14 @@ func (v *Processor) Process(
 		focalRects            []focal
 		err                   error
 	)
-	ctx = WithContextRef(ctx)
-	defer Callback(ctx)
+	ctx = vipscontext.WithContext(ctx, 2)
+	go func() {
+		// when ctx signaled
+		<-ctx.Done()
+		vipscontext.Done(ctx)
+	}()
+	// when vips process finished
+	defer vipscontext.Done(ctx)
 	if p.Trim {
 		thumbnailNotSupported = true
 	}
@@ -170,7 +177,7 @@ func (v *Processor) Process(
 			}
 		}
 	}
-	AddCallback(ctx, img.Close)
+	vipscontext.Defer(ctx, img.Close)
 	var (
 		quality    int
 		pageN      = img.Height() / img.PageHeight()
@@ -185,7 +192,7 @@ func (v *Processor) Process(
 			format = img.Format()
 		}
 	}
-	SetPageN(ctx, pageN)
+	vipscontext.SetPageN(ctx, pageN)
 	if v.Debug {
 		v.Logger.Debug("image",
 			zap.Int("width", img.Width()),
@@ -537,7 +544,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 func findTrim(
 	ctx context.Context, img *Image, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
-	if IsAnimated(ctx) {
+	if vipscontext.IsAnimated(ctx) {
 		// skip animation support
 		return
 	}

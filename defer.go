@@ -28,8 +28,8 @@ func (r *deferRef) Call() {
 	r.l.Unlock()
 }
 
-// WithDefer context with func defer calls
-func WithDefer(ctx context.Context) context.Context {
+// DeferContext context with func defer calls
+func DeferContext(ctx context.Context) context.Context {
 	r := &deferRef{}
 	ctx = context.WithValue(ctx, deferKey{}, r)
 	go func() {

@@ -200,7 +200,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Do executes Imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
-	var ctx = WithDefer(r.Context())
+	var ctx = DeferContext(r.Context())
 	var cancel func()
 	if app.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)

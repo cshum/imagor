@@ -1,44 +1,54 @@
-package vips
+package vipscontext
 
 import (
 	"context"
+	"sync"
 )
 
 type contextRefKey struct{}
 
 type contextRef struct {
+	l        sync.Mutex
+	cnt      int
 	cbs      []func()
 	Rotate90 bool
 	PageN    int
 }
 
-func (r *contextRef) AddCallback(cb func()) {
+func (r *contextRef) Defer(cb func()) {
+	r.l.Lock()
 	r.cbs = append(r.cbs, cb)
+	r.l.Unlock()
 }
 
-func (r *contextRef) Callback() {
-	for _, cb := range r.cbs {
-		cb()
+func (r *contextRef) Done() {
+	r.l.Lock()
+	r.cnt--
+	if r.cnt == 0 {
+		for _, cb := range r.cbs {
+			cb()
+		}
+		r.cbs = nil
 	}
-	r.cbs = nil
+	r.l.Unlock()
 }
 
-// WithContextRef context with callback tracking
-func WithContextRef(ctx context.Context) context.Context {
-	return context.WithValue(ctx, contextRefKey{}, &contextRef{})
+// WithContext with callback tracking
+func WithContext(ctx context.Context, cnt int) context.Context {
+	return context.WithValue(ctx, contextRefKey{}, &contextRef{cnt: cnt})
 }
 
-// AddCallback context add func for callback tracking for callback gc
-func AddCallback(ctx context.Context, cb func()) {
+// Defer context add func for callback tracking for callback gc
+func Defer(ctx context.Context, cb func()) {
 	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
-		r.AddCallback(cb)
+		r.Defer(cb)
 	}
 }
 
-// Callback closes all image refs that are being tracked through the context
-func Callback(ctx context.Context) {
+// Done closes all image refs that are being tracked through the context
+func Done(ctx context.Context) {
 	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
-		r.Callback()
+		r.Done()
 	}
 }
 

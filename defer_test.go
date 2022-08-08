@@ -15,7 +15,7 @@ func TestDefer(t *testing.T) {
 			t.Fatal("should not call")
 		})
 	})
-	ctx = WithDefer(ctx)
+	ctx = DeferContext(ctx)
 	Defer(ctx, func() {
 		called++
 	})

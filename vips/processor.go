@@ -3,6 +3,7 @@ package vips
 import (
 	"context"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/vips/vipscontext"
 	"go.uber.org/zap"
 	"math"
 	"runtime"
@@ -128,7 +129,7 @@ func (v *Processor) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func LoadImageFromBlob(
+func newImageFromBlob(
 	ctx context.Context, blob *imagor.Blob, params *ImportParams,
 ) (*Image, error) {
 	if blob == nil || blob.IsEmpty() {
@@ -145,12 +146,12 @@ func LoadImageFromBlob(
 			return nil, err
 		}
 		src := NewSource(reader)
-		AddCallback(ctx, src.Close)
+		vipscontext.Defer(ctx, src.Close)
 		return src.LoadImage(params)
 	}
 }
 
-func LoadThumbnailFromBlob(
+func newThumbnailFromBlob(
 	ctx context.Context, blob *imagor.Blob,
 	width, height int, crop Interesting, size Size, params *ImportParams,
 ) (*Image, error) {
@@ -168,7 +169,7 @@ func LoadThumbnailFromBlob(
 			return nil, err
 		}
 		src := NewSource(reader)
-		AddCallback(ctx, src.Close)
+		vipscontext.Defer(ctx, src.Close)
 		return src.LoadThumbnail(width, height, crop, size, params)
 	}
 }
@@ -188,7 +189,7 @@ func (v *Processor) NewThumbnail(
 		}
 		if crop == InterestingNone || size == SizeForce {
 			if img, err = v.CheckResolution(
-				LoadThumbnailFromBlob(ctx, blob, width, height, crop, size, params),
+				newThumbnailFromBlob(ctx, blob, width, height, crop, size, params),
 			); err != nil {
 				return nil, WrapErr(err)
 			}
@@ -198,7 +199,7 @@ func (v *Processor) NewThumbnail(
 				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n)
 			}
 		} else {
-			if img, err = v.CheckResolution(LoadImageFromBlob(ctx, blob, params)); err != nil {
+			if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, params)); err != nil {
 				return nil, WrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
@@ -214,7 +215,7 @@ func (v *Processor) NewThumbnail(
 	} else if blob.BlobType() == imagor.BlobTypePNG {
 		return v.newThumbnailPNG(ctx, blob, width, height, crop, size)
 	} else {
-		img, err = LoadThumbnailFromBlob(ctx, blob, width, height, crop, size, nil)
+		img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, nil)
 	}
 	return v.CheckResolution(img, WrapErr(err))
 }
@@ -222,7 +223,7 @@ func (v *Processor) NewThumbnail(
 func (v *Processor) newThumbnailPNG(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size,
 ) (img *Image, err error) {
-	if img, err = v.CheckResolution(LoadImageFromBlob(ctx, blob, nil)); err != nil {
+	if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, nil)); err != nil {
 		return
 	}
 	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
@@ -241,7 +242,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Im
 		} else {
 			params.NumPages.Set(-1)
 		}
-		img, err := v.CheckResolution(LoadImageFromBlob(ctx, blob, params))
+		img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -253,7 +254,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Im
 			return img, nil
 		}
 	} else {
-		img, err := v.CheckResolution(LoadImageFromBlob(ctx, blob, params))
+		img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
 		if err != nil {
 			return nil, WrapErr(err)
 		}

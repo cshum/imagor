@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
-	"unsafe"
 )
 
 // Version is the full libvips version string (x.y.z)
@@ -181,51 +180,4 @@ func ReadVipsMemStats(stats *MemoryStats) {
 	stats.MemHigh = int64(C.vips_tracked_get_mem_highwater())
 	stats.Allocs = int64(C.vips_tracked_get_allocs())
 	stats.Files = int64(C.vips_tracked_get_files())
-}
-
-func handleImageError(out *C.VipsImage) error {
-	if out != nil {
-		clearImage(out)
-	}
-	return handleVipsError()
-}
-
-func handleVipsError() error {
-	s := C.GoString(C.vips_error_buffer())
-	C.vips_error_clear()
-
-	return fmt.Errorf("%v", s)
-}
-
-func freeCString(s *C.char) {
-	C.free(unsafe.Pointer(s))
-}
-
-func gFreePointer(ref unsafe.Pointer) {
-	C.g_free(C.gpointer(ref))
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-func boolToStr(v bool) string {
-	if v {
-		return "TRUE"
-	}
-	return "FALSE"
-}
-
-func toGboolean(b bool) C.gboolean {
-	if b {
-		return C.gboolean(1)
-	}
-	return C.gboolean(0)
-}
-
-func fromGboolean(b C.gboolean) bool {
-	return b != 0
 }
