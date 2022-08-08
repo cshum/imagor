@@ -11,7 +11,7 @@ error_requires_version_8
 #endif
 
     extern void
-    goLoggingHandler(char *log_domain, int log_level, char *message);
+    loggingHandlerCallback(char *log_domain, int log_level, char *message);
 
 static void logging_handler(const gchar *log_domain,
                                    GLogLevelFlags log_level,

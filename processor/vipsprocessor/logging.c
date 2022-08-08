@@ -3,7 +3,7 @@
 static void logging_handler(const gchar *log_domain,
                                    GLogLevelFlags log_level,
                                    const gchar *message, gpointer user_data) {
-  goLoggingHandler((char *)log_domain, (int)log_level, (char *)message);
+  loggingHandlerCallback((char *)log_domain, (int)log_level, (char *)message);
 }
 
 static void null_logging_handler(const gchar *log_domain,
