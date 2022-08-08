@@ -4,7 +4,7 @@ package vipsprocessor
 // #include <vips/vips.h>
 // #include <stdlib.h>
 // #include <glib.h>
-// #include "govips.h"
+// #include "logging.h"
 import "C"
 import (
 	"fmt"
@@ -139,11 +139,11 @@ func Startup(config *config) {
 }
 
 func enableLogging() {
-	C.vips_set_logging_handler()
+	C.set_logging_handler()
 }
 
 func disableLogging() {
-	C.vips_unset_logging_handler()
+	C.unset_logging_handler()
 }
 
 func Shutdown() {
