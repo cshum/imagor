@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func (v *VipsProcessor) watermark(ctx context.Context, img *ImageRef, load imagor.LoadFunc, args ...string) (err error) {
+func (v *VipsProcessor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -29,7 +29,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *ImageRef, load imago
 	var x, y, w, h int
 	var across = 1
 	var down = 1
-	var overlay *ImageRef
+	var overlay *Image
 	var n = 1
 	if IsAnimated(ctx) {
 		n = -1
@@ -145,7 +145,7 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *ImageRef, load imago
 	return
 }
 
-func frames(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func frames(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
@@ -184,7 +184,7 @@ func frames(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...strin
 	return
 }
 
-func (v *VipsProcessor) fill(ctx context.Context, img *ImageRef, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
+func (v *VipsProcessor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
 	if IsRotate90(ctx) {
 		tmpW := w
 		w = h
@@ -223,7 +223,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *ImageRef, w, h int, pLeft
 		}
 	} else {
 		// fill blur
-		var cp *ImageRef
+		var cp *Image
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
@@ -244,7 +244,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *ImageRef, w, h int, pLeft
 	return
 }
 
-func roundCorner(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	var rx, ry int
 	var c *Color
 	if len(args) == 0 {
@@ -264,7 +264,7 @@ func roundCorner(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...
 		ry, _ = strconv.Atoi(args[1])
 	}
 
-	var rounded *ImageRef
+	var rounded *Image
 	var w = img.Width()
 	var h = img.PageHeight()
 	if rounded, err = LoadImageFromBuffer([]byte(fmt.Sprintf(`
@@ -293,7 +293,7 @@ func roundCorner(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...
 	return nil
 }
 
-func (v *VipsProcessor) padding(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) error {
+func (v *VipsProcessor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
 	ln := len(args)
 	if ln < 2 {
 		return nil
@@ -316,7 +316,7 @@ func (v *VipsProcessor) padding(ctx context.Context, img *ImageRef, _ imagor.Loa
 	return v.fill(ctx, img, img.Width(), img.PageHeight(), left, top, right, bottom, c)
 }
 
-func backgroundColor(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func backgroundColor(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -326,7 +326,7 @@ func backgroundColor(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args .
 	return img.Flatten(getColor(img, args[0]))
 }
 
-func rotate(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func rotate(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -349,7 +349,7 @@ func rotate(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...strin
 	return
 }
 
-func proportion(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func proportion(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -371,11 +371,11 @@ func proportion(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...str
 	return img.Thumbnail(width, height, InterestingNone)
 }
 
-func grayscale(_ context.Context, img *ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+func grayscale(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.ToColorSpace(InterpretationBW)
 }
 
-func brightness(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func brightness(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -384,7 +384,7 @@ func brightness(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...str
 	return linearRGB(img, []float64{1, 1, 1}, []float64{b, b, b})
 }
 
-func contrast(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func contrast(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -396,7 +396,7 @@ func contrast(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...strin
 	return linearRGB(img, []float64{a, a, a}, []float64{b, b, b})
 }
 
-func hue(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func hue(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -404,7 +404,7 @@ func hue(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (e
 	return img.Modulate(1, 1, h)
 }
 
-func saturation(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func saturation(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -413,7 +413,7 @@ func saturation(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...str
 	return img.Modulate(1, s, 0)
 }
 
-func rgb(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func rgb(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) != 3 {
 		return
 	}
@@ -426,7 +426,7 @@ func rgb(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (e
 	return linearRGB(img, []float64{1, 1, 1}, []float64{r, g, b})
 }
 
-func modulate(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func modulate(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) != 3 {
 		return
 	}
@@ -438,7 +438,7 @@ func modulate(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...strin
 	return img.Modulate(b, s, h)
 }
 
-func blur(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func blur(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if IsAnimated(ctx) {
 		// skip animation support
 		return
@@ -459,7 +459,7 @@ func blur(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string)
 	return
 }
 
-func sharpen(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {
+func sharpen(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if IsAnimated(ctx) {
 		// skip animation support
 		return
@@ -477,11 +477,11 @@ func sharpen(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...stri
 	return img.Sharpen(sigma, 1, 2)
 }
 
-func stripIcc(_ context.Context, img *ImageRef, _ imagor.LoadFunc, _ ...string) (err error) {
+func stripIcc(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.RemoveICCProfile()
 }
 
-func trim(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) error {
+func trim(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
 	var (
 		ln        = len(args)
 		pos       string
@@ -499,7 +499,7 @@ func trim(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string)
 	return nil
 }
 
-func linearRGB(img *ImageRef, a, b []float64) error {
+func linearRGB(img *Image, a, b []float64) error {
 	if img.HasAlpha() {
 		a = append(a, 1)
 		b = append(b, 0)
@@ -515,7 +515,7 @@ func isWhite(c *Color) bool {
 	return c.R == 0xff && c.G == 0xff && c.B == 0xff
 }
 
-func getColor(img *ImageRef, color string) *Color {
+func getColor(img *Image, color string) *Color {
 	vc := &Color{}
 	args := strings.Split(strings.ToLower(color), ",")
 	mode := ""

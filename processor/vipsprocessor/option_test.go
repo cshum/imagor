@@ -23,7 +23,7 @@ func TestWithOption(t *testing.T) {
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
 			WithDisableFilters("rgb", "fill, watermark"),
-			WithFilter("noop", func(ctx context.Context, img *ImageRef, load imagor.LoadFunc, args ...string) (err error) {
+			WithFilter("noop", func(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
 				return nil
 			}),
 		)

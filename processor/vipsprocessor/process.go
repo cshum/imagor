@@ -19,7 +19,7 @@ func (v *VipsProcessor) Process(
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
-		img                   *ImageRef
+		img                   *Image
 		format                = ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
@@ -265,7 +265,7 @@ func (v *VipsProcessor) Process(
 }
 
 func (v *VipsProcessor) process(
-	ctx context.Context, img *ImageRef, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
+	ctx context.Context, img *Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
 		origWidth  = float64(img.Width())
@@ -451,7 +451,7 @@ func getMeta(meta *ImageMetadata) *imagor.Meta {
 	}
 }
 
-func (v *VipsProcessor) export(image *ImageRef, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
+func (v *VipsProcessor) export(image *Image, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()
@@ -535,7 +535,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 }
 
 func findTrim(
-	ctx context.Context, img *ImageRef, pos string, tolerance int,
+	ctx context.Context, img *Image, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
 	if IsAnimated(ctx) {
 		// skip animation support

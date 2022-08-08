@@ -34,7 +34,7 @@ func NewSource(reader io.ReadCloser) *Source {
 	return s
 }
 
-func (s *Source) LoadImage(params *ImportParams) (*ImageRef, error) {
+func (s *Source) LoadImage(params *ImportParams) (*Image, error) {
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -49,7 +49,7 @@ func (s *Source) LoadImage(params *ImportParams) (*ImageRef, error) {
 	return ref, nil
 }
 
-func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
+func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, params *ImportParams) (*Image, error) {
 	if params == nil {
 		params = NewImportParams()
 	}
