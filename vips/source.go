@@ -1,10 +1,10 @@
-package vipsprocessor
+package vips
 
 // #include "source.h"
 import "C"
 import (
 	"fmt"
-	"github.com/cshum/imagor/processor/vipsprocessor/pointer"
+	"github.com/cshum/imagor/vips/pointer"
 	"io"
 	"runtime"
 	"sync"
@@ -34,7 +34,7 @@ func NewSource(reader io.ReadCloser) *Source {
 	return s
 }
 
-func (s *Source) LoadImage(params *ImportParams) (*ImageRef, error) {
+func (s *Source) LoadImage(params *ImportParams) (*Image, error) {
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -45,11 +45,11 @@ func (s *Source) LoadImage(params *ImportParams) (*ImageRef, error) {
 	}
 
 	ref := newImageRef(vipsImage, format, nil)
-	log("govips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
 	return ref, nil
 }
 
-func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
+func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, params *ImportParams) (*Image, error) {
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -61,12 +61,12 @@ func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, p
 	}
 
 	ref := newImageRef(vipsImage, format, nil)
-	log("govips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
 	return ref, nil
 }
 
 func finalizeSource(src *Source) {
-	log("govips", LogLevelDebug, fmt.Sprintf("closing source %p", src))
+	log("vips", LogLevelDebug, fmt.Sprintf("closing source %p", src))
 	src.Close()
 }
 

@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 // #cgo pkg-config: vips
 // #include <vips/vips.h>
@@ -62,14 +62,14 @@ func Startup(config *config) {
 	defer runtime.UnlockOSThread()
 
 	if C.VIPS_MAJOR_VERSION < 8 {
-		panic("govips requires libvips version 8.10+")
+		panic("vips requires libvips version 8.10+")
 	}
 
 	if C.VIPS_MAJOR_VERSION == 8 && C.VIPS_MINOR_VERSION < 10 {
-		panic("govips requires libvips version 8.10+")
+		panic("vips requires libvips version 8.10+")
 	}
 
-	cName := C.CString("govips")
+	cName := C.CString("vips")
 	defer freeCString(cName)
 
 	// Override default glib logging handler to intercept logging messages
@@ -118,7 +118,7 @@ func Startup(config *config) {
 		C.vips_cache_set_max_files(defaultMaxCacheFiles)
 	}
 
-	log("govips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",
+	log("vips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",
 		Version,
 		int(C.vips_concurrency_get()),
 		int(C.vips_cache_get_max_files()),
@@ -138,7 +138,7 @@ func Startup(config *config) {
 		supportedImageTypes[k] = int(ret) != 0
 
 		if supportedImageTypes[k] {
-			log("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
+			log("vips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
 		}
 	}
 	isStarted = true

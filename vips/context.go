@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 import (
 	"context"

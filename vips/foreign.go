@@ -1,78 +1,10 @@
-package vipsprocessor
+package vips
 
 // #include "foreign.h"
 import "C"
 import (
-	"strings"
 	"unsafe"
 )
-
-// ImageType represents an image type
-type ImageType int
-
-// ImageType enum
-const (
-	ImageTypeUnknown ImageType = C.UNKNOWN
-	ImageTypeGIF     ImageType = C.GIF
-	ImageTypeJPEG    ImageType = C.JPEG
-	ImageTypeMagick  ImageType = C.MAGICK
-	ImageTypePDF     ImageType = C.PDF
-	ImageTypePNG     ImageType = C.PNG
-	ImageTypeSVG     ImageType = C.SVG
-	ImageTypeTIFF    ImageType = C.TIFF
-	ImageTypeWEBP    ImageType = C.WEBP
-	ImageTypeHEIF    ImageType = C.HEIF
-	ImageTypeBMP     ImageType = C.BMP
-	ImageTypeAVIF    ImageType = C.AVIF
-	ImageTypeJP2K    ImageType = C.JP2K
-)
-
-// ImageTypes defines the various image types supported by govips
-var ImageTypes = map[ImageType]string{
-	ImageTypeGIF:    "gif",
-	ImageTypeJPEG:   "jpeg",
-	ImageTypeMagick: "magick",
-	ImageTypePDF:    "pdf",
-	ImageTypePNG:    "png",
-	ImageTypeSVG:    "svg",
-	ImageTypeTIFF:   "tiff",
-	ImageTypeWEBP:   "webp",
-	ImageTypeHEIF:   "heif",
-	ImageTypeBMP:    "bmp",
-	ImageTypeAVIF:   "avif",
-	ImageTypeJP2K:   "jp2k",
-}
-
-var imageTypeMap = map[string]ImageType{
-	"gif":    ImageTypeGIF,
-	"jpeg":   ImageTypeJPEG,
-	"jpg":    ImageTypeJPEG,
-	"magick": ImageTypeMagick,
-	"pdf":    ImageTypePDF,
-	"png":    ImageTypePNG,
-	"svg":    ImageTypeSVG,
-	"tiff":   ImageTypeTIFF,
-	"webp":   ImageTypeWEBP,
-	"heif":   ImageTypeHEIF,
-	"bmp":    ImageTypeBMP,
-	"avif":   ImageTypeAVIF,
-	"jp2":    ImageTypeJP2K,
-}
-
-var imageMimeTypeMap = map[string]string{
-	"gif":  "image/gif",
-	"jpeg": "image/jpeg",
-	"jpg":  "image/jpeg",
-	"pdf":  "application/pdf",
-	"png":  "image/png",
-	"svg":  "image/svg+xml",
-	"tiff": "image/tiff",
-	"webp": "image/webp",
-	"heif": "image/heif",
-	"bmp":  "image/bmp",
-	"avif": "image/avif",
-	"jp2":  "image/jp2",
-}
 
 // JpegExportParams are options when exporting a JPEG to file or buffer
 type JpegExportParams struct {
@@ -88,7 +20,7 @@ type JpegExportParams struct {
 }
 
 // NewJpegExportParams creates default values for an export of a JPEG image.
-// By default, govips creates interlaced JPEGs with a quality of 80/100.
+// By default, vips creates interlaced JPEGs with a quality of 80/100.
 func NewJpegExportParams() *JpegExportParams {
 	return &JpegExportParams{
 		Quality:   80,
@@ -110,7 +42,7 @@ type PngExportParams struct {
 }
 
 // NewPngExportParams creates default values for an export of a PNG image.
-// By default, govips creates non-interlaced PNGs with a compression of 6/10.
+// By default, vips creates non-interlaced PNGs with a compression of 6/10.
 func NewPngExportParams() *PngExportParams {
 	return &PngExportParams{
 		Compression: 6,
@@ -131,7 +63,7 @@ type WebpExportParams struct {
 }
 
 // NewWebpExportParams creates default values for an export of a WEBP image.
-// By default, govips creates lossy images with a quality of 75/100.
+// By default, vips creates lossy images with a quality of 75/100.
 func NewWebpExportParams() *WebpExportParams {
 	return &WebpExportParams{
 		Quality:         75,
@@ -223,45 +155,6 @@ func NewJp2kExportParams() *Jp2kExportParams {
 		TileWidth:  512,
 		TileHeight: 512,
 	}
-}
-
-// vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
-func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
-	if in != nil {
-		if vipsLoader, ok := vipsImageGetMetaLoader(in); ok {
-			if strings.HasPrefix(vipsLoader, "jpeg") {
-				return ImageTypeJPEG
-			}
-			if strings.HasPrefix(vipsLoader, "png") {
-				return ImageTypePNG
-			}
-			if strings.HasPrefix(vipsLoader, "gif") {
-				return ImageTypeGIF
-			}
-			if strings.HasPrefix(vipsLoader, "svg") {
-				return ImageTypeSVG
-			}
-			if strings.HasPrefix(vipsLoader, "webp") {
-				return ImageTypeWEBP
-			}
-			if strings.HasPrefix(vipsLoader, "heif") {
-				return ImageTypeHEIF
-			}
-			if strings.HasPrefix(vipsLoader, "tiff") {
-				return ImageTypeTIFF
-			}
-			if strings.HasPrefix(vipsLoader, "pdf") {
-				return ImageTypePDF
-			}
-			if strings.HasPrefix(vipsLoader, "jp2k") {
-				return ImageTypeJP2K
-			}
-			if strings.HasPrefix(vipsLoader, "magick") {
-				return ImageTypeMagick
-			}
-		}
-	}
-	return ImageTypeUnknown
 }
 
 func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, error) {

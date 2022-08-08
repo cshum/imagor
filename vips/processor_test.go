@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 import (
 	"context"
@@ -24,7 +24,7 @@ var testDataDir string
 
 func init() {
 	_, b, _, _ := runtime.Caller(0)
-	testDataDir = filepath.Join(filepath.Dir(b), "../../testdata")
+	testDataDir = filepath.Join(filepath.Dir(b), "../testdata")
 }
 
 type test struct {
@@ -33,8 +33,8 @@ type test struct {
 	checkMetaOnly bool
 }
 
-func TestVipsProcessor(t *testing.T) {
-	v := New(WithDebug(true))
+func TestProcessor(t *testing.T) {
+	v := NewProcessor(WithDebug(true))
 	require.NoError(t, v.Startup(context.Background()))
 	t.Cleanup(func() {
 		stats := &MemoryStats{}
@@ -190,7 +190,7 @@ func TestVipsProcessor(t *testing.T) {
 			imagor.WithUnsafe(true),
 			imagor.WithDebug(true),
 			imagor.WithLogger(zap.NewExample()),
-			imagor.WithProcessors(New(WithDebug(true))),
+			imagor.WithProcessors(NewProcessor(WithDebug(true))),
 		)
 		require.NoError(t, app.Startup(context.Background()))
 		t.Cleanup(func() {
@@ -211,7 +211,7 @@ func TestVipsProcessor(t *testing.T) {
 			imagor.WithUnsafe(true),
 			imagor.WithDebug(true),
 			imagor.WithLogger(zap.NewExample()),
-			imagor.WithProcessors(New(
+			imagor.WithProcessors(NewProcessor(
 				WithMaxResolution(300*300),
 				WithDebug(true),
 			)),
@@ -241,7 +241,7 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 	resStorage := filestorage.New(resultDir,
 		filestorage.WithSaveErrIfExists(true))
 	loader := filestorage.New(testDataDir)
-	processor := New(opts...)
+	processor := NewProcessor(opts...)
 
 	loaders := []imagor.Loader{
 		loader,

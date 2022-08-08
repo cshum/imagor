@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 // #include <glib.h>
 // #include "logging.h"

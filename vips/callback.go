@@ -1,9 +1,9 @@
-package vipsprocessor
+package vips
 
 import "C"
 import (
 	"errors"
-	"github.com/cshum/imagor/processor/vipsprocessor/pointer"
+	"github.com/cshum/imagor/vips/pointer"
 	"io"
 	"reflect"
 	"unsafe"
