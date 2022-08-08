@@ -113,7 +113,7 @@ func Startup(config *config) {
 		C.vips_cache_set_max_files(defaultMaxCacheFiles)
 	}
 
-	govipsLog("govips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",
+	log("govips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",
 		Version,
 		int(C.vips_concurrency_get()),
 		int(C.vips_cache_get_max_files()),
@@ -133,7 +133,7 @@ func Startup(config *config) {
 		supportedImageTypes[k] = int(ret) != 0
 
 		if supportedImageTypes[k] {
-			govipsLog("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
+			log("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
 		}
 	}
 }
@@ -189,11 +189,6 @@ var (
 	currentLoggingVerbosity       LogLevel
 )
 
-//export govipsLoggingHandler
-func govipsLoggingHandler(messageDomain *C.char, messageLevel C.int, message *C.char) {
-	govipsLog(C.GoString(messageDomain), LogLevel(messageLevel), C.GoString(message))
-}
-
 type LoggingHandlerFunction func(messageDomain string, messageLevel LogLevel, message string)
 
 func loggingSettings(handler LoggingHandlerFunction, verbosity LogLevel) {
@@ -206,7 +201,7 @@ func loggingSettings(handler LoggingHandlerFunction, verbosity LogLevel) {
 func noopLoggingHandler(_ string, _ LogLevel, _ string) {
 }
 
-func govipsLog(domain string, level LogLevel, message string) {
+func log(domain string, level LogLevel, message string) {
 	if level <= currentLoggingVerbosity {
 		currentLoggingHandlerFunction(domain, level, message)
 	}
