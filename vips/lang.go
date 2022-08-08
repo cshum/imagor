@@ -1,5 +1,6 @@
 package vips
 
+// #include <vips/vips.h>
 import "C"
 import (
 	"fmt"
