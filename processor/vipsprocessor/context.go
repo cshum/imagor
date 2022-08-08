@@ -12,7 +12,7 @@ type contextRef struct {
 	PageN    int
 }
 
-func (r *contextRef) Add(cb func()) {
+func (r *contextRef) AddCallback(cb func()) {
 	r.cbs = append(r.cbs, cb)
 }
 
@@ -31,7 +31,7 @@ func WithContextRef(ctx context.Context) context.Context {
 // AddCallback context add func for callback tracking for callback gc
 func AddCallback(ctx context.Context, cb func()) {
 	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
-		r.Add(cb)
+		r.AddCallback(cb)
 	}
 }
 
