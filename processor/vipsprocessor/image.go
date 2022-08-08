@@ -179,25 +179,6 @@ func LoadThumbnailFromFile(file string, width, height int, crop Interesting, siz
 	return ref, nil
 }
 
-// LoadThumbnailFromBuffer loads an image buffer and creates a new Image with thumbnail crop and size
-func LoadThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
-	startupIfNeeded()
-
-	if params == nil {
-		params = NewImportParams()
-	}
-
-	vipsImage, format, err := vipsThumbnailFromBuffer(buf, width, height, crop, size, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, buf)
-
-	log("govips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
-	return ref, nil
-}
-
 // Metadata returns the metadata (ImageMetadata struct) of the associated ImageRef
 func (r *ImageRef) Metadata() *ImageMetadata {
 	return r.metadata(r.format)

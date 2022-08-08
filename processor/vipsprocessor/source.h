@@ -15,4 +15,11 @@ int image_new_from_source(VipsSourceCustom *source, VipsImage **out);
 
 int image_new_from_source_with_option(VipsSourceCustom *source, VipsImage **out, const char *option_string);
 
+int thumbnail_source_with_option(VipsSourceCustom *source, VipsImage **out,
+                    int width, int height, int crop, int size,
+                    const char *option_string);
+
+int thumbnail_source(VipsSourceCustom *source, VipsImage **out,
+                    int width, int height, int crop, int size);
+
 void clear_source(VipsSourceCustom **source_custom);

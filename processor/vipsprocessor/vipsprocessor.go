@@ -163,11 +163,13 @@ func LoadThumbnailFromBlob(
 		}
 		return LoadThumbnailFromFile(filepath, width, height, crop, size, params)
 	} else {
-		buf, err := blob.ReadAll()
+		reader, _, err := blob.NewReader()
 		if err != nil {
 			return nil, err
 		}
-		return LoadThumbnailFromBuffer(buf, width, height, crop, size, params)
+		src := NewSource(reader)
+		AddCallback(ctx, src.Close)
+		return src.LoadThumbnail(width, height, crop, size, params)
 	}
 }
 

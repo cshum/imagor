@@ -30,6 +30,20 @@ int image_new_from_source_with_option(VipsSourceCustom *source, VipsImage **out,
   return 0;
 }
 
+int thumbnail_source_with_option(VipsSourceCustom *source, VipsImage **out,
+                    int width, int height, int crop, int size,
+                    const char *option_string) {
+  return vips_thumbnail_source((VipsSource*) source, out, width, "height", height,
+                              "crop", crop, "size", size,
+                              "option_string", option_string, NULL);
+}
+
+int thumbnail_source(VipsSourceCustom *source, VipsImage **out,
+                    int width, int height, int crop, int size) {
+  return vips_thumbnail_source((VipsSource*) source, out, width, "height", height,
+                              "crop", crop, "size", size, NULL);
+}
+
 void clear_source(VipsSourceCustom **source_custom) {
   if (G_IS_OBJECT(*source_custom)) g_clear_object(source_custom);
 }
