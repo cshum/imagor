@@ -125,6 +125,8 @@ func (i *ImportParams) OptionString() string {
 
 // LoadImageFromFile loads an image from file and creates a new ImageRef
 func LoadImageFromFile(file string, params *ImportParams) (*ImageRef, error) {
+	startupIfNeeded()
+
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -135,12 +137,14 @@ func LoadImageFromFile(file string, params *ImportParams) (*ImageRef, error) {
 	}
 
 	ref := newImageRef(vipsImage, format, nil)
-	govipsLog("govips", LogLevelDebug, fmt.Sprintf("creating imageRef from file %s", file))
+	log("govips", LogLevelDebug, fmt.Sprintf("creating imageRef from file %s", file))
 	return ref, nil
 }
 
 // LoadImageFromBuffer loads an image buffer and creates a new Image
 func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
+	startupIfNeeded()
+
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -152,12 +156,14 @@ func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
 
 	ref := newImageRef(vipsImage, format, buf)
 
-	govipsLog("govips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	log("govips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
 	return ref, nil
 }
 
 // LoadThumbnailFromFile loads an image from file and creates a new ImageRef with thumbnail crop and size
 func LoadThumbnailFromFile(file string, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
+	startupIfNeeded()
+
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -169,24 +175,7 @@ func LoadThumbnailFromFile(file string, width, height int, crop Interesting, siz
 
 	ref := newImageRef(vipsImage, format, nil)
 
-	govipsLog("govips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
-	return ref, nil
-}
-
-// LoadThumbnailFromBuffer loads an image buffer and creates a new Image with thumbnail crop and size
-func LoadThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
-	if params == nil {
-		params = NewImportParams()
-	}
-
-	vipsImage, format, err := vipsThumbnailFromBuffer(buf, width, height, crop, size, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, buf)
-
-	govipsLog("govips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
+	log("govips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
 	return ref, nil
 }
 
@@ -227,7 +216,7 @@ func newImageRef(vipsImage *C.VipsImage, format ImageType, buf []byte) *ImageRef
 }
 
 func finalizeImage(ref *ImageRef) {
-	govipsLog("govips", LogLevelDebug, fmt.Sprintf("closing image %p", ref))
+	log("govips", LogLevelDebug, fmt.Sprintf("closing image %p", ref))
 	ref.Close()
 }
 

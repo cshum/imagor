@@ -3,8 +3,6 @@ package vipsprocessor
 // #cgo pkg-config: vips
 // #include <vips/vips.h>
 // #include <stdlib.h>
-// #include <glib.h>
-// #include "govips.h"
 import "C"
 import (
 	"fmt"
@@ -34,7 +32,10 @@ const (
 )
 
 var (
-	initLock            sync.Mutex
+	lock                sync.Mutex
+	once                sync.Once
+	isStarted           bool
+	isShutdown          bool
 	supportedImageTypes = make(map[ImageType]bool)
 )
 
@@ -50,8 +51,12 @@ type config struct {
 // Startup sets up the libvips support and ensures the versions are correct. Pass in nil for
 // default configuration.
 func Startup(config *config) {
-	initLock.Lock()
-	defer initLock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
+
+	if isStarted || isShutdown {
+		return
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -113,7 +118,7 @@ func Startup(config *config) {
 		C.vips_cache_set_max_files(defaultMaxCacheFiles)
 	}
 
-	govipsLog("govips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",
+	log("govips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",
 		Version,
 		int(C.vips_concurrency_get()),
 		int(C.vips_cache_get_max_files()),
@@ -133,28 +138,33 @@ func Startup(config *config) {
 		supportedImageTypes[k] = int(ret) != 0
 
 		if supportedImageTypes[k] {
-			govipsLog("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
+			log("govips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
 		}
 	}
+	isStarted = true
 }
 
-func enableLogging() {
-	C.vips_set_logging_handler()
-}
-
-func disableLogging() {
-	C.vips_unset_logging_handler()
+func startupIfNeeded() {
+	once.Do(func() {
+		Startup(nil)
+	})
 }
 
 func Shutdown() {
-	initLock.Lock()
-	defer initLock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
+
+	if !isStarted || isShutdown {
+		return
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	C.vips_shutdown()
 	disableLogging()
+
+	isShutdown = true
 }
 
 // MemoryStats is a data structure that houses various memory statistics from ReadVipsMemStats()
@@ -171,45 +181,6 @@ func ReadVipsMemStats(stats *MemoryStats) {
 	stats.MemHigh = int64(C.vips_tracked_get_mem_highwater())
 	stats.Allocs = int64(C.vips_tracked_get_allocs())
 	stats.Files = int64(C.vips_tracked_get_files())
-}
-
-type LogLevel int
-
-const (
-	LogLevelError    LogLevel = C.G_LOG_LEVEL_ERROR
-	LogLevelCritical LogLevel = C.G_LOG_LEVEL_CRITICAL
-	LogLevelWarning  LogLevel = C.G_LOG_LEVEL_WARNING
-	LogLevelMessage  LogLevel = C.G_LOG_LEVEL_MESSAGE
-	LogLevelInfo     LogLevel = C.G_LOG_LEVEL_INFO
-	LogLevelDebug    LogLevel = C.G_LOG_LEVEL_DEBUG
-)
-
-var (
-	currentLoggingHandlerFunction = noopLoggingHandler
-	currentLoggingVerbosity       LogLevel
-)
-
-//export govipsLoggingHandler
-func govipsLoggingHandler(messageDomain *C.char, messageLevel C.int, message *C.char) {
-	govipsLog(C.GoString(messageDomain), LogLevel(messageLevel), C.GoString(message))
-}
-
-type LoggingHandlerFunction func(messageDomain string, messageLevel LogLevel, message string)
-
-func loggingSettings(handler LoggingHandlerFunction, verbosity LogLevel) {
-	if handler != nil {
-		currentLoggingHandlerFunction = handler
-	}
-	currentLoggingVerbosity = verbosity
-}
-
-func noopLoggingHandler(_ string, _ LogLevel, _ string) {
-}
-
-func govipsLog(domain string, level LogLevel, message string) {
-	if level <= currentLoggingVerbosity {
-		currentLoggingHandlerFunction(domain, level, message)
-	}
 }
 
 func handleImageError(out *C.VipsImage) error {
@@ -258,16 +229,3 @@ func toGboolean(b bool) C.gboolean {
 func fromGboolean(b C.gboolean) bool {
 	return b != 0
 }
-
-//func fromCArrayInt(out *C.int, n int) []int {
-//	var result = make([]int, n)
-//	var data []C.int
-//	sh := (*reflect.SliceHeader)(unsafe.Pointer(&data))
-//	sh.Data = uintptr(unsafe.Pointer(out))
-//	sh.Len = n
-//	sh.Cap = n
-//	for i := range data {
-//		result[i] = int(data[i])
-//	}
-//	return result
-//}
