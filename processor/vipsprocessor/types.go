@@ -1,6 +1,5 @@
 package vipsprocessor
 
-// #include "types.h"
 // #include "vips.h"
 import "C"
 import "strings"
@@ -10,19 +9,19 @@ type ImageType int
 
 // ImageType enum
 const (
-	ImageTypeUnknown ImageType = C.UNKNOWN
-	ImageTypeGIF     ImageType = C.GIF
-	ImageTypeJPEG    ImageType = C.JPEG
-	ImageTypeMagick  ImageType = C.MAGICK
-	ImageTypePDF     ImageType = C.PDF
-	ImageTypePNG     ImageType = C.PNG
-	ImageTypeSVG     ImageType = C.SVG
-	ImageTypeTIFF    ImageType = C.TIFF
-	ImageTypeWEBP    ImageType = C.WEBP
-	ImageTypeHEIF    ImageType = C.HEIF
-	ImageTypeBMP     ImageType = C.BMP
-	ImageTypeAVIF    ImageType = C.AVIF
-	ImageTypeJP2K    ImageType = C.JP2K
+	ImageTypeUnknown ImageType = iota
+	ImageTypeGIF
+	ImageTypeJPEG
+	ImageTypeMagick
+	ImageTypePDF
+	ImageTypePNG
+	ImageTypeSVG
+	ImageTypeTIFF
+	ImageTypeWEBP
+	ImageTypeHEIF
+	ImageTypeBMP
+	ImageTypeAVIF
+	ImageTypeJP2K
 )
 
 // vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
