@@ -20,7 +20,7 @@ type JpegExportParams struct {
 }
 
 // NewJpegExportParams creates default values for an export of a JPEG image.
-// By default, govips creates interlaced JPEGs with a quality of 80/100.
+// By default, vips creates interlaced JPEGs with a quality of 80/100.
 func NewJpegExportParams() *JpegExportParams {
 	return &JpegExportParams{
 		Quality:   80,
@@ -42,7 +42,7 @@ type PngExportParams struct {
 }
 
 // NewPngExportParams creates default values for an export of a PNG image.
-// By default, govips creates non-interlaced PNGs with a compression of 6/10.
+// By default, vips creates non-interlaced PNGs with a compression of 6/10.
 func NewPngExportParams() *PngExportParams {
 	return &PngExportParams{
 		Compression: 6,
@@ -63,7 +63,7 @@ type WebpExportParams struct {
 }
 
 // NewWebpExportParams creates default values for an export of a WEBP image.
-// By default, govips creates lossy images with a quality of 75/100.
+// By default, vips creates lossy images with a quality of 75/100.
 func NewWebpExportParams() *WebpExportParams {
 	return &WebpExportParams{
 		Quality:         75,

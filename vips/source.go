@@ -45,7 +45,7 @@ func (s *Source) LoadImage(params *ImportParams) (*Image, error) {
 	}
 
 	ref := newImageRef(vipsImage, format, nil)
-	log("govips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
 	return ref, nil
 }
 
@@ -61,12 +61,12 @@ func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, p
 	}
 
 	ref := newImageRef(vipsImage, format, nil)
-	log("govips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
 	return ref, nil
 }
 
 func finalizeSource(src *Source) {
-	log("govips", LogLevelDebug, fmt.Sprintf("closing source %p", src))
+	log("vips", LogLevelDebug, fmt.Sprintf("closing source %p", src))
 	src.Close()
 }
 

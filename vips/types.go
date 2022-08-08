@@ -63,7 +63,7 @@ func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
 	return ImageTypeUnknown
 }
 
-// ImageTypes defines the various image types supported by govips
+// ImageTypes defines the various image types supported by vips
 var ImageTypes = map[ImageType]string{
 	ImageTypeGIF:    "gif",
 	ImageTypeJPEG:   "jpeg",
