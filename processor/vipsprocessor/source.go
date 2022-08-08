@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/cshum/imagor/processor/vipsprocessor/pointer"
 	"io"
+	"runtime"
+	"sync"
 	"unsafe"
 )
 
@@ -14,6 +16,7 @@ type Source struct {
 	seeker io.Seeker
 	src    *C.VipsSourceCustom
 	ptr    unsafe.Pointer
+	lock   sync.Mutex
 }
 
 func NewSource(reader io.ReadCloser) *Source {
@@ -26,6 +29,8 @@ func NewSource(reader io.ReadCloser) *Source {
 	}
 	s.ptr = pointer.Save(s)
 	s.src = C.create_go_custom_source(s.ptr)
+
+	runtime.SetFinalizer(s, finalizeSource)
 	return s
 }
 
@@ -44,21 +49,30 @@ func (s *Source) LoadImage(params *ImportParams) (*ImageRef, error) {
 	return ref, nil
 }
 
+func finalizeSource(src *Source) {
+	log("govips", LogLevelDebug, fmt.Sprintf("closing source %p", src))
+	src.Close()
+}
+
 func (s *Source) Close() {
+	s.lock.Lock()
 	if s.ptr != nil {
 		C.clear_source(&s.src)
 		pointer.Unref(s.ptr)
 		s.ptr = nil
 		_ = s.reader.Close()
 	}
+	s.lock.Unlock()
 }
 
 // https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-source
-func vipsImageFromSource(src *C.VipsSourceCustom, params *ImportParams) (*C.VipsImage, ImageType, error) {
-
+func vipsImageFromSource(
+	src *C.VipsSourceCustom, params *ImportParams,
+) (*C.VipsImage, ImageType, error) {
 	var out *C.VipsImage
 	var code C.int
 	var optionString string
+
 	if params != nil {
 		optionString = params.OptionString()
 	}
