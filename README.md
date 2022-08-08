@@ -60,33 +60,6 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 - `filters` a pipeline of image filter operations to be applied, see filters section
 - `IMAGE` is the image URI
 
-Imagor provides utilities for previewing and generating Imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
-
-#### `GET /params`
-
-Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for preview:
-
-```
-curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
-
-{
-  "path": "fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
-  "image": "raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
-  "hash": "g5bMqZvxaQK65qFPaP1qlJOTuLM=",
-  "fit_in": true,
-  "width": 500,
-  "height": 400,
-  "padding_top": 20,
-  "padding_bottom": 20,
-  "filters": [
-    {
-      "name": "fill",
-      "args": "white"
-    }
-  ]
-}
-```
-
 ### Filters
 
 Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations that will be sequentially applied to the image. Examples:
@@ -337,6 +310,35 @@ However, if the source image involves user generated content, it is advised to d
 
 ```dotenv
 IMAGOR_DISABLE_ERROR_BODY=1
+```
+
+### Utility
+
+#### `GET /params`
+
+Imagor provides utilities for previewing and generating Imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
+
+Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for preview:
+
+```
+curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+
+{
+  "path": "fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
+  "image": "raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
+  "hash": "g5bMqZvxaQK65qFPaP1qlJOTuLM=",
+  "fit_in": true,
+  "width": 500,
+  "height": 400,
+  "padding_top": 20,
+  "padding_bottom": 20,
+  "filters": [
+    {
+      "name": "fill",
+      "args": "white"
+    }
+  ]
+}
 ```
 
 ### Configuration
