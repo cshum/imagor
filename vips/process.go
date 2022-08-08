@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func (v *VipsProcessor) Process(
+func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
 	var (
@@ -264,7 +264,7 @@ func (v *VipsProcessor) Process(
 	}
 }
 
-func (v *VipsProcessor) process(
+func (v *Processor) process(
 	ctx context.Context, img *Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
@@ -451,7 +451,7 @@ func getMeta(meta *ImageMetadata) *imagor.Meta {
 	}
 }
 
-func (v *VipsProcessor) export(image *Image, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
+func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()

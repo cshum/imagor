@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func (v *VipsProcessor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
+func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -184,7 +184,7 @@ func frames(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 	return
 }
 
-func (v *VipsProcessor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
+func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
 	if IsRotate90(ctx) {
 		tmpW := w
 		w = h
@@ -293,7 +293,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	return nil
 }
 
-func (v *VipsProcessor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
+func (v *Processor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
 	ln := len(args)
 	if ln < 2 {
 		return nil

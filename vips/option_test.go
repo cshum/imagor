@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 func TestWithOption(t *testing.T) {
 	t.Run("options", func(t *testing.T) {
-		v := New(
+		v := NewProcessor(
 			WithConcurrency(2),
 			WithMaxFilterOps(167),
 			WithMaxCacheSize(500),
@@ -41,7 +41,7 @@ func TestWithOption(t *testing.T) {
 
 	})
 	t.Run("edge options", func(t *testing.T) {
-		v := New(
+		v := NewProcessor(
 			WithConcurrency(-1),
 		)
 		assert.Equal(t, runtime.NumCPU(), v.Concurrency)

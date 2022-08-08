@@ -1,10 +1,10 @@
-package vipsprocessor
+package vips
 
 // #include "source.h"
 import "C"
 import (
 	"fmt"
-	"github.com/cshum/imagor/processor/vipsprocessor/pointer"
+	"github.com/cshum/imagor/vips/pointer"
 	"io"
 	"runtime"
 	"sync"

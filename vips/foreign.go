@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 // #include "foreign.h"
 import "C"

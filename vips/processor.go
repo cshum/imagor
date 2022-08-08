@@ -1,4 +1,4 @@
-package vipsprocessor
+package vips
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type FilterMap map[string]FilterFunc
 var processorLock sync.RWMutex
 var processorCount int
 
-type VipsProcessor struct {
+type Processor struct {
 	Filters            FilterMap
 	DisableBlur        bool
 	DisableFilters     []string
@@ -35,8 +35,8 @@ type VipsProcessor struct {
 	Debug              bool
 }
 
-func New(options ...Option) *VipsProcessor {
-	v := &VipsProcessor{
+func NewProcessor(options ...Option) *Processor {
+	v := &Processor{
 		MaxWidth:           9999,
 		MaxHeight:          9999,
 		MaxResolution:      16800000,
@@ -81,7 +81,7 @@ func New(options ...Option) *VipsProcessor {
 	return v
 }
 
-func (v *VipsProcessor) Startup(_ context.Context) error {
+func (v *Processor) Startup(_ context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	processorCount++
@@ -115,7 +115,7 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 	return nil
 }
 
-func (v *VipsProcessor) Shutdown(_ context.Context) error {
+func (v *Processor) Shutdown(_ context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	if processorCount <= 0 {
@@ -173,7 +173,7 @@ func LoadThumbnailFromBlob(
 	}
 }
 
-func (v *VipsProcessor) NewThumbnail(
+func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size, n int,
 ) (*Image, error) {
 	var params *ImportParams
@@ -219,7 +219,7 @@ func (v *VipsProcessor) NewThumbnail(
 	return v.CheckResolution(img, WrapErr(err))
 }
 
-func (v *VipsProcessor) newThumbnailPNG(
+func (v *Processor) newThumbnailPNG(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size,
 ) (img *Image, err error) {
 	if img, err = v.CheckResolution(LoadImageFromBlob(ctx, blob, nil)); err != nil {
@@ -232,7 +232,7 @@ func (v *VipsProcessor) newThumbnailPNG(
 	return v.CheckResolution(img, WrapErr(err))
 }
 
-func (v *VipsProcessor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Image, error) {
+func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Image, error) {
 	var params *ImportParams
 	if isBlobAnimated(blob, n) {
 		params = NewImportParams()
@@ -261,7 +261,7 @@ func (v *VipsProcessor) NewImage(ctx context.Context, blob *imagor.Blob, n int) 
 	}
 }
 
-func (v *VipsProcessor) Thumbnail(
+func (v *Processor) Thumbnail(
 	img *Image, width, height int, crop Interesting, size Size,
 ) error {
 	if crop == InterestingNone || size == SizeForce || img.Height() == img.PageHeight() {
@@ -270,7 +270,7 @@ func (v *VipsProcessor) Thumbnail(
 	return v.animatedThumbnailWithCrop(img, width, height, crop, size)
 }
 
-func (v *VipsProcessor) FocalThumbnail(img *Image, w, h int, fx, fy float64) (err error) {
+func (v *Processor) FocalThumbnail(img *Image, w, h int, fx, fy float64) (err error) {
 	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 		if err = img.Thumbnail(w, v.MaxHeight, InterestingNone); err != nil {
 			return
@@ -288,7 +288,7 @@ func (v *VipsProcessor) FocalThumbnail(img *Image, w, h int, fx, fy float64) (er
 	return img.ExtractArea(int(left), int(top), w, h)
 }
 
-func (v *VipsProcessor) animatedThumbnailWithCrop(
+func (v *Processor) animatedThumbnailWithCrop(
 	img *Image, w, h int, crop Interesting, size Size,
 ) (err error) {
 	if size == SizeDown && img.Width() < w && img.PageHeight() < h {
@@ -314,7 +314,7 @@ func (v *VipsProcessor) animatedThumbnailWithCrop(
 	return img.ExtractArea(left, top, w, h)
 }
 
-func (v *VipsProcessor) CheckResolution(img *Image, err error) (*Image, error) {
+func (v *Processor) CheckResolution(img *Image, err error) (*Image, error) {
 	if err != nil || img == nil {
 		return img, err
 	}
