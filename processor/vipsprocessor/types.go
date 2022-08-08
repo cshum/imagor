@@ -1,7 +1,115 @@
 package vipsprocessor
 
+// #include "types.h"
 // #include "vips.h"
 import "C"
+import "strings"
+
+// ImageType represents an image type
+type ImageType int
+
+// ImageType enum
+const (
+	ImageTypeUnknown ImageType = C.UNKNOWN
+	ImageTypeGIF     ImageType = C.GIF
+	ImageTypeJPEG    ImageType = C.JPEG
+	ImageTypeMagick  ImageType = C.MAGICK
+	ImageTypePDF     ImageType = C.PDF
+	ImageTypePNG     ImageType = C.PNG
+	ImageTypeSVG     ImageType = C.SVG
+	ImageTypeTIFF    ImageType = C.TIFF
+	ImageTypeWEBP    ImageType = C.WEBP
+	ImageTypeHEIF    ImageType = C.HEIF
+	ImageTypeBMP     ImageType = C.BMP
+	ImageTypeAVIF    ImageType = C.AVIF
+	ImageTypeJP2K    ImageType = C.JP2K
+)
+
+// vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
+func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
+	if in != nil {
+		if vipsLoader, ok := vipsImageGetMetaLoader(in); ok {
+			if strings.HasPrefix(vipsLoader, "jpeg") {
+				return ImageTypeJPEG
+			}
+			if strings.HasPrefix(vipsLoader, "png") {
+				return ImageTypePNG
+			}
+			if strings.HasPrefix(vipsLoader, "gif") {
+				return ImageTypeGIF
+			}
+			if strings.HasPrefix(vipsLoader, "svg") {
+				return ImageTypeSVG
+			}
+			if strings.HasPrefix(vipsLoader, "webp") {
+				return ImageTypeWEBP
+			}
+			if strings.HasPrefix(vipsLoader, "heif") {
+				return ImageTypeHEIF
+			}
+			if strings.HasPrefix(vipsLoader, "tiff") {
+				return ImageTypeTIFF
+			}
+			if strings.HasPrefix(vipsLoader, "pdf") {
+				return ImageTypePDF
+			}
+			if strings.HasPrefix(vipsLoader, "jp2k") {
+				return ImageTypeJP2K
+			}
+			if strings.HasPrefix(vipsLoader, "magick") {
+				return ImageTypeMagick
+			}
+		}
+	}
+	return ImageTypeUnknown
+}
+
+// ImageTypes defines the various image types supported by govips
+var ImageTypes = map[ImageType]string{
+	ImageTypeGIF:    "gif",
+	ImageTypeJPEG:   "jpeg",
+	ImageTypeMagick: "magick",
+	ImageTypePDF:    "pdf",
+	ImageTypePNG:    "png",
+	ImageTypeSVG:    "svg",
+	ImageTypeTIFF:   "tiff",
+	ImageTypeWEBP:   "webp",
+	ImageTypeHEIF:   "heif",
+	ImageTypeBMP:    "bmp",
+	ImageTypeAVIF:   "avif",
+	ImageTypeJP2K:   "jp2k",
+}
+
+var imageTypeMap = map[string]ImageType{
+	"gif":    ImageTypeGIF,
+	"jpeg":   ImageTypeJPEG,
+	"jpg":    ImageTypeJPEG,
+	"magick": ImageTypeMagick,
+	"pdf":    ImageTypePDF,
+	"png":    ImageTypePNG,
+	"svg":    ImageTypeSVG,
+	"tiff":   ImageTypeTIFF,
+	"webp":   ImageTypeWEBP,
+	"heif":   ImageTypeHEIF,
+	"bmp":    ImageTypeBMP,
+	"avif":   ImageTypeAVIF,
+	"jp2":    ImageTypeJP2K,
+}
+
+var imageMimeTypeMap = map[string]string{
+	"gif":  "image/gif",
+	"jpeg": "image/jpeg",
+	"jpg":  "image/jpeg",
+	"pdf":  "application/pdf",
+	"png":  "image/png",
+	"svg":  "image/svg+xml",
+	"tiff": "image/tiff",
+	"webp": "image/webp",
+	"heif": "image/heif",
+	"bmp":  "image/bmp",
+	"avif": "image/avif",
+	"jp2":  "image/jp2",
+}
 
 // Color represents an RGB
 type Color struct {
