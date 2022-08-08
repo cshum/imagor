@@ -252,7 +252,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	load := func(image string) (*Blob, error) {
 		blob, shouldSave, err := app.loadStorage(r, image)
 		if shouldSave {
-			app.save(r.Context(), app.Storages, image, blob)
+			go app.save(r.Context(), app.Storages, image, blob)
 		}
 		return blob, err
 	}
