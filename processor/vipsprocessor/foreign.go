@@ -3,7 +3,6 @@ package vipsprocessor
 // #include "foreign.h"
 import "C"
 import (
-	"strings"
 	"unsafe"
 )
 
@@ -223,45 +222,6 @@ func NewJp2kExportParams() *Jp2kExportParams {
 		TileWidth:  512,
 		TileHeight: 512,
 	}
-}
-
-// vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
-func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
-	if in != nil {
-		if vipsLoader, ok := vipsImageGetMetaLoader(in); ok {
-			if strings.HasPrefix(vipsLoader, "jpeg") {
-				return ImageTypeJPEG
-			}
-			if strings.HasPrefix(vipsLoader, "png") {
-				return ImageTypePNG
-			}
-			if strings.HasPrefix(vipsLoader, "gif") {
-				return ImageTypeGIF
-			}
-			if strings.HasPrefix(vipsLoader, "svg") {
-				return ImageTypeSVG
-			}
-			if strings.HasPrefix(vipsLoader, "webp") {
-				return ImageTypeWEBP
-			}
-			if strings.HasPrefix(vipsLoader, "heif") {
-				return ImageTypeHEIF
-			}
-			if strings.HasPrefix(vipsLoader, "tiff") {
-				return ImageTypeTIFF
-			}
-			if strings.HasPrefix(vipsLoader, "pdf") {
-				return ImageTypePDF
-			}
-			if strings.HasPrefix(vipsLoader, "jp2k") {
-				return ImageTypeJP2K
-			}
-			if strings.HasPrefix(vipsLoader, "magick") {
-				return ImageTypeMagick
-			}
-		}
-	}
-	return ImageTypeUnknown
 }
 
 func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, error) {
