@@ -125,6 +125,8 @@ func (i *ImportParams) OptionString() string {
 
 // LoadImageFromFile loads an image from file and creates a new ImageRef
 func LoadImageFromFile(file string, params *ImportParams) (*ImageRef, error) {
+	startupIfNeeded()
+
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -141,6 +143,8 @@ func LoadImageFromFile(file string, params *ImportParams) (*ImageRef, error) {
 
 // LoadImageFromBuffer loads an image buffer and creates a new Image
 func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
+	startupIfNeeded()
+
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -158,6 +162,8 @@ func LoadImageFromBuffer(buf []byte, params *ImportParams) (*ImageRef, error) {
 
 // LoadThumbnailFromFile loads an image from file and creates a new ImageRef with thumbnail crop and size
 func LoadThumbnailFromFile(file string, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
+	startupIfNeeded()
+
 	if params == nil {
 		params = NewImportParams()
 	}
@@ -175,6 +181,8 @@ func LoadThumbnailFromFile(file string, width, height int, crop Interesting, siz
 
 // LoadThumbnailFromBuffer loads an image buffer and creates a new Image with thumbnail crop and size
 func LoadThumbnailFromBuffer(buf []byte, width, height int, crop Interesting, size Size, params *ImportParams) (*ImageRef, error) {
+	startupIfNeeded()
+
 	if params == nil {
 		params = NewImportParams()
 	}

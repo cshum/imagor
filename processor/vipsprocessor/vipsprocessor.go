@@ -14,8 +14,8 @@ type FilterFunc func(ctx context.Context, img *ImageRef, load imagor.LoadFunc, a
 
 type FilterMap map[string]FilterFunc
 
-var l sync.RWMutex
-var cnt int
+var processorLock sync.RWMutex
+var processorCount int
 
 type VipsProcessor struct {
 	Filters            FilterMap
@@ -82,14 +82,14 @@ func New(options ...Option) *VipsProcessor {
 }
 
 func (v *VipsProcessor) Startup(_ context.Context) error {
-	l.Lock()
-	defer l.Unlock()
-	cnt++
-	if cnt > 1 {
+	processorLock.Lock()
+	defer processorLock.Unlock()
+	processorCount++
+	if processorCount > 1 {
 		return nil
 	}
 	if v.Debug {
-		loggingSettings(func(domain string, level LogLevel, msg string) {
+		SetLogging(func(domain string, level LogLevel, msg string) {
 			switch level {
 			case LogLevelDebug:
 				v.Logger.Debug(domain, zap.String("log", msg))
@@ -102,7 +102,7 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 			}
 		}, LogLevelDebug)
 	} else {
-		loggingSettings(func(domain string, level LogLevel, msg string) {
+		SetLogging(func(domain string, level LogLevel, msg string) {
 			v.Logger.Error(domain, zap.String("log", msg))
 		}, LogLevelError)
 	}
@@ -116,13 +116,13 @@ func (v *VipsProcessor) Startup(_ context.Context) error {
 }
 
 func (v *VipsProcessor) Shutdown(_ context.Context) error {
-	l.Lock()
-	defer l.Unlock()
-	if cnt <= 0 {
+	processorLock.Lock()
+	defer processorLock.Unlock()
+	if processorCount <= 0 {
 		return nil
 	}
-	cnt--
-	if cnt == 0 {
+	processorCount--
+	if processorCount == 0 {
 		Shutdown()
 	}
 	return nil
