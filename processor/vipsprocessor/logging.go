@@ -20,11 +20,6 @@ var (
 	currentLoggingVerbosity       LogLevel
 )
 
-//export loggingHandlerCallback
-func loggingHandlerCallback(domain *C.char, level C.int, message *C.char) {
-	log(C.GoString(domain), LogLevel(level), C.GoString(message))
-}
-
 type LoggingHandlerFunction func(messageDomain string, messageLevel LogLevel, message string)
 
 func SetLogging(handler LoggingHandlerFunction, verbosity LogLevel) {
