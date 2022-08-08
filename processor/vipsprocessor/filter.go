@@ -47,19 +47,19 @@ func (v *VipsProcessor) watermark(ctx context.Context, img *ImageRef, load imago
 			h = img.PageHeight() * h / 100
 		}
 		if overlay, err = v.NewThumbnail(
-			blob, w, h, InterestingNone, SizeDown, n,
+			ctx, blob, w, h, InterestingNone, SizeDown, n,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.NewThumbnail(
-			blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n,
+			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n,
 		); err != nil {
 			return
 		}
 	}
 	var overlayN = overlay.Height() / overlay.PageHeight()
-	AddImageRef(ctx, overlay)
+	AddCallback(ctx, overlay.Close)
 	if err = overlay.AddAlpha(); err != nil {
 		return
 	}
@@ -227,7 +227,7 @@ func (v *VipsProcessor) fill(ctx context.Context, img *ImageRef, w, h int, pLeft
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
-		AddImageRef(ctx, cp)
+		AddCallback(ctx, cp.Close)
 		if err = img.ThumbnailWithSize(
 			width, height, InterestingNone, SizeForce,
 		); err != nil {
@@ -276,7 +276,7 @@ func roundCorner(ctx context.Context, img *ImageRef, _ imagor.LoadFunc, args ...
 	`, w, h, rx, ry, w, h)), nil); err != nil {
 		return
 	}
-	AddImageRef(ctx, rounded)
+	AddCallback(ctx, rounded.Close)
 	if n := GetPageN(ctx); n > 1 {
 		if err = rounded.Replicate(1, n); err != nil {
 			return
@@ -299,7 +299,7 @@ func (v *VipsProcessor) padding(ctx context.Context, img *ImageRef, _ imagor.Loa
 		return nil
 	}
 	var (
-		color   = args[0]
+		c       = args[0]
 		left, _ = strconv.Atoi(args[1])
 		top     = left
 		right   = left
@@ -313,7 +313,7 @@ func (v *VipsProcessor) padding(ctx context.Context, img *ImageRef, _ imagor.Loa
 		right, _ = strconv.Atoi(args[3])
 		bottom, _ = strconv.Atoi(args[4])
 	}
-	return v.fill(ctx, img, img.Width(), img.PageHeight(), left, top, right, bottom, color)
+	return v.fill(ctx, img, img.Width(), img.PageHeight(), left, top, right, bottom, c)
 }
 
 func backgroundColor(_ context.Context, img *ImageRef, _ imagor.LoadFunc, args ...string) (err error) {

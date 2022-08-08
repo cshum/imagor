@@ -26,8 +26,8 @@ func (v *VipsProcessor) Process(
 		focalRects            []focal
 		err                   error
 	)
-	ctx = withInitImageRefs(ctx)
-	defer closeImageRefs(ctx)
+	ctx = WithContextRef(ctx)
+	defer Callback(ctx)
 	if p.Trim {
 		thumbnailNotSupported = true
 	}
@@ -94,7 +94,7 @@ func (v *VipsProcessor) Process(
 					size = SizeBoth
 				}
 				if img, err = v.NewThumbnail(
-					blob, w, h, InterestingNone, size, maxN,
+					ctx, blob, w, h, InterestingNone, size, maxN,
 				); err != nil {
 					return nil, err
 				}
@@ -103,7 +103,7 @@ func (v *VipsProcessor) Process(
 		} else if stretch {
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.NewThumbnail(
-					blob, p.Width, p.Height,
+					ctx, blob, p.Width, p.Height,
 					InterestingNone, SizeForce, maxN,
 				); err != nil {
 					return nil, err
@@ -131,7 +131,7 @@ func (v *VipsProcessor) Process(
 				}
 				if thumbnail {
 					if img, err = v.NewThumbnail(
-						blob, p.Width, p.Height,
+						ctx, blob, p.Width, p.Height,
 						interest, SizeBoth, maxN,
 					); err != nil {
 						return nil, err
@@ -139,7 +139,7 @@ func (v *VipsProcessor) Process(
 				}
 			} else if p.Width > 0 && p.Height == 0 {
 				if img, err = v.NewThumbnail(
-					blob, p.Width, v.MaxHeight,
+					ctx, blob, p.Width, v.MaxHeight,
 					InterestingNone, SizeBoth, maxN,
 				); err != nil {
 					return nil, err
@@ -147,7 +147,7 @@ func (v *VipsProcessor) Process(
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
 				if img, err = v.NewThumbnail(
-					blob, v.MaxWidth, p.Height,
+					ctx, blob, v.MaxWidth, p.Height,
 					InterestingNone, SizeBoth, maxN,
 				); err != nil {
 					return nil, err
@@ -158,19 +158,19 @@ func (v *VipsProcessor) Process(
 	}
 	if !thumbnail {
 		if thumbnailNotSupported {
-			if img, err = v.NewImage(blob, maxN); err != nil {
+			if img, err = v.NewImage(ctx, blob, maxN); err != nil {
 				return nil, err
 			}
 		} else {
 			if img, err = v.NewThumbnail(
-				blob, v.MaxWidth, v.MaxHeight,
+				ctx, blob, v.MaxWidth, v.MaxHeight,
 				InterestingNone, SizeDown, maxN,
 			); err != nil {
 				return nil, err
 			}
 		}
 	}
-	AddImageRef(ctx, img)
+	AddCallback(ctx, img.Close)
 	var (
 		quality    int
 		pageN      = img.Height() / img.PageHeight()
