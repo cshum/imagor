@@ -293,17 +293,16 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			return blob, err
 		}
-		if isBlobEmpty(blob) {
-			return blob, err
-		}
-		var doneSave = make(chan struct{}, 1)
+		var doneSave chan struct{}
 		if shouldSave {
+			doneSave = make(chan struct{}, 1)
 			go func(blob *Blob) {
 				app.save(ctx, app.Storages, p.Image, blob)
 				doneSave <- struct{}{}
 			}(blob)
-		} else {
-			close(doneSave)
+		}
+		if isBlobEmpty(blob) {
+			return blob, err
 		}
 		var cancel func()
 		if app.ProcessTimeout > 0 {
