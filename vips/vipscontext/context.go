@@ -15,12 +15,6 @@ type contextRef struct {
 	PageN    int
 }
 
-func (r *contextRef) Add(cnt int) {
-	r.l.Lock()
-	r.cnt += cnt
-	r.l.Unlock()
-}
-
 func (r *contextRef) Defer(cb func()) {
 	r.l.Lock()
 	r.cbs = append(r.cbs, cb)
@@ -30,7 +24,7 @@ func (r *contextRef) Defer(cb func()) {
 func (r *contextRef) Done() {
 	r.l.Lock()
 	r.cnt--
-	if r.cnt <= 0 {
+	if r.cnt == 0 {
 		for _, cb := range r.cbs {
 			cb()
 		}
