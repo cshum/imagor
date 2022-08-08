@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/vips/vipscontext"
 	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
@@ -31,7 +32,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	var down = 1
 	var overlay *Image
 	var n = 1
-	if IsAnimated(ctx) {
+	if vipscontext.IsAnimated(ctx) {
 		n = -1
 	}
 	// w_ratio h_ratio
@@ -59,7 +60,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 		}
 	}
 	var overlayN = overlay.Height() / overlay.PageHeight()
-	AddCallback(ctx, overlay.Close)
+	vipscontext.Defer(ctx, overlay.Close)
 	if err = overlay.AddAlpha(); err != nil {
 		return
 	}
@@ -130,7 +131,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	); err != nil {
 		return
 	}
-	if n := GetPageN(ctx); n > overlayN {
+	if n := vipscontext.GetPageN(ctx); n > overlayN {
 		cnt := n / overlayN
 		if n%overlayN > 0 {
 			cnt += 1
@@ -154,7 +155,7 @@ func frames(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 	if newN < 1 {
 		return
 	}
-	if n := GetPageN(ctx); n != newN {
+	if n := vipscontext.GetPageN(ctx); n != newN {
 		height := img.PageHeight()
 		if err = img.SetPageHeight(img.Height()); err != nil {
 			return
@@ -165,7 +166,7 @@ func frames(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 		if err = img.SetPageHeight(height); err != nil {
 			return
 		}
-		SetPageN(ctx, newN)
+		vipscontext.SetPageN(ctx, newN)
 	}
 	var delay int
 	if ln > 1 {
@@ -185,7 +186,7 @@ func frames(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 }
 
 func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
-	if IsRotate90(ctx) {
+	if vipscontext.IsRotate90(ctx) {
 		tmpW := w
 		w = h
 		h = tmpW
@@ -201,7 +202,7 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 	top := (h-img.PageHeight())/2 + pTop
 	width := w + pLeft + pRight
 	height := h + pTop + pBottom
-	if colour != "blur" || (colour == "blur" && v.DisableBlur) || IsAnimated(ctx) {
+	if colour != "blur" || (colour == "blur" && v.DisableBlur) || vipscontext.IsAnimated(ctx) {
 		// fill color
 		if img.HasAlpha() {
 			if err = img.Flatten(getColor(img, colour)); err != nil {
@@ -227,7 +228,7 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
-		AddCallback(ctx, cp.Close)
+		vipscontext.Defer(ctx, cp.Close)
 		if err = img.ThumbnailWithSize(
 			width, height, InterestingNone, SizeForce,
 		); err != nil {
@@ -276,8 +277,8 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	`, w, h, rx, ry, w, h)), nil); err != nil {
 		return
 	}
-	AddCallback(ctx, rounded.Close)
-	if n := GetPageN(ctx); n > 1 {
+	vipscontext.Defer(ctx, rounded.Close)
+	if n := vipscontext.GetPageN(ctx); n > 1 {
 		if err = rounded.Replicate(1, n); err != nil {
 			return
 		}
@@ -335,12 +336,12 @@ func rotate(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 		switch angle {
 		case 90:
 			vAngle = Angle270
-			SetRotate90(ctx)
+			vipscontext.SetRotate90(ctx)
 		case 180:
 			vAngle = Angle180
 		case 270:
 			vAngle = Angle90
-			SetRotate90(ctx)
+			vipscontext.SetRotate90(ctx)
 		}
 		if err = img.Rotate(vAngle); err != nil {
 			return err
@@ -439,7 +440,7 @@ func modulate(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 }
 
 func blur(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
-	if IsAnimated(ctx) {
+	if vipscontext.IsAnimated(ctx) {
 		// skip animation support
 		return
 	}
@@ -460,7 +461,7 @@ func blur(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (e
 }
 
 func sharpen(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
-	if IsAnimated(ctx) {
+	if vipscontext.IsAnimated(ctx) {
 		// skip animation support
 		return
 	}

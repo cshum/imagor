@@ -3,6 +3,7 @@ package vips
 import (
 	"context"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/vips/vipscontext"
 	"go.uber.org/zap"
 	"math"
 	"runtime"
@@ -145,7 +146,7 @@ func newImageFromBlob(
 			return nil, err
 		}
 		src := NewSource(reader)
-		AddCallback(ctx, src.Close)
+		vipscontext.Defer(ctx, src.Close)
 		return src.LoadImage(params)
 	}
 }
@@ -168,7 +169,7 @@ func newThumbnailFromBlob(
 			return nil, err
 		}
 		src := NewSource(reader)
-		AddCallback(ctx, src.Close)
+		vipscontext.Defer(ctx, src.Close)
 		return src.LoadThumbnail(width, height, crop, size, params)
 	}
 }
