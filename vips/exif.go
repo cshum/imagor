@@ -62,6 +62,7 @@ var exifTags = []string{
 }
 
 var exifInt = map[string]bool{
+	"Orientation":           true,
 	"ResolutionUnit":        true,
 	"YCbCrPositioning":      true,
 	"Compression":           true,
