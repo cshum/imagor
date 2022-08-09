@@ -446,16 +446,6 @@ func (v *Processor) process(
 	return nil
 }
 
-func supportedFormat(format ImageType) ImageType {
-	if IsSaveSupported(format) {
-		return format
-	}
-	if format == ImageTypeAVIF && IsSaveSupported(ImageTypeHEIF) {
-		return format
-	}
-	return ImageTypeJPEG
-}
-
 func metadata(img *Image, format ImageType) *imagor.Meta {
 	format = supportedFormat(format)
 	pages := img.PageHeight() / img.Pages()
@@ -470,6 +460,19 @@ func metadata(img *Image, format ImageType) *imagor.Meta {
 		Orientation: img.Orientation(),
 		Pages:       pages,
 	}
+}
+
+func supportedFormat(format ImageType) ImageType {
+	switch format {
+	case ImageTypePNG, ImageTypeWEBP, ImageTypeTIFF, ImageTypeGIF, ImageTypeAVIF, ImageTypeHEIF, ImageTypeJP2K:
+		if IsSaveSupported(format) {
+			return format
+		}
+		if format == ImageTypeAVIF && IsSaveSupported(ImageTypeHEIF) {
+			return ImageTypeAVIF
+		}
+	}
+	return ImageTypeJPEG
 }
 
 func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, error) {
