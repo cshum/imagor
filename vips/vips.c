@@ -366,3 +366,14 @@ int get_meta_loader(const VipsImage *in, const char **out) {
 void set_image_delay(VipsImage *in, const int *array, int n) {
   return vips_image_set_array_int(in, "delay", array, n);
 }
+
+const char * get_meta_string(const VipsImage *image, const char *name) {
+	const char *val;
+	if (
+		vips_image_get_typeof(image, name) != 0 &&
+		!vips_image_get_string(image, name, &val)
+	) {
+		return &val[0];
+	}
+	return "";
+}
