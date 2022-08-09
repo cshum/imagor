@@ -39,6 +39,7 @@ type Meta struct {
 	Width       int            `json:"width"`
 	Height      int            `json:"height"`
 	Orientation int            `json:"orientation"`
+	Bands       int            `json:"bands"`
 	Pages       int            `json:"pages"`
 	EXIF        map[string]any `json:"exif"`
 }
