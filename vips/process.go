@@ -231,10 +231,11 @@ func (v *Processor) Process(
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
+	meta := metadata(img, format)
 	if p.Meta {
 		// metadata without export
 		b := imagor.NewEmptyBlob()
-		b.Meta = metadata(img, format)
+		b.Meta = meta
 		return b, nil
 	}
 	for {
@@ -270,7 +271,7 @@ func (v *Processor) Process(
 			}
 		}
 		b := imagor.NewBlobFromBytes(buf)
-		b.Meta = metadata(img, format)
+		b.Meta = meta
 		return b, nil
 	}
 }
