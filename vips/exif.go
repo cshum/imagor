@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// exifTags to extract, true to cast as int
 var exifTags = map[string]bool{
 	"exif-ifd0-Make":                    false,
 	"exif-ifd0-Model":                   false,
