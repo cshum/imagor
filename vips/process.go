@@ -48,10 +48,7 @@ func (v *Processor) Process(
 		switch p.Name {
 		case "format":
 			if imageType, ok := imageTypeMap[p.Args]; ok {
-				format = imageType
-				if !IsSaveSupported(imageType) {
-					format = ImageTypeJPEG
-				}
+				format = supportedFormat(imageType)
 				if !IsAnimationSupported(format) {
 					// no frames if export format not support animation
 					maxN = 1
@@ -449,10 +446,18 @@ func (v *Processor) process(
 	return nil
 }
 
-func metadata(img *Image, format ImageType) *imagor.Meta {
-	if !IsSaveSupported(format) {
-		format = ImageTypeJPEG
+func supportedFormat(format ImageType) ImageType {
+	if IsSaveSupported(format) {
+		return format
 	}
+	if format == ImageTypeAVIF && IsSaveSupported(ImageTypeHEIF) {
+		return format
+	}
+	return ImageTypeJPEG
+}
+
+func metadata(img *Image, format ImageType) *imagor.Meta {
+	format = supportedFormat(format)
 	pages := img.PageHeight() / img.Pages()
 	if !IsAnimationSupported(format) {
 		pages = 1
