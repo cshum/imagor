@@ -30,7 +30,7 @@ func init() {
 type test struct {
 	name          string
 	path          string
-	checkMetaOnly bool
+	checkTypeOnly bool
 }
 
 func TestProcessor(t *testing.T) {
@@ -49,14 +49,16 @@ func TestProcessor(t *testing.T) {
 			{name: "png", path: "gopher-front.png"},
 			{name: "jpeg", path: "fit-in/100x100/demo1.jpg"},
 			{name: "webp", path: "fit-in/100x100/demo3.webp"},
-			{name: "avif", path: "fit-in/100x100/gopher-front.avif"},
 			{name: "tiff", path: "fit-in/100x100/gopher.tiff"},
-			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
+			{name: "avif", path: "fit-in/100x100/gopher-front.avif", checkTypeOnly: true},
 			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png"},
-			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png"},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
-			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkMetaOnly: true},
+			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "meta jpeg", path: "meta/fit-in/100x100/demo1.jpg"},
+			{name: "meta gif", path: "meta/fit-in/100x100/dancing-banana.gif"},
+			{name: "meta format no animate", path: "meta/fit-in/100x100/filters:format(jpg)/dancing-banana.gif"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips operations", func(t *testing.T) {
@@ -279,24 +281,26 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				bc := imagor.NewBlobFromFile(path)
 				buf, err := bc.ReadAll()
 				require.NoError(t, err)
-				if tt.checkMetaOnly {
+				if tt.checkTypeOnly {
 					require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
 					assert.Equal(t, bc.ContentType(), b.ContentType())
 					assert.Equal(t, bc.BlobType(), b.BlobType())
+					return
+				}
+				if reflect.DeepEqual(buf, w.Body.Bytes()) {
 					return
 				}
 				img1, err := LoadImageFromFile(path, nil)
 				require.NoError(t, err)
 				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
 				require.NoError(t, err)
-				require.Equal(t, img1.Metadata(), img2.Metadata(), "image meta not equal")
-				if !reflect.DeepEqual(buf, w.Body.Bytes()) {
-					buf1, _, err := img1.ExportJpeg(nil)
-					require.NoError(t, err)
-					buf2, _, err := img1.ExportJpeg(nil)
-					require.NoError(t, err)
-					require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
-				}
+				require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
+				require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
+				buf1, err := img1.ExportWebp(nil)
+				require.NoError(t, err)
+				buf2, err := img2.ExportWebp(nil)
+				require.NoError(t, err)
+				require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
 			})
 		}
 

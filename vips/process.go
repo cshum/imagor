@@ -47,9 +47,9 @@ func (v *Processor) Process(
 	for _, p := range p.Filters {
 		switch p.Name {
 		case "format":
-			if typ, ok := imageTypeMap[p.Args]; ok {
-				format = typ
-				if format != ImageTypeGIF && format != ImageTypeWEBP {
+			if imageType, ok := imageTypeMap[p.Args]; ok {
+				format = supportedExport(imageType)
+				if !isSupportAnimation(format) {
 					// no frames if export format not support animation
 					maxN = 1
 				}
@@ -231,8 +231,15 @@ func (v *Processor) Process(
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
+	meta := metadata(img, format)
+	if p.Meta {
+		// metadata without export
+		b := imagor.NewEmptyBlob()
+		b.Meta = meta
+		return b, nil
+	}
 	for {
-		buf, meta, err := v.export(img, format, quality)
+		buf, err := v.export(img, format, quality)
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -264,9 +271,7 @@ func (v *Processor) Process(
 			}
 		}
 		b := imagor.NewBlobFromBytes(buf)
-		if meta != nil {
-			b.Meta = getMeta(meta)
-		}
+		b.Meta = meta
 		return b, nil
 	}
 }
@@ -441,24 +446,36 @@ func (v *Processor) process(
 	return nil
 }
 
-func getMeta(meta *ImageMetadata) *imagor.Meta {
-	format := ImageTypes[meta.Format]
-	contentType := imageMimeTypeMap[format]
-	pages := 1
-	if p := meta.Pages; p > 1 {
-		pages = p
+func metadata(img *Image, format ImageType) *imagor.Meta {
+	format = supportedExport(format)
+	pages := img.PageHeight() / img.Pages()
+	if !isSupportAnimation(format) {
+		pages = 1
 	}
 	return &imagor.Meta{
-		Format:      format,
-		ContentType: contentType,
-		Width:       meta.Width,
-		Height:      meta.Height / pages,
-		Orientation: meta.Orientation,
+		Format:      ImageTypes[format],
+		ContentType: ImageMimeTypes[format],
+		Width:       img.Width(),
+		Height:      img.PageHeight(),
+		Orientation: img.Orientation(),
 		Pages:       pages,
 	}
 }
 
-func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, *ImageMetadata, error) {
+func isSupportAnimation(format ImageType) bool {
+	return format == ImageTypeGIF || format == ImageTypeWEBP
+}
+
+func supportedExport(format ImageType) ImageType {
+	switch format {
+	case ImageTypePNG, ImageTypeWEBP, ImageTypeTIFF, ImageTypeGIF, ImageTypeAVIF, ImageTypeHEIF, ImageTypeJP2K:
+		return format
+	default:
+		return ImageTypeJPEG
+	}
+}
+
+func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, error) {
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()

@@ -95,19 +95,18 @@ var imageTypeMap = map[string]ImageType{
 	"jp2":    ImageTypeJP2K,
 }
 
-var imageMimeTypeMap = map[string]string{
-	"gif":  "image/gif",
-	"jpeg": "image/jpeg",
-	"jpg":  "image/jpeg",
-	"pdf":  "application/pdf",
-	"png":  "image/png",
-	"svg":  "image/svg+xml",
-	"tiff": "image/tiff",
-	"webp": "image/webp",
-	"heif": "image/heif",
-	"bmp":  "image/bmp",
-	"avif": "image/avif",
-	"jp2":  "image/jp2",
+var ImageMimeTypes = map[ImageType]string{
+	ImageTypeGIF:  "image/gif",
+	ImageTypeJPEG: "image/jpeg",
+	ImageTypePDF:  "application/pdf",
+	ImageTypePNG:  "image/png",
+	ImageTypeSVG:  "image/svg+xml",
+	ImageTypeTIFF: "image/tiff",
+	ImageTypeWEBP: "image/webp",
+	ImageTypeHEIF: "image/heif",
+	ImageTypeBMP:  "image/bmp",
+	ImageTypeAVIF: "image/avif",
+	ImageTypeJP2K: "image/jp2",
 }
 
 // Color represents an RGB

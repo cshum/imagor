@@ -247,7 +247,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	if app.ResultKey != nil {
 		resultKey = app.ResultKey.Generate(p)
 	} else {
-		resultKey = strings.TrimPrefix(p.Path, "meta/")
+		resultKey = p.Path
 	}
 	load := func(image string) (*Blob, error) {
 		blob, shouldSave, err := app.loadStorage(r, image)
@@ -339,7 +339,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if shouldSave {
 			<-doneSave
 		}
-		if err == nil && len(app.ResultStorages) > 0 {
+		if err == nil && !isBlobEmpty(blob) && len(app.ResultStorages) > 0 {
 			app.save(ctx, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && shouldSave {
