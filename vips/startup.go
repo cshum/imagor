@@ -150,10 +150,6 @@ func Startup(config *config) {
 	isStarted = true
 }
 
-func IsImageTypeSaveSupported(imageType ImageType) bool {
-	return supportedSaveImageTypes[imageType]
-}
-
 func startupIfNeeded() {
 	once.Do(func() {
 		Startup(nil)
