@@ -56,6 +56,9 @@ func TestProcessor(t *testing.T) {
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
 			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
 			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "meta jpeg", path: "meta/fit-in/100x100/demo1.jpg"},
+			{name: "meta gif", path: "meta/fit-in/100x100/dancing-banana.gif"},
+			{name: "meta format no animate", path: "meta/fit-in/100x100/filters:format(jpg)/dancing-banana.gif"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips operations", func(t *testing.T) {
