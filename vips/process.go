@@ -231,6 +231,13 @@ func (v *Processor) Process(
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
+	if p.Meta {
+		b := imagor.NewEmptyBlob()
+		meta := img.Metadata()
+		meta.Format = format
+		b.Meta = toImagorMeta(meta)
+		return b, nil
+	}
 	for {
 		buf, meta, err := v.export(img, format, quality)
 		if err != nil {
@@ -265,7 +272,7 @@ func (v *Processor) Process(
 		}
 		b := imagor.NewBlobFromBytes(buf)
 		if meta != nil {
-			b.Meta = getMeta(meta)
+			b.Meta = toImagorMeta(meta)
 		}
 		return b, nil
 	}
@@ -441,7 +448,7 @@ func (v *Processor) process(
 	return nil
 }
 
-func getMeta(meta *ImageMetadata) *imagor.Meta {
+func toImagorMeta(meta *ImageMetadata) *imagor.Meta {
 	format := ImageTypes[meta.Format]
 	contentType := imageMimeTypeMap[format]
 	pages := 1
