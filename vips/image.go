@@ -282,8 +282,8 @@ func (r *Image) SetPageDelay(delay []int) error {
 	return vipsImageSetDelay(r.image, data)
 }
 
-func (r *Image) MetaString(name string) string {
-	return vipsGetMetaString(r.image, name)
+func (r *Image) EXIF() map[string]any {
+	return vipsImageGetEXIF(r.image)
 }
 
 // ExportJpeg exports the image as JPEG to a buffer.

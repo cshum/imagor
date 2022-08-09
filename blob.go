@@ -34,12 +34,13 @@ type Stat struct {
 
 // Meta image attributes
 type Meta struct {
-	Format      string `json:"format"`
-	ContentType string `json:"content_type"`
-	Width       int    `json:"width"`
-	Height      int    `json:"height"`
-	Orientation int    `json:"orientation"`
-	Pages       int    `json:"pages"`
+	Format      string         `json:"format"`
+	ContentType string         `json:"content_type"`
+	Width       int            `json:"width"`
+	Height      int            `json:"height"`
+	Orientation int            `json:"orientation"`
+	Pages       int            `json:"pages"`
+	EXIF        map[string]any `json:"exif"`
 }
 
 type Blob struct {
