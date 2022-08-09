@@ -49,6 +49,10 @@ func (v *Processor) Process(
 		case "format":
 			if typ, ok := imageTypeMap[p.Args]; ok {
 				format = typ
+				if !IsImageTypeSupported(format) {
+					// is desired image type not supported, fallback to jpeg
+					format = ImageTypeJPEG
+				}
 				if format != ImageTypeGIF && format != ImageTypeWEBP {
 					// no frames if export format not support animation
 					maxN = 1
@@ -232,6 +236,7 @@ func (v *Processor) Process(
 		return nil, WrapErr(err)
 	}
 	if p.Meta {
+		// metadata without export
 		b := imagor.NewEmptyBlob()
 		meta := img.Metadata()
 		meta.Format = format

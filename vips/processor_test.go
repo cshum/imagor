@@ -52,7 +52,6 @@ func TestProcessor(t *testing.T) {
 			{name: "avif", path: "fit-in/100x100/gopher-front.avif"},
 			{name: "tiff", path: "fit-in/100x100/gopher.tiff"},
 			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
-			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png"},
 			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png"},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},

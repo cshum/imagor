@@ -128,14 +128,14 @@ func Startup(config *config) {
 	defer freeCString(cType)
 
 	for k, v := range ImageTypes {
-		cFunc := C.CString(v + "load")
-		//noinspection GoDeferInLoop
-		defer freeCString(cFunc)
+		func() {
+			cFunc := C.CString(v + "load")
+			defer freeCString(cFunc)
 
-		ret := C.vips_type_find(cType, cFunc)
+			ret := C.vips_type_find(cType, cFunc)
 
-		supportedImageTypes[k] = int(ret) != 0
-
+			supportedImageTypes[k] = int(ret) != 0
+		}()
 		if supportedImageTypes[k] {
 			log("vips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
 		}

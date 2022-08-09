@@ -63,6 +63,13 @@ func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
 	return ImageTypeUnknown
 }
 
+func IsImageTypeSupported(imageType ImageType) bool {
+	if imageType == ImageTypeAVIF && supportedImageTypes[ImageTypeHEIF] {
+		return true
+	}
+	return supportedImageTypes[imageType]
+}
+
 // ImageTypes defines the various image types supported by vips
 var ImageTypes = map[ImageType]string{
 	ImageTypeGIF:    "gif",
