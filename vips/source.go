@@ -66,7 +66,6 @@ func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, p
 }
 
 func finalizeSource(src *Source) {
-	log("vips", LogLevelDebug, fmt.Sprintf("closing source %p", src))
 	src.Close()
 }
 
@@ -77,6 +76,7 @@ func (s *Source) Close() {
 		pointer.Unref(s.ptr)
 		s.ptr = nil
 		_ = s.reader.Close()
+		log("vips", LogLevelDebug, fmt.Sprintf("closing source %p", s))
 	}
 	s.lock.Unlock()
 }

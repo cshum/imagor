@@ -190,7 +190,6 @@ func newImageRef(vipsImage *C.VipsImage, format ImageType, buf []byte) *Image {
 }
 
 func finalizeImage(ref *Image) {
-	log("vips", LogLevelDebug, fmt.Sprintf("closing image %p", ref))
 	ref.Close()
 }
 
@@ -199,14 +198,12 @@ func finalizeImage(ref *Image) {
 // can't keep up with the amount of memory, so you might want to manually close the images.
 func (r *Image) Close() {
 	r.lock.Lock()
-
 	if r.image != nil {
 		clearImage(r.image)
 		r.image = nil
+		log("vips", LogLevelDebug, fmt.Sprintf("closing image %p", r))
 	}
-
 	r.buf = nil
-
 	r.lock.Unlock()
 }
 

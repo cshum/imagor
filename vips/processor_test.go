@@ -271,8 +271,11 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 		for _, tt := range tests {
 			t.Run(fmt.Sprintf("%s-%d", tt.name, i+1), func(t *testing.T) {
 				w := httptest.NewRecorder()
-				app.ServeHTTP(w, httptest.NewRequest(
-					http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil))
+				ctx, cancel := context.WithCancel(context.Background())
+				req := httptest.NewRequest(
+					http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil).WithContext(ctx)
+				app.ServeHTTP(w, req)
+				cancel()
 				assert.Equal(t, 200, w.Code)
 				b := imagor.NewBlobFromBytes(w.Body.Bytes())
 				_ = resStorage.Put(context.Background(), tt.path, b)
