@@ -2,6 +2,10 @@ package vips
 
 // #include <vips/vips.h>
 import "C"
+import (
+	"strconv"
+	"strings"
+)
 
 var exifTags = []string{
 	"exif-ifd0-Make",
@@ -57,15 +61,45 @@ var exifTags = []string{
 	"exif-ifd3-GPSDateStamp",
 }
 
+var exifInt = map[string]bool{
+	"ResolutionUnit":        true,
+	"YCbCrPositioning":      true,
+	"Compression":           true,
+	"ExposureProgram":       true,
+	"ISOSpeedRatings":       true,
+	"MeteringMode":          true,
+	"Flash":                 true,
+	"ColorSpace":            true,
+	"PixelXDimension":       true,
+	"PixelYDimension":       true,
+	"SensingMethod":         true,
+	"ExposureMode":          true,
+	"WhiteBalance":          true,
+	"FocalLengthIn35mmFilm": true,
+	"SceneCaptureType":      true,
+}
+
+func exifStringShort(s string) string {
+	i := strings.Index(s, " (")
+	if i > 0 {
+		return s[:i]
+	}
+	return s
+}
+
 func vipsImageGetEXIF(img *C.VipsImage) map[string]any {
 	var exif = map[string]any{}
 	for _, tag := range exifTags {
 		name := tag[10:]
-		value := vipsGetMetaString(img, tag)
+		value := strings.TrimSpace(exifStringShort(vipsGetMetaString(img, tag)))
 		if value == "" {
 			continue
 		}
-		exif[name] = value
+		if exifInt[name] {
+			exif[name], _ = strconv.Atoi(value)
+		} else {
+			exif[name] = value
+		}
 	}
 	return exif
 }
