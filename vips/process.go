@@ -459,8 +459,6 @@ func metadata(img *Image, format ImageType) *imagor.Meta {
 		Height:      img.PageHeight(),
 		Pages:       pages,
 		Orientation: img.Orientation(),
-		Bands:       img.Bands(),
-		HasAlpha:    img.HasAlpha(),
 		EXIF:        img.EXIF(),
 	}
 }

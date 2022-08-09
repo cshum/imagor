@@ -36,13 +36,10 @@ type Stat struct {
 type Meta struct {
 	Format      string         `json:"format"`
 	ContentType string         `json:"content_type"`
-	Space       string         `json:"space"`
 	Width       int            `json:"width"`
 	Height      int            `json:"height"`
 	Orientation int            `json:"orientation"`
-	Bands       int            `json:"bands"`
 	Pages       int            `json:"pages"`
-	HasAlpha    bool           `json:"has_alpha"`
 	EXIF        map[string]any `json:"exif"`
 }
 
