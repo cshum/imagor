@@ -31,11 +31,12 @@ const (
 )
 
 var (
-	lock                sync.Mutex
-	once                sync.Once
-	isStarted           bool
-	isShutdown          bool
-	supportedImageTypes = make(map[ImageType]bool)
+	lock                    sync.Mutex
+	once                    sync.Once
+	isStarted               bool
+	isShutdown              bool
+	supportedLoadImageTypes = make(map[ImageType]bool)
+	supportedSaveImageTypes = make(map[ImageType]bool)
 )
 
 type config struct {
@@ -129,18 +130,28 @@ func Startup(config *config) {
 
 	for k, v := range ImageTypes {
 		func() {
-			cFunc := C.CString(v + "load")
-			defer freeCString(cFunc)
+			cLoad := C.CString(v + "load")
+			defer freeCString(cLoad)
 
-			ret := C.vips_type_find(cType, cFunc)
+			supportLoad := C.vips_type_find(cType, cLoad)
+			supportedLoadImageTypes[k] = int(supportLoad) != 0
 
-			supportedImageTypes[k] = int(ret) != 0
+			cSave := C.CString(v + "save_buffer")
+			defer freeCString(cSave)
+			supportSave := C.vips_type_find(cType, cSave)
+			supportedSaveImageTypes[k] = int(supportSave) != 0
 		}()
-		if supportedImageTypes[k] {
-			log("vips", LogLevelInfo, fmt.Sprintf("registered image type loader type=%s", v))
+		if supportedLoadImageTypes[k] || supportedSaveImageTypes[k] {
+			log("vips", LogLevelInfo, fmt.Sprintf(
+				"registered image type=%s load=%t save=%t",
+				v, supportedLoadImageTypes[k], supportedSaveImageTypes[k]))
 		}
 	}
 	isStarted = true
+}
+
+func IsImageTypeSaveSupported(imageType ImageType) bool {
+	return supportedSaveImageTypes[imageType]
 }
 
 func startupIfNeeded() {
