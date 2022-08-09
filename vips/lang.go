@@ -4,6 +4,7 @@ package vips
 import "C"
 import (
 	"fmt"
+	"sync"
 	"unsafe"
 )
 
@@ -52,4 +53,15 @@ func toGboolean(b bool) C.gboolean {
 
 func fromGboolean(b C.gboolean) bool {
 	return b != 0
+}
+
+var cStringsCache sync.Map
+
+func cachedCString(str string) *C.char {
+	if cstr, ok := cStringsCache.Load(str); ok {
+		return cstr.(*C.char)
+	}
+	cstr := C.CString(str)
+	cStringsCache.Store(str, cstr)
+	return cstr
 }

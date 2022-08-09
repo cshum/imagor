@@ -282,6 +282,10 @@ func (r *Image) SetPageDelay(delay []int) error {
 	return vipsImageSetDelay(r.image, data)
 }
 
+func (r *Image) EXIF() map[string]any {
+	return vipsImageGetEXIF(r.image)
+}
+
 // ExportJpeg exports the image as JPEG to a buffer.
 func (r *Image) ExportJpeg(params *JpegExportParams) ([]byte, error) {
 	if params == nil {

@@ -48,8 +48,8 @@ func (v *Processor) Process(
 		switch p.Name {
 		case "format":
 			if imageType, ok := imageTypeMap[p.Args]; ok {
-				format = supportedExport(imageType)
-				if !isSupportAnimation(format) {
+				format = supportedFormat(imageType)
+				if !IsAnimationSupported(format) {
 					// no frames if export format not support animation
 					maxN = 1
 				}
@@ -447,9 +447,9 @@ func (v *Processor) process(
 }
 
 func metadata(img *Image, format ImageType) *imagor.Meta {
-	format = supportedExport(format)
+	format = supportedFormat(format)
 	pages := img.PageHeight() / img.Pages()
-	if !isSupportAnimation(format) {
+	if !IsAnimationSupported(format) {
 		pages = 1
 	}
 	return &imagor.Meta{
@@ -457,22 +457,23 @@ func metadata(img *Image, format ImageType) *imagor.Meta {
 		ContentType: ImageMimeTypes[format],
 		Width:       img.Width(),
 		Height:      img.PageHeight(),
-		Orientation: img.Orientation(),
 		Pages:       pages,
+		Orientation: img.Orientation(),
+		EXIF:        img.EXIF(),
 	}
 }
 
-func isSupportAnimation(format ImageType) bool {
-	return format == ImageTypeGIF || format == ImageTypeWEBP
-}
-
-func supportedExport(format ImageType) ImageType {
+func supportedFormat(format ImageType) ImageType {
 	switch format {
 	case ImageTypePNG, ImageTypeWEBP, ImageTypeTIFF, ImageTypeGIF, ImageTypeAVIF, ImageTypeHEIF, ImageTypeJP2K:
-		return format
-	default:
-		return ImageTypeJPEG
+		if IsSaveSupported(format) {
+			return format
+		}
+		if format == ImageTypeAVIF && IsSaveSupported(ImageTypeHEIF) {
+			return ImageTypeAVIF
+		}
 	}
+	return ImageTypeJPEG
 }
 
 func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, error) {

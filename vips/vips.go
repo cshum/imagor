@@ -348,3 +348,7 @@ func vipsImageSetDelay(in *C.VipsImage, data []C.int) error {
 	}
 	return nil
 }
+
+func vipsGetMetaString(image *C.VipsImage, name string) string {
+	return C.GoString(C.get_meta_string(image, cachedCString(name)))
+}

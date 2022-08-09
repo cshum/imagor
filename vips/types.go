@@ -24,6 +24,14 @@ const (
 	ImageTypeJP2K
 )
 
+func IsSaveSupported(imageType ImageType) bool {
+	return supportedSaveImageTypes[imageType]
+}
+
+func IsAnimationSupported(imageType ImageType) bool {
+	return imageType == ImageTypeGIF || imageType == ImageTypeWEBP
+}
+
 // vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
 func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
 	if in != nil {

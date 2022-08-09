@@ -315,7 +315,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				blob = b
 				err = nil
 				if app.Debug {
-					app.Logger.Debug("processed", zap.Any("params", p), zap.Any("meta", b.Meta))
+					app.Logger.Debug("processed", zap.Any("params", p))
 				}
 				break
 			} else {
