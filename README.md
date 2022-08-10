@@ -352,7 +352,7 @@ IMAGOR_DISABLE_ERROR_BODY=1
 
 ### Utility Endpoint
 
-#### `GET /params`
+#### `/params/...`
 
 Imagor provides utilities for previewing and generating Imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
 
