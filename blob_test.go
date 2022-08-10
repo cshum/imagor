@@ -139,7 +139,7 @@ func TestNewEmptyBlob(t *testing.T) {
 }
 
 func TestNewJsonMarshalBlob(t *testing.T) {
-	b := NewJsonMarshalBlob(map[string]string{
+	b := NewBlobFromJsonMarshal(map[string]string{
 		"foo": "bar",
 	})
 	assert.Equal(t, b.BlobType(), BlobTypeJSON)

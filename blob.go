@@ -57,8 +57,6 @@ type Blob struct {
 	blobType    BlobType
 	filepath    string
 	contentType string
-
-	Meta *Meta
 }
 
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
@@ -90,7 +88,7 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 	}
 }
 
-func NewJsonMarshalBlob(v any) *Blob {
+func NewBlobFromJsonMarshal(v any) *Blob {
 	buf, err := json.Marshal(v)
 	size := int64(len(buf))
 	return &Blob{
@@ -256,9 +254,6 @@ func (b *Blob) FilePath() string {
 }
 
 func (b *Blob) ContentType() string {
-	if b.Meta != nil && b.Meta.ContentType != "" {
-		return b.Meta.ContentType
-	}
 	b.init()
 	return b.contentType
 }

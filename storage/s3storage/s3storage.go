@@ -2,7 +2,6 @@ package s3storage
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -108,13 +107,6 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 		_ = reader.Close()
 	}()
 	var metadata map[string]*string
-	if blob.Meta != nil {
-		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
-			metadata = map[string]*string{
-				metaKey: aws.String(string(buf)),
-			}
-		}
-	}
 	input := &s3manager.UploadInput{
 		ACL:         aws.String(s.ACL),
 		Body:        reader,
@@ -166,24 +158,4 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 		Size:         *head.ContentLength,
 		ModifiedTime: *head.LastModified,
 	}, nil
-}
-
-func (s *S3Storage) Meta(ctx context.Context, image string) (meta *imagor.Meta, err error) {
-	head, err := s.head(ctx, image)
-	if err != nil {
-		return nil, err
-	}
-	if head.Metadata == nil || head.Metadata[metaKey] == nil || *head.Metadata[metaKey] == "" {
-		return nil, imagor.ErrNotFound
-	}
-	if s.Expiration > 0 && head.LastModified != nil {
-		if time.Now().Sub(*head.LastModified) > s.Expiration {
-			return nil, imagor.ErrExpired
-		}
-	}
-	meta = &imagor.Meta{}
-	if err := json.Unmarshal([]byte(*head.Metadata[metaKey]), meta); err != nil {
-		return nil, err
-	}
-	return meta, nil
 }

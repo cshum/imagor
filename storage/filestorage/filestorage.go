@@ -126,8 +126,3 @@ func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, 
 		ModifiedTime: stats.ModTime(),
 	}, nil
 }
-
-func (s *FileStorage) Meta(_ context.Context, image string) (*imagor.Meta, error) {
-	// not supported
-	return nil, imagor.ErrNotFound
-}

@@ -3,7 +3,6 @@ package gcloudstorage
 import (
 	"cloud.google.com/go/storage"
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -83,13 +82,6 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 		writer.PredefinedACL = s.ACL
 	}
 	writer.ContentType = blob.ContentType()
-	if blob.Meta != nil {
-		if buf, _ := json.Marshal(blob.Meta); len(buf) > 0 {
-			writer.Metadata = map[string]string{
-				metaKey: string(buf),
-			}
-		}
-	}
 	if _, err := io.Copy(writer, reader); err != nil {
 		return err
 	}
@@ -140,24 +132,4 @@ func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.St
 		Size:         attrs.Size,
 		ModifiedTime: attrs.Updated,
 	}, nil
-}
-
-func (s *GCloudStorage) Meta(ctx context.Context, image string) (meta *imagor.Meta, err error) {
-	attrs, err := s.attrs(ctx, image)
-	if err != nil {
-		return nil, err
-	}
-	if attrs.Metadata == nil || attrs.Metadata[metaKey] == "" {
-		return nil, imagor.ErrNotFound
-	}
-	if s.Expiration > 0 {
-		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
-			return nil, imagor.ErrExpired
-		}
-	}
-	meta = &imagor.Meta{}
-	if err := json.Unmarshal([]byte(attrs.Metadata[metaKey]), meta); err != nil {
-		return nil, err
-	}
-	return meta, nil
 }
