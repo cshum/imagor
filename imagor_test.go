@@ -39,11 +39,6 @@ func (f saverFunc) Get(r *http.Request, image string) (*Blob, error) {
 	return nil, ErrNotFound
 }
 
-func (f saverFunc) Meta(ctx context.Context, image string) (*Meta, error) {
-	// dummy
-	return nil, ErrNotFound
-}
-
 func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
 	// dummy
 	return nil, ErrNotFound
@@ -425,20 +420,9 @@ func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
 	}, nil
 }
 
-func (s *mapStore) Meta(ctx context.Context, image string) (*Meta, error) {
-	buf, ok := s.Map[image]
-	if !ok {
-		return nil, ErrNotFound
-	}
-	return buf.Meta, nil
-}
-
 func TestWithLoadersStoragesProcessors(t *testing.T) {
 	store := newMapStore()
 	resultStore := newMapStore()
-	fakeMeta := &Meta{Format: "a", ContentType: "b", Width: 167, Height: 167}
-	fakeMetaBuf, _ := json.Marshal(fakeMeta)
-	fakeMetaStr := string(fakeMetaBuf)
 	newFakeBlob := func(str string) *Blob {
 		return NewBlob(func() (io.ReadCloser, int64, error) {
 			return io.NopCloser(bytes.NewReader([]byte(str))), 0, nil
@@ -513,7 +497,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "tar" {
 					b := newFakeBlob("bark")
-					b.Meta = fakeMeta
 					return b, nil
 				}
 				if string(buf) == "poop" {
@@ -544,12 +527,6 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/bar", nil))
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "bar", w.Body.String())
-
-			w = httptest.NewRecorder()
-			app.ServeHTTP(w, httptest.NewRequest(
-				http.MethodGet, "https://example.com/unsafe/meta/foo", nil))
-			assert.Equal(t, 200, w.Code)
-			assert.Equal(t, fakeMetaStr, w.Body.String())
 
 			w = httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(

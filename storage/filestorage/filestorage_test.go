@@ -146,9 +146,6 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 		assert.Equal(t, imagor.ErrNotFound, err)
 
-		_, err = s.Meta(context.Background(), "/foo/fooo/asdf")
-		assert.Equal(t, imagor.ErrNotFound, err)
-
 		assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrInvalid)
 
 		assert.Equal(t, imagor.ErrInvalid, s.Delete(context.Background(), "/bar/fooo/asdf"))

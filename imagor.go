@@ -31,7 +31,6 @@ type Storage interface {
 	Put(ctx context.Context, key string, blob *Blob) error
 	Delete(ctx context.Context, key string) error
 	Stat(ctx context.Context, key string) (*Stat, error)
-	Meta(ctx context.Context, key string) (*Meta, error)
 }
 
 // LoadFunc load function for Processor
@@ -42,6 +41,12 @@ type Processor interface {
 	Startup(ctx context.Context) error
 	Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
 	Shutdown(ctx context.Context) error
+}
+
+// Stat image attributes
+type Stat struct {
+	ModifiedTime time.Time
+	Size         int64
 }
 
 // ResultKey generator
@@ -160,10 +165,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	blob, err := checkBlob(app.Do(r, p))
-	if err == nil && p.Meta && blob != nil && blob.Meta != nil {
-		writeJSON(w, r, blob.Meta)
-		return
-	}
 	if !isBlobEmpty(blob) {
 		w.Header().Set("Content-Type", blob.ContentType())
 	}
@@ -256,16 +257,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return blob, err
 	}
-	if p.Meta {
-		if blob := app.loadResult(r, resultKey, p.Image, true); blob != nil {
-			return blob, nil
-		}
-	}
 	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
-		if !p.Meta {
-			if blob := app.loadResult(r, resultKey, p.Image, false); blob != nil {
-				return blob, nil
-			}
+		if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
+			return blob, nil
 		}
 		if app.queueSema != nil {
 			if !app.queueSema.TryAcquire(1) {
@@ -337,6 +331,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 		}
 		if shouldSave {
+			// make sure storage saved before result storage
 			<-doneSave
 		}
 		if err == nil && !isBlobEmpty(blob) && len(app.ResultStorages) > 0 {
@@ -351,17 +346,17 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 
 func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldSave bool, err error) {
 	var origin Storage
-	blob, origin, err = app.load(r, app.Storages, app.Loaders, key, false)
+	blob, origin, err = app.load(r, app.Storages, app.Loaders, key)
 	if err == nil && !isBlobEmpty(blob) && origin == nil && len(app.Storages) > 0 {
 		shouldSave = true
 	}
 	return
 }
 
-func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaMode bool) *Blob {
+func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob {
 	ctx := r.Context()
-	blob, origin, err := app.load(r, app.ResultStorages, nil, resultKey, metaMode)
-	if err == nil && (!isBlobEmpty(blob) || metaMode) {
+	blob, origin, err := app.load(r, app.ResultStorages, nil, resultKey)
+	if err == nil && !isBlobEmpty(blob) {
 		if app.ModifiedTimeCheck && origin != nil {
 			if resStat, err1 := origin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
 				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
@@ -378,7 +373,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, metaM
 }
 
 func (app *Imagor) load(
-	r *http.Request, storages []Storage, loaders []Loader, key string, metaMode bool,
+	r *http.Request, storages []Storage, loaders []Loader, key string,
 ) (blob *Blob, origin Storage, err error) {
 	if key == "" {
 		err = ErrNotFound
@@ -391,43 +386,31 @@ func (app *Imagor) load(
 		Defer(ctx, cancel)
 		r = r.WithContext(ctx)
 	}
-	if metaMode {
-		for _, storage := range storages {
-			m, e := storage.Meta(ctx, key)
-			if e == nil && m != nil {
-				blob = NewEmptyBlob()
-				blob.Meta = m
+
+	for _, storage := range storages {
+		b, e := checkBlob(storage.Get(r, key))
+		if !isBlobEmpty(b) {
+			blob = b
+			if e == nil {
+				err = nil
 				origin = storage
 				return
 			}
-			err = e
 		}
-	} else {
-		for _, storage := range storages {
-			b, e := checkBlob(storage.Get(r, key))
-			if !isBlobEmpty(b) {
-				blob = b
-				if e == nil {
-					err = nil
-					origin = storage
-					return
-				}
-			}
-			err = e
-		}
-		for _, loader := range loaders {
-			b, e := checkBlob(loader.Get(r, key))
-			if !isBlobEmpty(b) {
-				blob = b
-				if e == nil {
-					err = nil
-					return
-				}
-			}
-			err = e
-		}
+		err = e
 	}
-	if err == nil && isBlobEmpty(blob) && !metaMode {
+	for _, loader := range loaders {
+		b, e := checkBlob(loader.Get(r, key))
+		if !isBlobEmpty(b) {
+			blob = b
+			if e == nil {
+				err = nil
+				return
+			}
+		}
+		err = e
+	}
+	if err == nil && isBlobEmpty(blob) {
 		err = ErrNotFound
 	}
 	if err != nil && app.Debug {

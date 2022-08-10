@@ -3,11 +3,11 @@ package imagor
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
 	"sync"
-	"time"
 )
 
 type BlobType int
@@ -17,6 +17,7 @@ const maxBodySize = int64(32 << 20) // 32MB
 const (
 	BlobTypeUnknown BlobType = iota
 	BlobTypeEmpty
+	BlobTypeJSON
 	BlobTypeJPEG
 	BlobTypePNG
 	BlobTypeGIF
@@ -25,23 +26,6 @@ const (
 	BlobTypeHEIF
 	BlobTypeTIFF
 )
-
-// Stat image attributes
-type Stat struct {
-	ModifiedTime time.Time
-	Size         int64
-}
-
-// Meta image attributes
-type Meta struct {
-	Format      string         `json:"format"`
-	ContentType string         `json:"content_type"`
-	Width       int            `json:"width"`
-	Height      int            `json:"height"`
-	Orientation int            `json:"orientation"`
-	Pages       int            `json:"pages"`
-	EXIF        map[string]any `json:"exif"`
-}
 
 type Blob struct {
 	newReader  func() (r io.ReadCloser, size int64, err error)
@@ -55,8 +39,6 @@ type Blob struct {
 	blobType    BlobType
 	filepath    string
 	contentType string
-
-	Meta *Meta
 }
 
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
@@ -84,6 +66,18 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 			}
 			reader, err := os.Open(filepath)
 			return reader, stat.Size(), err
+		},
+	}
+}
+
+func NewBlobFromJsonMarshal(v any) *Blob {
+	buf, err := json.Marshal(v)
+	size := int64(len(buf))
+	return &Blob{
+		err:      err,
+		blobType: BlobTypeJSON,
+		newReader: func() (io.ReadCloser, int64, error) {
+			return io.NopCloser(bytes.NewReader(buf)), size, err
 		},
 	}
 }
@@ -125,8 +119,10 @@ func newEmptyReader() (io.ReadCloser, int64, error) {
 
 func (b *Blob) init() {
 	b.once.Do(func() {
-		b.blobType = BlobTypeUnknown
-		b.contentType = "application/octet-stream"
+		if b.blobType != BlobTypeJSON {
+			b.blobType = BlobTypeUnknown
+			b.contentType = "application/octet-stream"
+		}
 		if b.err != nil {
 			return
 		}
@@ -167,7 +163,8 @@ func (b *Blob) init() {
 			}
 			return
 		}
-		if b.blobType != BlobTypeEmpty && len(b.buf) > 24 {
+		if b.blobType != BlobTypeEmpty && b.blobType != BlobTypeJSON &&
+			len(b.buf) > 24 {
 			if bytes.Equal(b.buf[:3], jpegHeader) {
 				b.blobType = BlobTypeJPEG
 			} else if bytes.Equal(b.buf[:4], pngHeader) {
@@ -187,6 +184,8 @@ func (b *Blob) init() {
 			}
 		}
 		switch b.blobType {
+		case BlobTypeJSON:
+			b.contentType = "application/json"
 		case BlobTypeJPEG:
 			b.contentType = "image/jpeg"
 		case BlobTypePNG:
@@ -237,9 +236,6 @@ func (b *Blob) FilePath() string {
 }
 
 func (b *Blob) ContentType() string {
-	if b.Meta != nil && b.Meta.ContentType != "" {
-		return b.Meta.ContentType
-	}
 	b.init()
 	return b.contentType
 }

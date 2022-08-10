@@ -231,12 +231,9 @@ func (v *Processor) Process(
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
-	meta := metadata(img, format)
 	if p.Meta {
 		// metadata without export
-		b := imagor.NewEmptyBlob()
-		b.Meta = meta
-		return b, nil
+		return imagor.NewBlobFromJsonMarshal(metadata(img, format)), nil
 	}
 	for {
 		buf, err := v.export(img, format, quality)
@@ -270,9 +267,7 @@ func (v *Processor) Process(
 				continue
 			}
 		}
-		b := imagor.NewBlobFromBytes(buf)
-		b.Meta = meta
-		return b, nil
+		return imagor.NewBlobFromBytes(buf), nil
 	}
 }
 
@@ -446,13 +441,24 @@ func (v *Processor) process(
 	return nil
 }
 
-func metadata(img *Image, format ImageType) *imagor.Meta {
+// Metadata image attributes
+type Metadata struct {
+	Format      string         `json:"format"`
+	ContentType string         `json:"content_type"`
+	Width       int            `json:"width"`
+	Height      int            `json:"height"`
+	Orientation int            `json:"orientation"`
+	Pages       int            `json:"pages"`
+	EXIF        map[string]any `json:"exif"`
+}
+
+func metadata(img *Image, format ImageType) *Metadata {
 	format = supportedFormat(format)
 	pages := img.PageHeight() / img.Pages()
 	if !IsAnimationSupported(format) {
 		pages = 1
 	}
-	return &imagor.Meta{
+	return &Metadata{
 		Format:      ImageTypes[format],
 		ContentType: ImageMimeTypes[format],
 		Width:       img.Width(),
