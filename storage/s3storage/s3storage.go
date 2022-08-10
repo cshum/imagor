@@ -31,8 +31,6 @@ type S3Storage struct {
 	safeChars imagorpath.SafeChars
 }
 
-const metaKey = "Imagor-Meta"
-
 func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	baseDir := "/"
 	if idx := strings.Index(bucket, "/"); idx > -1 {

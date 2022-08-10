@@ -25,8 +25,6 @@ type GCloudStorage struct {
 	safeChars imagorpath.SafeChars
 }
 
-const metaKey = "Imagor-Meta"
-
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
 	s := &GCloudStorage{client: client, Bucket: bucket}
 	for _, option := range options {
