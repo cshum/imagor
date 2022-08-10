@@ -70,7 +70,7 @@ func exifStringShort(s string) string {
 	return s
 }
 
-func vipsImageGetEXIF(img *C.VipsImage) map[string]any {
+func vipsImageGetExif(img *C.VipsImage) map[string]any {
 	var exif = map[string]any{}
 	for tag, atoi := range exifTags {
 		name := tag[10:]

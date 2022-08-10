@@ -120,12 +120,10 @@ Imagor supports the following filters:
   - `w_ratio` percentage of the width of the image the watermark should fit-in
   - `h_ratio` percentage of the height of the image the watermark should fit-in
 
-### Metadata and EXIF
+### Metadata and Exif
 
-Imagor provides metadata endpoint that retrieves image metadata such as image format, dimensions and EXIF data.
-
-Under the hood, Imagor leverages libvips streaming capability that tries to retrieve data
-sufficient to determine the image metadata, without loading and processing the full image bytes in memory.
+Imagor provides metadata endpoint that retrieves image info such as image format, dimensions and Exif metadata.
+Under the hood, it leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability and tries to retrieve only enough to extract the header, without reading and processing the full image data in memory.
 
 To use the metadata endpoint, prepend `/meta` right after the URL signature hash before the image operations:
 
