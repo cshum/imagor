@@ -135,7 +135,7 @@ Example:
 ```
 curl http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
 ```
-```json
+```jsonc
 {
   "format": "jpeg",
   "content_type": "image/jpeg",
@@ -149,7 +149,7 @@ curl http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cs
     "ComponentsConfiguration": "Y Cb Cr -",
     "Compression": 6,
     "DateTime": "2008:07:31 10:38:11",
-    ...
+    // ...
     "WhiteBalance": 0,
     "XResolution": "72/1",
     "YCbCrPositioning": 2,
