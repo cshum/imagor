@@ -123,7 +123,7 @@ Imagor supports the following filters:
 ### Metadata and Exif
 
 Imagor provides metadata endpoint that retrieves image info such as image format, dimensions and Exif metadata.
-Under the hood, it leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability and tries to retrieve only enough to extract the header, without reading and processing the full image data in memory.
+Under the hood, it leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability and tries to retrieve data only enough to extract the header, without reading and processing the full image data in memory.
 
 To use the metadata endpoint, prepend `/meta` right after the URL signature hash before the image operations:
 
