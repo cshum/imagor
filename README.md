@@ -10,9 +10,9 @@ Imagor is a fast, Docker-ready image processing server written in Go.
 Imagor uses one of the most efficient image processing library
 [libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings.
 
-Imagor is a Go application that is highly optimized for concurrent requests. It leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability that enables parallel processing with high network throughput.
+Imagor is a Go application that is highly optimized for concurrent requests. It leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability for parallel processing with high network throughput.
 
-Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
+Imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
 
 ### Quick Start
 
@@ -123,7 +123,7 @@ Imagor supports the following filters:
 ### Metadata and Exif
 
 Imagor provides metadata endpoint that extracts image info such as image format, dimensions and Exif metadata.
-Under the hood, it leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability and tries to retrieve data only enough to extract the header, without reading and processing the whole image data in memory.
+Under the hood, it tries to retrieve data only enough to extract the header, without reading and processing the whole image data in memory.
 
 To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations:
 
