@@ -233,8 +233,7 @@ func (v *Processor) Process(
 	}
 	if p.Meta {
 		// metadata without export
-		meta := metadata(img, format)
-		return imagor.NewBlobFromJsonMarshal(meta), nil
+		return imagor.NewBlobFromJsonMarshal(metadata(img, format)), nil
 	}
 	for {
 		buf, err := v.export(img, format, quality)
