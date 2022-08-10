@@ -43,6 +43,12 @@ type Processor interface {
 	Shutdown(ctx context.Context) error
 }
 
+// Stat image attributes
+type Stat struct {
+	ModifiedTime time.Time
+	Size         int64
+}
+
 // ResultKey generator
 type ResultKey interface {
 	Generate(p imagorpath.Params) string
