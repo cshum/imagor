@@ -137,3 +137,14 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
 }
+
+func TestNewJsonMarshalBlob(t *testing.T) {
+	b := NewJsonMarshalBlob(map[string]string{
+		"foo": "bar",
+	})
+	assert.Equal(t, b.BlobType(), BlobTypeJSON)
+	assert.Equal(t, b.ContentType(), "application/json")
+	assert.Equal(t, `{"foo":"bar"}`, string(b.Sniff()))
+	buf, _ := b.ReadAll()
+	assert.Equal(t, `{"foo":"bar"}`, string(buf))
+}
