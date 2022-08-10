@@ -127,7 +127,9 @@ Under the hood, it leverages libvips [streaming](https://www.libvips.org/2019/11
 
 To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations:
 
-#### `/HASH|unsafe/meta/...`.
+```
+/HASH|unsafe/meta/...
+```
 
 Example:
 ```
@@ -350,7 +352,7 @@ IMAGOR_DISABLE_ERROR_BODY=1
 
 ### Utility Endpoint
 
-#### `/params/...`
+#### `GET /params`
 
 Imagor provides utilities for previewing and generating Imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
 
