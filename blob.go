@@ -119,10 +119,6 @@ func newEmptyReader() (io.ReadCloser, int64, error) {
 
 func (b *Blob) init() {
 	b.once.Do(func() {
-		if b.blobType != BlobTypeJSON {
-			b.blobType = BlobTypeUnknown
-			b.contentType = "application/octet-stream"
-		}
 		if b.err != nil {
 			return
 		}
@@ -183,25 +179,27 @@ func (b *Blob) init() {
 				b.blobType = BlobTypeTIFF
 			}
 		}
-		switch b.blobType {
-		case BlobTypeJSON:
-			b.contentType = "application/json"
-		case BlobTypeJPEG:
-			b.contentType = "image/jpeg"
-		case BlobTypePNG:
-			b.contentType = "image/png"
-		case BlobTypeGIF:
-			b.contentType = "image/gif"
-		case BlobTypeWEBP:
-			b.contentType = "image/webp"
-		case BlobTypeAVIF:
-			b.contentType = "image/avif"
-		case BlobTypeHEIF:
-			b.contentType = "image/heif"
-		case BlobTypeTIFF:
-			b.contentType = "image/tiff"
-		default:
-			b.contentType = http.DetectContentType(b.buf)
+		if b.contentType == "" {
+			switch b.blobType {
+			case BlobTypeJSON:
+				b.contentType = "application/json"
+			case BlobTypeJPEG:
+				b.contentType = "image/jpeg"
+			case BlobTypePNG:
+				b.contentType = "image/png"
+			case BlobTypeGIF:
+				b.contentType = "image/gif"
+			case BlobTypeWEBP:
+				b.contentType = "image/webp"
+			case BlobTypeAVIF:
+				b.contentType = "image/avif"
+			case BlobTypeHEIF:
+				b.contentType = "image/heif"
+			case BlobTypeTIFF:
+				b.contentType = "image/tiff"
+			default:
+				b.contentType = http.DetectContentType(b.buf)
+			}
 		}
 	})
 }
@@ -233,6 +231,10 @@ func (b *Blob) Size() int64 {
 
 func (b *Blob) FilePath() string {
 	return b.filepath
+}
+
+func (b *Blob) SetContentType(contentType string) {
+	b.contentType = contentType
 }
 
 func (b *Blob) ContentType() string {

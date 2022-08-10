@@ -148,3 +148,10 @@ func TestNewJsonMarshalBlob(t *testing.T) {
 	buf, _ := b.ReadAll()
 	assert.Equal(t, `{"foo":"bar"}`, string(buf))
 }
+
+func TestBlobOverrideContentType(t *testing.T) {
+	b := NewBlobFromFile("testdata/demo1.jpg")
+	b.SetContentType("foo/bar")
+	assert.Equal(t, BlobTypeJPEG, b.BlobType())
+	assert.Equal(t, "foo/bar", b.ContentType())
+}

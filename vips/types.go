@@ -87,22 +87,6 @@ var ImageTypes = map[ImageType]string{
 	ImageTypeJP2K:   "jp2k",
 }
 
-var imageTypeMap = map[string]ImageType{
-	"gif":    ImageTypeGIF,
-	"jpeg":   ImageTypeJPEG,
-	"jpg":    ImageTypeJPEG,
-	"magick": ImageTypeMagick,
-	"pdf":    ImageTypePDF,
-	"png":    ImageTypePNG,
-	"svg":    ImageTypeSVG,
-	"tiff":   ImageTypeTIFF,
-	"webp":   ImageTypeWEBP,
-	"heif":   ImageTypeHEIF,
-	"bmp":    ImageTypeBMP,
-	"avif":   ImageTypeAVIF,
-	"jp2":    ImageTypeJP2K,
-}
-
 var ImageMimeTypes = map[ImageType]string{
 	ImageTypeGIF:  "image/gif",
 	ImageTypeJPEG: "image/jpeg",

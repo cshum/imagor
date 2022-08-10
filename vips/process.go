@@ -12,6 +12,22 @@ import (
 	"time"
 )
 
+var imageTypeMap = map[string]ImageType{
+	"gif":    ImageTypeGIF,
+	"jpeg":   ImageTypeJPEG,
+	"jpg":    ImageTypeJPEG,
+	"magick": ImageTypeMagick,
+	"pdf":    ImageTypePDF,
+	"png":    ImageTypePNG,
+	"svg":    ImageTypeSVG,
+	"tiff":   ImageTypeTIFF,
+	"webp":   ImageTypeWEBP,
+	"heif":   ImageTypeHEIF,
+	"bmp":    ImageTypeBMP,
+	"avif":   ImageTypeAVIF,
+	"jp2":    ImageTypeJP2K,
+}
+
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
@@ -267,7 +283,9 @@ func (v *Processor) Process(
 				continue
 			}
 		}
-		return imagor.NewBlobFromBytes(buf), nil
+		blob := imagor.NewBlobFromBytes(buf)
+		blob.SetContentType(ImageMimeTypes[format])
+		return blob, nil
 	}
 }
 
