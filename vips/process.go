@@ -467,7 +467,7 @@ type Metadata struct {
 	Height      int            `json:"height"`
 	Orientation int            `json:"orientation"`
 	Pages       int            `json:"pages"`
-	EXIF        map[string]any `json:"exif"`
+	Exif        map[string]any `json:"exif"`
 }
 
 func metadata(img *Image, format ImageType) *Metadata {
@@ -483,7 +483,7 @@ func metadata(img *Image, format ImageType) *Metadata {
 		Height:      img.PageHeight(),
 		Pages:       pages,
 		Orientation: img.Orientation(),
-		EXIF:        img.EXIF(),
+		Exif:        img.Exif(),
 	}
 }
 

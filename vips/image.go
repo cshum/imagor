@@ -227,7 +227,7 @@ func (r *Image) HasAlpha() bool {
 	return vipsHasAlpha(r.image)
 }
 
-// Orientation returns the orientation number as it appears in the EXIF, if present
+// Orientation returns the orientation number as it appears in the Exif, if present
 func (r *Image) Orientation() int {
 	return vipsGetMetaOrientation(r.image)
 }
@@ -282,8 +282,8 @@ func (r *Image) SetPageDelay(delay []int) error {
 	return vipsImageSetDelay(r.image, data)
 }
 
-func (r *Image) EXIF() map[string]any {
-	return vipsImageGetEXIF(r.image)
+func (r *Image) Exif() map[string]any {
+	return vipsImageGetExif(r.image)
 }
 
 // ExportJpeg exports the image as JPEG to a buffer.

@@ -10,7 +10,7 @@ Imagor is a fast, Docker-ready image processing server written in Go.
 Imagor uses one of the most efficient image processing library
 [libvips](https://github.com/libvips/libvips). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings.
 
-Imagor is a Go application that is highly optimized for concurrent requests. It is ready to be installed and used in any Unix environment, and ready to be containerized using Docker.
+Imagor is a Go application that is highly optimized for concurrent requests. It also leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability that enables parallel processing with high network throughput.
 
 Imagor adopts the [Thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
 
@@ -47,7 +47,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 /HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
-- `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
+- `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
 - `trim` removes surrounding space in images using top-left pixel color
 - `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
 - `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
@@ -119,6 +119,42 @@ Imagor supports the following filters:
   - `alpha` watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent).
   - `w_ratio` percentage of the width of the image the watermark should fit-in
   - `h_ratio` percentage of the height of the image the watermark should fit-in
+
+### Metadata and Exif
+
+Imagor provides metadata endpoint that retrieves image info such as image format, dimensions and Exif metadata.
+Under the hood, it leverages libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) capability and tries to retrieve data only enough to extract the header, without reading and processing the full image data in memory.
+
+To use the metadata endpoint, prepend `/meta` right after the URL signature hash before the image operations:
+
+#### `/HASH|unsafe/meta/...`.
+
+Example:
+```
+curl http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
+```
+```jsonc
+{
+  "format": "jpeg",
+  "content_type": "image/jpeg",
+  "width": 50,
+  "height": 34,
+  "orientation": 1,
+  "pages": 1,
+  "exif": {
+    "ApertureValue": "368640/65536",
+    "ColorSpace": 1,
+    "ComponentsConfiguration": "Y Cb Cr -",
+    "Compression": 6,
+    "DateTime": "2008:07:31 10:38:11",
+    // ...
+    "WhiteBalance": 0,
+    "XResolution": "72/1",
+    "YCbCrPositioning": 2,
+    "YResolution": "72/1"
+  }
+}
+```
 
 ### Loader, Storage and Result Storage
 
@@ -312,9 +348,9 @@ However, if the source image involves user generated content, it is advised to d
 IMAGOR_DISABLE_ERROR_BODY=1
 ```
 
-### Utility
+### Utility Endpoint
 
-#### `GET /params`
+#### `/params/...`
 
 Imagor provides utilities for previewing and generating Imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
 

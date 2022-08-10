@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const Version = "0.9.13"
+const Version = "1.0.0"
 
 // Loader image loader interface
 type Loader interface {
@@ -28,9 +28,9 @@ type Loader interface {
 // Storage image storage interface
 type Storage interface {
 	Get(r *http.Request, key string) (*Blob, error)
+	Stat(ctx context.Context, key string) (*Stat, error)
 	Put(ctx context.Context, key string, blob *Blob) error
 	Delete(ctx context.Context, key string) error
-	Stat(ctx context.Context, key string) (*Stat, error)
 }
 
 // LoadFunc load function for Processor
