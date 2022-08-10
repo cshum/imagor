@@ -39,11 +39,6 @@ func (f saverFunc) Get(r *http.Request, image string) (*Blob, error) {
 	return nil, ErrNotFound
 }
 
-func (f saverFunc) Meta(ctx context.Context, image string) (*Meta, error) {
-	// dummy
-	return nil, ErrNotFound
-}
-
 func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
 	// dummy
 	return nil, ErrNotFound
