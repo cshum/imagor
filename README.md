@@ -39,7 +39,7 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif" height="100" />  
 
 
-### Imagor Endpoint
+### Image Endpoint
 
 Imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
@@ -47,7 +47,7 @@ Imagor endpoint is a series of URL parts which defines the image operations, fol
 /HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
-- `HASH` is the URL Signature hash, or `unsafe` if unsafe mode is used
+- `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
 - `trim` removes surrounding space in images using top-left pixel color
 - `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
 - `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
@@ -119,6 +119,44 @@ Imagor supports the following filters:
   - `alpha` watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent).
   - `w_ratio` percentage of the width of the image the watermark should fit-in
   - `h_ratio` percentage of the height of the image the watermark should fit-in
+
+### Metadata and EXIF
+
+Imagor provides metadata endpoint that retrieves image metadata such as image format, dimensions and EXIF data.
+
+Under the hood, Imagor leverages libvips streaming capability that tries to retrieve data
+sufficient to determine the image metadata, without loading and processing the full image bytes in memory.
+
+To use the metadata endpoint, prepend `/meta` right after the URL signature hash before the image operations:
+
+#### `/HASH|unsafe/meta/...`.
+
+Example:
+```
+curl http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
+```
+```json
+{
+  "format": "jpeg",
+  "content_type": "image/jpeg",
+  "width": 50,
+  "height": 34,
+  "orientation": 1,
+  "pages": 1,
+  "exif": {
+    "ApertureValue": "368640/65536",
+    "ColorSpace": 1,
+    "ComponentsConfiguration": "Y Cb Cr -",
+    "Compression": 6,
+    "DateTime": "2008:07:31 10:38:11",
+    ...
+    "WhiteBalance": 0,
+    "XResolution": "72/1",
+    "YCbCrPositioning": 2,
+    "YResolution": "72/1"
+  }
+}
+```
 
 ### Loader, Storage and Result Storage
 
@@ -312,7 +350,7 @@ However, if the source image involves user generated content, it is advised to d
 IMAGOR_DISABLE_ERROR_BODY=1
 ```
 
-### Utility
+### Utility Endpoint
 
 #### `GET /params`
 
