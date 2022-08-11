@@ -133,7 +133,7 @@ To use the metadata endpoint, add `/meta` right after the URL signature hash bef
 
 Example:
 ```
-curl http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
+http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
 ```
 ```jsonc
 {
@@ -149,11 +149,18 @@ curl http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cs
     "ComponentsConfiguration": "Y Cb Cr -",
     "Compression": 6,
     "DateTime": "2008:07:31 10:38:11",
-    // ...
-    "WhiteBalance": 0,
+    "ISOSpeedRatings": 100,
+    "Make": "Canon",
+    "MeteringMode": 5,
+    "Model": "Canon EOS 40D",
+    "Orientation": 1,
+    "PixelXDimension": 100,
+    "PixelYDimension": 68,
+    "ResolutionUnit": 2,
     "XResolution": "72/1",
     "YCbCrPositioning": 2,
     "YResolution": "72/1"
+    //...
   }
 }
 ```
