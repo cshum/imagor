@@ -125,13 +125,7 @@ Imagor supports the following filters:
 Imagor provides metadata endpoint that extracts image info such as image format, dimensions and Exif metadata.
 Under the hood, it tries to retrieve data only enough to extract the header, without reading and processing the whole image data in memory.
 
-To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations:
-
-```
-/HASH|unsafe/meta/...
-```
-
-Example:
+To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations. Example:
 ```
 http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
 ```
@@ -303,7 +297,7 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 
 #### Custom HMAC Signer
 
-Imagor uses SHA1 HMAC signer by default, the same one used by [Thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). However, SHA1 is not considered cryptographically secure. If that is a concern it is possible to configure different signing method and truncate length. Imagor supports `sha1`, `sha256`, `sha512` signer type:
+Imagor uses SHA1 HMAC signer by default, the same one used by [thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). However, SHA1 is not considered cryptographically secure. If that is a concern it is possible to configure different signing method and truncate length. Imagor supports `sha1`, `sha256`, `sha512` signer type:
 
 ```dotenv
 IMAGOR_SIGNER_TYPE=sha256
@@ -325,7 +319,7 @@ function sign(path, secret) {
 }
 
 console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png', 'mysecret'))
-// IGEn3TxngivD0jy4uuiZim2bdUCvhcnVi1Nm0xGy/500x500/top/raw.g…ubusercontent.com/cshum/imagor/master/testdata/gopher.png
+// IGEn3TxngivD0jy4uuiZim2bdUCvhcnVi1Nm0xGy/500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
 #### Image Bombs Prevention
