@@ -14,6 +14,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 	var closed []bool
 	var err error
 	var buf []byte
+	var total = -1
 	var curr int
 
 	var init = func() {
@@ -23,9 +24,6 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 		for {
 			b := make([]byte, 512)
 			n, e := reader.Read(b)
-			if curr+n > size {
-				n = size - curr
-			}
 			bn := b[:n]
 
 			lock.Lock()
@@ -33,7 +31,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 			curr += n
 			if e != nil {
 				if e == io.EOF {
-					size = curr
+					total = curr
 				} else {
 					err = e
 				}
@@ -46,7 +44,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 				}
 			}
 			lock.RUnlock()
-			if e != nil || curr >= size {
+			if e != nil || total > -1 {
 				return
 			}
 		}
@@ -88,11 +86,11 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 
 					lock.RLock()
 					e = err
-					s := size
+					t := total
 					c := closed[i]
 					lock.RUnlock()
 
-					if cnt >= s {
+					if t > -1 && cnt >= t {
 						return 0, io.EOF
 					}
 					if c {
@@ -108,7 +106,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 					n = copy(p, b)
 					b = b[n:]
 					cnt += n
-					if cnt >= s {
+					if t > -1 && cnt >= t {
 						_ = closeCh()
 						e = io.EOF
 					}
