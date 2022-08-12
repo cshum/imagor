@@ -90,6 +90,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 					lock.RUnlock()
 
 					if t > -1 && cnt >= t && e == nil {
+						_ = closeCh()
 						return 0, io.EOF
 					}
 					if c {
