@@ -43,7 +43,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 				}
 			}
 			lock.RUnlock()
-			if e != nil || total > -1 {
+			if e != nil {
 				return
 			}
 		}
