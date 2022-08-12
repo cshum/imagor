@@ -122,8 +122,8 @@ Imagor supports the following filters:
 
 ### Metadata and Exif
 
-Imagor provides metadata endpoint that extracts image info such as image format, dimensions and Exif metadata.
-Under the hood, it tries to retrieve data only enough to extract the header, without reading and processing the whole image data in memory.
+Imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
+Under the hood, it tries to retrieve data just enough to extract the header, without reading and processing the whole image in memory.
 
 To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations. Example:
 ```
