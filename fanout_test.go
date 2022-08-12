@@ -33,7 +33,19 @@ func TestFanoutSizeOver(t *testing.T) {
 		res1, err := io.ReadAll(reader)
 		assert.NoError(t, err)
 		assert.NoError(t, reader.Close())
-		assert.Equal(t, buf[:5], res1)
+		assert.Equal(t, buf, res1)
+	}, 100, 1)
+}
+
+func TestFanoutEmpty(t *testing.T) {
+	source := io.NopCloser(bytes.NewReader(nil))
+	newReader := FanoutReader(source, 5)
+	doFanoutTest(t, func() {
+		reader := newReader()
+		res1, err := io.ReadAll(reader)
+		assert.NoError(t, err)
+		assert.NoError(t, reader.Close())
+		assert.Empty(t, res1)
 	}, 100, 1)
 }
 
