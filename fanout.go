@@ -30,9 +30,8 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 			buf = append(buf, bn...)
 			curr += n
 			if e != nil {
-				if e == io.EOF {
-					total = curr
-				} else {
+				total = curr
+				if e != io.EOF {
 					err = e
 				}
 			}
@@ -90,7 +89,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 					c := closed[i]
 					lock.RUnlock()
 
-					if t > -1 && cnt >= t {
+					if t > -1 && cnt >= t && e == nil {
 						return 0, io.EOF
 					}
 					if c {
