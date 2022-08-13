@@ -29,7 +29,6 @@ func NewSource(reader io.ReadCloser) *Source {
 		s.ptr = pointer.Save(s)
 		s.src = C.create_go_custom_source_with_seek(s.ptr)
 	} else {
-		s.seeker = seeker
 		s.ptr = pointer.Save(s)
 		s.src = C.create_go_custom_source(s.ptr)
 	}
