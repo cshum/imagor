@@ -10,6 +10,7 @@ static gint64 go_read(VipsSourceCustom *source_custom, void *buffer, gint64 leng
 static gint64 go_seek(VipsSourceCustom *source_custom, gint64 offset, int whence, void* ptr);
 
 VipsSourceCustom * create_go_custom_source(void* ptr);
+VipsSourceCustom * create_go_custom_source_with_seek(void* ptr);
 
 int image_new_from_source(VipsSourceCustom *source, VipsImage **out);
 
