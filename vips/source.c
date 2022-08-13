@@ -14,6 +14,13 @@ VipsSourceCustom * create_go_custom_source(void* ptr)
 {
   VipsSourceCustom * source_custom = vips_source_custom_new();
   g_signal_connect(source_custom, "read", G_CALLBACK(go_read), ptr);
+  return source_custom;
+}
+
+VipsSourceCustom * create_go_custom_source_with_seek(void* ptr)
+{
+  VipsSourceCustom * source_custom = vips_source_custom_new();
+  g_signal_connect(source_custom, "read", G_CALLBACK(go_read), ptr);
   g_signal_connect(source_custom, "seek", G_CALLBACK(go_seek), ptr);
   return source_custom;
 }
