@@ -33,6 +33,19 @@ func TestFanoutSizeOver(t *testing.T) {
 		res1, err := io.ReadAll(reader)
 		assert.NoError(t, err)
 		assert.NoError(t, reader.Close())
+		assert.Equal(t, buf[:5], res1)
+	}, 100, 1)
+}
+
+func TestFanoutSizeUnknown(t *testing.T) {
+	buf := []byte("abcdefghi")
+	source := io.NopCloser(bytes.NewReader(buf))
+	newReader := FanoutReader(source, 0)
+	doFanoutTest(t, func() {
+		reader := newReader()
+		res1, err := io.ReadAll(reader)
+		assert.NoError(t, err)
+		assert.NoError(t, reader.Close())
 		assert.Equal(t, buf, res1)
 	}, 100, 1)
 }
