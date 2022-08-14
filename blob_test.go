@@ -92,7 +92,7 @@ func TestBlobTypes(t *testing.T) {
 
 			reader, err := os.Open(filepath)
 			require.NoError(t, err)
-			b = NewBlobFromFanoutReader(reader)
+			b = NewBlobFromReader(reader)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
 			assert.Equal(t, tt.bytesType, b.BlobType())

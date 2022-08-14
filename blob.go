@@ -89,7 +89,7 @@ func NewBlobFromBytes(buf []byte) *Blob {
 	})
 }
 
-func NewBlobFromFanoutReader(reader io.ReadCloser) *Blob {
+func NewBlobFromReader(reader io.ReadCloser) *Blob {
 	newReader := FanoutReader(reader, 0)
 	return NewBlob(func() (io.ReadCloser, int64, error) {
 		return newReader(), 0, nil
