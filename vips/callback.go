@@ -61,3 +61,39 @@ func goSourceSeek(
 	}
 	return C.longlong(n)
 }
+
+//export goTargetWrite
+func goTargetWrite(
+	ptr unsafe.Pointer, buffer unsafe.Pointer, bufSize C.longlong,
+) (written C.longlong) {
+	target, ok := pointer.Restore(ptr).(*Target)
+	if !ok {
+		return -1
+	}
+
+	// https://stackoverflow.com/questions/51187973/how-to-create-an-array-or-a-slice-from-an-array-unsafe-pointer-in-golang
+	sh := &reflect.SliceHeader{
+		Data: uintptr(buffer),
+		Len:  int(bufSize),
+		Cap:  int(bufSize),
+	}
+	buf := *(*[]byte)(unsafe.Pointer(sh))
+
+	n, err := target.writer.Write(buf)
+	if err != nil {
+		if n == 0 {
+			return -1
+		}
+		return C.longlong(n)
+	}
+	return C.longlong(n)
+}
+
+//export goTargetFinish
+func goTargetFinish(ptr unsafe.Pointer) {
+	target, ok := pointer.Restore(ptr).(*Target)
+	if !ok {
+		return
+	}
+	target.Close()
+}
