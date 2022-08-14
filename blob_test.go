@@ -89,6 +89,17 @@ func TestBlobTypes(t *testing.T) {
 			assert.NotEmpty(t, b.Sniff())
 			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
+
+			reader, err := os.Open(filepath)
+			require.NoError(t, err)
+			b = NewBlobFromFanoutReader(reader)
+			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
+			assert.Equal(t, tt.contentType, b.ContentType())
+			assert.Equal(t, tt.bytesType, b.BlobType())
+			assert.False(t, b.IsEmpty())
+			assert.NotEmpty(t, b.Sniff())
+			assert.Empty(t, b.Size())
+			require.NoError(t, b.Err())
 		})
 	}
 }
