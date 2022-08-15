@@ -253,7 +253,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	load := func(image string) (*Blob, error) {
 		blob, shouldSave, err := app.loadStorage(r, image)
 		if shouldSave {
-			go app.save(r.Context(), app.Storages, image, blob)
+			go app.save(ctx, app.Storages, image, blob)
 		}
 		return blob, err
 	}
@@ -430,11 +430,12 @@ func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err
 }
 
 func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
-	var cancel func()
+	ctx = DetachContext(ctx)
 	if app.SaveTimeout > 0 {
+		var cancel func()
 		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
+		defer cancel()
 	}
-	Defer(ctx, cancel)
 	var wg sync.WaitGroup
 	for _, storage := range storages {
 		wg.Add(1)
@@ -452,6 +453,12 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 }
 
 func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
+	ctx = DetachContext(ctx)
+	if app.SaveTimeout > 0 {
+		var cancel func()
+		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
+		defer cancel()
+	}
 	var wg sync.WaitGroup
 	for _, storage := range storages {
 		wg.Add(1)
