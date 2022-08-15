@@ -323,7 +323,7 @@ func (r *Image) ExportJpeg(target *Target, params *JpegExportParams) error {
 		params = NewJpegExportParams()
 	}
 
-	return vipsSaveJPEGToSource(r.image, target.target, *params)
+	return vipsSaveJPEGToTarget(r.image, target.target, *params)
 }
 
 // ExportPng exports the image as PNG to a buffer.
@@ -332,7 +332,7 @@ func (r *Image) ExportPng(target *Target, params *PngExportParams) error {
 		params = NewPngExportParams()
 	}
 
-	return vipsSavePNGToSource(r.image, target.target, *params)
+	return vipsSavePNGToTarget(r.image, target.target, *params)
 }
 
 // ExportWebp exports the image as WEBP to a buffer.
@@ -344,7 +344,7 @@ func (r *Image) ExportWebp(target *Target, params *WebpExportParams) error {
 	paramsWithIccProfile := *params
 	paramsWithIccProfile.IccProfile = r.optimizedIccProfile
 
-	return vipsSaveWebPToSource(r.image, target.target, paramsWithIccProfile)
+	return vipsSaveWebPToTarget(r.image, target.target, paramsWithIccProfile)
 }
 
 // ExportHeif exports the image as HEIF to a buffer.
@@ -353,7 +353,7 @@ func (r *Image) ExportHeif(target *Target, params *HeifExportParams) error {
 		params = NewHeifExportParams()
 	}
 
-	return vipsSaveHEIFToSource(r.image, target.target, *params)
+	return vipsSaveHEIFToTarget(r.image, target.target, *params)
 }
 
 // ExportTiff exports the image as TIFF to a buffer.
@@ -362,7 +362,7 @@ func (r *Image) ExportTiff(target *Target, params *TiffExportParams) error {
 		params = NewTiffExportParams()
 	}
 
-	return vipsSaveTIFFToSource(r.image, target.target, *params)
+	return vipsSaveTIFFToTarget(r.image, target.target, *params)
 }
 
 // ExportGIF exports the image as GIF to a buffer.
@@ -371,7 +371,7 @@ func (r *Image) ExportGIF(target *Target, params *GifExportParams) error {
 		params = NewGifExportParams()
 	}
 
-	return vipsSaveGIFToSource(r.image, target.target, *params)
+	return vipsSaveGIFToTarget(r.image, target.target, *params)
 }
 
 // ExportAvif exports the image as AVIF to a buffer.
@@ -380,7 +380,7 @@ func (r *Image) ExportAvif(target *Target, params *AvifExportParams) error {
 		params = NewAvifExportParams()
 	}
 
-	return vipsSaveAVIFToSource(r.image, target.target, *params)
+	return vipsSaveAVIFToTarget(r.image, target.target, *params)
 }
 
 // ExportJp2k exports the image as JPEG2000 to a buffer.
@@ -389,7 +389,7 @@ func (r *Image) ExportJp2k(target *Target, params *Jp2kExportParams) error {
 		params = NewJp2kExportParams()
 	}
 
-	return vipsSaveJP2KToSource(r.image, target.target, *params)
+	return vipsSaveJP2KToTarget(r.image, target.target, *params)
 }
 
 // Composite composites the given overlay image on top of the associated image with provided blending mode.

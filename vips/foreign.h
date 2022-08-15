@@ -86,5 +86,5 @@ typedef struct SaveParams {
 } SaveParams;
 
 SaveParams create_save_params(ImageType outputFormat);
-int save_to_source(SaveParams *params);
+int save_to_target(SaveParams *params);
 

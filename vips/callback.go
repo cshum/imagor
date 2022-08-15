@@ -65,7 +65,7 @@ func goSourceSeek(
 //export goTargetWrite
 func goTargetWrite(
 	ptr unsafe.Pointer, buffer unsafe.Pointer, bufSize C.longlong,
-) (written C.longlong) {
+) C.longlong {
 	target, ok := pointer.Restore(ptr).(*Target)
 	if !ok {
 		return -1

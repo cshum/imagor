@@ -2,7 +2,7 @@
 
 typedef int (*SetSaveOptionsFn)(VipsOperation *operation, SaveParams *params);
 
-int save_source(const char *operationName, SaveParams *params,
+int save_target(const char *operationName, SaveParams *params,
                 SetSaveOptionsFn setSaveOptions) {
   VipsOperation *operation = vips_operation_new(operationName);
   if (!operation) {
@@ -30,7 +30,7 @@ int save_source(const char *operationName, SaveParams *params,
   return 0;
 }
 
-// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-jpegsave-buffer
+// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-jpegsave-target
 int set_jpegsave_options(VipsOperation *operation, SaveParams *params) {
   int ret = vips_object_set(
       VIPS_OBJECT(operation), "strip", params->stripMetadata, "optimize_coding",
@@ -47,7 +47,7 @@ int set_jpegsave_options(VipsOperation *operation, SaveParams *params) {
   return ret;
 }
 
-// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-pngsave-buffer
+// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-pngsave-target
 int set_pngsave_options(VipsOperation *operation, SaveParams *params) {
   int ret =
       vips_object_set(VIPS_OBJECT(operation), "strip", params->stripMetadata,
@@ -73,7 +73,7 @@ int set_pngsave_options(VipsOperation *operation, SaveParams *params) {
 }
 
 // https://github.com/libvips/libvips/blob/master/libvips/foreign/webpsave.c#L524
-// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-webpsave-buffer
+// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-webpsave-target
 int set_webpsave_options(VipsOperation *operation, SaveParams *params) {
   int ret =
       vips_object_set(VIPS_OBJECT(operation),
@@ -103,7 +103,7 @@ int set_heifsave_options(VipsOperation *operation, SaveParams *params) {
   return ret;
 }
 
-// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-tiffsave-buffer
+// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-tiffsave-target
 int set_tiffsave_options(VipsOperation *operation, SaveParams *params) {
   int ret = vips_object_set(
       VIPS_OBJECT(operation), "strip", params->stripMetadata, "compression",
@@ -119,7 +119,7 @@ int set_tiffsave_options(VipsOperation *operation, SaveParams *params) {
   return ret;
 }
 
-// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-magicksave-buffer
+// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-magicksave-target
 int set_magicksave_options(VipsOperation *operation, SaveParams *params) {
   int ret = vips_object_set(VIPS_OBJECT(operation), "format", "GIF", NULL);
   if (!ret && params->quality) {
@@ -129,7 +129,7 @@ int set_magicksave_options(VipsOperation *operation, SaveParams *params) {
   return ret;
 }
 
-// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-gifsave-buffer
+// https://libvips.github.io/libvips/API/current/VipsForeignSave.html#vips-gifsave-target
 int set_gifsave_options(VipsOperation *operation, SaveParams *params) {
   int ret = 0;
   // See for argument values: https://www.libvips.org/API/current/VipsForeignSave.html#vips-gifsave
@@ -170,28 +170,28 @@ int set_jp2ksave_options(VipsOperation *operation, SaveParams *params) {
   return ret;
 }
 
-int save_to_source(SaveParams *params) {
+int save_to_target(SaveParams *params) {
   switch (params->outputFormat) {
     case JPEG:
-      return save_source("jpegsave_source", params, set_jpegsave_options);
+      return save_target("jpegsave_target", params, set_jpegsave_options);
     case PNG:
-      return save_source("pngsave_source", params, set_pngsave_options);
+      return save_target("pngsave_target", params, set_pngsave_options);
     case WEBP:
-      return save_source("webpsave_source", params, set_webpsave_options);
+      return save_target("webpsave_target", params, set_webpsave_options);
     case HEIF:
-      return save_source("heifsave_source", params, set_heifsave_options);
+      return save_target("heifsave_target", params, set_heifsave_options);
     case TIFF:
-      return save_source("tiffsave_source", params, set_tiffsave_options);
+      return save_target("tiffsave_target", params, set_tiffsave_options);
     case GIF:
 #if (VIPS_MAJOR_VERSION >= 8) && (VIPS_MINOR_VERSION >= 12)
-      return save_source("gifsave_source", params, set_gifsave_options);
+      return save_target("gifsave_target", params, set_gifsave_options);
 #else
-      return save_source("magicksave_source", params, set_magicksave_options);
+      return save_target("magicksave_target", params, set_magicksave_options);
 #endif
     case AVIF:
-      return save_source("heifsave_source", params, set_avifsave_options);
+      return save_target("heifsave_target", params, set_avifsave_options);
     case JP2K:
-      return save_source("jp2ksave_source", params, set_jp2ksave_options);
+      return save_target("jp2ksave_target", params, set_jp2ksave_options);
     default:
       g_warning("Unsupported output type given: %d", params->outputFormat);
   }
