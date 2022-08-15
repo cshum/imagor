@@ -500,7 +500,7 @@ func supportedFormat(format ImageType) ImageType {
 	return ImageTypeJPEG
 }
 
-func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, error) {
+func (v *Processor) export(image *Image, format ImageType, quality int) error {
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()

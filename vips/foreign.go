@@ -157,9 +157,10 @@ func NewJp2kExportParams() *Jp2kExportParams {
 	}
 }
 
-func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, error) {
+func vipsSaveJPEGToSource(in *C.VipsImage, target *C.VipsTargetCustom, params JpegExportParams) error {
 	p := C.create_save_params(C.JPEG)
 	p.inputImage = in
+	p.target = target
 	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
 	p.quality = C.int(params.Quality)
 	p.interlace = C.int(boolToInt(params.Interlace))
@@ -170,12 +171,13 @@ func vipsSaveJPEGToBuffer(in *C.VipsImage, params JpegExportParams) ([]byte, err
 	p.jpegOptimizeScans = C.int(boolToInt(params.OptimizeScans))
 	p.jpegQuantTable = C.int(params.QuantTable)
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSavePNGToBuffer(in *C.VipsImage, params PngExportParams) ([]byte, error) {
+func vipsSavePNGToSource(in *C.VipsImage, target *C.VipsTargetCustom, params PngExportParams) error {
 	p := C.create_save_params(C.PNG)
 	p.inputImage = in
+	p.target = target
 	p.quality = C.int(params.Quality)
 	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
 	p.interlace = C.int(boolToInt(params.Interlace))
@@ -185,12 +187,13 @@ func vipsSavePNGToBuffer(in *C.VipsImage, params PngExportParams) ([]byte, error
 	p.pngDither = C.double(params.Dither)
 	p.pngBitdepth = C.int(params.Bitdepth)
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSaveWebPToBuffer(in *C.VipsImage, params WebpExportParams) ([]byte, error) {
+func vipsSaveWebPToSource(in *C.VipsImage, target *C.VipsTargetCustom, params WebpExportParams) error {
 	p := C.create_save_params(C.WEBP)
 	p.inputImage = in
+	p.target = target
 	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
 	p.quality = C.int(params.Quality)
 	p.webpLossless = C.int(boolToInt(params.Lossless))
@@ -202,43 +205,47 @@ func vipsSaveWebPToBuffer(in *C.VipsImage, params WebpExportParams) ([]byte, err
 		defer C.free(unsafe.Pointer(p.webpIccProfile))
 	}
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSaveTIFFToBuffer(in *C.VipsImage, params TiffExportParams) ([]byte, error) {
+func vipsSaveTIFFToSource(in *C.VipsImage, target *C.VipsTargetCustom, params TiffExportParams) error {
 	p := C.create_save_params(C.TIFF)
 	p.inputImage = in
+	p.target = target
 	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
 	p.quality = C.int(params.Quality)
 	p.tiffCompression = C.VipsForeignTiffCompression(params.Compression)
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSaveHEIFToBuffer(in *C.VipsImage, params HeifExportParams) ([]byte, error) {
+func vipsSaveHEIFToSource(in *C.VipsImage, target *C.VipsTargetCustom, params HeifExportParams) error {
 	p := C.create_save_params(C.HEIF)
 	p.inputImage = in
+	p.target = target
 	p.outputFormat = C.HEIF
 	p.quality = C.int(params.Quality)
 	p.heifLossless = C.int(boolToInt(params.Lossless))
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSaveAVIFToBuffer(in *C.VipsImage, params AvifExportParams) ([]byte, error) {
+func vipsSaveAVIFToSource(in *C.VipsImage, target *C.VipsTargetCustom, params AvifExportParams) error {
 	p := C.create_save_params(C.AVIF)
 	p.inputImage = in
+	p.target = target
 	p.outputFormat = C.AVIF
 	p.quality = C.int(params.Quality)
 	p.heifLossless = C.int(boolToInt(params.Lossless))
 	p.avifSpeed = C.int(params.Speed)
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSaveJP2KToBuffer(in *C.VipsImage, params Jp2kExportParams) ([]byte, error) {
+func vipsSaveJP2KToSource(in *C.VipsImage, target *C.VipsTargetCustom, params Jp2kExportParams) error {
 	p := C.create_save_params(C.JP2K)
 	p.inputImage = in
+	p.target = target
 	p.outputFormat = C.JP2K
 	p.quality = C.int(params.Quality)
 	p.jp2kLossless = C.int(boolToInt(params.Lossless))
@@ -246,30 +253,24 @@ func vipsSaveJP2KToBuffer(in *C.VipsImage, params Jp2kExportParams) ([]byte, err
 	p.jp2kTileHeight = C.int(params.TileHeight)
 	p.jpegSubsample = C.VipsForeignJpegSubsample(params.SubsampleMode)
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSaveGIFToBuffer(in *C.VipsImage, params GifExportParams) ([]byte, error) {
+func vipsSaveGIFToSource(in *C.VipsImage, target *C.VipsTargetCustom, params GifExportParams) error {
 	p := C.create_save_params(C.GIF)
 	p.inputImage = in
+	p.target = target
 	p.quality = C.int(params.Quality)
 	p.gifDither = C.double(params.Dither)
 	p.gifEffort = C.int(params.Effort)
 	p.gifBitdepth = C.int(params.Bitdepth)
 
-	return vipsSaveToBuffer(p)
+	return vipsSaveToSource(p)
 }
 
-func vipsSaveToBuffer(params C.struct_SaveParams) ([]byte, error) {
-	if err := C.save_to_buffer(&params); err != 0 {
-		if params.outputBuffer != nil {
-			gFreePointer(params.outputBuffer)
-		}
-		return nil, handleVipsError()
+func vipsSaveToSource(params C.struct_SaveParams) error {
+	if err := C.save_to_source(&params); err != 0 {
+		return handleVipsError()
 	}
-
-	buf := C.GoBytes(params.outputBuffer, C.int(params.outputLen))
-	defer gFreePointer(params.outputBuffer)
-
-	return buf, nil
+	return nil
 }

@@ -318,35 +318,25 @@ func (r *Image) Exif() map[string]any {
 }
 
 // ExportJpeg exports the image as JPEG to a buffer.
-func (r *Image) ExportJpeg(params *JpegExportParams) ([]byte, error) {
+func (r *Image) ExportJpeg(target *Target, params *JpegExportParams) error {
 	if params == nil {
 		params = NewJpegExportParams()
 	}
 
-	buf, err := vipsSaveJPEGToBuffer(r.image, *params)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSaveJPEGToSource(r.image, target.target, *params)
 }
 
 // ExportPng exports the image as PNG to a buffer.
-func (r *Image) ExportPng(params *PngExportParams) ([]byte, error) {
+func (r *Image) ExportPng(target *Target, params *PngExportParams) error {
 	if params == nil {
 		params = NewPngExportParams()
 	}
 
-	buf, err := vipsSavePNGToBuffer(r.image, *params)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSavePNGToSource(r.image, target.target, *params)
 }
 
 // ExportWebp exports the image as WEBP to a buffer.
-func (r *Image) ExportWebp(params *WebpExportParams) ([]byte, error) {
+func (r *Image) ExportWebp(target *Target, params *WebpExportParams) error {
 	if params == nil {
 		params = NewWebpExportParams()
 	}
@@ -354,82 +344,52 @@ func (r *Image) ExportWebp(params *WebpExportParams) ([]byte, error) {
 	paramsWithIccProfile := *params
 	paramsWithIccProfile.IccProfile = r.optimizedIccProfile
 
-	buf, err := vipsSaveWebPToBuffer(r.image, paramsWithIccProfile)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSaveWebPToSource(r.image, target.target, paramsWithIccProfile)
 }
 
 // ExportHeif exports the image as HEIF to a buffer.
-func (r *Image) ExportHeif(params *HeifExportParams) ([]byte, error) {
+func (r *Image) ExportHeif(target *Target, params *HeifExportParams) error {
 	if params == nil {
 		params = NewHeifExportParams()
 	}
 
-	buf, err := vipsSaveHEIFToBuffer(r.image, *params)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSaveHEIFToSource(r.image, target.target, *params)
 }
 
 // ExportTiff exports the image as TIFF to a buffer.
-func (r *Image) ExportTiff(params *TiffExportParams) ([]byte, error) {
+func (r *Image) ExportTiff(target *Target, params *TiffExportParams) error {
 	if params == nil {
 		params = NewTiffExportParams()
 	}
 
-	buf, err := vipsSaveTIFFToBuffer(r.image, *params)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSaveTIFFToSource(r.image, target.target, *params)
 }
 
 // ExportGIF exports the image as GIF to a buffer.
-func (r *Image) ExportGIF(params *GifExportParams) ([]byte, error) {
+func (r *Image) ExportGIF(target *Target, params *GifExportParams) error {
 	if params == nil {
 		params = NewGifExportParams()
 	}
 
-	buf, err := vipsSaveGIFToBuffer(r.image, *params)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSaveGIFToSource(r.image, target.target, *params)
 }
 
 // ExportAvif exports the image as AVIF to a buffer.
-func (r *Image) ExportAvif(params *AvifExportParams) ([]byte, error) {
+func (r *Image) ExportAvif(target *Target, params *AvifExportParams) error {
 	if params == nil {
 		params = NewAvifExportParams()
 	}
 
-	buf, err := vipsSaveAVIFToBuffer(r.image, *params)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSaveAVIFToSource(r.image, target.target, *params)
 }
 
 // ExportJp2k exports the image as JPEG2000 to a buffer.
-func (r *Image) ExportJp2k(params *Jp2kExportParams) ([]byte, error) {
+func (r *Image) ExportJp2k(target *Target, params *Jp2kExportParams) error {
 	if params == nil {
 		params = NewJp2kExportParams()
 	}
 
-	buf, err := vipsSaveJP2KToBuffer(r.image, *params)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return vipsSaveJP2KToSource(r.image, target.target, *params)
 }
 
 // Composite composites the given overlay image on top of the associated image with provided blending mode.
