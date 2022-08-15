@@ -533,7 +533,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/ping", nil))
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "pong", w.Body.String())
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 10) // make sure storage reached
 			require.NotNil(t, store.Map["ping"])
 			buf, err := store.Map["ping"].ReadAll()
 			require.NoError(t, err)
@@ -613,14 +613,14 @@ func TestWithResultKey(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 
@@ -665,7 +665,7 @@ func TestWithProcessQueueSize(t *testing.T) {
 		WithProcessQueueSize(int64(size)),
 		WithProcessConcurrency(int64(conn)),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 10) // make sure storage reached
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
 	)
@@ -697,7 +697,7 @@ func TestWithProcessConcurrency(t *testing.T) {
 		WithProcessConcurrency(1),
 		WithRequestTimeout(time.Millisecond*13),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 10) // make sure storage reached
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
 	)
@@ -735,7 +735,7 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 	assert.Equal(t, 0, store.LoadCnt["foo"])
@@ -746,7 +746,7 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 	assert.Equal(t, 0, store.LoadCnt["foo"])
@@ -760,7 +760,7 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, 1, store.LoadCnt["foo"])
 	assert.Equal(t, 1, store.SaveCnt["foo"])
@@ -794,7 +794,7 @@ func TestWithSameStore(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/beep", nil))
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "boop", w.Body.String())
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 10) // make sure storage reached
 		}
 		assert.Equal(t, n-1, store.LoadCnt["beep"])
 		assert.Equal(t, 1, store.SaveCnt["beep"])
