@@ -257,7 +257,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return blob, err
 	}
-	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
+	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
 		if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 			return blob, nil
 		}
@@ -330,6 +330,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				}
 			}
 		}
+		cb(blob, err)
 		if shouldSave {
 			// make sure storage saved before result storage
 			<-doneSave
@@ -470,21 +471,29 @@ func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
 type suppressKey struct {
 	Key string
 }
+type blobRes struct {
+	Blob *Blob
+	Err  error
+}
 
 func (app *Imagor) suppress(
 	ctx context.Context,
-	key string, fn func(ctx context.Context) (*Blob, error),
+	key string, fn func(ctx context.Context, cb func(*Blob, error)) (*Blob, error),
 ) (blob *Blob, err error) {
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
+	chanCb := make(chan blobRes, 1)
+	cb := func(blob *Blob, err error) {
+		chanCb <- blobRes{Blob: blob, Err: err}
+	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
-		return fn(ctx)
+		return fn(ctx, cb)
 	}
 	isCanceled := false
 	ch := app.g.DoChan(key, func() (v interface{}, err error) {
-		v, err = fn(context.WithValue(ctx, suppressKey{key}, true))
+		v, err = fn(context.WithValue(ctx, suppressKey{key}, true), cb)
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
 			isCanceled = true
@@ -501,6 +510,8 @@ func (app *Imagor) suppress(
 			return res.Val.(*Blob), res.Err
 		}
 		return nil, res.Err
+	case res := <-chanCb:
+		return res.Blob, res.Err
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}

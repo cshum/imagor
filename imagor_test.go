@@ -97,9 +97,9 @@ func TestWithUnsafe(t *testing.T) {
 func TestSuppressDeadlockResolve(t *testing.T) {
 	ctx := context.Background()
 	app := New()
-	f, err := app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
-		return app.suppress(ctx, "b", func(ctx context.Context) (*Blob, error) {
-			return app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
+	f, err := app.suppress(ctx, "a", func(ctx context.Context, _ func(*Blob, error)) (*Blob, error) {
+		return app.suppress(ctx, "b", func(ctx context.Context, _ func(*Blob, error)) (*Blob, error) {
+			return app.suppress(ctx, "a", func(ctx context.Context, _ func(*Blob, error)) (*Blob, error) {
 				return NewEmptyBlob(), nil
 			})
 		})
@@ -112,7 +112,7 @@ func TestSuppressTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
 	defer cancel()
 	app := New()
-	f, err := app.suppress(ctx, "a", func(ctx context.Context) (*Blob, error) {
+	f, err := app.suppress(ctx, "a", func(ctx context.Context, _ func(*Blob, error)) (*Blob, error) {
 		time.Sleep(time.Second)
 		return &Blob{}, nil
 	})
@@ -128,7 +128,7 @@ func TestSuppressForgetCanceled(t *testing.T) {
 	for i := 0; i < n; i++ {
 		go func() {
 			defer wg.Done()
-			_, err := app.suppress(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
+			_, err := app.suppress(context.Background(), "a", func(ctx context.Context, _ func(*Blob, error)) (*Blob, error) {
 				time.Sleep(time.Millisecond)
 				return NewEmptyBlob(), nil
 			})
@@ -136,7 +136,7 @@ func TestSuppressForgetCanceled(t *testing.T) {
 		}()
 		go func() {
 			defer wg.Done()
-			_, _ = app.suppress(context.Background(), "a", func(ctx context.Context) (*Blob, error) {
+			_, _ = app.suppress(context.Background(), "a", func(ctx context.Context, _ func(*Blob, error)) (*Blob, error) {
 				time.Sleep(time.Millisecond)
 				return nil, context.Canceled
 			})
@@ -533,6 +533,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/ping", nil))
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "pong", w.Body.String())
+			time.Sleep(time.Millisecond * 10)
 			require.NotNil(t, store.Map["ping"])
 			buf, err := store.Map["ping"].ReadAll()
 			require.NoError(t, err)
@@ -612,12 +613,14 @@ func TestWithResultKey(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 
@@ -732,6 +735,7 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 	assert.Equal(t, 0, store.LoadCnt["foo"])
@@ -742,6 +746,7 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 	assert.Equal(t, 0, store.LoadCnt["foo"])
@@ -755,6 +760,7 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, 1, store.LoadCnt["foo"])
 	assert.Equal(t, 1, store.SaveCnt["foo"])
@@ -788,6 +794,7 @@ func TestWithSameStore(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/beep", nil))
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "boop", w.Body.String())
+			time.Sleep(time.Millisecond * 10)
 		}
 		assert.Equal(t, n-1, store.LoadCnt["beep"])
 		assert.Equal(t, 1, store.SaveCnt["beep"])
