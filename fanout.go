@@ -18,7 +18,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 	var chanSize = size/512 + 1
 	if size <= 0 {
 		size = -1
-		chanSize = 2000 // 1MB buffer
+		chanSize = 1000
 	}
 
 	var init = func() {
