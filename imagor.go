@@ -478,10 +478,6 @@ func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
 type suppressKey struct {
 	Key string
 }
-type blobRes struct {
-	Blob *Blob
-	Err  error
-}
 
 func (app *Imagor) suppress(
 	ctx context.Context,
@@ -490,9 +486,9 @@ func (app *Imagor) suppress(
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
-	chanCb := make(chan blobRes, 1)
+	chanCb := make(chan singleflight.Result, 1)
 	cb := func(blob *Blob, err error) {
-		chanCb <- blobRes{Blob: blob, Err: err}
+		chanCb <- singleflight.Result{Val: blob, Err: err}
 	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
@@ -518,7 +514,7 @@ func (app *Imagor) suppress(
 		}
 		return nil, res.Err
 	case res := <-chanCb:
-		return res.Blob, res.Err
+		return res.Val.(*Blob), res.Err
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
