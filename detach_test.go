@@ -2,6 +2,7 @@ package imagor
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -9,20 +10,16 @@ import (
 func TestDetachContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 	defer cancel()
-	if IsDetached(ctx) {
-		t.Error("not detached ctx")
-	}
+	assert.False(t, IsDetached(ctx))
 	time.Sleep(time.Millisecond)
-	ctx, cancel2 := context.WithTimeout(DetachContext(ctx), time.Millisecond*5)
+	assert.Equal(t, ctx.Err(), context.DeadlineExceeded)
+	ctx = DetachContext(ctx)
+	assert.True(t, IsDetached(ctx))
+	assert.NoError(t, ctx.Err())
+	ctx, cancel2 := context.WithTimeout(ctx, time.Millisecond*5)
 	defer cancel2()
-	if err := ctx.Err(); err != nil {
-		t.Error(err, "should not inherit timeout")
-	}
-	if !IsDetached(ctx) {
-		t.Error("detached ctx")
-	}
+	assert.NoError(t, ctx.Err())
+	assert.True(t, IsDetached(ctx))
 	time.Sleep(time.Millisecond * 10)
-	if err := ctx.Err(); err != context.DeadlineExceeded {
-		t.Error("should new timeout")
-	}
+	assert.Equal(t, ctx.Err(), context.DeadlineExceeded)
 }
