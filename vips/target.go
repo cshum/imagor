@@ -55,5 +55,5 @@ func NewBlobFromTarget(handler func(*Target) error) *imagor.Blob {
 			_ = pr.CloseWithError(err)
 		}
 	}()
-	return imagor.NewBlobFromReader(pr)
+	return imagor.NewBlobFromReaderFanout(pr)
 }
