@@ -1,6 +1,17 @@
 #include <stdlib.h>
 #include <vips/vips.h>
 
+int image_new_from_source(VipsSourceCustom *source, VipsImage **out);
+
+int image_new_from_source_with_option(VipsSourceCustom *source, VipsImage **out, const char *option_string);
+
+int thumbnail_source_with_option(VipsSourceCustom *source, VipsImage **out,
+                    int width, int height, int crop, int size,
+                    const char *option_string);
+
+int thumbnail_source(VipsSourceCustom *source, VipsImage **out,
+                    int width, int height, int crop, int size);
+
 int image_new_from_file(const char *name, VipsImage **out);
 
 int image_new_from_buffer(const void *buf, size_t len, VipsImage **out);

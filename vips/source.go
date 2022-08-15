@@ -37,37 +37,6 @@ func NewSource(reader io.ReadCloser) *Source {
 	return s
 }
 
-func (s *Source) LoadImage(params *ImportParams) (*Image, error) {
-	if params == nil {
-		params = NewImportParams()
-	}
-
-	vipsImage, format, err := vipsImageFromSource(s.src, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, nil)
-	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
-	return ref, nil
-}
-
-func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, params *ImportParams) (*Image, error) {
-	if params == nil {
-		params = NewImportParams()
-	}
-
-	vipsImage, format, err := vipsThumbnailFromSource(
-		s.src, width, height, crop, size, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, nil)
-	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
-	return ref, nil
-}
-
 func finalizeSource(src *Source) {
 	src.Close()
 }
@@ -84,55 +53,10 @@ func (s *Source) Close() {
 	s.lock.Unlock()
 }
 
-// https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-source
-func vipsImageFromSource(
-	src *C.VipsSourceCustom, params *ImportParams,
-) (*C.VipsImage, ImageType, error) {
-	var out *C.VipsImage
-	var code C.int
-	var optionString string
-
-	if params != nil {
-		optionString = params.OptionString()
-	}
-	if optionString == "" {
-		code = C.image_new_from_source(src, &out)
-	} else {
-		cOptionString := C.CString(optionString)
-		defer freeCString(cOptionString)
-
-		code = C.image_new_from_source_with_option(src, &out, cOptionString)
-	}
-	if code != 0 {
-		return nil, ImageTypeUnknown, handleImageError(out)
-	}
-
-	imageType := vipsDetermineImageTypeFromMetaLoader(out)
-	return out, imageType, nil
+func (s *Source) LoadImage(params *ImportParams) (*Image, error) {
+	return LoadImageFromSource(s, params)
 }
 
-// https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-source
-func vipsThumbnailFromSource(
-	src *C.VipsSourceCustom, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {
-	var out *C.VipsImage
-	var code C.int
-	var optionString string
-
-	if params != nil {
-		optionString = params.OptionString()
-	}
-	if optionString == "" {
-		code = C.thumbnail_source(src, &out, C.int(width), C.int(height), C.int(crop), C.int(size))
-	} else {
-		cOptionString := C.CString(optionString)
-		defer freeCString(cOptionString)
-
-		code = C.thumbnail_source_with_option(src, &out, C.int(width), C.int(height), C.int(crop), C.int(size), cOptionString)
-	}
-	if code != 0 {
-		return nil, ImageTypeUnknown, handleImageError(out)
-	}
-
-	imageType := vipsDetermineImageTypeFromMetaLoader(out)
-	return out, imageType, nil
+func (s *Source) LoadThumbnail(width, height int, crop Interesting, size Size, params *ImportParams) (*Image, error) {
+	return LoadThumbnailFromSource(s, width, height, crop, size, params)
 }

@@ -113,6 +113,37 @@ func (i *ImportParams) OptionString() string {
 	return strings.Join(values, ",")
 }
 
+func LoadImageFromSource(s *Source, params *ImportParams) (*Image, error) {
+	if params == nil {
+		params = NewImportParams()
+	}
+
+	vipsImage, format, err := vipsImageFromSource(s.src, params)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := newImageRef(vipsImage, format, nil)
+	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	return ref, nil
+}
+
+func LoadThumbnailFromSource(s *Source, width, height int, crop Interesting, size Size, params *ImportParams) (*Image, error) {
+	if params == nil {
+		params = NewImportParams()
+	}
+
+	vipsImage, format, err := vipsThumbnailFromSource(
+		s.src, width, height, crop, size, params)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := newImageRef(vipsImage, format, nil)
+	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	return ref, nil
+}
+
 // LoadImageFromFile loads an image from file and creates a new Image
 func LoadImageFromFile(file string, params *ImportParams) (*Image, error) {
 	startupIfNeeded()
