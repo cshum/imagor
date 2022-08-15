@@ -253,11 +253,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	load := func(image string) (*Blob, error) {
 		blob, shouldSave, err := app.loadStorage(r, image)
 		if shouldSave {
-			go app.save(r.Context(), app.Storages, image, blob)
+			go app.save(ctx, app.Storages, image, blob)
 		}
 		return blob, err
 	}
-	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context) (*Blob, error) {
+	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
 		if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 			return blob, nil
 		}
@@ -330,6 +330,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				}
 			}
 		}
+		cb(blob, err)
 		if shouldSave {
 			// make sure storage saved before result storage
 			<-doneSave
@@ -429,11 +430,12 @@ func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err
 }
 
 func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
-	var cancel func()
+	ctx = DetachContext(ctx)
 	if app.SaveTimeout > 0 {
+		var cancel func()
 		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
+		defer cancel()
 	}
-	Defer(ctx, cancel)
 	var wg sync.WaitGroup
 	for _, storage := range storages {
 		wg.Add(1)
@@ -451,6 +453,12 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 }
 
 func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
+	ctx = DetachContext(ctx)
+	if app.SaveTimeout > 0 {
+		var cancel func()
+		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
+		defer cancel()
+	}
 	var wg sync.WaitGroup
 	for _, storage := range storages {
 		wg.Add(1)
@@ -473,18 +481,22 @@ type suppressKey struct {
 
 func (app *Imagor) suppress(
 	ctx context.Context,
-	key string, fn func(ctx context.Context) (*Blob, error),
+	key string, fn func(ctx context.Context, cb func(*Blob, error)) (*Blob, error),
 ) (blob *Blob, err error) {
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
+	chanCb := make(chan singleflight.Result, 1)
+	cb := func(blob *Blob, err error) {
+		chanCb <- singleflight.Result{Val: blob, Err: err}
+	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
-		return fn(ctx)
+		return fn(ctx, cb)
 	}
 	isCanceled := false
 	ch := app.g.DoChan(key, func() (v interface{}, err error) {
-		v, err = fn(context.WithValue(ctx, suppressKey{key}, true))
+		v, err = fn(context.WithValue(ctx, suppressKey{key}, true), cb)
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
 			isCanceled = true
@@ -501,6 +513,8 @@ func (app *Imagor) suppress(
 			return res.Val.(*Blob), res.Err
 		}
 		return nil, res.Err
+	case res := <-chanCb:
+		return res.Val.(*Blob), res.Err
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
