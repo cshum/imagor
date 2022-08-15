@@ -253,7 +253,6 @@ func (v *Processor) Process(
 	}
 	for {
 		blob := NewBlobFromTarget(func(target *Target) error {
-			vipscontext.Defer(ctx, target.Close)
 			return v.export(img, target, format, quality)
 		})
 		blob.SetContentType(ImageMimeTypes[format])
