@@ -5,7 +5,6 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/vips/vipscontext"
 	"go.uber.org/zap"
-	"io"
 	"math"
 	"runtime"
 	"strings"
@@ -173,13 +172,6 @@ func newThumbnailFromBlob(
 		vipscontext.Defer(ctx, src.Close)
 		return src.LoadThumbnail(width, height, crop, size, params)
 	}
-}
-
-func NewBlobTarget() (*imagor.Blob, *Target) {
-	pr, pw := io.Pipe()
-	target := NewTarget(pw)
-	blob := imagor.NewBlobFromReader(pr)
-	return blob, target
 }
 
 func (v *Processor) NewThumbnail(

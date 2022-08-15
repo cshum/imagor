@@ -6,6 +6,7 @@ import (
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/vips/vipscontext"
 	"go.uber.org/zap"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -252,11 +253,15 @@ func (v *Processor) Process(
 		return imagor.NewBlobFromJsonMarshal(metadata(img, format)), nil
 	}
 	for {
-		blob, target := NewBlobTarget()
+		pr, pw := io.Pipe()
+		target := NewTarget(pw)
+		blob := imagor.NewBlobFromReader(pr)
 		blob.SetContentType(ImageMimeTypes[format])
 		vipscontext.Defer(ctx, target.Close)
 		go func() {
-			_ = v.export(img, target, format, quality)
+			if err := v.export(img, target, format, quality); err != nil {
+				_ = pr.CloseWithError(err)
+			}
 			target.Close()
 		}()
 		if maxBytes > 0 && (quality > 10 || quality == 0) && format != ImageTypePNG {
