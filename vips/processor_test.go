@@ -79,7 +79,7 @@ func TestProcessor(t *testing.T) {
 			{name: "resize smart focal vertical", path: "100x300/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},
 			{name: "resize smart focal with crop", path: "0x100:9999x9999/300x100/smart/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},
 			{name: "resize smart focal float", path: "300x100/smart/filters:fill(white):format(jpeg):focal(0.35x0.25:0.6x0.3)/gopher.png"},
-			{name: "resize top", path: "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
+			{name: "resize top tiff", path: "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
 			{name: "resize top", path: "200x100/right/top/gopher.png"},
 			{name: "resize bottom", path: "200x100/bottom/gopher.png"},
 			{name: "resize bottom", path: "200x100/left/bottom/gopher.png"},
