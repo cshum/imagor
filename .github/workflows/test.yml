@@ -42,7 +42,7 @@ jobs:
           path: vips-${{ env.VIPS_VERSION }}
           key: ${{ runner.os }}-vips-${{ env.V }}-${{ env.VIPS_VERSION }}
           restore-keys: |
-            ${{ runner.os }}-vips-
+            ${{ runner.os }}-vips-${{ env.V }}-
 
       - name: Build libvips from source
         run: |
