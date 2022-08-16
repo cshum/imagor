@@ -95,11 +95,11 @@ Imagor supports the following filters:
   - `x` horizontal position that the text label will be in:
     - Positive number indicate position from the left, negative number from the right.
     - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
-    - `left`,`right`,`center` positioned left, right or centered respectively
+    - `left`,`right`,`center` align left, right or centered respectively
   - `y` vertical position that the watermark will be in:
     - Positive number indicate position from the top, negative number from the bottom.
     - Number followed by a `p` e.g. 20p means calculating the value from the image height as percentage
-    - `top`,`bottom`,`center` positioned top, bottom or centered respectively
+    - `top`,`bottom`,`center` vertical align top, bottom or centered respectively
   - `size` - text label font size
   - `color` - color name or hexadecimal rgb expression without the “#” character
   - `alpha` - text label transparency, a number between 0 (fully opaque) and 100 (fully transparent).
