@@ -309,27 +309,20 @@ func labelFilter(_ context.Context, img *Image, _ imagor.LoadFunc, args ...strin
 	var alpha float64
 	var width = img.Width()
 	var height = img.PageHeight()
-	if len(args) >= 2 {
+	if ln > 1 {
 		x, _ = strconv.Atoi(args[1])
 	}
-	if len(args) >= 3 {
+	if ln > 2 {
 		y, _ = strconv.Atoi(args[2])
 	}
-	if len(args) >= 4 {
+	if ln > 3 {
 		c = getColor(img, args[3])
 	}
-	if len(args) >= 5 {
+	if ln > 4 {
 		alpha, _ = strconv.ParseFloat(args[4], 64)
 		alpha /= 100
 	}
-	if len(args) >= 5 {
-		if a, e := url.QueryUnescape(args[4]); e == nil {
-			font = a
-		} else {
-			font = args[4]
-		}
-	}
-	return img.Label(text, font, AlignLow, x, y, width, height, c, float32(1-alpha))
+	return img.Label(text, font, AlignLow, x, y, width, height, c, 1-alpha)
 }
 
 func (v *Processor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {

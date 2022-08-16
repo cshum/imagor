@@ -296,7 +296,7 @@ int label_image(VipsImage *in, VipsImage **out,
   double ones[3] = {1, 1, 1};
   double color[3] = {r, g, b};
   VipsImage *base = vips_image_new();
-  VipsImage **t = (VipsImage **)vips_object_local_array(VIPS_OBJECT(base), 9);
+  VipsImage **t = (VipsImage **)vips_object_local_array(VIPS_OBJECT(base), 10);
   if (vips_text(&t[0], text, "font", font, "width", width, "height",
                 height, "align", align, NULL) ||
       vips_linear1(t[0], &t[1], opacity, 0.0, NULL) ||
@@ -315,7 +315,8 @@ int label_image(VipsImage *in, VipsImage **out,
     g_object_unref(base);
     return 1;
   }
-  if (vips_ifthenelse(t[3], t[8], in, out, "blend", TRUE, NULL)) {
+  if (vips_addalpha(t[8], &t[9], NULL) ||
+      vips_ifthenelse(t[3], t[9], in, out, "blend", TRUE, NULL)) {
     g_object_unref(base);
     return 1;
   }
