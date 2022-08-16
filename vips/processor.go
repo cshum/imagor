@@ -50,7 +50,7 @@ func NewProcessor(options ...Option) *Processor {
 		"watermark":        v.watermark,
 		"round_corner":     roundCorner,
 		"rotate":           rotate,
-		"label":            v.label,
+		"label":            label,
 		"grayscale":        grayscale,
 		"brightness":       brightness,
 		"background_color": backgroundColor,
