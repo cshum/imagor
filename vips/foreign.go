@@ -208,15 +208,25 @@ func vipsSaveWebPToTarget(in *C.VipsImage, target *C.VipsTargetCustom, params We
 	return vipsSaveToTarget(p)
 }
 
-func vipsSaveTIFFToTarget(in *C.VipsImage, target *C.VipsTargetCustom, params TiffExportParams) error {
+//func vipsSaveTIFFToTarget(in *C.VipsImage, target *C.VipsTargetCustom, params TiffExportParams) error {
+//	p := C.create_save_params(C.TIFF)
+//	p.inputImage = in
+//	p.target = target
+//	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
+//	p.quality = C.int(params.Quality)
+//	p.tiffCompression = C.VipsForeignTiffCompression(params.Compression)
+//
+//	return vipsSaveToTarget(p)
+//}
+
+func vipsSaveTIFFToBuffer(in *C.VipsImage, params TiffExportParams) ([]byte, error) {
 	p := C.create_save_params(C.TIFF)
 	p.inputImage = in
-	p.target = target
 	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
 	p.quality = C.int(params.Quality)
 	p.tiffCompression = C.VipsForeignTiffCompression(params.Compression)
 
-	return vipsSaveToTarget(p)
+	return vipsSaveToBuffer(p)
 }
 
 func vipsSaveHEIFToTarget(in *C.VipsImage, target *C.VipsTargetCustom, params HeifExportParams) error {
@@ -273,4 +283,18 @@ func vipsSaveToTarget(params C.struct_SaveParams) error {
 		return handleVipsError()
 	}
 	return nil
+}
+
+func vipsSaveToBuffer(params C.struct_SaveParams) ([]byte, error) {
+	if err := C.save_to_buffer(&params); err != 0 {
+		if params.outputBuffer != nil {
+			gFreePointer(params.outputBuffer)
+		}
+		return nil, handleVipsError()
+	}
+
+	buf := C.GoBytes(params.outputBuffer, C.int(params.outputLen))
+	defer gFreePointer(params.outputBuffer)
+
+	return buf, nil
 }

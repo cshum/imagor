@@ -2,6 +2,42 @@
 
 typedef int (*SetSaveOptionsFn)(VipsOperation *operation, SaveParams *params);
 
+int save_buffer(const char *operationName, SaveParams *params,
+                SetSaveOptionsFn setSaveOptions) {
+  VipsBlob *blob;
+  VipsOperation *operation = vips_operation_new(operationName);
+  if (!operation) {
+    return 1;
+  }
+
+  if (vips_object_set(VIPS_OBJECT(operation), "in", params->inputImage, NULL)) {
+    return 1;
+  }
+
+  if (setSaveOptions(operation, params)) {
+    g_object_unref(operation);
+    return 1;
+  }
+
+  if (vips_cache_operation_buildp(&operation)) {
+    vips_object_unref_outputs(VIPS_OBJECT(operation));
+    g_object_unref(operation);
+    return 1;
+  }
+
+  g_object_get(VIPS_OBJECT(operation), "buffer", &blob, NULL);
+  g_object_unref(operation);
+
+  VipsArea *area = VIPS_AREA(blob);
+
+  params->outputBuffer = (char *)(area->data);
+  params->outputLen = area->length;
+  area->free_fn = NULL;
+  vips_area_unref(area);
+
+  return 0;
+}
+
 int save_target(const char *operationName, SaveParams *params,
                 SetSaveOptionsFn setSaveOptions) {
   VipsOperation *operation = vips_operation_new(operationName);
@@ -170,6 +206,34 @@ int set_jp2ksave_options(VipsOperation *operation, SaveParams *params) {
   return ret;
 }
 
+int save_to_buffer(SaveParams *params) {
+  switch (params->outputFormat) {
+    case JPEG:
+      return save_buffer("jpegsave_buffer", params, set_jpegsave_options);
+    case PNG:
+      return save_buffer("pngsave_buffer", params, set_pngsave_options);
+    case WEBP:
+      return save_buffer("webpsave_buffer", params, set_webpsave_options);
+    case HEIF:
+      return save_buffer("heifsave_buffer", params, set_heifsave_options);
+    case TIFF:
+      return save_buffer("tiffsave_buffer", params, set_tiffsave_options);
+    case GIF:
+#if (VIPS_MAJOR_VERSION >= 8) && (VIPS_MINOR_VERSION >= 12)
+      return save_buffer("gifsave_buffer", params, set_gifsave_options);
+#else
+      return save_buffer("magicksave_buffer", params, set_magicksave_options);
+#endif
+    case AVIF:
+      return save_buffer("heifsave_buffer", params, set_avifsave_options);
+    case JP2K:
+      return save_buffer("jp2ksave_buffer", params, set_jp2ksave_options);
+    default:
+      g_warning("Unsupported output type given: %d", params->outputFormat);
+  }
+  return 1;
+}
+
 int save_to_target(SaveParams *params) {
   switch (params->outputFormat) {
     case JPEG:
@@ -200,8 +264,10 @@ int save_to_target(SaveParams *params) {
 
 static SaveParams defaultSaveParams = {
     .inputImage = NULL,
-    .target = NULL,
     .outputFormat = JPEG,
+    .target = NULL,
+    .outputBuffer = NULL,
+    .outputLen = 0,
 
     .interlace = FALSE,
     .quality = 0,

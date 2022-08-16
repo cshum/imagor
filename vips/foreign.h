@@ -31,7 +31,9 @@ typedef enum types {
 typedef struct SaveParams {
   VipsImage *inputImage;
   VipsTargetCustom *target;
+  void *outputBuffer;
   ImageType outputFormat;
+  size_t outputLen;
 
   BOOL stripMetadata;
   int quality;
@@ -87,4 +89,5 @@ typedef struct SaveParams {
 
 SaveParams create_save_params(ImageType outputFormat);
 int save_to_target(SaveParams *params);
+int save_to_buffer(SaveParams *params);
 

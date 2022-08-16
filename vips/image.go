@@ -317,8 +317,8 @@ func (r *Image) Exif() map[string]any {
 	return vipsImageGetExif(r.image)
 }
 
-// ExportJpeg exports the image as JPEG to a buffer.
-func (r *Image) ExportJpeg(target *Target, params *JpegExportParams) error {
+// ExportJpegTarget exports the image as JPEG  to a target.
+func (r *Image) ExportJpegTarget(target *Target, params *JpegExportParams) error {
 	if params == nil {
 		params = NewJpegExportParams()
 	}
@@ -326,8 +326,8 @@ func (r *Image) ExportJpeg(target *Target, params *JpegExportParams) error {
 	return vipsSaveJPEGToTarget(r.image, target.target, *params)
 }
 
-// ExportPng exports the image as PNG to a buffer.
-func (r *Image) ExportPng(target *Target, params *PngExportParams) error {
+// ExportPngTarget exports the image as PNG  to a target.
+func (r *Image) ExportPngTarget(target *Target, params *PngExportParams) error {
 	if params == nil {
 		params = NewPngExportParams()
 	}
@@ -335,8 +335,8 @@ func (r *Image) ExportPng(target *Target, params *PngExportParams) error {
 	return vipsSavePNGToTarget(r.image, target.target, *params)
 }
 
-// ExportWebp exports the image as WEBP to a buffer.
-func (r *Image) ExportWebp(target *Target, params *WebpExportParams) error {
+// ExportWebpTarget exports the image as WEBP  to a target.
+func (r *Image) ExportWebpTarget(target *Target, params *WebpExportParams) error {
 	if params == nil {
 		params = NewWebpExportParams()
 	}
@@ -347,8 +347,8 @@ func (r *Image) ExportWebp(target *Target, params *WebpExportParams) error {
 	return vipsSaveWebPToTarget(r.image, target.target, paramsWithIccProfile)
 }
 
-// ExportHeif exports the image as HEIF to a buffer.
-func (r *Image) ExportHeif(target *Target, params *HeifExportParams) error {
+// ExportHeifTarget exports the image as HEIF  to a target.
+func (r *Image) ExportHeifTarget(target *Target, params *HeifExportParams) error {
 	if params == nil {
 		params = NewHeifExportParams()
 	}
@@ -356,17 +356,31 @@ func (r *Image) ExportHeif(target *Target, params *HeifExportParams) error {
 	return vipsSaveHEIFToTarget(r.image, target.target, *params)
 }
 
-// ExportTiff exports the image as TIFF to a buffer.
-func (r *Image) ExportTiff(target *Target, params *TiffExportParams) error {
+//// ExportTiffTarget exports the image as TIFF to a buffer.
+//func (r *Image) ExportTiffTarget(target *Target, params *TiffExportParams) error {
+//	if params == nil {
+//		params = NewTiffExportParams()
+//	}
+//
+//	return vipsSaveTIFFToTarget(r.image, target.target, *params)
+//}
+
+// ExportTiffBuffer exports the image as TIFF to a buffer.
+func (r *Image) ExportTiffBuffer(params *TiffExportParams) ([]byte, error) {
 	if params == nil {
 		params = NewTiffExportParams()
 	}
 
-	return vipsSaveTIFFToTarget(r.image, target.target, *params)
+	buf, err := vipsSaveTIFFToBuffer(r.image, *params)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
 }
 
-// ExportGIF exports the image as GIF to a buffer.
-func (r *Image) ExportGIF(target *Target, params *GifExportParams) error {
+// ExportGIFTarget exports the image as GIF  to a target.
+func (r *Image) ExportGIFTarget(target *Target, params *GifExportParams) error {
 	if params == nil {
 		params = NewGifExportParams()
 	}
@@ -374,8 +388,8 @@ func (r *Image) ExportGIF(target *Target, params *GifExportParams) error {
 	return vipsSaveGIFToTarget(r.image, target.target, *params)
 }
 
-// ExportAvif exports the image as AVIF to a buffer.
-func (r *Image) ExportAvif(target *Target, params *AvifExportParams) error {
+// ExportAvifTarget exports the image as AVIF  to a target.
+func (r *Image) ExportAvifTarget(target *Target, params *AvifExportParams) error {
 	if params == nil {
 		params = NewAvifExportParams()
 	}
@@ -383,8 +397,8 @@ func (r *Image) ExportAvif(target *Target, params *AvifExportParams) error {
 	return vipsSaveAVIFToTarget(r.image, target.target, *params)
 }
 
-// ExportJp2k exports the image as JPEG2000 to a buffer.
-func (r *Image) ExportJp2k(target *Target, params *Jp2kExportParams) error {
+// ExportJp2kTarget exports the image as JPEG2000  to a target.
+func (r *Image) ExportJp2kTarget(target *Target, params *Jp2kExportParams) error {
 	if params == nil {
 		params = NewJp2kExportParams()
 	}

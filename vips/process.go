@@ -252,10 +252,25 @@ func (v *Processor) Process(
 		return imagor.NewBlobFromJsonMarshal(metadata(img, format)), nil
 	}
 	for {
-		blob := NewBlobFromTarget(func(target *Target) error {
-			return v.export(img, target, format, quality)
-		})
+		var blob *imagor.Blob
+		if format == ImageTypeTIFF {
+			opts := NewTiffExportParams()
+			if quality > 0 {
+				opts.Quality = quality
+			}
+			buf, err := img.ExportTiffBuffer(opts)
+			if err != nil {
+				return nil, WrapErr(err)
+			}
+			blob = imagor.NewBlobFromBytes(buf)
+		} else {
+			blob = NewBlobFromTarget(func(target *Target) error {
+				return v.exportTarget(img, target, format, quality)
+			})
+		}
+
 		blob.SetContentType(ImageMimeTypes[format])
+
 		if maxBytes > 0 && (quality > 10 || quality == 0) && format != ImageTypePNG {
 			buf, err := blob.ReadAll()
 			if err != nil {
@@ -502,47 +517,47 @@ func supportedFormat(format ImageType) ImageType {
 	return ImageTypeJPEG
 }
 
-func (v *Processor) export(image *Image, target *Target, format ImageType, quality int) error {
+func (v *Processor) exportTarget(image *Image, target *Target, format ImageType, quality int) error {
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()
-		return image.ExportPng(target, opts)
+		return image.ExportPngTarget(target, opts)
 	case ImageTypeWEBP:
 		opts := NewWebpExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		return image.ExportWebp(target, opts)
-	case ImageTypeTIFF:
-		opts := NewTiffExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		return image.ExportTiff(target, opts)
+		return image.ExportWebpTarget(target, opts)
+	//case ImageTypeTIFF:
+	//	opts := NewTiffExportParams()
+	//	if quality > 0 {
+	//		opts.Quality = quality
+	//	}
+	//	return image.ExportTiffTarget(target, opts)
 	case ImageTypeGIF:
 		opts := NewGifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		return image.ExportGIF(target, opts)
+		return image.ExportGIFTarget(target, opts)
 	case ImageTypeAVIF:
 		opts := NewAvifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		return image.ExportAvif(target, opts)
+		return image.ExportAvifTarget(target, opts)
 	case ImageTypeHEIF:
 		opts := NewHeifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		return image.ExportHeif(target, opts)
+		return image.ExportHeifTarget(target, opts)
 	case ImageTypeJP2K:
 		opts := NewJp2kExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		return image.ExportJp2k(target, opts)
+		return image.ExportJp2kTarget(target, opts)
 	default:
 		opts := NewJpegExportParams()
 		if v.MozJPEG {
@@ -557,7 +572,7 @@ func (v *Processor) export(image *Image, target *Target, format ImageType, quali
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		return image.ExportJpeg(target, opts)
+		return image.ExportJpegTarget(target, opts)
 	}
 }
 
