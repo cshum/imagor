@@ -530,10 +530,6 @@ func (r *Image) Label(
 	x, y, width, height int,
 	color *Color, opacity float64,
 ) error {
-	// make sure band equals 4
-	if err := r.AddAlpha(); err != nil {
-		return err
-	}
 	out, err := vipsLabel(r.image, text, font, align,
 		x, y, width, height, color, opacity)
 	if err != nil {

@@ -294,7 +294,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	return nil
 }
 
-func labelFilter(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func (v *Processor) label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
@@ -307,8 +307,8 @@ func labelFilter(_ context.Context, img *Image, _ imagor.LoadFunc, args ...strin
 	var x, y int
 	var c = &Color{}
 	var alpha float64
-	var width = img.Width()
-	var height = img.PageHeight()
+	var width = v.MaxWidth
+	var height = 20
 	if ln > 1 {
 		x, _ = strconv.Atoi(args[1])
 	}
@@ -321,6 +321,10 @@ func labelFilter(_ context.Context, img *Image, _ imagor.LoadFunc, args ...strin
 	if ln > 4 {
 		alpha, _ = strconv.ParseFloat(args[4], 64)
 		alpha /= 100
+	}
+	// make sure band equals 4
+	if err = img.AddAlpha(); err != nil {
+		return
 	}
 	return img.Label(text, font, AlignLow, x, y, width, height, c, 1-alpha)
 }

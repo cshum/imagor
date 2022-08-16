@@ -295,14 +295,17 @@ int label_image(VipsImage *in, VipsImage **out,
           double r, double g, double b, float opacity) {
   double ones[3] = {1, 1, 1};
   double color[3] = {r, g, b};
+  int page_height = vips_image_get_page_height(in);
+  int in_width = in->Xsize;
+  int n_pages = in->Ysize / page_height;
   VipsImage *base = vips_image_new();
-  VipsImage **t = (VipsImage **)vips_object_local_array(VIPS_OBJECT(base), 10);
+  VipsImage **t = (VipsImage **)vips_object_local_array(VIPS_OBJECT(base), 12);
   if (vips_text(&t[0], text, "font", font, "width", width, "height",
                 height, "align", align, NULL) ||
       vips_linear1(t[0], &t[1], opacity, 0.0, NULL) ||
       vips_cast(t[1], &t[2], VIPS_FORMAT_UCHAR, NULL) ||
-      vips_embed(t[2], &t[3], x, y, t[2]->Xsize + x,
-                 t[2]->Ysize + y, NULL)) {
+      vips_embed(t[2], &t[3], x, y, in_width, page_height, NULL) ||
+      vips_replicate(t[3], &t[10], 1, n_pages, NULL)) {
     g_object_unref(base);
     return 1;
   }
@@ -310,13 +313,14 @@ int label_image(VipsImage *in, VipsImage **out,
       vips_linear(t[4], &t[5], ones, color, 3, NULL) ||
       vips_cast(t[5], &t[6], VIPS_FORMAT_UCHAR, NULL) ||
       vips_copy(t[6], &t[7], "interpretation", in->Type, NULL) ||
-      vips_embed(t[7], &t[8], 0, 0, in->Xsize, in->Ysize, "extend",
-                 VIPS_EXTEND_COPY, NULL)) {
+      vips_embed(t[7], &t[8], 0, 0, in_width, page_height,
+                 "extend", VIPS_EXTEND_COPY, NULL) ||
+      vips_addalpha(t[8], &t[9], NULL) ||
+      vips_replicate(t[9], &t[11], 1, n_pages, NULL)) {
     g_object_unref(base);
     return 1;
   }
-  if (vips_addalpha(t[8], &t[9], NULL) ||
-      vips_ifthenelse(t[3], t[9], in, out, "blend", TRUE, NULL)) {
+  if (vips_ifthenelse(t[10], t[11], in, out, "blend", TRUE, NULL)) {
     g_object_unref(base);
     return 1;
   }
