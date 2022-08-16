@@ -53,6 +53,10 @@ int extract_area_multi_page(VipsImage *in, VipsImage **out, int left, int top,
 int rotate_image(VipsImage *in, VipsImage **out, VipsAngle angle);
 int rotate_image_multi_page(VipsImage *in, VipsImage **out, VipsAngle angle);
 int flatten_image(VipsImage *in, VipsImage **out, double r, double g, double b);
+int label_image(VipsImage *in, VipsImage **out,
+          const char *text, const char *font, VipsAlign align,
+          int x, int y, int width, int height,
+          double r, double g, double b, float opacity);
 int add_alpha(VipsImage *in, VipsImage **out);
 double max_alpha(VipsImage *in);
 

@@ -289,6 +289,40 @@ int flatten_image(VipsImage *in, VipsImage **out, double r, double g,
   return code;
 }
 
+int label_image(VipsImage *in, VipsImage **out,
+          const char *text, const char *font, VipsAlign align,
+          int x, int y, int width, int height,
+          double r, double g, double b, float opacity) {
+  double ones[3] = {1, 1, 1};
+  double color[3] = {r, g, b};
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **)vips_object_local_array(VIPS_OBJECT(base), 9);
+  if (vips_text(&t[0], text, "font", font, "width", width, "height",
+                height, "align", align, NULL) ||
+      vips_linear1(t[0], &t[1], opacity, 0.0, NULL) ||
+      vips_cast(t[1], &t[2], VIPS_FORMAT_UCHAR, NULL) ||
+      vips_embed(t[2], &t[3], x, y, t[2]->Xsize + x,
+                 t[2]->Ysize + y, NULL)) {
+    g_object_unref(base);
+    return 1;
+  }
+  if (vips_black(&t[4], 1, 1, NULL) ||
+      vips_linear(t[4], &t[5], ones, color, 3, NULL) ||
+      vips_cast(t[5], &t[6], VIPS_FORMAT_UCHAR, NULL) ||
+      vips_copy(t[6], &t[7], "interpretation", in->Type, NULL) ||
+      vips_embed(t[7], &t[8], 0, 0, in->Xsize, in->Ysize, "extend",
+                 VIPS_EXTEND_COPY, NULL)) {
+    g_object_unref(base);
+    return 1;
+  }
+  if (vips_ifthenelse(t[3], t[8], in, out, "blend", TRUE, NULL)) {
+    g_object_unref(base);
+    return 1;
+  }
+  g_object_unref(base);
+  return 0;
+}
+
 int is_16bit(VipsInterpretation interpretation) {
   return interpretation == VIPS_INTERPRETATION_RGB16 ||
          interpretation == VIPS_INTERPRETATION_GREY16;

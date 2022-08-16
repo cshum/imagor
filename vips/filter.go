@@ -294,7 +294,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	return nil
 }
 
-func textFilter(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func labelFilter(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
