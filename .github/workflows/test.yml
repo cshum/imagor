@@ -9,6 +9,7 @@ jobs:
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
       VIPS_VERSION: 8.13.0
+      V: 1
 
     steps:
       - name: Set up Go 1.x
@@ -39,7 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: vips-${{ env.VIPS_VERSION }}
-          key: ${{ runner.os }}-vips-${{ env.VIPS_VERSION }}
+          key: ${{ runner.os }}-vips-${{ env.V }}-${{ env.VIPS_VERSION }}
           restore-keys: |
             ${{ runner.os }}-vips-
 
