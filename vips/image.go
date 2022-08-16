@@ -356,7 +356,7 @@ func (r *Image) ExportHeifTarget(target *Target, params *HeifExportParams) error
 	return vipsSaveHEIFToTarget(r.image, target.target, *params)
 }
 
-//// ExportTiffTarget exports the image as TIFF to a buffer.
+//// ExportTiffTarget exports the image as TIFF to a target.
 //func (r *Image) ExportTiffTarget(target *Target, params *TiffExportParams) error {
 //	if params == nil {
 //		params = NewTiffExportParams()
