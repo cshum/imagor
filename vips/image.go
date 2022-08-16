@@ -524,6 +524,20 @@ func (r *Image) Flatten(backgroundColor *Color) error {
 	return nil
 }
 
+// Label adds text label
+func (r *Image) Label(
+	text, font string, align Align,
+	x, y, width, height int, color *Color, opacity float32,
+) error {
+	out, err := vipsLabel(r.image, text, font, align,
+		x, y, width, height, color, opacity)
+	if err != nil {
+		return err
+	}
+	r.setImage(out)
+	return nil
+}
+
 // GaussianBlur blurs the image
 func (r *Image) GaussianBlur(sigma float64) error {
 	out, err := vipsGaussianBlur(r.image, sigma)

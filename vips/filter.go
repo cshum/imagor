@@ -294,7 +294,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	return nil
 }
 
-func labelFilter(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func labelFilter(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
@@ -305,7 +305,10 @@ func labelFilter(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	var text = args[0]
 	var font string
 	var x, y int
-	var c *Color
+	var c = &Color{}
+	var alpha float64
+	var width = img.Width()
+	var height = img.PageHeight()
 	if len(args) >= 2 {
 		x, _ = strconv.Atoi(args[1])
 	}
@@ -316,13 +319,17 @@ func labelFilter(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 		c = getColor(img, args[3])
 	}
 	if len(args) >= 5 {
+		alpha, _ = strconv.ParseFloat(args[4], 64)
+		alpha /= 100
+	}
+	if len(args) >= 5 {
 		if a, e := url.QueryUnescape(args[4]); e == nil {
 			font = a
 		} else {
 			font = args[4]
 		}
 	}
-	return
+	return img.Label(text, font, AlignLow, x, y, width, height, c, float32(1-alpha))
 }
 
 func (v *Processor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
