@@ -526,12 +526,12 @@ func (r *Image) Flatten(backgroundColor *Color) error {
 
 // Label adds text label
 func (r *Image) Label(
-	text, font string, align Align,
-	x, y, width, height int,
+	text, font string,
+	x, y, size int, align Align,
 	color *Color, opacity float64,
 ) error {
-	out, err := vipsLabel(r.image, text, font, align,
-		x, y, width, height, color, opacity)
+	out, err := vipsLabel(r.image, text, font,
+		x, y, size, align, color, opacity)
 	if err != nil {
 		return err
 	}

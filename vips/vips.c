@@ -290,8 +290,8 @@ int flatten_image(VipsImage *in, VipsImage **out, double r, double g,
 }
 
 int label_image(VipsImage *in, VipsImage **out,
-          const char *text, const char *font, VipsAlign align,
-          int x, int y, int width, int height,
+          const char *text, const char *font,
+          int x, int y, int size, VipsAlign align,
           double r, double g, double b, float opacity) {
   double ones[3] = {1, 1, 1};
   double color[3] = {r, g, b};
@@ -300,11 +300,19 @@ int label_image(VipsImage *in, VipsImage **out,
   int n_pages = in->Ysize / page_height;
   VipsImage *base = vips_image_new();
   VipsImage **t = (VipsImage **)vips_object_local_array(VIPS_OBJECT(base), 12);
-  if (vips_text(&t[0], text, "font", font, "width", width, "height",
-                height, "align", align, NULL) ||
+  if (vips_text(&t[0], text, "font", font, "width", 9999, "height", size, NULL) ||
       vips_linear1(t[0], &t[1], opacity, 0.0, NULL) ||
-      vips_cast(t[1], &t[2], VIPS_FORMAT_UCHAR, NULL) ||
-      vips_embed(t[2], &t[3], x, y, in_width, page_height, NULL) ||
+      vips_cast(t[1], &t[2], VIPS_FORMAT_UCHAR, NULL)) {
+    g_object_unref(base);
+    return 1;
+  }
+  int text_width = t[0]->Xsize;
+  if (align == VIPS_ALIGN_CENTRE) {
+    x = x-text_width/2;
+  } else if (align == VIPS_ALIGN_HIGH) {
+    x = x-text_width;
+  }
+  if (vips_embed(t[2], &t[3], x, y, in_width, page_height, NULL) ||
       vips_replicate(t[3], &t[10], 1, n_pages, NULL)) {
     g_object_unref(base);
     return 1;
