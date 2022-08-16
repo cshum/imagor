@@ -294,6 +294,37 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	return nil
 }
 
+func textFilter(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+	ln := len(args)
+	if ln == 0 {
+		return
+	}
+	if a, e := url.QueryUnescape(args[0]); e == nil {
+		args[0] = a
+	}
+	var text = args[0]
+	var font string
+	var x, y int
+	var c *Color
+	if len(args) >= 2 {
+		x, _ = strconv.Atoi(args[1])
+	}
+	if len(args) >= 3 {
+		y, _ = strconv.Atoi(args[2])
+	}
+	if len(args) >= 4 {
+		c = getColor(img, args[3])
+	}
+	if len(args) >= 5 {
+		if a, e := url.QueryUnescape(args[4]); e == nil {
+			font = a
+		} else {
+			font = args[4]
+		}
+	}
+	return
+}
+
 func (v *Processor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
 	ln := len(args)
 	if ln < 2 {
