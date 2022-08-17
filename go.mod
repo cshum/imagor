@@ -4,13 +4,13 @@ go 1.18
 
 require (
 	cloud.google.com/go/storage v1.24.0
-	github.com/aws/aws-sdk-go v1.44.70
+	github.com/aws/aws-sdk-go v1.44.76
 	github.com/fsouza/fake-gcs-server v1.38.2
 	github.com/johannesboyne/gofakes3 v0.0.0-20220517215058-83a58ec253b6
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/rs/cors v1.8.2
 	github.com/stretchr/testify v1.8.0
-	go.uber.org/zap v1.21.0
+	go.uber.org/zap v1.22.0
 	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 )

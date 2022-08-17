@@ -267,6 +267,28 @@ func vipsFlatten(in *C.VipsImage, color *Color) (*C.VipsImage, error) {
 	return out, nil
 }
 
+func vipsLabel(
+	in *C.VipsImage,
+	text, font string,
+	x, y, size int, align Align,
+	color *Color, opacity float64,
+) (*C.VipsImage, error) {
+	var out *C.VipsImage
+	cText := C.CString(text)
+	defer freeCString(cText)
+	cFont := C.CString(font)
+	defer freeCString(cFont)
+
+	err := C.label_image(in, &out, cText, cFont,
+		C.int(x), C.int(y), C.int(size), C.VipsAlign(align),
+		C.double(color.R), C.double(color.G), C.double(color.B), C.float(float32(opacity)))
+	if int(err) != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
 func vipsAddAlpha(in *C.VipsImage) (*C.VipsImage, error) {
 	var out *C.VipsImage
 

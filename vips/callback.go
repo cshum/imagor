@@ -2,7 +2,6 @@ package vips
 
 import "C"
 import (
-	"errors"
 	"github.com/cshum/imagor/vips/pointer"
 	"io"
 	"reflect"
@@ -31,7 +30,7 @@ func goSourceRead(
 	buf := *(*[]byte)(unsafe.Pointer(sh))
 
 	n, err := src.reader.Read(buf)
-	if errors.Is(err, io.EOF) {
+	if err == io.EOF {
 		return C.longlong(n)
 	} else if err != nil {
 		return -1

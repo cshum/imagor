@@ -12,7 +12,7 @@ Imagor uses one of the most efficient image processing library
 
 Imagor is a Go application that is highly optimized for concurrent requests. It implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) for parallel processing pipelines, achieving high network throughput.
 
-Imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
+Imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement and more.
 
 ### Quick Start
 
@@ -90,6 +90,20 @@ Imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
+- `label(text, x, y, size, color[, alpha[, font]])` adds a text label to the image. It can be positioned inside the image with the alignment specified, color and transparency support:
+  - `text` text label, also support url encoded text.
+  - `x` horizontal position that the text label will be in:
+    - Positive number indicate position from the left, negative number from the right.
+    - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
+    - `left`,`right`,`center` align left, right or centered respectively
+  - `y` vertical position that the text label will be in:
+    - Positive number indicate position from the top, negative number from the bottom.
+    - Number followed by a `p` e.g. 20p means calculating the value from the image height as percentage
+    - `top`,`bottom`,`center` vertical align top, bottom or centered respectively
+  - `size` - text label font size
+  - `color` - color name or hexadecimal rgb expression without the “#” character
+  - `alpha` - text label transparency, a number between 0 (fully opaque) and 100 (fully transparent).
+  - `font` - text label font type
 - `max_bytes(amount)` automatically degrades the quality of the image until the image is under the specified `amount` of bytes
 - `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `quality(amount)` changes the overall quality of the image, does nothing for png
@@ -107,12 +121,12 @@ Imagor supports the following filters:
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for Imagor
   - `x` horizontal position that the watermark will be in:
-    - Positive numbers indicate position from the left and negative numbers indicate position from the right.
+    - Positive number indicate position from the left, negative number from the right.
     - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
     - `left`,`right`,`center` positioned left, right or centered respectively
     - `repeat` the watermark will be repeated horizontally
   - `y` vertical position that the watermark will be in:
-    - Positive numbers indicate position from the top and negative numbers indicate position from the bottom.
+    - Positive number indicate position from the top, negative number from the bottom.
     - Number followed by a `p` e.g. 20p means calculating the value from the image height as percentage
     - `top`,`bottom`,`center` positioned top, bottom or centered respectively
     - `repeat` the watermark will be repeated vertically

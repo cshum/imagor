@@ -294,6 +294,87 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	return nil
 }
 
+func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+	ln := len(args)
+	if ln == 0 {
+		return
+	}
+	if a, e := url.QueryUnescape(args[0]); e == nil {
+		args[0] = a
+	}
+	var text = args[0]
+	var font = "tahoma"
+	var x, y int
+	var c = &Color{}
+	var alpha float64
+	var align = AlignLow
+	var size = 20
+	var width = img.Width()
+	if ln > 3 {
+		size, _ = strconv.Atoi(args[3])
+	}
+	if ln > 1 {
+		if args[1] == "center" {
+			align = AlignCenter
+			x = width / 2
+		} else if args[1] == imagorpath.HAlignRight {
+			align = AlignHigh
+			x = width
+		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
+			pec, _ := strconv.ParseFloat(args[1], 64)
+			x = int(pec * float64(width))
+		} else if strings.HasSuffix(args[1], "p") {
+			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
+			x = x * width / 100
+		} else {
+			x, _ = strconv.Atoi(args[1])
+		}
+		if x < 0 {
+			align = AlignHigh
+			x += width
+		}
+	}
+	if ln > 2 {
+		if args[2] == "center" {
+			y = (img.PageHeight() - size) / 2
+		} else if args[2] == imagorpath.VAlignTop {
+			y = 0
+		} else if args[2] == imagorpath.VAlignBottom {
+			y = img.PageHeight() - size
+		} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
+			pec, _ := strconv.ParseFloat(args[2], 64)
+			y = int(pec * float64(img.PageHeight()))
+		} else if strings.HasSuffix(args[2], "p") {
+			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
+			y = y * img.PageHeight() / 100
+		} else {
+			y, _ = strconv.Atoi(args[2])
+		}
+		if y < 0 {
+			y += img.PageHeight() - size
+		}
+	}
+	if ln > 4 {
+		c = getColor(img, args[4])
+	}
+	if ln > 5 {
+		alpha, _ = strconv.ParseFloat(args[5], 64)
+		alpha /= 100
+	}
+	if ln > 6 {
+		if a, e := url.QueryUnescape(args[6]); e == nil {
+			font = a
+		} else {
+			font = args[6]
+		}
+	}
+	// make sure band equals 4
+	if err = img.AddAlpha(); err != nil {
+		return
+	}
+	return img.Label(text, font, x, y, size, align, c, 1-alpha)
+}
+
 func (v *Processor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
 	ln := len(args)
 	if ln < 2 {
