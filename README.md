@@ -21,14 +21,17 @@ docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
 ```
 
 Original images:
+
 ```
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png
 ```
+
 <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png" height="100" />
 
 Try out the following image URLs:
+
 ```
 http://localhost:8000/unsafe/fit-in/200x200/filters:fill(white)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 http://localhost:8000/unsafe/200x200/smart/filters:fill(white):format(jpeg):quality(80)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
@@ -36,8 +39,12 @@ http://localhost:8000/unsafe/fit-in/-180x180/10x10/filters:hue(290):saturation(1
 http://localhost:8000/unsafe/30x40:100x150/filters:fill(cyan)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
 http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,0,40,40)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
 ```
+
 <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif" height="100" />  
 
+### Deploy on Heroku
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 ### Imagor Endpoint
 
@@ -126,9 +133,11 @@ Imagor provides metadata endpoint that extracts information such as image format
 Under the hood, it tries to retrieve data just enough to extract the header, without reading and processing the whole image in memory.
 
 To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations. Example:
+
 ```
 http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
 ```
+
 ```jsonc
 {
   "format": "jpeg",
@@ -172,6 +181,7 @@ Imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS 
 #### File System
 
 Docker Compose example with file system, using mounted volume:
+
 ```yaml
 version: "3"
 services:
@@ -200,6 +210,7 @@ services:
 #### AWS S3
 
 Docker Compose example with AWS S3. Also works with S3 compatible such as MinIO, DigitalOcean Space.
+
 ```yaml
 version: "3"
 services:
@@ -229,15 +240,20 @@ services:
 ##### Custom S3 Endpoint
 
 Configure custom S3 endpoint for S3 compatible such as MinIO, DigitalOcean Space:
+
 ```yaml
       S3_ENDPOINT: http://minio:9000
       S3_FORCE_PATH_STYLE: 1
 ```
+
 By default, S3 prepends bucket name as subdomain to the request URL:
+
 ```
 http://mybucket.minio:9000/image.jpg
 ```
+
 this may not be desirable for a self-hosted endpoint. You can also switch to [path-style requests](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html#path-style-access) using `S3_FORCE_PATH_STYLE=1` such that the host remains unchanged:
+
 ```
 http://minio:9000/mybucket/image.jpg
 ```
@@ -245,6 +261,7 @@ http://minio:9000/mybucket/image.jpg
 #### Google Cloud Storage
 
 Docker Compose example with Google Cloud Storage:
+
 ```yaml
 version: "3"
 services:
@@ -342,7 +359,7 @@ HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
 
 #### Error Response Body
 
-By default, when image processing failed, Imagor returns error status code with the original source as response body. 
+By default, when image processing failed, Imagor returns error status code with the original source as response body.
 This is with assumption that the image source is fully controlled, so that the original source can be served as fallback in case of failure.
 
 However, if the source image involves user generated content, it is advised to disable the original source fallback using `IMAGOR_DISABLE_ERROR_BODY`, to prevent uncontrolled content being loaded:
@@ -400,6 +417,7 @@ imagor -config path/to/config.env
 ```
 
 config.env:
+
 ```dotenv
 PORT=8000
 IMAGOR_SECRET=mysecret
