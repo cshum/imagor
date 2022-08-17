@@ -90,13 +90,13 @@ Imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
-- `label(text, x, y, size, color[, alpha[, font]])` adds a text label to the image. It can be positioned inside the image with the position or alignment specified, with color and transparency support:
+- `label(text, x, y, size, color[, alpha[, font]])` adds a text label to the image. It can be positioned inside the image with the alignment specified, color and transparency support:
   - `text` text label, also support url encoded text.
   - `x` horizontal position that the text label will be in:
     - Positive number indicate position from the left, negative number from the right.
     - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
     - `left`,`right`,`center` align left, right or centered respectively
-  - `y` vertical position that the watermark will be in:
+  - `y` vertical position that the text label will be in:
     - Positive number indicate position from the top, negative number from the bottom.
     - Number followed by a `p` e.g. 20p means calculating the value from the image height as percentage
     - `top`,`bottom`,`center` vertical align top, bottom or centered respectively
