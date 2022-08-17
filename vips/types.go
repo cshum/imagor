@@ -308,3 +308,13 @@ const (
 	SizeForce Size = C.VIPS_SIZE_FORCE
 	SizeLast  Size = C.VIPS_SIZE_LAST
 )
+
+// Align represents VIPS_ALIGN
+type Align int
+
+// Direction enum
+const (
+	AlignLow    Align = C.VIPS_ALIGN_LOW
+	AlignCenter Align = C.VIPS_ALIGN_CENTRE
+	AlignHigh   Align = C.VIPS_ALIGN_HIGH
+)
