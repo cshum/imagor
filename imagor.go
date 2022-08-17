@@ -257,7 +257,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return blob, err
 	}
-	return app.suppress(ctx, "res:"+resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
 		if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 			return blob, nil
 		}
@@ -413,9 +413,6 @@ func (app *Imagor) load(
 	}
 	if err == nil && isBlobEmpty(blob) {
 		err = ErrNotFound
-	}
-	if err != nil && app.Debug {
-		app.Logger.Debug("load", zap.String("key", key), zap.Error(err))
 	}
 	return
 }
