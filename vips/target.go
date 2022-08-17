@@ -48,8 +48,8 @@ func (s *Target) Close() {
 
 func NewBlobFromTarget(handler func(*Target) error) *imagor.Blob {
 	pr, pw := io.Pipe()
-	target := NewTarget(pw)
 	go func() {
+		target := NewTarget(pw)
 		defer target.Close()
 		if err := handler(target); err != nil {
 			_ = pr.CloseWithError(err)
