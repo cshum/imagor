@@ -1,0 +1,27 @@
+{
+    "name": "imagor",
+    "description": "Fast, Docker-ready image processing server in Go with libvips",
+    "keywords": [
+        "image",
+        "resize-images",
+        "crop-image",
+        "microservice",
+        "docker",
+        "jpeg",
+        "png",
+        "libvips"
+    ],
+    "repository": "https://github.com/cshum/imagor",
+    "stack": "container",
+    "env": {
+        "IMAGOR_UNSAFE": {
+            "description": "Use Unsafe mode, default 1 for testing. In production environment, it is highly recommended turning off `IMAGOR_UNSAFE` and setting up URL signature using `IMAGOR_SECRET`, to prevent DDoS attacks that abuse multiple image operations.",
+            "required": true,
+            "value": "1"
+        },
+        "IMAGOR_SECRET": {
+            "description": "Secret key for URL signature.",
+            "required": false
+        }
+    }
+}
