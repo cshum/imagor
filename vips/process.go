@@ -196,7 +196,6 @@ func (v *Processor) Process(
 	vipscontext.Defer(ctx, img.Close)
 	var (
 		quality    int
-		pageN      = img.Height() / img.PageHeight()
 		origWidth  = float64(img.Width())
 		origHeight = float64(img.PageHeight())
 	)
@@ -208,13 +207,11 @@ func (v *Processor) Process(
 			format = img.Format()
 		}
 	}
-	vipscontext.SetPageN(ctx, pageN)
 	if v.Debug {
 		v.Logger.Debug("image",
 			zap.Int("width", img.Width()),
 			zap.Int("height", img.Height()),
-			zap.Int("page_height", img.PageHeight()),
-			zap.Int("page_n", pageN))
+			zap.Int("page_height", img.PageHeight()))
 	}
 	for _, p := range p.Filters {
 		switch p.Name {
@@ -586,7 +583,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 func findTrim(
 	ctx context.Context, img *Image, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
-	if vipscontext.IsAnimated(ctx) {
+	if isAnimated(img) {
 		// skip animation support
 		return
 	}

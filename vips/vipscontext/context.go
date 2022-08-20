@@ -52,19 +52,6 @@ func Done(ctx context.Context) {
 	}
 }
 
-func SetPageN(ctx context.Context, n int) {
-	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
-		r.PageN = n
-	}
-}
-
-func GetPageN(ctx context.Context) int {
-	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
-		return r.PageN
-	}
-	return 1
-}
-
 func SetRotate90(ctx context.Context) {
 	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
 		r.Rotate90 = !r.Rotate90
@@ -76,8 +63,4 @@ func IsRotate90(ctx context.Context) bool {
 		return r.Rotate90
 	}
 	return false
-}
-
-func IsAnimated(ctx context.Context) bool {
-	return GetPageN(ctx) > 1
 }

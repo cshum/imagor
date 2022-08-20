@@ -21,6 +21,8 @@ type Image struct {
 	image  *C.VipsImage
 	format ImageType
 	lock   sync.Mutex
+
+	pageHeight int // cached page height
 }
 
 type Param struct {
@@ -286,7 +288,10 @@ func (r *Image) Pages() int {
 
 // PageHeight return the height of a single page
 func (r *Image) PageHeight() int {
-	return vipsGetPageHeight(r.image)
+	if r.pageHeight == 0 {
+		r.pageHeight = vipsGetPageHeight(r.image)
+	}
+	return r.pageHeight
 }
 
 // SetPageHeight set the height of a page
@@ -746,4 +751,5 @@ func (r *Image) setImage(image *C.VipsImage) {
 	}
 
 	r.image = image
+	r.pageHeight = 0
 }
