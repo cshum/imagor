@@ -32,7 +32,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	var down = 1
 	var overlay *Image
 	var n = 1
-	if vipscontext.IsAnimated(ctx) {
+	if isAnimated(img) {
 		n = -1
 	}
 	// w_ratio h_ratio
@@ -131,7 +131,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	); err != nil {
 		return
 	}
-	if n := vipscontext.GetPageN(ctx); n > overlayN {
+	if n := img.Height() / img.PageHeight(); n > overlayN {
 		cnt := n / overlayN
 		if n%overlayN > 0 {
 			cnt += 1
@@ -155,7 +155,7 @@ func frames(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 	if newN < 1 {
 		return
 	}
-	if n := vipscontext.GetPageN(ctx); n != newN {
+	if n := img.Height() / img.PageHeight(); n != newN {
 		height := img.PageHeight()
 		if err = img.SetPageHeight(img.Height()); err != nil {
 			return
@@ -166,7 +166,6 @@ func frames(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 		if err = img.SetPageHeight(height); err != nil {
 			return
 		}
-		vipscontext.SetPageN(ctx, newN)
 	}
 	var delay int
 	if ln > 1 {
@@ -202,7 +201,7 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 	top := (h-img.PageHeight())/2 + pTop
 	width := w + pLeft + pRight
 	height := h + pTop + pBottom
-	if colour != "blur" || (colour == "blur" && v.DisableBlur) || vipscontext.IsAnimated(ctx) {
+	if colour != "blur" || (colour == "blur" && v.DisableBlur) || isAnimated(img) {
 		// fill color
 		if img.HasAlpha() {
 			if err = img.Flatten(getColor(img, colour)); err != nil {
@@ -278,7 +277,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 		return
 	}
 	vipscontext.Defer(ctx, rounded.Close)
-	if n := vipscontext.GetPageN(ctx); n > 1 {
+	if n := img.Height() / img.PageHeight(); n > 1 {
 		if err = rounded.Replicate(1, n); err != nil {
 			return
 		}
@@ -521,7 +520,7 @@ func modulate(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 }
 
 func blur(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
-	if vipscontext.IsAnimated(ctx) {
+	if isAnimated(img) {
 		// skip animation support
 		return
 	}
@@ -542,7 +541,7 @@ func blur(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (e
 }
 
 func sharpen(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
-	if vipscontext.IsAnimated(ctx) {
+	if isAnimated(img) {
 		// skip animation support
 		return
 	}
@@ -657,4 +656,8 @@ func hexToByte(b byte) byte {
 		return b - 'a' + 10
 	}
 	return 0
+}
+
+func isAnimated(img *Image) bool {
+	return img.Height() > img.PageHeight()
 }
