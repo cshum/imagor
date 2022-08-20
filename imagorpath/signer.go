@@ -7,7 +7,7 @@ import (
 	"hash"
 )
 
-// Signer Imagor URL signature signer
+// Signer imagor URL signature signer
 type Signer interface {
 	Sign(path string) string
 }

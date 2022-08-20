@@ -140,7 +140,7 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 	return
 }
 
-// ServeHTTP implements http.Handler for Imagor operations
+// ServeHTTP implements http.Handler for imagor operations
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.WriteHeader(http.StatusMethodNotAllowed)

@@ -1,6 +1,6 @@
 # imagorpath
 
-Parse and generate Imagor endpoint using Go struct
+Parse and generate imagor endpoint using Go struct
 
 ```go
 import "github.com/cshum/imagor/imagorpath"
@@ -23,13 +23,13 @@ func Test(t *testing.T) {
 		},
 	}
 
-	// generate signed Imagor endpoint from Params struct with secret
+	// generate signed imagor endpoint from Params struct with secret
 	path := imagorpath.Generate(params, imagorpath.NewDefaultSigner("mysecret"))
 
 	assert.Equal(t, path, "OyGJyvfYJw8xNkYDmXU-4NPA2U0=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 
 	assert.Equal(t,
-		// parse Params struct from signed Imagor endpoint
+		// parse Params struct from signed imagor endpoint
 		imagorpath.Parse(path),
 
 		// Params include endpoint attributes with path and signed hash

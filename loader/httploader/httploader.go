@@ -47,7 +47,7 @@ func New(options ...Option) *HTTPLoader {
 		OverrideHeaders: map[string]string{},
 		DefaultScheme:   "https",
 		Accept:          "*/*",
-		UserAgent:       fmt.Sprintf("Imagor/%s", imagor.Version),
+		UserAgent:       fmt.Sprintf("imagor/%s", imagor.Version),
 	}
 	for _, option := range options {
 		option(h)

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// GeneratePath generate Imagor path by Params struct
+// GeneratePath generate imagor path by Params struct
 func GeneratePath(p Params) string {
 	var parts []string
 	if p.Meta {
@@ -90,12 +90,12 @@ func GeneratePath(p Params) string {
 	return strings.Join(parts, "/")
 }
 
-// GenerateUnsafe generate unsafe Imagor endpoint by Params struct
+// GenerateUnsafe generate unsafe imagor endpoint by Params struct
 func GenerateUnsafe(p Params) string {
 	return Generate(p, nil)
 }
 
-// Generate Imagor endpoint with signature by Params struct with signer
+// Generate imagor endpoint with signature by Params struct with signer
 func Generate(p Params, signer Signer) string {
 	imgPath := GeneratePath(p)
 	if signer != nil {
