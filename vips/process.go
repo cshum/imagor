@@ -472,7 +472,7 @@ type Metadata struct {
 
 func metadata(img *Image, format ImageType) *Metadata {
 	format = supportedFormat(format)
-	pages := img.PageHeight() / img.Pages()
+	pages := img.Height() / img.PageHeight()
 	if !IsAnimationSupported(format) {
 		pages = 1
 	}

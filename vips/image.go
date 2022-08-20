@@ -17,63 +17,62 @@ type Image struct {
 	// NOTE: We keep a reference to this so that the input buffer is
 	// never garbage collected during processing. Some image loaders use random
 	// access transcoding and therefore need the original buffer to be in memory.
-	buf                 []byte
-	image               *C.VipsImage
-	format              ImageType
-	lock                sync.Mutex
-	optimizedIccProfile string
+	buf    []byte
+	image  *C.VipsImage
+	format ImageType
+	lock   sync.Mutex
 }
 
-type Parameter struct {
+type Param struct {
 	value interface{}
 	isSet bool
 }
 
-func (p *Parameter) IsSet() bool {
+func (p *Param) IsSet() bool {
 	return p.isSet
 }
 
-func (p *Parameter) set(v interface{}) {
+func (p *Param) set(v interface{}) {
 	p.value = v
 	p.isSet = true
 }
 
-type BoolParameter struct {
-	Parameter
+type BoolParam struct {
+	Param
 }
 
-func (p *BoolParameter) Set(v bool) {
+func (p *BoolParam) Set(v bool) {
 	p.set(v)
 }
 
-func (p *BoolParameter) Get() bool {
+func (p *BoolParam) Get() bool {
 	return p.value.(bool)
 }
 
-type IntParameter struct {
-	Parameter
+type IntParam struct {
+	Param
 }
 
-func (p *IntParameter) Set(v int) {
+func (p *IntParam) Set(v int) {
 	p.set(v)
 }
 
-func (p *IntParameter) Get() int {
+func (p *IntParam) Get() int {
 	return p.value.(int)
 }
 
 // ImportParams are options for loading an image. Some are type-specific.
 // For default loading, use NewImportParams() or specify nil
 type ImportParams struct {
-	AutoRotate  BoolParameter
-	FailOnError BoolParameter
-	Page        IntParameter
-	NumPages    IntParameter
-	Density     IntParameter
+	AutoRotate  BoolParam
+	FailOnError BoolParam
+	Page        IntParam
+	NumPages    IntParam
+	Density     IntParam
 
-	JpegShrinkFactor IntParameter
-	HeifThumbnail    BoolParameter
-	SvgUnlimited     BoolParameter
+	JpegShrinkFactor IntParam
+	HeifThumbnail    BoolParam
+	SvgUnlimited     BoolParam
 }
 
 // NewImportParams creates default ImportParams
@@ -351,10 +350,7 @@ func (r *Image) ExportWebp(params *WebpExportParams) ([]byte, error) {
 		params = NewWebpExportParams()
 	}
 
-	paramsWithIccProfile := *params
-	paramsWithIccProfile.IccProfile = r.optimizedIccProfile
-
-	buf, err := vipsSaveWebPToBuffer(r.image, paramsWithIccProfile)
+	buf, err := vipsSaveWebPToBuffer(r.image, *params)
 	if err != nil {
 		return nil, err
 	}
