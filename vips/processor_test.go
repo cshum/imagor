@@ -221,6 +221,12 @@ func TestProcessor(t *testing.T) {
 		buf, err := ioutil.ReadFile(testDataDir + "/../README.md")
 		require.NoError(t, err)
 		assert.Equal(t, buf, w.Body.Bytes(), "should return original file")
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/meta/README.md", nil))
+		assert.Equal(t, 406, w.Code)
+		assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 	})
 	t.Run("resolution exceeded", func(t *testing.T) {
 		app := imagor.New(

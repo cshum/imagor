@@ -528,18 +528,21 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/foo", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "bark", w.Body.String())
 
 			w = httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/bar", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "bar", w.Body.String())
 
 			w = httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/ping", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "pong", w.Body.String())
 			time.Sleep(time.Millisecond * 10) // make sure storage reached
@@ -552,6 +555,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 404, w.Code)
 			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
 		})
@@ -559,6 +563,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/empty", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 404, w.Code)
 			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
 			assert.Nil(t, store.Map["empty"])
@@ -567,6 +572,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/boooo", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 404, w.Code)
 			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
 		})
@@ -574,6 +580,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/boom", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 500, w.Code)
 			assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
 			assert.Nil(t, store.Map["boom"])
@@ -582,6 +589,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/dood", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 500, w.Code)
 			assert.Equal(t, "dood", w.Body.String())
 			assert.Nil(t, store.Map["dood"])
@@ -590,6 +598,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			w := httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/poop", nil))
+			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
 			assert.Equal(t, "poop", w.Body.String())
 			assert.Nil(t, store.Map["poop"])

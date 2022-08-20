@@ -165,9 +165,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	blob, err := checkBlob(app.Do(r, p))
-	if !isBlobEmpty(blob) {
-		w.Header().Set("Content-Type", blob.ContentType())
-	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			w.WriteHeader(499)
@@ -178,7 +175,8 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(e.Code)
 			return
 		}
-		if !isBlobEmpty(blob) {
+		if !isBlobEmpty(blob) && !p.Meta {
+			w.Header().Set("Content-Type", blob.ContentType())
 			reader, size, _ := blob.NewReader()
 			if reader != nil {
 				w.WriteHeader(e.Code)
@@ -194,6 +192,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reader, size, _ := blob.NewReader()
+	w.Header().Set("Content-Type", blob.ContentType())
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	writeBody(w, r, reader, size)
 	return
