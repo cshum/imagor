@@ -1,18 +1,18 @@
-# Imagor
+# imagor
 
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
 [![Coverage Status](https://img.shields.io/coveralls/github/cshum/imagor)](https://coveralls.io/github/cshum/imagor?branch=master)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 [![GitHub Container Registry](https://ghcr-badge.herokuapp.com/cshum/imagor/latest_tag?trim=major&label=ghcr.io&ignore=next,master&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
 
-Imagor is a fast, Docker-ready image processing server written in Go.
+imagor is a fast, Docker-ready image processing server written in Go.
 
-Imagor uses one of the most efficient image processing library
+imagor uses one of the most efficient image processing library
 [libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings.
 
-Imagor is a Go application that is highly optimized for concurrent requests. It implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) for parallel processing pipelines, achieving high network throughput.
+imagor is a Go application that is highly optimized for concurrency. It implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) for parallel processing pipelines, achieving high network throughput.
 
-Imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement and more.
+imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement and more.
 
 ### Quick Start
 
@@ -44,9 +44,9 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-### Imagor Endpoint
+### Image Endpoint
 
-Imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
+imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
 /HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
@@ -75,7 +75,7 @@ Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations 
 /filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/
 ```
 
-Imagor supports the following filters:
+imagor supports the following filters:
 
 - `background_color(color)` sets the background color of a transparent image
   - `color` the color name or hexadecimal rgb expression without the “#” character
@@ -124,7 +124,7 @@ Imagor supports the following filters:
 - `sharpen(sigma)` sharpens the image
 - `upscale()` upscale the image if `fit-in` is used
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
-  - `image` watermark image URI, using the same image loader configured for Imagor
+  - `image` watermark image URI, using the same image loader configured for imagor
   - `x` horizontal position that the watermark will be in:
     - Positive number indicate position from the left, negative number from the right.
     - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
@@ -141,7 +141,7 @@ Imagor supports the following filters:
 
 ### Metadata and Exif
 
-Imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
+imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
 Under the hood, it tries to retrieve data just enough to extract the header, without reading and processing the whole image in memory.
 
 To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations. Example:
@@ -182,13 +182,13 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
 
 ### Loader, Storage and Result Storage
 
-Imagor `Loader`, `Storage` and `Result Storage` are the building blocks for loading and saving images from various sources:
+imagor `Loader`, `Storage` and `Result Storage` are the building blocks for loading and saving images from various sources:
 
 - `Loader` loads image. Enable `Loader` where you wish to load images from, but without modifying it e.g. static directory.
 - `Storage` loads and saves image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
 - `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
 
-Imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS S3 and Google Cloud Storage. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
+imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS S3 and Google Cloud Storage. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
 
 #### File System
 
@@ -326,7 +326,7 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 
 #### Custom HMAC Signer
 
-Imagor uses SHA1 HMAC signer by default, the same one used by [thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). However, SHA1 is not considered cryptographically secure. If that is a concern it is possible to configure different signing method and truncate length. Imagor supports `sha1`, `sha256`, `sha512` signer type:
+imagor uses SHA1 HMAC signer by default, the same one used by [thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). However, SHA1 is not considered cryptographically secure. If that is a concern it is possible to configure different signing method and truncate length. imagor supports `sha1`, `sha256`, `sha512` signer type:
 
 ```dotenv
 IMAGOR_SIGNER_TYPE=sha256
@@ -353,7 +353,7 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 
 #### Image Bombs Prevention
 
-Imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big, which protects from so-called "image bombs". You can set the max allowed image resolution and dimensions using `VIPS_MAX_RESOLUTION`, `VIPS_MAX_WIDTH`, `VIPS_MAX_HEIGHT`:
+imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big, which protects from so-called "image bombs". You can set the max allowed image resolution and dimensions using `VIPS_MAX_RESOLUTION`, `VIPS_MAX_WIDTH`, `VIPS_MAX_HEIGHT`:
 
 ```dotenv
 VIPS_MAX_RESOLUTION=16800000
@@ -371,10 +371,10 @@ HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
 
 #### Error Response Body
 
-By default, when image processing failed, Imagor returns error status code with the original source as response body.
-This is with assumption that the image source is fully controlled, so that the original source can be served as fallback in case of failure.
+By default, when image processing failed, imagor returns error status code with the original source as response body.
+This is with assumption that the image source is trusted, so that the original image can be served as fallback in case of failure.
 
-However, if the source image involves user generated content, it is advised to disable the original source fallback using `IMAGOR_DISABLE_ERROR_BODY`, to prevent uncontrolled content being loaded:
+However, if the source image involves user generated content, it is advised to disable the original source fallback using `IMAGOR_DISABLE_ERROR_BODY`, to prevent untrusted content being loaded:
 
 ```dotenv
 IMAGOR_DISABLE_ERROR_BODY=1
@@ -384,7 +384,7 @@ IMAGOR_DISABLE_ERROR_BODY=1
 
 #### `GET /params`
 
-Imagor provides utilities for previewing and generating Imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
+imagor provides utilities for previewing and generating imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
 
 Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for preview:
 
@@ -411,7 +411,7 @@ curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x
 
 ### Configuration
 
-Imagor supports command-line arguments and environment variables for the arguments equivalent in capitalized snake case, see available options `imagor -h`.
+imagor supports command-line arguments and environment variables for the arguments equivalent in capitalized snake case, see available options `imagor -h`.
 For instances `-imagor-secret` would become `IMAGOR_SECRET`:
 
 ```bash
@@ -446,36 +446,36 @@ Usage of imagor:
   -port int
         Sever port (default 8000)
   -version
-        Imagor version
+        imagor version
   -config string
         Retrieve configuration from the given file (default ".env")
 
   -imagor-secret string
-        Secret key for signing Imagor URL
+        Secret key for signing imagor URL
   -imagor-unsafe
-        Unsafe Imagor that does not require URL signature. Prone to URL tampering
+        Unsafe imagor that does not require URL signature. Prone to URL tampering
   -imagor-auto-webp
         Output WebP format automatically if browser supports
   -imagor-auto-avif
         Output AVIF format automatically if browser supports (experimental)
   -imagor-base-params string
-        Imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
+        imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
   -imagor-signer-type string
-        Imagor URL signature hasher type sha1, sha256, sha512 (default "sha1")
+        imagor URL signature hasher type sha1, sha256, sha512 (default "sha1")
   -imagor-signer-truncate int
-        Imagor URL signature truncate at length
+        imagor URL signature truncate at length
   -imagor-cache-header-ttl duration
-        Imagor HTTP cache header ttl for successful image response (default 168h0m0s)
+        imagor HTTP cache header ttl for successful image response (default 168h0m0s)
   -imagor-cache-header-swr duration
-        Imagor HTTP Cache-Control header stale-while-revalidate for successful image response (default 24h0m0s)
+        imagor HTTP Cache-Control header stale-while-revalidate for successful image response (default 24h0m0s)
   -imagor-cache-header-no-cache
-        Imagor HTTP Cache-Control header no-cache for successful image response
+        imagor HTTP Cache-Control header no-cache for successful image response
   -imagor-request-timeout duration
-        Timeout for performing Imagor request (default 30s)
+        Timeout for performing imagor request (default 30s)
   -imagor-load-timeout duration
-        Timeout for Imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
+        Timeout for imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
   -imagor-save-timeout duration
-        Timeout for saving image to Imagor Storage (default 20s)
+        Timeout for saving image to imagor Storage (default 20s)
   -imagor-process-timeout duration
         Timeout for image processing (default 20s)
   -imagor-process-concurrency int
@@ -483,13 +483,13 @@ Usage of imagor:
   -imagor-process-queue-size int
         Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429. Set -1 for no limit (default -1)
   -imagor-base-path-redirect string
-        URL to redirect for Imagor / base path e.g. https://www.google.com
+        URL to redirect for imagor / base path e.g. https://www.google.com
   -imagor-modified-time-check
         Check modified time of result image against the source image. This eliminates stale result but require more lookups
   -imagor-disable-params-endpoint
-        Imagor disable /params endpoint
+        imagor disable /params endpoint
   -imagor-disable-error-body
-        Imagor disable response body on error
+        imagor disable response body on error
 
   -server-address string
         Server address
