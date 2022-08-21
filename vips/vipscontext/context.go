@@ -12,7 +12,6 @@ type contextRef struct {
 	cnt      int
 	cbs      []func()
 	Rotate90 bool
-	PageN    int
 }
 
 func (r *contextRef) Defer(cb func()) {

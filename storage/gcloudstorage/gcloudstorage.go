@@ -25,6 +25,10 @@ type GCloudStorage struct {
 	safeChars imagorpath.SafeChars
 }
 
+type statKey struct {
+	Key string
+}
+
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
 	s := &GCloudStorage{client: client, Bucket: bucket}
 	for _, option := range options {
@@ -35,17 +39,24 @@ func New(client *storage.Client, bucket string, options ...Option) *GCloudStorag
 }
 
 func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Blob, err error) {
+	ctx := r.Context()
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
 	object := s.client.Bucket(s.Bucket).Object(image)
-	attrs, err := object.Attrs(r.Context())
+	attrs, err := object.Attrs(ctx)
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			return nil, imagor.ErrNotFound
 		}
 		return nil, err
+	}
+	if attrs != nil {
+		imagor.ContextCachePut(ctx, statKey{image}, imagor.Stat{
+			Size:         attrs.Size,
+			ModifiedTime: attrs.Updated,
+		})
 	}
 	if s.Expiration > 0 {
 		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
@@ -56,7 +67,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		if attrs != nil {
 			size = attrs.Size
 		}
-		reader, err = object.NewReader(r.Context())
+		reader, err = object.NewReader(ctx)
 		return
 	}), err
 }
@@ -105,25 +116,22 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 	return strings.Trim(joinedPath, "/"), true
 }
 
-func (s *GCloudStorage) attrs(ctx context.Context, image string) (attrs *storage.ObjectAttrs, err error) {
+func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
+	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
+		if stat, ok2 := s.(imagor.Stat); ok2 {
+			return &stat, nil
+		}
+	}
 	object := s.client.Bucket(s.Bucket).Object(image)
-	attrs, err = object.Attrs(ctx)
+	attrs, err := object.Attrs(ctx)
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			return nil, imagor.ErrNotFound
 		}
-		return nil, err
-	}
-	return attrs, err
-}
-
-func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
-	attrs, err := s.attrs(ctx, image)
-	if err != nil {
 		return nil, err
 	}
 	return &imagor.Stat{
