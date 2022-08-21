@@ -20,7 +20,7 @@ func (r *imagorContextRef) Defer(fn func()) {
 	r.l.Unlock()
 }
 
-func (r *imagorContextRef) Call() {
+func (r *imagorContextRef) Done() {
 	r.l.Lock()
 	for _, fn := range r.funcs {
 		fn()
@@ -35,7 +35,7 @@ func WithContext(ctx context.Context) context.Context {
 	ctx = context.WithValue(ctx, imagorContextKey{}, r)
 	go func() {
 		<-ctx.Done()
-		r.Call()
+		r.Done()
 	}()
 	return ctx
 }
