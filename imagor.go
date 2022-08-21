@@ -311,21 +311,21 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					app.Logger.Debug("processed", zap.Any("params", p))
 				}
 				break
+			} else if e == ErrPass {
+				if !isBlobEmpty(b) {
+					// pass to next processor
+					blob = b
+				}
+				if app.Debug {
+					app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
+				}
 			} else {
-				if e == ErrPass {
-					if !isBlobEmpty(b) {
-						// pass to next processor
-						blob = b
-					}
-					if app.Debug {
-						app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
-					}
-				} else {
+				if ctx.Err() == nil {
 					err = e
 					app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
-					if errors.Is(err, context.DeadlineExceeded) {
-						break
-					}
+				} else {
+					err = ctx.Err()
+					break
 				}
 			}
 		}
