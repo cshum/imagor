@@ -15,7 +15,7 @@ func TestDefer(t *testing.T) {
 			t.Fatal("should not call")
 		})
 	})
-	ctx = DeferContext(ctx)
+	ctx = WithContext(ctx)
 	Defer(ctx, func() {
 		called++
 	})
@@ -29,4 +29,20 @@ func TestDefer(t *testing.T) {
 		called++
 	})
 	assert.Equal(t, 2, called, "should count all defers before cancel")
+}
+
+func TestContextCache(t *testing.T) {
+	ctx := context.Background()
+	assert.NotPanics(t, func() {
+		ContextCachePut(ctx, "foo", "bar")
+	})
+	ctx = WithContext(ctx)
+	s, ok := ContextCacheGet(ctx, "foo")
+	assert.False(t, ok)
+	assert.Nil(t, s)
+	ContextCachePut(ctx, "foo", "bar")
+	s, ok = ContextCacheGet(ctx, "foo")
+	assert.True(t, ok)
+	assert.Equal(t, "bar", s)
+
 }

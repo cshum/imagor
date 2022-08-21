@@ -5,36 +5,36 @@ import (
 	"time"
 )
 
-type contextKey struct {
+type detachContextKey struct {
 	name string
 }
 
-var detachedCtxKey = &contextKey{"Detached"}
+var detachedCtxKey = &detachContextKey{"Detached"}
 
-type detached struct {
+type detachedContext struct {
 	ctx context.Context
 }
 
-func (detached) Deadline() (time.Time, bool) {
+func (detachedContext) Deadline() (time.Time, bool) {
 	return time.Time{}, false
 }
 
-func (detached) Done() <-chan struct{} {
+func (detachedContext) Done() <-chan struct{} {
 	return nil
 }
 
-func (detached) Err() error {
+func (detachedContext) Err() error {
 	return nil
 }
 
-func (d detached) Value(key interface{}) interface{} {
+func (d detachedContext) Value(key interface{}) interface{} {
 	return d.ctx.Value(key)
 }
 
 // DetachContext returns a context that keeps all the values of its parent context
 // but detaches from cancellation and timeout
 func DetachContext(ctx context.Context) context.Context {
-	return context.WithValue(detached{ctx: ctx}, detachedCtxKey, true)
+	return context.WithValue(detachedContext{ctx: ctx}, detachedCtxKey, true)
 }
 
 // IsDetached returns if context is detached
