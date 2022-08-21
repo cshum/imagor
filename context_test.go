@@ -44,5 +44,4 @@ func TestContextCache(t *testing.T) {
 	s, ok = ContextCacheGet(ctx, "foo")
 	assert.True(t, ok)
 	assert.Equal(t, "bar", s)
-
 }
