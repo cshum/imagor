@@ -68,6 +68,7 @@ func (s *S3Storage) Path(image string) (string, bool) {
 }
 
 func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
+	ctx := r.Context()
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
@@ -77,13 +78,13 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			Bucket: aws.String(s.Bucket),
 			Key:    aws.String(image),
 		}
-		out, err := s.S3.GetObjectWithContext(r.Context(), input)
+		out, err := s.S3.GetObjectWithContext(ctx, input)
 		if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
 			return nil, 0, imagor.ErrNotFound
 		} else if err != nil {
 			return nil, 0, err
 		}
-		imagor.ContextCachePut(r.Context(), statKey{image}, imagor.Stat{
+		imagor.ContextCachePut(ctx, statKey{image}, imagor.Stat{
 			Size:         *out.ContentLength,
 			ModifiedTime: *out.LastModified,
 		})
@@ -137,10 +138,15 @@ func (s *S3Storage) Delete(ctx context.Context, image string) error {
 	return err
 }
 
-func (s *S3Storage) head(ctx context.Context, image string) (*s3.HeadObjectOutput, error) {
+func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
+	}
+	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
+		if stat, ok2 := s.(imagor.Stat); ok2 {
+			return &stat, nil
+		}
 	}
 	input := &s3.HeadObjectInput{
 		Bucket: aws.String(s.Bucket),
@@ -150,19 +156,6 @@ func (s *S3Storage) head(ctx context.Context, image string) (*s3.HeadObjectOutpu
 	if e, ok := err.(awserr.Error); ok && e.Code() == s3.ErrCodeNoSuchKey {
 		return nil, imagor.ErrNotFound
 	} else if err != nil {
-		return nil, err
-	}
-	return head, nil
-}
-
-func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
-	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
-		if stat, ok2 := s.(imagor.Stat); ok2 {
-			return &stat, nil
-		}
-	}
-	head, err := s.head(ctx, image)
-	if err != nil {
 		return nil, err
 	}
 	return &imagor.Stat{
