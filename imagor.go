@@ -320,12 +320,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					if app.Debug {
 						app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
 					}
-				} else {
+				} else if ctx.Err() == nil {
 					err = e
 					app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
-					if errors.Is(err, context.DeadlineExceeded) {
-						break
-					}
+				} else {
+					err = ctx.Err()
+					break
 				}
 			}
 		}
