@@ -623,6 +623,9 @@ func TestWithResultKey(t *testing.T) {
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
 		WithResultKey(resultKeyFunc(func(p imagorpath.Params) string {
+			if strings.Contains(p.Path, "bar") {
+				return ""
+			}
 			return "prefix:" + strings.TrimPrefix(p.Path, "meta/")
 		})),
 		WithUnsafe(true),
@@ -646,6 +649,27 @@ func TestWithResultKey(t *testing.T) {
 	assert.Equal(t, 1, store.SaveCnt["foo"])
 	assert.Equal(t, 1, resultStore.LoadCnt["prefix:foo"])
 	assert.Equal(t, 1, resultStore.SaveCnt["prefix:foo"])
+	assert.Equal(t, 1, len(resultStore.LoadCnt))
+	assert.Equal(t, 1, len(resultStore.SaveCnt))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/bar", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "bar", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/bar", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "bar", w.Body.String())
+
+	assert.Equal(t, 1, store.LoadCnt["bar"])
+	assert.Equal(t, 1, store.SaveCnt["bar"])
+	assert.Equal(t, 1, len(resultStore.LoadCnt))
+	assert.Equal(t, 1, len(resultStore.SaveCnt))
 }
 
 func TestClientCancel(t *testing.T) {

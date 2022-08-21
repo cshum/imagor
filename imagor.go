@@ -243,11 +243,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 		}
 	}
-	var resultKey string
+	var resultKey = p.Path
 	if app.ResultKey != nil {
 		resultKey = app.ResultKey.Generate(p)
-	} else {
-		resultKey = p.Path
 	}
 	load := func(image string) (*Blob, error) {
 		blob, shouldSave, err := app.loadStorage(r, image)
@@ -256,9 +254,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return blob, err
 	}
-	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
-		if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
-			return blob, nil
+	return app.suppress(ctx, p.Path, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+		if resultKey != "" {
+			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
+				return blob, nil
+			}
 		}
 		if app.queueSema != nil {
 			if !app.queueSema.TryAcquire(1) {
@@ -334,7 +334,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			// make sure storage saved before result storage
 			<-doneSave
 		}
-		if err == nil && !isBlobEmpty(blob) && len(app.ResultStorages) > 0 {
+		if err == nil && !isBlobEmpty(blob) && resultKey != "" &&
+			len(app.ResultStorages) > 0 {
 			app.save(ctx, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && shouldSave {
