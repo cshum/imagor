@@ -31,6 +31,10 @@ type S3Storage struct {
 	safeChars imagorpath.SafeChars
 }
 
+type statKey struct {
+	Key string
+}
+
 func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	baseDir := "/"
 	if idx := strings.Index(bucket, "/"); idx > -1 {
@@ -79,6 +83,10 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		} else if err != nil {
 			return nil, 0, err
 		}
+		imagor.ContextCachePut(r.Context(), statKey{image}, imagor.Stat{
+			Size:         *out.ContentLength,
+			ModifiedTime: *out.LastModified,
+		})
 		if s.Expiration > 0 && out.LastModified != nil {
 			if time.Now().Sub(*out.LastModified) > s.Expiration {
 				return nil, 0, imagor.ErrExpired
@@ -148,6 +156,11 @@ func (s *S3Storage) head(ctx context.Context, image string) (*s3.HeadObjectOutpu
 }
 
 func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
+		if stat, ok2 := s.(imagor.Stat); ok2 {
+			return &stat, nil
+		}
+	}
 	head, err := s.head(ctx, image)
 	if err != nil {
 		return nil, err

@@ -25,6 +25,10 @@ type GCloudStorage struct {
 	safeChars imagorpath.SafeChars
 }
 
+type statKey struct {
+	Key string
+}
+
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
 	s := &GCloudStorage{client: client, Bucket: bucket}
 	for _, option := range options {
@@ -47,6 +51,10 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		}
 		return nil, err
 	}
+	imagor.ContextCachePut(r.Context(), statKey{image}, imagor.Stat{
+		Size:         attrs.Size,
+		ModifiedTime: attrs.Updated,
+	})
 	if s.Expiration > 0 {
 		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
 			return nil, imagor.ErrExpired
@@ -122,6 +130,11 @@ func (s *GCloudStorage) attrs(ctx context.Context, image string) (attrs *storage
 }
 
 func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
+		if stat, ok2 := s.(imagor.Stat); ok2 {
+			return &stat, nil
+		}
+	}
 	attrs, err := s.attrs(ctx, image)
 	if err != nil {
 		return nil, err
