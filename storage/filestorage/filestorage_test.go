@@ -121,7 +121,7 @@ func TestFileStore_Path(t *testing.T) {
 }
 
 func TestFileStorage_Load_Save(t *testing.T) {
-	ctx := context.Background()
+	ctx := imagor.WithContext(context.Background())
 	dir, err := ioutil.TempDir("", "imagor-test")
 	require.NoError(t, err)
 
@@ -154,13 +154,17 @@ func TestFileStorage_Load_Save(t *testing.T) {
 
 		require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
+		stat, err := s.Stat(context.Background(), "/foo/fooo/asdf")
+		require.NoError(t, err)
+		assert.True(t, stat.ModifiedTime.Before(time.Now()))
+
 		b, err := checkBlob(s.Get(&http.Request{}, "/foo/fooo/asdf"))
 		require.NoError(t, err)
 		buf, err := b.ReadAll()
 		require.NoError(t, err)
 		assert.Equal(t, "bar", string(buf))
 
-		stat, err := s.Stat(context.Background(), "/foo/fooo/asdf")
+		stat, err = s.Stat(context.Background(), "/foo/fooo/asdf")
 		require.NoError(t, err)
 		assert.True(t, stat.ModifiedTime.Before(time.Now()))
 

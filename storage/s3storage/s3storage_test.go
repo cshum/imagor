@@ -150,7 +150,7 @@ func TestCRUD(t *testing.T) {
 	defer ts.Close()
 
 	var err error
-	ctx := context.Background()
+	ctx := imagor.WithContext(context.Background())
 	s := New(fakeS3Session(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"))
 
 	_, err = s.Get(&http.Request{}, "/bar/fooo/asdf")
@@ -171,13 +171,17 @@ func TestCRUD(t *testing.T) {
 
 	require.NoError(t, s.Put(ctx, "/foo/fooo/asdf", blob))
 
+	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
+	require.NoError(t, err)
+	assert.True(t, stat.ModifiedTime.Before(time.Now()))
+
 	b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
 	assert.Equal(t, "bar", string(buf))
 
-	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
+	stat, err = s.Stat(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
 
