@@ -95,22 +95,23 @@ func TestCRUD(t *testing.T) {
 		Content: []byte(""),
 	}})
 	ctx := imagor.WithContext(context.Background())
+	r := (&http.Request{}).WithContext(ctx)
 	s := New(srv.Client(), "test", WithPathPrefix("/foo"), WithACL("publicRead"))
 	var err error
 
-	_, err = s.Get(&http.Request{}, "/bar/fooo/asdf")
+	_, err = s.Get(r, "/bar/fooo/asdf")
 	assert.Equal(t, imagor.ErrInvalid, err)
 
-	_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
+	_, err = s.Stat(ctx, "/bar/fooo/asdf")
 	assert.Equal(t, imagor.ErrInvalid, err)
 
-	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
+	_, err = s.Stat(ctx, "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	b, err := s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err := s.Get(r, "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	_, err = s.Stat(context.Background(), "/foo/fooo/asdf")
+	_, err = s.Stat(ctx, "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
 	assert.ErrorIs(t, s.Put(ctx, "/bar/fooo/asdf", imagor.NewBlobFromBytes([]byte("bar"))), imagor.ErrInvalid)
@@ -123,7 +124,7 @@ func TestCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
 
-	b, err = s.Get((&http.Request{}).WithContext(ctx), "/foo/fooo/asdf")
+	b, err = s.Get(r, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
@@ -133,13 +134,13 @@ func TestCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
 
-	err = s.Delete(context.Background(), "/foo/fooo/asdf")
+	err = s.Delete(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
 
-	b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err = s.Get(r, "/foo/fooo/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
 
-	assert.Equal(t, imagor.ErrInvalid, s.Delete(context.Background(), "/bar/fooo/asdf"))
+	assert.Equal(t, imagor.ErrInvalid, s.Delete(ctx, "/bar/fooo/asdf"))
 
 	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBlobFromBytes([]byte("bar"))))
 }
