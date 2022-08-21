@@ -997,7 +997,7 @@ func TestAutoAVIF(t *testing.T) {
 	})
 }
 
-func TestWithLoadTimeout(t *testing.T) {
+func TestWithTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.String(), "sleep") {
 			time.Sleep(time.Millisecond * 50)
@@ -1058,6 +1058,22 @@ func TestWithLoadTimeout(t *testing.T) {
 				WithLoadTimeout(time.Millisecond*100),
 				WithRequestTimeout(time.Millisecond*10),
 				WithLoaders(loader),
+			),
+		},
+		{
+			name: "process timeout",
+			app: New(
+				WithUnsafe(true),
+				WithRequestTimeout(time.Millisecond*10),
+				WithLoaders(loaderFunc(func(r *http.Request, image string) (blob *Blob, err error) {
+					return NewBlobFromBytes([]byte("ok")), nil
+				})),
+				WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+					if strings.Contains(p.Path, "sleep") {
+						time.Sleep(time.Millisecond * 50)
+					}
+					return blob, nil
+				})),
 			),
 		},
 	}
