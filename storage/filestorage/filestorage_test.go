@@ -140,7 +140,7 @@ func TestFileStorage_Load_Save(t *testing.T) {
 		_, err = s.Stat(context.Background(), "/bar/fooo/asdf")
 		assert.Equal(t, imagor.ErrInvalid, err)
 
-		_, err = checkBlob(s.Get(&http.Request{}, "/foo/fooo/asdf"))
+		_, err = checkBlob(s.Get((&http.Request{}).WithContext(ctx), "/foo/fooo/asdf"))
 		assert.Equal(t, imagor.ErrNotFound, err)
 
 		_, err = s.Stat(context.Background(), "/foo/fooo/asdf")

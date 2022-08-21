@@ -175,7 +175,7 @@ func TestCRUD(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
 
-	b, err = s.Get(&http.Request{}, "/foo/fooo/asdf")
+	b, err = s.Get((&http.Request{}).WithContext(ctx), "/foo/fooo/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
