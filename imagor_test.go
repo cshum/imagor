@@ -670,6 +670,25 @@ func TestWithResultKey(t *testing.T) {
 	assert.Equal(t, 1, store.SaveCnt["bar"])
 	assert.Equal(t, 1, len(resultStore.LoadCnt))
 	assert.Equal(t, 1, len(resultStore.SaveCnt))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:preview()/hi", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "hi", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:preview()/hi", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "hi", w.Body.String())
+
+	assert.Equal(t, 1, store.LoadCnt["hi"])
+	assert.Equal(t, 1, store.SaveCnt["hi"])
+	assert.Equal(t, 1, len(resultStore.LoadCnt))
+	assert.Equal(t, 1, len(resultStore.SaveCnt))
 }
 
 func TestClientCancel(t *testing.T) {
