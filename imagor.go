@@ -244,16 +244,16 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	var resultKey string
-	if app.ResultKey != nil {
-		resultKey = app.ResultKey.Generate(p)
-	} else {
-		var hasPreview bool
-		for _, f := range p.Filters {
-			if f.Name == "preview" {
-				hasPreview = true
-			}
+	var hasPreview bool
+	for _, f := range p.Filters {
+		if f.Name == "preview" {
+			hasPreview = true
 		}
-		if !hasPreview {
+	}
+	if !hasPreview {
+		if app.ResultKey != nil {
+			resultKey = app.ResultKey.Generate(p)
+		} else {
 			resultKey = p.Path
 		}
 	}
