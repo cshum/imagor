@@ -243,9 +243,19 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 		}
 	}
-	var resultKey = p.Path
+	var resultKey string
 	if app.ResultKey != nil {
 		resultKey = app.ResultKey.Generate(p)
+	} else {
+		var hasPreview bool
+		for _, f := range p.Filters {
+			if f.Name == "preview" {
+				hasPreview = true
+			}
+		}
+		if !hasPreview {
+			resultKey = p.Path
+		}
 	}
 	load := func(image string) (*Blob, error) {
 		blob, shouldSave, err := app.loadStorage(r, image)
