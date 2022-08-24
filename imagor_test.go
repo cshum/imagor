@@ -608,7 +608,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 
 type resultKeyFunc func(p imagorpath.Params) string
 
-func (fn resultKeyFunc) ResultKey(p imagorpath.Params) string {
+func (fn resultKeyFunc) ResultStorageKey(p imagorpath.Params) string {
 	return fn(p)
 }
 
@@ -622,7 +622,7 @@ func TestWithResultKey(t *testing.T) {
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
-		WithResultKey(resultKeyFunc(func(p imagorpath.Params) string {
+		WithResultStorageKey(resultKeyFunc(func(p imagorpath.Params) string {
 			if strings.Contains(p.Path, "bar") {
 				return ""
 			}

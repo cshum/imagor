@@ -49,14 +49,14 @@ type Stat struct {
 	Size         int64
 }
 
-// ResultKey define key for result storage
-type ResultKey interface {
-	ResultKey(p imagorpath.Params) string
+// ResultStorageKey define key for result storage
+type ResultStorageKey interface {
+	ResultStorageKey(p imagorpath.Params) string
 }
 
-// ImageKey define image key for storage
-type ImageKey interface {
-	ImageKey(image string) string
+// ImageStorageKey define image key for storage
+type ImageStorageKey interface {
+	ImageStorageKey(image string) string
 }
 
 // Imagor image resize HTTP handler
@@ -84,8 +84,8 @@ type Imagor struct {
 	BaseParams            string
 	Logger                *zap.Logger
 	Debug                 bool
-	ResultKey             ResultKey
-	ImageKey              ImageKey
+	ResultStorageKey      ResultStorageKey
+	ImageStorageKey       ImageStorageKey
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
@@ -257,8 +257,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	if !hasPreview {
-		if app.ResultKey != nil {
-			resultKey = app.ResultKey.ResultKey(p)
+		if app.ResultStorageKey != nil {
+			resultKey = app.ResultStorageKey.ResultStorageKey(p)
 		} else {
 			resultKey = p.Path
 		}
@@ -266,7 +266,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	load := func(image string) (*Blob, error) {
 		blob, shouldSave, err := app.loadStorage(r, image)
 		if shouldSave {
-			go app.save(ctx, app.Storages, image, blob)
+			var storageKey = image
+			if app.ImageStorageKey != nil {
+				storageKey = app.ImageStorageKey.ImageStorageKey(image)
+			}
+			go app.save(ctx, app.Storages, storageKey, blob)
 		}
 		return blob, err
 	}
@@ -305,8 +309,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var doneSave chan struct{}
 		if shouldSave {
 			doneSave = make(chan struct{}, 1)
+			var storageKey = p.Image
+			if app.ImageStorageKey != nil {
+				storageKey = app.ImageStorageKey.ImageStorageKey(p.Image)
+			}
 			go func(blob *Blob) {
-				app.save(ctx, app.Storages, p.Image, blob)
+				app.save(ctx, app.Storages, storageKey, blob)
 				doneSave <- struct{}{}
 			}(blob)
 		}
@@ -390,9 +398,9 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 }
 
 func (app *Imagor) load(
-	r *http.Request, storages []Storage, loaders []Loader, key string,
+	r *http.Request, storages []Storage, loaders []Loader, image string,
 ) (blob *Blob, origin Storage, err error) {
-	if key == "" {
+	if image == "" {
 		err = ErrNotFound
 		return
 	}
@@ -404,20 +412,27 @@ func (app *Imagor) load(
 		r = r.WithContext(ctx)
 	}
 
-	for _, storage := range storages {
-		b, e := checkBlob(storage.Get(r, key))
-		if !isBlobEmpty(b) {
-			blob = b
-			if e == nil {
-				err = nil
-				origin = storage
-				return
-			}
-		}
-		err = e
+	var storageKey = image
+	if app.ImageStorageKey != nil {
+		storageKey = app.ImageStorageKey.ImageStorageKey(image)
 	}
+	if storageKey != "" {
+		for _, storage := range storages {
+			b, e := checkBlob(storage.Get(r, storageKey))
+			if !isBlobEmpty(b) {
+				blob = b
+				if e == nil {
+					err = nil
+					origin = storage
+					return
+				}
+			}
+			err = e
+		}
+	}
+
 	for _, loader := range loaders {
-		b, e := checkBlob(loader.Get(r, key))
+		b, e := checkBlob(loader.Get(r, image))
 		if !isBlobEmpty(b) {
 			blob = b
 			if e == nil {
@@ -443,6 +458,9 @@ func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err
 }
 
 func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
+	if key == "" {
+		return
+	}
 	ctx = DetachContext(ctx)
 	if app.SaveTimeout > 0 {
 		var cancel func()

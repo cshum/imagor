@@ -166,9 +166,15 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-func WithResultKey(resultKey ResultKey) Option {
+func WithResultStorageKey(resultKey ResultStorageKey) Option {
 	return func(app *Imagor) {
-		app.ResultKey = resultKey
+		app.ResultStorageKey = resultKey
+	}
+}
+
+func WithImageStorageKey(storageKey ImageStorageKey) Option {
+	return func(app *Imagor) {
+		app.ImageStorageKey = storageKey
 	}
 }
 
