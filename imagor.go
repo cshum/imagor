@@ -53,6 +53,8 @@ type Stat struct {
 type Imagor struct {
 	Unsafe                bool
 	Signer                imagorpath.Signer
+	StorageHasher         imagorpath.StorageHasher
+	ResultStorageHasher   imagorpath.ResultStorageHasher
 	BasePathRedirect      string
 	Loaders               []Loader
 	Storages              []Storage
@@ -74,8 +76,6 @@ type Imagor struct {
 	BaseParams            string
 	Logger                *zap.Logger
 	Debug                 bool
-	ResultStorageHasher   imagorpath.ResultStorageHasher
-	StorageHasher         imagorpath.StorageHasher
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
