@@ -166,15 +166,15 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-func WithResultStorageKey(resultKey ResultStorageKey) Option {
+func WithResultStorageKey(handler ResultStorageKeyHandler) Option {
 	return func(app *Imagor) {
-		app.ResultStorageKey = resultKey
+		app.ResultStorageKey = handler
 	}
 }
 
-func WithImageStorageKey(storageKey ImageStorageKey) Option {
+func WithStorageKey(storageKeyHandler StorageKeyHandler) Option {
 	return func(app *Imagor) {
-		app.ImageStorageKey = storageKey
+		app.StorageKey = storageKeyHandler
 	}
 }
 

@@ -49,14 +49,14 @@ type Stat struct {
 	Size         int64
 }
 
-// ResultStorageKey define key for result storage
-type ResultStorageKey interface {
+// ResultStorageKeyHandler define key for result storage
+type ResultStorageKeyHandler interface {
 	ResultStorageKey(p imagorpath.Params) string
 }
 
-// ImageStorageKey define image key for storage
-type ImageStorageKey interface {
-	ImageStorageKey(image string) string
+// StorageKeyHandler define image key for storage
+type StorageKeyHandler interface {
+	StorageKey(image string) string
 }
 
 // Imagor image resize HTTP handler
@@ -84,8 +84,8 @@ type Imagor struct {
 	BaseParams            string
 	Logger                *zap.Logger
 	Debug                 bool
-	ResultStorageKey      ResultStorageKey
-	ImageStorageKey       ImageStorageKey
+	ResultStorageKey      ResultStorageKeyHandler
+	StorageKey            StorageKeyHandler
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
@@ -267,8 +267,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		blob, shouldSave, err := app.loadStorage(r, image)
 		if shouldSave {
 			var storageKey = image
-			if app.ImageStorageKey != nil {
-				storageKey = app.ImageStorageKey.ImageStorageKey(image)
+			if app.StorageKey != nil {
+				storageKey = app.StorageKey.StorageKey(image)
 			}
 			go app.save(ctx, app.Storages, storageKey, blob)
 		}
@@ -310,8 +310,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if shouldSave {
 			doneSave = make(chan struct{}, 1)
 			var storageKey = p.Image
-			if app.ImageStorageKey != nil {
-				storageKey = app.ImageStorageKey.ImageStorageKey(p.Image)
+			if app.StorageKey != nil {
+				storageKey = app.StorageKey.StorageKey(p.Image)
 			}
 			go func(blob *Blob) {
 				app.save(ctx, app.Storages, storageKey, blob)
@@ -413,8 +413,8 @@ func (app *Imagor) load(
 	}
 
 	var storageKey = image
-	if app.ImageStorageKey != nil {
-		storageKey = app.ImageStorageKey.ImageStorageKey(image)
+	if app.StorageKey != nil {
+		storageKey = app.StorageKey.StorageKey(image)
 	}
 	if storageKey != "" {
 		for _, storage := range storages {
