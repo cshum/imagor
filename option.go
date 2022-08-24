@@ -166,15 +166,15 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-func WithResultStorageKey(handler ResultStorageKeyHandler) Option {
+func WithResultStorageHasher(hasher imagorpath.ResultStorageHasher) Option {
 	return func(app *Imagor) {
-		app.ResultStorageKey = handler
+		app.ResultStorageHasher = hasher
 	}
 }
 
-func WithStorageKey(storageKeyHandler StorageKeyHandler) Option {
+func WithStorageHasher(hasher imagorpath.StorageHasher) Option {
 	return func(app *Imagor) {
-		app.StorageKey = storageKeyHandler
+		app.StorageHasher = hasher
 	}
 }
 

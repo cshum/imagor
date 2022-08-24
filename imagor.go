@@ -49,16 +49,6 @@ type Stat struct {
 	Size         int64
 }
 
-// ResultStorageKeyHandler define key for result storage
-type ResultStorageKeyHandler interface {
-	ResultStorageKey(p imagorpath.Params) string
-}
-
-// StorageKeyHandler define image key for storage
-type StorageKeyHandler interface {
-	StorageKey(image string) string
-}
-
 // Imagor image resize HTTP handler
 type Imagor struct {
 	Unsafe                bool
@@ -84,8 +74,8 @@ type Imagor struct {
 	BaseParams            string
 	Logger                *zap.Logger
 	Debug                 bool
-	ResultStorageKey      ResultStorageKeyHandler
-	StorageKey            StorageKeyHandler
+	ResultStorageHasher   imagorpath.ResultStorageHasher
+	StorageHasher         imagorpath.StorageHasher
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
@@ -257,8 +247,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	if !hasPreview {
-		if app.ResultStorageKey != nil {
-			resultKey = app.ResultStorageKey.ResultStorageKey(p)
+		if app.ResultStorageHasher != nil {
+			resultKey = app.ResultStorageHasher.HashResult(p)
 		} else {
 			resultKey = p.Path
 		}
@@ -267,8 +257,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		blob, shouldSave, err := app.loadStorage(r, image)
 		if shouldSave {
 			var storageKey = image
-			if app.StorageKey != nil {
-				storageKey = app.StorageKey.StorageKey(image)
+			if app.StorageHasher != nil {
+				storageKey = app.StorageHasher.Hash(image)
 			}
 			go app.save(ctx, app.Storages, storageKey, blob)
 		}
@@ -310,8 +300,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if shouldSave {
 			doneSave = make(chan struct{}, 1)
 			var storageKey = p.Image
-			if app.StorageKey != nil {
-				storageKey = app.StorageKey.StorageKey(p.Image)
+			if app.StorageHasher != nil {
+				storageKey = app.StorageHasher.Hash(p.Image)
 			}
 			go func(blob *Blob) {
 				app.save(ctx, app.Storages, storageKey, blob)
@@ -413,8 +403,8 @@ func (app *Imagor) load(
 	}
 
 	var storageKey = image
-	if app.StorageKey != nil {
-		storageKey = app.StorageKey.StorageKey(image)
+	if app.StorageHasher != nil {
+		storageKey = app.StorageHasher.Hash(image)
 	}
 	if storageKey != "" {
 		for _, storage := range storages {

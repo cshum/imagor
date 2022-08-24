@@ -608,11 +608,11 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 
 type resultKeyFunc func(p imagorpath.Params) string
 
-func (fn resultKeyFunc) ResultStorageKey(p imagorpath.Params) string {
+func (fn resultKeyFunc) HashResult(p imagorpath.Params) string {
 	return fn(p)
 }
 
-func TestWithResultKey(t *testing.T) {
+func TestWithResultStorageHasher(t *testing.T) {
 	store := newMapStore()
 	resultStore := newMapStore()
 	app := New(
@@ -622,7 +622,7 @@ func TestWithResultKey(t *testing.T) {
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
-		WithResultStorageKey(resultKeyFunc(func(p imagorpath.Params) string {
+		WithResultStorageHasher(resultKeyFunc(func(p imagorpath.Params) string {
 			if strings.Contains(p.Path, "bar") {
 				return ""
 			}
