@@ -608,7 +608,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 
 type resultKeyFunc func(p imagorpath.Params) string
 
-func (fn resultKeyFunc) Generate(p imagorpath.Params) string {
+func (fn resultKeyFunc) ResultKey(p imagorpath.Params) string {
 	return fn(p)
 }
 

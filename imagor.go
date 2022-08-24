@@ -49,9 +49,14 @@ type Stat struct {
 	Size         int64
 }
 
-// ResultKey generator
+// ResultKey define key for result storage
 type ResultKey interface {
-	Generate(p imagorpath.Params) string
+	ResultKey(p imagorpath.Params) string
+}
+
+// ImageKey define image key for storage
+type ImageKey interface {
+	ImageKey(image string) string
 }
 
 // Imagor image resize HTTP handler
@@ -80,6 +85,7 @@ type Imagor struct {
 	Logger                *zap.Logger
 	Debug                 bool
 	ResultKey             ResultKey
+	ImageKey              ImageKey
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
@@ -247,12 +253,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	var hasPreview bool
 	for _, f := range p.Filters {
 		if f.Name == "preview" {
-			hasPreview = true
+			hasPreview = true // disable result storage on preview() filter
 		}
 	}
 	if !hasPreview {
 		if app.ResultKey != nil {
-			resultKey = app.ResultKey.Generate(p)
+			resultKey = app.ResultKey.ResultKey(p)
 		} else {
 			resultKey = p.Path
 		}
