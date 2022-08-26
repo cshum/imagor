@@ -512,7 +512,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				}
 				if string(buf) == "poop" {
 					assert.Equal(t, 169, p.Height)
-					return nil, ErrUnsupportedFormat
+					return nil, ErrForward{}
 				}
 				return blob, nil
 			}),

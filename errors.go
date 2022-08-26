@@ -73,6 +73,10 @@ func WrapError(err error) Error {
 	if e, ok := err.(Error); ok {
 		return e
 	}
+	if _, ok := err.(ErrForward); ok {
+		// ErrForward till the end means no supported processor
+		return ErrUnsupportedFormat
+	}
 	if e, ok := err.(timeoutErr); ok {
 		if e.Timeout() {
 			return ErrTimeout
