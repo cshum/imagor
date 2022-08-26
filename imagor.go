@@ -312,8 +312,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
 			Defer(ctx, cancel)
 		}
+		var forwardP = p
 		for _, processor := range app.Processors {
-			b, e := checkBlob(processor.Process(ctx, blob, p, load))
+			b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
 			if e == nil {
 				blob = b
 				err = nil
@@ -321,13 +322,17 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					app.Logger.Debug("processed", zap.Any("params", p))
 				}
 				break
-			} else if e == ErrPass {
+			} else if forward, ok := e.(ErrForward); ok {
+				err = e
+				forwardP = forward.Params
+				var hasBlob bool
 				if !isBlobEmpty(b) {
-					// pass to next processor
-					blob = b
+					blob = b // forward blob to next processor if exists
+					hasBlob = true
 				}
 				if app.Debug {
-					app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
+					app.Logger.Debug("forward", zap.Any("params", p),
+						zap.Bool("has_blob", hasBlob))
 				}
 			} else {
 				if ctx.Err() == nil {
