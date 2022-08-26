@@ -35,3 +35,20 @@ func TestHasher(t *testing.T) {
 	p.Path = GeneratePath(p)
 	assert.Equal(t, "foobar.45d8ebb31bd4ed80c26e.jpg", SuffixResultStorageHasher.HashResult(p))
 }
+
+func TestSuffixResultStorageHasher(t *testing.T) {
+	p := Params{
+		Smart: true, Width: 17, Height: 19, Image: "example.com/foobar.jpg",
+		Filters: []Filter{{"format", "webp"}},
+	}
+	fmt.Println(GeneratePath(p))
+	assert.Equal(t, "example.com/foobar.8aade9060badfcb289f9.webp", SuffixResultStorageHasher.HashResult(p))
+
+	p = Params{
+		Meta:  true,
+		Smart: true, Width: 17, Height: 19, Image: "example.com/foobar.jpg",
+		Filters: []Filter{{"format", "webp"}},
+	}
+	fmt.Println(GeneratePath(p))
+	assert.Equal(t, "example.com/foobar.c80ab0faf85b35a140a8.json", SuffixResultStorageHasher.HashResult(p))
+}

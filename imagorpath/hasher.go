@@ -54,7 +54,17 @@ var SuffixResultStorageHasher = ResultStorageHasherFunc(func(p Params) string {
 	var dotIdx = strings.LastIndex(p.Image, ".")
 	var slashIdx = strings.LastIndex(p.Image, "/")
 	if dotIdx > -1 && slashIdx < dotIdx {
-		return p.Image[:dotIdx] + hash + p.Image[dotIdx:] // /abc/def.{digest}.jpg
+		ext := p.Image[dotIdx:]
+		if p.Meta {
+			ext = ".json"
+		} else {
+			for _, filter := range p.Filters {
+				if filter.Name == "format" {
+					ext = "." + filter.Args
+				}
+			}
+		}
+		return p.Image[:dotIdx] + hash + ext // /abc/def.{digest}.jpg
 	} else {
 		return p.Image + hash // /abc/def.{digest}
 	}
