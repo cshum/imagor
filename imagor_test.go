@@ -465,6 +465,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if image == "poop" {
 					return newFakeBlob("poop"), nil
 				}
+				if image == "bond" {
+					return newFakeBlob("bond"), nil
+				}
 				if image == "timeout" {
 					return newFakeBlob("timeout"), nil
 				}
@@ -495,6 +498,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 					p.Height = 169
 					return nil, ErrForward{p}
 				}
+				if string(buf) == "bond" {
+					return nil, ErrInternal
+				}
 				if string(buf) == "foo" {
 					file, err := load("foo")
 					if err != nil {
@@ -513,6 +519,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				if string(buf) == "poop" {
 					assert.Equal(t, 169, p.Height)
 					return nil, ErrForward{}
+				}
+				if string(buf) == "bond" {
+					return nil, ErrInvalid
 				}
 				return blob, nil
 			}),
@@ -605,6 +614,15 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
 			assert.Equal(t, "poop", w.Body.String())
 			assert.Nil(t, store.Map["poop"])
+		})
+		t.Run(fmt.Sprintf("processor error return last error %d", i), func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/bond", nil))
+			time.Sleep(time.Millisecond * 10)
+			assert.Equal(t, ErrInvalid.Code, w.Code)
+			assert.Equal(t, "bond", w.Body.String())
+			assert.Nil(t, store.Map["bond"])
 		})
 	}
 }
