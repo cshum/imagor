@@ -41,6 +41,6 @@ func TestWrapError(t *testing.T) {
 	assert.Equal(t, ErrTimeout, WrapError(err))
 
 	err = ErrForward{imagorpath.Params{Width: 167, Height: 169, Image: "foo"}}
-	assert.Equal(t, "167x169/foo", err.Error())
+	assert.Equal(t, "imagor: forward 167x169/foo", err.Error())
 
 }
