@@ -412,7 +412,7 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldS
 	r = app.requestWithLoadContext(r)
 	var origin Storage
 	blob, origin, err = app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, key)
-	if err == nil && !isBlobEmpty(blob) && origin == nil && len(app.Storages) > 0 {
+	if !isBlobEmpty(blob) && origin == nil && err == nil && len(app.Storages) > 0 {
 		shouldSave = true
 	}
 	return
@@ -430,7 +430,8 @@ func (app *Imagor) fromStoragesAndLoaders(
 		storageKey = app.StorageHasher.Hash(image)
 	}
 	if storageKey != "" {
-		if blob, origin, err = fromStorages(r, storages, storageKey); origin != nil {
+		blob, origin, err = fromStorages(r, storages, storageKey)
+		if !isBlobEmpty(blob) && origin != nil && err == nil {
 			return
 		}
 	}
