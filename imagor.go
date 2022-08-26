@@ -328,7 +328,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					p = pass.Params
 				}
 				if app.Debug {
-					app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
+					app.Logger.Debug("pass", zap.Any("params", p))
 				}
 			} else {
 				if ctx.Err() == nil {
