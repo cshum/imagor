@@ -47,6 +47,13 @@ func TestSuffixResultStorageHasher(t *testing.T) {
 	p = Params{
 		Meta:  true,
 		Smart: true, Width: 17, Height: 19, Image: "example.com/foobar.jpg",
+	}
+	fmt.Println(GeneratePath(p))
+	assert.Equal(t, "example.com/foobar.d72ff6ef20ba41fa570c.json", SuffixResultStorageHasher.HashResult(p))
+
+	p = Params{
+		Meta:  true,
+		Smart: true, Width: 17, Height: 19, Image: "example.com/foobar.jpg",
 		Filters: []Filter{{"format", "webp"}},
 	}
 	fmt.Println(GeneratePath(p))
