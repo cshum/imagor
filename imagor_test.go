@@ -488,10 +488,12 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "bar" {
-					return newFakeBlob("tar"), ErrForward{}
+					p.Width = 167
+					return newFakeBlob("tar"), ErrForward{p}
 				}
 				if string(buf) == "poop" {
-					return nil, ErrForward{}
+					p.Height = 169
+					return nil, ErrForward{p}
 				}
 				if string(buf) == "foo" {
 					file, err := load("foo")
@@ -505,10 +507,11 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "tar" {
-					b := newFakeBlob("bark")
+					b := newFakeBlob(imagorpath.GeneratePath(p))
 					return b, nil
 				}
 				if string(buf) == "poop" {
+					assert.Equal(t, 169, p.Height)
 					return nil, ErrUnsupportedFormat
 				}
 				return blob, nil
@@ -530,7 +533,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/foo", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 200, w.Code)
-			assert.Equal(t, "bark", w.Body.String())
+			assert.Equal(t, "167x0/foo", w.Body.String())
 
 			w = httptest.NewRecorder()
 			app.ServeHTTP(w, httptest.NewRequest(
