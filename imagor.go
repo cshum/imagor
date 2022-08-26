@@ -321,10 +321,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					app.Logger.Debug("processed", zap.Any("params", p))
 				}
 				break
-			} else if e == ErrPass {
+			} else if pass, ok := e.(ErrPass); ok {
 				if !isBlobEmpty(b) {
 					// pass to next processor
 					blob = b
+					p = pass.Params
 				}
 				if app.Debug {
 					app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))

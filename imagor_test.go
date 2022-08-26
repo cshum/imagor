@@ -488,10 +488,10 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 				buf, _ := blob.ReadAll()
 				if string(buf) == "bar" {
-					return newFakeBlob("tar"), ErrPass
+					return newFakeBlob("tar"), ErrPass{}
 				}
 				if string(buf) == "poop" {
-					return nil, ErrPass
+					return nil, ErrPass{}
 				}
 				if string(buf) == "foo" {
 					file, err := load("foo")
