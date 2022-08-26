@@ -29,12 +29,12 @@ const errPrefix = "imagor:"
 
 var errMsgRegexp = regexp.MustCompile(fmt.Sprintf("^%s ([0-9]+) (.*)$", errPrefix))
 
-type ErrPass struct {
+type ErrForward struct {
 	imagorpath.Params
 }
 
-func (p ErrPass) Error() string {
-	return fmt.Sprintf("%s pass %s", errPrefix, imagorpath.GeneratePath(p.Params))
+func (p ErrForward) Error() string {
+	return fmt.Sprintf("%s forward %s", errPrefix, imagorpath.GeneratePath(p.Params))
 }
 
 // Error imagor error convention
@@ -73,8 +73,8 @@ func WrapError(err error) Error {
 	if e, ok := err.(Error); ok {
 		return e
 	}
-	if _, ok := err.(ErrPass); ok {
-		// ErrPass till the end means no supported processor
+	if _, ok := err.(ErrForward); ok {
+		// ErrForward till the end means no supported processor
 		return ErrUnsupportedFormat
 	}
 	if e, ok := err.(timeoutErr); ok {
