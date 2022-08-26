@@ -359,18 +359,21 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	})
 }
 
-func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldSave bool, err error) {
-	var origin Storage
-	blob, origin, err = app.load(r, app.Storages, app.Loaders, key)
-	if err == nil && !isBlobEmpty(blob) && origin == nil && len(app.Storages) > 0 {
-		shouldSave = true
+func (app *Imagor) requestWithLoadContext(r *http.Request) *http.Request {
+	var ctx = r.Context()
+	var cancel func()
+	if app.LoadTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, app.LoadTimeout)
+		Defer(ctx, cancel)
+		return r.WithContext(ctx)
 	}
-	return
+	return r
 }
 
 func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob {
+	r = app.requestWithLoadContext(r)
 	ctx := r.Context()
-	blob, origin, err := app.load(r, app.ResultStorages, nil, resultKey)
+	blob, origin, err := fromStorages(r, app.ResultStorages, resultKey)
 	if err == nil && !isBlobEmpty(blob) {
 		if app.ModifiedTimeCheck && origin != nil {
 			if resStat, err1 := origin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
@@ -387,40 +390,50 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 	return nil
 }
 
-func (app *Imagor) load(
+func fromStorages(
+	r *http.Request, storages []Storage, key string,
+) (blob *Blob, origin Storage, err error) {
+	for _, storage := range storages {
+		b, e := checkBlob(storage.Get(r, key))
+		if !isBlobEmpty(b) {
+			blob = b
+			if e == nil {
+				err = nil
+				origin = storage
+				return
+			}
+		}
+		err = e
+	}
+	return
+}
+
+func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldSave bool, err error) {
+	r = app.requestWithLoadContext(r)
+	var origin Storage
+	blob, origin, err = app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, key)
+	if err == nil && !isBlobEmpty(blob) && origin == nil && len(app.Storages) > 0 {
+		shouldSave = true
+	}
+	return
+}
+
+func (app *Imagor) fromStoragesAndLoaders(
 	r *http.Request, storages []Storage, loaders []Loader, image string,
 ) (blob *Blob, origin Storage, err error) {
 	if image == "" {
 		err = ErrNotFound
 		return
 	}
-	var ctx = r.Context()
-	var cancel func()
-	if app.LoadTimeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, app.LoadTimeout)
-		Defer(ctx, cancel)
-		r = r.WithContext(ctx)
-	}
-
 	var storageKey = image
 	if app.StorageHasher != nil {
 		storageKey = app.StorageHasher.Hash(image)
 	}
 	if storageKey != "" {
-		for _, storage := range storages {
-			b, e := checkBlob(storage.Get(r, storageKey))
-			if !isBlobEmpty(b) {
-				blob = b
-				if e == nil {
-					err = nil
-					origin = storage
-					return
-				}
-			}
-			err = e
+		if blob, origin, err = fromStorages(r, storages, storageKey); origin != nil {
+			return
 		}
 	}
-
 	for _, loader := range loaders {
 		b, e := checkBlob(loader.Get(r, image))
 		if !isBlobEmpty(b) {
