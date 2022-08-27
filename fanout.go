@@ -75,42 +75,49 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			close(ch)
 			return
 		})
-		var reader = io.MultiReader(
-			bufReader,
-			readerFunc(func(p []byte) (n int, e error) {
-				once.Do(func() {
-					go init()
-				})
-
-				lock.RLock()
-				e = err
-				s := size
-				c := closed[i]
-				lock.RUnlock()
-
-				if cnt >= s {
-					return 0, io.EOF
+		var reader = readerFunc(func(p []byte) (n int, e error) {
+			once.Do(func() {
+				go init()
+			})
+			if bufReader != nil {
+				n, e = bufReader.Read(p)
+				if e == io.EOF {
+					bufReader = nil
+					e = nil
+					// Don't return EOF yet
 				}
-				if c {
-					return 0, io.ErrClosedPipe
-				}
-				if e != nil {
-					_ = closer()
+				if n > 0 || err != nil {
 					return
 				}
-				if len(b) == 0 {
-					b = <-ch
-				}
-				n = copy(p, b)
-				b = b[n:]
-				cnt += n
-				if cnt >= s {
-					_ = closer()
-					e = io.EOF
-				}
+			}
+			lock.RLock()
+			e = err
+			s := size
+			c := closed[i]
+			lock.RUnlock()
+
+			if cnt >= s {
+				return 0, io.EOF
+			}
+			if c {
+				return 0, io.ErrClosedPipe
+			}
+			if e != nil {
+				_ = closer()
 				return
-			}),
-		)
+			}
+			if len(b) == 0 {
+				b = <-ch
+			}
+			n = copy(p, b)
+			b = b[n:]
+			cnt += n
+			if cnt >= s {
+				_ = closer()
+				e = io.EOF
+			}
+			return
+		})
 		if seekable {
 			return &readSeekCloser{
 				Reader: reader,
