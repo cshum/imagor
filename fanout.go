@@ -79,6 +79,13 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			once.Do(func() {
 				go init()
 			})
+
+			lock.RLock()
+			e = err
+			s := size
+			c := closed[i]
+			lock.RUnlock()
+
 			if bufReader != nil {
 				n, e = bufReader.Read(p)
 				if e == io.EOF {
@@ -90,11 +97,6 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 					return
 				}
 			}
-			lock.RLock()
-			e = err
-			s := size
-			c := closed[i]
-			lock.RUnlock()
 
 			if cnt >= s {
 				return 0, io.EOF
