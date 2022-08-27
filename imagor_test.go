@@ -620,7 +620,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			app.ServeHTTP(w, httptest.NewRequest(
 				http.MethodGet, "https://example.com/unsafe/bond", nil))
 			time.Sleep(time.Millisecond * 10)
-			assert.Equal(t, ErrInvalid.Code, w.Code)
+			assert.Equal(t, ErrInternal.Code, w.Code)
 			assert.Equal(t, "bond", w.Body.String())
 			assert.Nil(t, store.Map["bond"])
 		})
