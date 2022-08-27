@@ -39,7 +39,7 @@ type LoadFunc func(string) (*Blob, error)
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
+	Process(ctx context.Context, blob *Blob, params imagorpath.Params, load LoadFunc) (*Blob, error)
 	Shutdown(ctx context.Context) error
 }
 
