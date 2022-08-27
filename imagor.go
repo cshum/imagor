@@ -337,8 +337,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
 				} else {
 					err = ctx.Err()
-					break
 				}
+				break
 			}
 		}
 		cb(blob, err)
