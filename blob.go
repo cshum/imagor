@@ -30,6 +30,7 @@ const (
 type Blob struct {
 	newReader  func() (r io.ReadCloser, size int64, err error)
 	peekReader *peekReaderCloser
+	fanout     bool
 	once       sync.Once
 	onceReader sync.Once
 	buf        []byte
@@ -42,7 +43,10 @@ type Blob struct {
 }
 
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
-	return &Blob{newReader: newReader}
+	return &Blob{
+		fanout:    true,
+		newReader: newReader,
+	}
 }
 
 func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
@@ -60,6 +64,7 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 	return &Blob{
 		err:      err,
 		filepath: filepath,
+		fanout:   true,
 		newReader: func() (io.ReadCloser, int64, error) {
 			if err != nil {
 				return nil, 0, err
@@ -76,6 +81,7 @@ func NewBlobFromJsonMarshal(v any) *Blob {
 	return &Blob{
 		err:      err,
 		blobType: BlobTypeJSON,
+		fanout:   false,
 		newReader: func() (io.ReadCloser, int64, error) {
 			return io.NopCloser(bytes.NewReader(buf)), size, err
 		},
@@ -84,9 +90,12 @@ func NewBlobFromJsonMarshal(v any) *Blob {
 
 func NewBlobFromBytes(buf []byte) *Blob {
 	size := int64(len(buf))
-	return NewBlob(func() (io.ReadCloser, int64, error) {
-		return io.NopCloser(bytes.NewReader(buf)), size, nil
-	})
+	return &Blob{
+		fanout: false,
+		newReader: func() (io.ReadCloser, int64, error) {
+			return io.NopCloser(bytes.NewReader(buf)), size, nil
+		},
+	}
 }
 
 func NewEmptyBlob() *Blob {
@@ -135,8 +144,8 @@ func (b *Blob) init() {
 			return
 		}
 		b.size = size
-		if reader != nil && size > 0 && size < maxBodySize && err == nil {
-			// use fan-out reader if buf size < 10mb
+		if b.fanout && size > 0 && size < maxBodySize && err == nil {
+			// use fan-out reader if buf size known and < 32MB
 			// otherwise create new readers
 			newReader := FanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
