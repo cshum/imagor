@@ -29,7 +29,7 @@ const (
 
 type Blob struct {
 	newReader  func() (r io.ReadCloser, size int64, err error)
-	peekReader *peekReaderCloser
+	peekReader *peekReadCloser
 	fanout     bool
 	once       sync.Once
 	onceReader sync.Once
@@ -117,7 +117,7 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
-type peekReaderCloser struct {
+type peekReadCloser struct {
 	*bufio.Reader
 	io.Closer
 }
@@ -147,13 +147,13 @@ func (b *Blob) init() {
 		if b.fanout && size > 0 && size < maxBodySize && err == nil {
 			// use fan-out reader if buf size known and < 32MB
 			// otherwise create new readers
-			newReader := FanoutReader(reader, int(size))
+			newReader := fanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
-				return newReader(), size, nil
+				return newReader(false), size, nil
 			}
-			reader = newReader()
+			reader = newReader(false)
 		}
-		b.peekReader = &peekReaderCloser{
+		b.peekReader = &peekReadCloser{
 			Reader: bufio.NewReader(reader),
 			Closer: reader,
 		}

@@ -6,8 +6,7 @@ import (
 	"sync"
 )
 
-// FanoutReader fan-out io.ReadCloser - known size, unknown number of consumers
-func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
+func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadCloser {
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
@@ -52,7 +51,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 		}
 	}
 
-	return func() io.ReadCloser {
+	return func(seekable bool) io.ReadCloser {
 		ch := make(chan []byte, size/512+1)
 
 		lock.Lock()
@@ -63,7 +62,8 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 		bufReader := bytes.NewReader(buf)
 		lock.Unlock()
 
-		closeCh := closerFunc(func() (e error) {
+		var b []byte
+		var closer = closerFunc(func() (e error) {
 			lock.Lock()
 			e = err
 			if closed[i] {
@@ -75,52 +75,63 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 			close(ch)
 			return
 		})
+		var reader = io.MultiReader(
+			bufReader,
+			readerFunc(func(p []byte) (n int, e error) {
+				once.Do(func() {
+					go init()
+				})
 
-		var b []byte
+				lock.RLock()
+				e = err
+				s := size
+				c := closed[i]
+				lock.RUnlock()
 
-		return &readerCloser{
-			Reader: io.MultiReader(
-				bufReader,
-				readerFunc(func(p []byte) (n int, e error) {
-					once.Do(func() {
-						go init()
-					})
-
-					lock.RLock()
-					e = err
-					s := size
-					c := closed[i]
-					lock.RUnlock()
-
-					if cnt >= s {
-						return 0, io.EOF
-					}
-					if c {
-						return 0, io.ErrClosedPipe
-					}
-					if e != nil {
-						_ = closeCh()
-						return
-					}
-					if len(b) == 0 {
-						b = <-ch
-					}
-					n = copy(p, b)
-					b = b[n:]
-					cnt += n
-					if cnt >= s {
-						_ = closeCh()
-						e = io.EOF
-					}
+				if cnt >= s {
+					return 0, io.EOF
+				}
+				if c {
+					return 0, io.ErrClosedPipe
+				}
+				if e != nil {
+					_ = closer()
 					return
-				}),
-			),
-			Closer: closeCh,
+				}
+				if len(b) == 0 {
+					b = <-ch
+				}
+				n = copy(p, b)
+				b = b[n:]
+				cnt += n
+				if cnt >= s {
+					_ = closer()
+					e = io.EOF
+				}
+				return
+			}),
+		)
+		if seekable {
+			return &readSeekCloser{
+				Reader: reader,
+				Closer: closer,
+			}
+		} else {
+			return &readCloser{
+				Reader: reader,
+				Closer: closer,
+			}
 		}
 	}
 }
 
-type readerCloser struct {
+type readSeekCloser struct {
+	io.Reader
+	io.Seeker
+	io.Closer
+}
+
+type readCloser struct {
 	io.Reader
 	io.Closer
 }
