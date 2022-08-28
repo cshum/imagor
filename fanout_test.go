@@ -87,3 +87,15 @@ func TestFanoutErrClosedPipe(t *testing.T) {
 	assert.ErrorIs(t, err, io.ErrClosedPipe)
 	assert.Empty(t, n)
 }
+
+func TestFanoutCast(t *testing.T) {
+	buf := []byte("abcdefghi")
+	source := io.NopCloser(bytes.NewReader(buf))
+	newReader := fanoutReader(source, len(buf))
+	reader := newReader(false)
+	_, ok := reader.(io.Seeker)
+	assert.False(t, ok)
+	reader2 := newReader(true)
+	_, ok2 := reader2.(io.Seeker)
+	assert.True(t, ok2)
+}
