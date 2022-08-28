@@ -75,7 +75,7 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			close(ch)
 			return
 		})
-		var reader = readerFunc(func(p []byte) (n int, e error) {
+		var read = readerFunc(func(p []byte) (n int, e error) {
 			once.Do(func() {
 				go init()
 			})
@@ -122,12 +122,12 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 		})
 		if seekable {
 			return &readSeekCloser{
-				Reader: reader,
+				Reader: read,
 				Closer: closer,
 			}
 		} else {
 			return &readCloser{
-				Reader: reader,
+				Reader: read,
 				Closer: closer,
 			}
 		}
