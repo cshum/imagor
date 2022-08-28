@@ -62,8 +62,11 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 		bufReader := bytes.NewReader(buf)
 		lock.Unlock()
 
+		var closeCalled bool
+		var fullBufReader *bytes.Reader
+
 		var b []byte
-		var closer = closerFunc(func() (e error) {
+		var finalize = func() (e error) {
 			lock.Lock()
 			e = err
 			if closed[i] {
@@ -74,6 +77,10 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			lock.Unlock()
 			close(ch)
 			return
+		}
+		var closer = closerFunc(func() error {
+			closeCalled = true
+			return finalize()
 		})
 		var read = readerFunc(func(p []byte) (n int, e error) {
 			once.Do(func() {
@@ -85,6 +92,11 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			s := size
 			c := closed[i]
 			lock.RUnlock()
+
+			if fullBufReader != nil && !closeCalled {
+				// proxy to full buf if ready
+				return fullBufReader.Read(b)
+			}
 
 			if bufReader != nil {
 				n, e = bufReader.Read(p)
@@ -105,7 +117,7 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 				return 0, io.ErrClosedPipe
 			}
 			if e != nil {
-				_ = closer()
+				_ = finalize()
 				return
 			}
 			if len(b) == 0 {
@@ -115,14 +127,22 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			b = b[n:]
 			cnt += n
 			if cnt >= s {
-				_ = closer()
+				_ = finalize()
 				e = io.EOF
 			}
 			return
 		})
 		if seekable {
+			var seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
+				// todo wait until fullBufReader ready
+				if fullBufReader != nil && !closeCalled {
+					return fullBufReader.Seek(offset, whence)
+				}
+				return 0, io.ErrClosedPipe
+			})
 			return &readSeekCloser{
 				Reader: read,
+				Seeker: seeker,
 				Closer: closer,
 			}
 		} else {
@@ -152,3 +172,7 @@ func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
 type closerFunc func() error
 
 func (cf closerFunc) Close() error { return cf() }
+
+type seekerFunc func(offset int64, whence int) (int64, error)
+
+func (sf seekerFunc) Seek(offset int64, whence int) (int64, error) { return sf(offset, whence) }
