@@ -66,9 +66,10 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 		var fullBufReader *bytes.Reader
 
 		var b []byte
-		var finalize = func() (e error) {
+		var finalize = func(c bool) (e error) {
 			lock.Lock()
 			e = err
+			closeCalled = c
 			if closed[i] {
 				lock.Unlock()
 				return
@@ -79,8 +80,7 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			return
 		}
 		var closer = closerFunc(func() error {
-			closeCalled = true
-			return finalize()
+			return finalize(true)
 		})
 		var read = readerFunc(func(p []byte) (n int, e error) {
 			once.Do(func() {
@@ -91,11 +91,13 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			e = err
 			s := size
 			c := closed[i]
+			ffr := fullBufReader
+			cc := closeCalled
 			lock.RUnlock()
 
-			if fullBufReader != nil && !closeCalled {
+			if ffr != nil && !cc {
 				// proxy to full buf if ready
-				return fullBufReader.Read(b)
+				return ffr.Read(b)
 			}
 
 			if bufReader != nil {
@@ -117,7 +119,7 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 				return 0, io.ErrClosedPipe
 			}
 			if e != nil {
-				_ = finalize()
+				_ = finalize(true)
 				return
 			}
 			if len(b) == 0 {
@@ -127,15 +129,19 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			b = b[n:]
 			cnt += n
 			if cnt >= s {
-				_ = finalize()
+				_ = finalize(false)
 				e = io.EOF
 			}
 			return
 		})
 		if seekable {
 			var seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
+				lock.RLock()
+				ffr := fullBufReader
+				cc := closeCalled
+				lock.RUnlock()
 				// todo wait until fullBufReader ready
-				if fullBufReader != nil && !closeCalled {
+				if ffr != nil && !cc {
 					return fullBufReader.Seek(offset, whence)
 				}
 				return 0, io.ErrClosedPipe
