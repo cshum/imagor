@@ -77,15 +77,16 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 		var closeCh = func(closeReader bool) (e error) {
 			lock.Lock()
 			e = err
+			alreadyClosed := readerClosed
 			readerClosed = closeReader
 			if closed[i] {
 				lock.Unlock()
-				return
+			} else {
+				closed[i] = true
+				lock.Unlock()
+				close(ch)
 			}
-			closed[i] = true
-			lock.Unlock()
-			close(ch)
-			if closeReader {
+			if !alreadyClosed && closeReader {
 				close(wait)
 			}
 			return
