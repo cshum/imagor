@@ -28,14 +28,15 @@ const (
 )
 
 type Blob struct {
-	newReader  func() (r io.ReadCloser, size int64, err error)
-	peekReader *peekReadCloser
-	fanout     bool
-	once       sync.Once
-	onceReader sync.Once
-	buf        []byte
-	err        error
-	size       int64
+	newReader     func() (r io.ReadCloser, size int64, err error)
+	newReadSeeker func() (rs io.ReadSeekCloser, size int64, err error)
+	peekReader    *peekReadCloser
+	fanout        bool
+	once          sync.Once
+	onceReader    sync.Once
+	buf           []byte
+	err           error
+	size          int64
 
 	blobType    BlobType
 	filepath    string
@@ -122,6 +123,17 @@ type peekReadCloser struct {
 	io.Closer
 }
 
+type readSeekCloser struct {
+	io.Reader
+	io.Seeker
+	io.Closer
+}
+
+type readCloser struct {
+	io.Reader
+	io.Closer
+}
+
 func newEmptyReader() (io.ReadCloser, int64, error) {
 	return io.NopCloser(bytes.NewReader(nil)), 0, nil
 }
@@ -144,15 +156,33 @@ func (b *Blob) init() {
 			return
 		}
 		b.size = size
+		if _, ok := reader.(io.ReadSeekCloser); ok {
+			// construct seeker factory if source supports seek
+			b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
+				r, size, err := b.newReader()
+				if rs, ok := r.(io.ReadSeekCloser); ok {
+					return rs, size, err
+				}
+				return nil, size, ErrUnsupportedFormat
+			}
+		}
 		if b.fanout && size > 0 && size < maxBodySize && err == nil {
 			// use fan-out reader if buf size known and < 32MB
 			// otherwise create new readers
-			newReader := fanoutReader(reader, int(size))
+			factory := fanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
-				return newReader(false), size, nil
+				r, _, c := factory()
+				return &readCloser{Reader: r, Closer: c}, size, nil
 			}
-			reader = newReader(false)
+			// if source not seekable, simulate seek from fanout buffer
+			if b.newReadSeeker == nil {
+				b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
+					r, s, c := factory()
+					return &readSeekCloser{Reader: r, Seeker: s, Closer: c}, size, nil
+				}
+			}
 		}
+		// todo create read seeker using tmp file buffer
 		b.peekReader = &peekReadCloser{
 			Reader: bufio.NewReader(reader),
 			Closer: reader,
@@ -266,6 +296,15 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 		reader, size, err = b.newReader()
 	}
 	return
+}
+
+// NewReadSeeker create read seeker if source supports seek, or simulate seek using memory buffer or tmp file
+func (b *Blob) NewReadSeeker() (readSeeker io.ReadSeekCloser, size int64, err error) {
+	b.init()
+	if b.newReadSeeker != nil {
+		return b.newReadSeeker()
+	}
+	return nil, b.size, ErrUnsupportedFormat
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {

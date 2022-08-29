@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadCloser {
+func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, io.Closer) {
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
@@ -18,11 +18,11 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 
 	var init = func() {
 		defer func() {
-			_ = reader.Close()
+			_ = source.Close()
 		}()
 		for {
 			b := make([]byte, 512)
-			n, e := reader.Read(b)
+			n, e := source.Read(b)
 			if curr+n > size {
 				n = size - curr
 			}
@@ -57,7 +57,7 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 		}
 	}
 
-	return func(seekable bool) io.ReadCloser {
+	return func() (reader io.Reader, seeker io.Seeker, closer io.Closer) {
 		ch := make(chan []byte, size/512+1)
 		wait := make(chan struct{}, 1)
 
@@ -90,10 +90,10 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			}
 			return
 		}
-		var closer = closerFunc(func() error {
+		closer = closerFunc(func() error {
 			return closeCh(true)
 		})
-		var read = readerFunc(func(p []byte) (n int, e error) {
+		reader = readerFunc(func(p []byte) (n int, e error) {
 			once.Do(func() {
 				go init()
 			})
@@ -145,48 +145,26 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			}
 			return
 		})
-		if seekable {
-			var seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
-				lock.RLock()
-				ffr := fullBufReader
-				rc := readerClosed
-				lock.RUnlock()
-				if ffr != nil && !rc {
-					return ffr.Seek(offset, whence)
-				} else if ffr == nil && !rc {
-					<-wait
-					lock.Lock()
-					fullBufReader = bytes.NewReader(buf)
-					ffr = fullBufReader
-					lock.Unlock()
-					return ffr.Seek(offset, whence)
-				} else {
-					return 0, io.ErrClosedPipe
-				}
-			})
-			return &readSeekCloser{
-				Reader: read,
-				Seeker: seeker,
-				Closer: closer,
+		seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
+			lock.RLock()
+			ffr := fullBufReader
+			rc := readerClosed
+			lock.RUnlock()
+			if ffr != nil && !rc {
+				return ffr.Seek(offset, whence)
+			} else if ffr == nil && !rc {
+				<-wait
+				lock.Lock()
+				fullBufReader = bytes.NewReader(buf)
+				ffr = fullBufReader
+				lock.Unlock()
+				return ffr.Seek(offset, whence)
+			} else {
+				return 0, io.ErrClosedPipe
 			}
-		} else {
-			return &readCloser{
-				Reader: read,
-				Closer: closer,
-			}
-		}
+		})
+		return
 	}
-}
-
-type readSeekCloser struct {
-	io.Reader
-	io.Seeker
-	io.Closer
-}
-
-type readCloser struct {
-	io.Reader
-	io.Closer
 }
 
 type readerFunc func(p []byte) (n int, err error)
