@@ -103,10 +103,10 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 			s := size
 			c := closed[i]
 			ffr := fullBufReader
-			cc := readerClosed
+			rc := readerClosed
 			lock.RUnlock()
 
-			if ffr != nil && !cc {
+			if ffr != nil && !rc {
 				// proxy to full buf if ready
 				return ffr.Read(b)
 			}
@@ -147,18 +147,21 @@ func fanoutReader(reader io.ReadCloser, size int) func(seekable bool) io.ReadClo
 		})
 		if seekable {
 			var seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
-				for {
-					lock.RLock()
-					ffr := fullBufReader
-					rc := readerClosed
-					lock.RUnlock()
-					if ffr != nil && !rc {
-						return fullBufReader.Seek(offset, whence)
-					} else if ffr == nil && !rc {
-						<-wait
-					} else {
-						return 0, io.ErrClosedPipe
-					}
+				lock.RLock()
+				ffr := fullBufReader
+				rc := readerClosed
+				lock.RUnlock()
+				if ffr != nil && !rc {
+					return ffr.Seek(offset, whence)
+				} else if ffr == nil && !rc {
+					<-wait
+					lock.Lock()
+					fullBufReader = bytes.NewReader(buf)
+					ffr = fullBufReader
+					lock.Unlock()
+					return ffr.Seek(offset, whence)
+				} else {
+					return 0, io.ErrClosedPipe
 				}
 			})
 			return &readSeekCloser{
