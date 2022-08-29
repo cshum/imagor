@@ -29,10 +29,10 @@ func TestFanoutSizeOver(t *testing.T) {
 	source := io.NopCloser(bytes.NewReader(buf))
 	newReader := fanoutReader(source, 5)
 	doFanoutTest(t, func() {
-		reader := newReader(false)
+		reader, _, closer := newReader()
 		res1, err := io.ReadAll(reader)
 		assert.NoError(t, err)
-		assert.NoError(t, reader.Close())
+		assert.NoError(t, closer.Close())
 		assert.Equal(t, buf[:5], res1)
 	}, 100, 1)
 }
@@ -42,10 +42,10 @@ func TestFanoutSizeBelow(t *testing.T) {
 	source := io.NopCloser(bytes.NewReader(buf))
 	newReader := fanoutReader(source, 5)
 	doFanoutTest(t, func() {
-		reader := newReader(false)
+		reader, _, closer := newReader()
 		res1, err := io.ReadAll(reader)
 		assert.NoError(t, err)
-		assert.NoError(t, reader.Close())
+		assert.NoError(t, closer.Close())
 		assert.Equal(t, buf, res1)
 	}, 100, 1)
 }
@@ -64,7 +64,7 @@ func TestFanoutUpstreamError(t *testing.T) {
 	}))
 	newReader := fanoutReader(source, 10000)
 	doFanoutTest(t, func() {
-		reader := newReader(false)
+		reader, _, _ := newReader()
 		res, err := io.ReadAll(reader)
 		assert.ErrorIs(t, err, e)
 		assert.Equal(t, []byte("abcdefghi"), res)
@@ -75,27 +75,15 @@ func TestFanoutErrClosedPipe(t *testing.T) {
 	buf := []byte("abcdefghi")
 	source := io.NopCloser(bytes.NewReader(buf))
 	newReader := fanoutReader(source, len(buf))
-	reader := newReader(false)
+	reader, _, closer := newReader()
 	b := make([]byte, 5)
 	n, err := reader.Read(b)
 	assert.NoError(t, err)
 	assert.Equal(t, n, 5)
 	assert.Equal(t, buf[:5], b)
-	assert.NoError(t, reader.Close())
+	assert.NoError(t, closer.Close())
 	b = make([]byte, 5)
 	n, err = reader.Read(b)
 	assert.ErrorIs(t, err, io.ErrClosedPipe)
 	assert.Empty(t, n)
-}
-
-func TestFanoutCast(t *testing.T) {
-	buf := []byte("abcdefghi")
-	source := io.NopCloser(bytes.NewReader(buf))
-	newReader := fanoutReader(source, len(buf))
-	reader := newReader(false)
-	_, ok := reader.(io.Seeker)
-	assert.False(t, ok)
-	reader2 := newReader(true)
-	_, ok2 := reader2.(io.Seeker)
-	assert.True(t, ok2)
 }
