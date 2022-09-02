@@ -12,7 +12,7 @@ import (
 
 type BlobType int
 
-const maxBodySize = int64(32 << 20) // 32MB
+const maxBufferSize = int64(100 << 20) // 100MB
 
 const (
 	BlobTypeUnknown BlobType = iota
@@ -166,8 +166,8 @@ func (b *Blob) init() {
 				return nil, size, ErrUnsupportedFormat
 			}
 		}
-		if b.fanout && size > 0 && size < maxBodySize && err == nil {
-			// use fan-out reader if buf size known and < 32MB
+		if b.fanout && size > 0 && size < maxBufferSize && err == nil {
+			// use fan-out reader if buf size known and within buffer size
 			// otherwise create new readers
 			factory := fanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
