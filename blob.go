@@ -143,7 +143,7 @@ type readSeekNopCloser struct {
 func (readSeekNopCloser) Close() error { return nil }
 
 func newEmptyReader() (io.ReadCloser, int64, error) {
-	return io.NopCloser(bytes.NewReader(nil)), 0, nil
+	return &readSeekNopCloser{bytes.NewReader(nil)}, 0, nil
 }
 
 func (b *Blob) init() {
@@ -173,7 +173,7 @@ func (b *Blob) init() {
 			}
 		}
 		if b.fanout && size > 0 && size < maxMemorySize && err == nil {
-			// use fan-out reader if buf size known and within buffer size
+			// use fan-out reader if buf size known and within memory size
 			// otherwise create new readers
 			newReader := fanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
