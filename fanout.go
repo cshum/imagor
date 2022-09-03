@@ -99,7 +99,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 				if e == io.EOF {
 					bufReader = nil
 					e = nil
-					// Don't return EOF yet
+					// Don't return EOF, pass to next reader instead
 				}
 				if n > 0 || e != nil {
 					return
