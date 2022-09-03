@@ -8,7 +8,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"io"
 	"testing"
-	"time"
 )
 
 func doFanoutTest(t *testing.T, do func(), n, m int) {
@@ -39,7 +38,6 @@ func TestFanoutSizeOver(t *testing.T) {
 }
 
 func TestFanoutSizeBelow(t *testing.T) {
-	time.Sleep(time.Millisecond)
 	buf := []byte("abcd")
 	source := io.NopCloser(bytes.NewReader(buf))
 	newReader := fanoutReader(source, 5)
