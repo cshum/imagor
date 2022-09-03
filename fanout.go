@@ -113,13 +113,15 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 			}
 
 			if bufReader != nil {
-				n, e = bufReader.Read(p)
-				if e == io.EOF {
+				var e2 error
+				n, e2 = bufReader.Read(p)
+				if e2 == io.EOF {
 					bufReader = nil
-					e = nil
 					// Don't return EOF yet
+				} else if e2 != nil {
+					e = e2
 				}
-				if n > 0 || err != nil {
+				if n > 0 || e != nil {
 					return
 				}
 			}
