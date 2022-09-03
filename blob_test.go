@@ -89,6 +89,11 @@ func TestBlobTypes(t *testing.T) {
 			assert.NotEmpty(t, b.Sniff())
 			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
+
+			rs, size, err := b.NewReadSeeker()
+			assert.NotNil(t, rs)
+			assert.NotEmpty(t, size)
+			assert.NoError(t, err)
 		})
 	}
 }

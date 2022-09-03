@@ -84,7 +84,8 @@ func NewBlobFromJsonMarshal(v any) *Blob {
 		blobType: BlobTypeJSON,
 		fanout:   false,
 		newReader: func() (io.ReadCloser, int64, error) {
-			return io.NopCloser(bytes.NewReader(buf)), size, err
+			rs := bytes.NewReader(buf)
+			return &readSeekNopCloser{ReadSeeker: rs}, size, err
 		},
 	}
 }
@@ -94,7 +95,8 @@ func NewBlobFromBytes(buf []byte) *Blob {
 	return &Blob{
 		fanout: false,
 		newReader: func() (io.ReadCloser, int64, error) {
-			return io.NopCloser(bytes.NewReader(buf)), size, nil
+			rs := bytes.NewReader(buf)
+			return &readSeekNopCloser{ReadSeeker: rs}, size, nil
 		},
 	}
 }
@@ -134,6 +136,12 @@ type readCloser struct {
 	io.Closer
 }
 
+type readSeekNopCloser struct {
+	io.ReadSeeker
+}
+
+func (readSeekNopCloser) Close() error { return nil }
+
 func newEmptyReader() (io.ReadCloser, int64, error) {
 	return io.NopCloser(bytes.NewReader(nil)), 0, nil
 }
@@ -160,10 +168,7 @@ func (b *Blob) init() {
 			// construct seeker factory if source supports seek
 			b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
 				r, size, err := b.newReader()
-				if rs, ok := r.(io.ReadSeekCloser); ok {
-					return rs, size, err
-				}
-				return nil, size, ErrUnsupportedFormat
+				return r.(io.ReadSeekCloser), size, err
 			}
 		}
 		if b.fanout && size > 0 && size < maxBufferSize && err == nil {
