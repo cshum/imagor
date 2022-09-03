@@ -34,7 +34,6 @@ type Blob struct {
 	fanout        bool
 	once          sync.Once
 	onceReader    sync.Once
-	onceSeeker    sync.Once
 	buf           []byte
 	err           error
 	size          int64
@@ -304,36 +303,11 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	return
 }
 
-// NewReadSeeker create read seeker if source supports seek, or simulate seek using memory buffer or tmp file
+// NewReadSeeker create read seeker if source supports seek, or simulate seek using memory buffer
 func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	b.init()
-	b.onceSeeker.Do(func() {
-		if b.err == nil && b.newReadSeeker == nil {
-			var err error
-			defer func() {
-				if err != nil {
-					b.err = err
-				}
-			}()
-			reader, size, err := b.newReader()
-			if err != nil {
-				return
-			}
-			file, err := os.CreateTemp("", "imagor-")
-			if err != nil {
-				return
-			}
-			if size, err = io.Copy(file, reader); err != nil {
-				return
-			}
-			b.size = size
-			b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
-				return file, size, nil
-			}
-		}
-	})
-	if b.err != nil {
-		return nil, b.size, b.err
+	if b.newReadSeeker == nil {
+		return nil, b.size, ErrMethodNotAllowed
 	}
 	return b.newReadSeeker()
 }
