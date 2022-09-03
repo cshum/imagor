@@ -10,7 +10,7 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
-	var done []chan struct{}
+	var done = make(chan struct{})
 	var closed []bool
 	var err error
 	var buf []byte
@@ -46,9 +46,7 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 				}
 			}
 			if curr >= size {
-				for _, ch := range done {
-					ch <- struct{}{}
-				}
+				close(done)
 			}
 			lock.RUnlock()
 			if e != nil || curr >= size {
@@ -59,13 +57,11 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 
 	return func(seekable bool) (reader io.Reader, seeker io.Seeker, closer io.Closer) {
 		ch := make(chan []byte, size/512+1)
-		wait := make(chan struct{}, 1)
 
 		lock.Lock()
 		i := len(consumers)
 		consumers = append(consumers, ch)
 		closed = append(closed, false)
-		done = append(done, wait)
 		cnt := len(buf)
 		bufReader := bytes.NewReader(buf)
 		lock.Unlock()
@@ -77,7 +73,6 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 		var closeCh = func(closeReader bool) (e error) {
 			lock.Lock()
 			e = err
-			alreadyClosed := readerClosed
 			readerClosed = closeReader
 			if closed[i] {
 				lock.Unlock()
@@ -85,9 +80,6 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 				closed[i] = true
 				lock.Unlock()
 				close(ch)
-			}
-			if !alreadyClosed && closeReader {
-				close(wait)
 			}
 			return
 		}
@@ -157,7 +149,7 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 				if ffr != nil && !rc {
 					return ffr.Seek(offset, whence)
 				} else if ffr == nil && !rc {
-					<-wait
+					<-done
 					lock.Lock()
 					fullBufReader = bytes.NewReader(buf)
 					ffr = fullBufReader
