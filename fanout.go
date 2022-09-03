@@ -93,7 +93,7 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 
 			if fullBufReader != nil && !readerClosed {
 				// proxy to full buf if ready
-				return fullBufReader.Read(b)
+				return fullBufReader.Read(p)
 			}
 
 			lock.RLock()
