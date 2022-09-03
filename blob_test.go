@@ -11,6 +11,28 @@ import (
 	"testing"
 )
 
+func doTestBlobReaders(t *testing.T, b *Blob, buf []byte) {
+	r, size, err := b.NewReader()
+	assert.NotNil(t, r)
+	assert.NotEmpty(t, size)
+	assert.NoError(t, err)
+
+	buf2, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.NotEmpty(t, buf2)
+	assert.Equal(t, buf, buf2, "bytes not equal")
+
+	rs, size, err := b.NewReadSeeker()
+	assert.NotNil(t, rs)
+	assert.NotEmpty(t, size)
+	assert.NoError(t, err)
+
+	buf3, err := io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.NotEmpty(t, buf3)
+	assert.Equal(t, buf, buf3, "bytes not equal")
+}
+
 func TestBlobTypes(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -82,17 +104,8 @@ func TestBlobTypes(t *testing.T) {
 
 			buf, err := b.ReadAll()
 			require.NoError(t, err)
-			require.NotEmpty(t, buf)
 
-			r, size, err := b.NewReader()
-			assert.NotNil(t, r)
-			assert.NotEmpty(t, size)
-			assert.NoError(t, err)
-
-			buf2, err := io.ReadAll(r)
-			require.NoError(t, err)
-			assert.NotEmpty(t, buf2)
-			assert.Equal(t, buf, buf2, "bytes not equal")
+			doTestBlobReaders(t, b, buf)
 
 			b = NewBlobFromBytes(buf)
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
@@ -103,15 +116,7 @@ func TestBlobTypes(t *testing.T) {
 			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
 
-			rs, size, err := b.NewReadSeeker()
-			assert.NotNil(t, rs)
-			assert.NotEmpty(t, size)
-			assert.NoError(t, err)
-
-			buf3, err := io.ReadAll(rs)
-			require.NoError(t, err)
-			assert.NotEmpty(t, buf3)
-			assert.Equal(t, buf, buf3, "bytes not equal")
+			doTestBlobReaders(t, b, buf)
 
 			b = NewBlob(func() (reader io.ReadCloser, size int64, err error) {
 				return ioutil.NopCloser(bytes.NewReader(buf)), int64(len(buf)), nil
@@ -124,15 +129,7 @@ func TestBlobTypes(t *testing.T) {
 			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
 
-			rs, size, err = b.NewReadSeeker()
-			assert.NotNil(t, rs)
-			assert.NotEmpty(t, size)
-			assert.NoError(t, err)
-
-			buf4, err := io.ReadAll(rs)
-			assert.NotEmpty(t, size)
-			assert.NoError(t, err)
-			assert.Equal(t, buf, buf4, "bytes not equal")
+			doTestBlobReaders(t, b, buf)
 		})
 	}
 }
