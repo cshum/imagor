@@ -12,7 +12,7 @@ import (
 
 type BlobType int
 
-const maxBufferSize = int64(100 << 20) // 100MB
+const maxMemorySize = int64(100 << 20) // 100MB
 
 const (
 	BlobTypeUnknown BlobType = iota
@@ -172,7 +172,7 @@ func (b *Blob) init() {
 				return r.(io.ReadSeekCloser), size, err
 			}
 		}
-		if b.fanout && size > 0 && size < maxBufferSize && err == nil {
+		if b.fanout && size > 0 && size < maxMemorySize && err == nil {
 			// use fan-out reader if buf size known and within buffer size
 			// otherwise create new readers
 			factory := fanoutReader(reader, int(size))
@@ -303,7 +303,7 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	return
 }
 
-// NewReadSeeker create read seeker if source supports seek, or simulate seek using memory buffer
+// NewReadSeeker create read seeker if reader supports seek, or attempts to simulate seek using memory buffer
 func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	b.init()
 	if b.newReadSeeker == nil {
