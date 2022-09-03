@@ -176,13 +176,13 @@ func (b *Blob) init() {
 			// otherwise create new readers
 			factory := fanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
-				r, _, c := factory(false)
+				r, _, c := factory()
 				return &readCloser{Reader: r, Closer: c}, size, nil
 			}
 			// if source not seekable, simulate seek from fanout buffer
 			if b.newReadSeeker == nil {
 				b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
-					r, s, c := factory(true)
+					r, s, c := factory()
 					return &readSeekCloser{Reader: r, Seeker: s, Closer: c}, size, nil
 				}
 			}

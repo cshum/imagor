@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seeker, io.Closer) {
+func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, io.Closer) {
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
@@ -55,7 +55,7 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 		}
 	}
 
-	return func(seekable bool) (reader io.Reader, seeker io.Seeker, closer io.Closer) {
+	return func() (reader io.Reader, seeker io.Seeker, closer io.Closer) {
 		ch := make(chan []byte, size/512+1)
 
 		lock.Lock()
@@ -138,24 +138,22 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 			}
 			return
 		})
-		if seekable {
-			seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
-				once.Do(func() {
-					go init()
-				})
-
-				if fullBufReader != nil && !readerClosed {
-					return fullBufReader.Seek(offset, whence)
-				} else if fullBufReader == nil && !readerClosed {
-					<-done
-					fullBufReader = bytes.NewReader(buf)
-					_ = closeCh(false)
-					return fullBufReader.Seek(offset, whence)
-				} else {
-					return 0, io.ErrClosedPipe
-				}
+		seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
+			once.Do(func() {
+				go init()
 			})
-		}
+
+			if fullBufReader != nil && !readerClosed {
+				return fullBufReader.Seek(offset, whence)
+			} else if fullBufReader == nil && !readerClosed {
+				<-done
+				fullBufReader = bytes.NewReader(buf)
+				_ = closeCh(false)
+				return fullBufReader.Seek(offset, whence)
+			} else {
+				return 0, io.ErrClosedPipe
+			}
+		})
 		return
 	}
 }
