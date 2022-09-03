@@ -104,6 +104,16 @@ func TestBlobTypes(t *testing.T) {
 			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
 
+			rs, size, err = b.NewReadSeeker()
+			assert.NotNil(t, rs)
+			assert.NotEmpty(t, size)
+			assert.NoError(t, err)
+
+			buf3, err := io.ReadAll(rs)
+			require.NoError(t, err)
+			assert.NotEmpty(t, buf3)
+			assert.True(t, reflect.DeepEqual(buf, buf3), "bytes not equal")
+
 			b = NewBlob(func() (reader io.ReadCloser, size int64, err error) {
 				return ioutil.NopCloser(bytes.NewReader(buf)), int64(len(buf)), nil
 			})
@@ -114,11 +124,6 @@ func TestBlobTypes(t *testing.T) {
 			assert.NotEmpty(t, b.Sniff())
 			assert.NotEmpty(t, b.Size())
 			require.NoError(t, b.Err())
-
-			buf3, err := io.ReadAll(rs)
-			require.NoError(t, err)
-			assert.NotEmpty(t, buf3)
-			assert.True(t, reflect.DeepEqual(buf, buf3), "bytes not equal")
 
 			rs, size, err = b.NewReadSeeker()
 			assert.NotNil(t, rs)
