@@ -91,18 +91,16 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 				go init()
 			})
 
+			if fullBufReader != nil && !readerClosed {
+				// proxy to full buf if ready
+				return fullBufReader.Read(b)
+			}
+
 			lock.RLock()
 			e = err
 			s := size
 			c := closed[i]
-			ffr := fullBufReader
-			rc := readerClosed
 			lock.RUnlock()
-
-			if ffr != nil && !rc {
-				// proxy to full buf if ready
-				return ffr.Read(b)
-			}
 
 			if bufReader != nil {
 				var e2 error
@@ -142,25 +140,17 @@ func fanoutReader(source io.ReadCloser, size int) func(bool) (io.Reader, io.Seek
 		})
 		if seekable {
 			seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
-				lock.RLock()
-				ffr := fullBufReader
-				rc := readerClosed
-				lock.RUnlock()
-				if ffr != nil && !rc {
-					return ffr.Seek(offset, whence)
-				} else if ffr == nil && !rc {
+				once.Do(func() {
+					go init()
+				})
+
+				if fullBufReader != nil && !readerClosed {
+					return fullBufReader.Seek(offset, whence)
+				} else if fullBufReader == nil && !readerClosed {
 					<-done
-					lock.Lock()
 					fullBufReader = bytes.NewReader(buf)
-					ffr = fullBufReader
-					if closed[i] {
-						lock.Unlock()
-					} else {
-						closed[i] = true
-						lock.Unlock()
-						close(ch)
-					}
-					return ffr.Seek(offset, whence)
+					_ = closeCh(false)
+					return fullBufReader.Seek(offset, whence)
 				} else {
 					return 0, io.ErrClosedPipe
 				}
