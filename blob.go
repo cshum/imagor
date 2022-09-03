@@ -175,15 +175,15 @@ func (b *Blob) init() {
 		if b.fanout && size > 0 && size < maxMemorySize && err == nil {
 			// use fan-out reader if buf size known and within buffer size
 			// otherwise create new readers
-			factory := fanoutReader(reader, int(size))
+			newReader := fanoutReader(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
-				r, _, c := factory()
+				r, _, c := newReader()
 				return &readCloser{Reader: r, Closer: c}, size, nil
 			}
 			// if source not seekable, simulate seek from fanout buffer
 			if b.newReadSeeker == nil {
 				b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
-					r, s, c := factory()
+					r, s, c := newReader()
 					return &readSeekCloser{Reader: r, Seeker: s, Closer: c}, size, nil
 				}
 			}
@@ -295,6 +295,7 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 		if b.peekReader != nil {
 			reader = b.peekReader
 			size = b.size
+			b.peekReader = nil
 		}
 	})
 	if reader == nil && err == nil {
