@@ -298,10 +298,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		var doneSave chan struct{}
 		if shouldSave {
-			doneSave = make(chan struct{}, 1)
+			doneSave = make(chan struct{})
 			go func(blob *Blob) {
 				app.save(ctx, app.Storages, p.Image, blob)
-				doneSave <- struct{}{}
+				close(doneSave)
 			}(blob)
 		}
 		if isBlobEmpty(blob) {
