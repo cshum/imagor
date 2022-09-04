@@ -329,7 +329,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				err = e
 				forwardP = forward.Params
 				if app.Debug {
-					app.Logger.Debug("forward", zap.Any("params", p))
+					app.Logger.Debug("forward", zap.Any("params", forwardP))
 				}
 			} else {
 				if ctx.Err() == nil {
