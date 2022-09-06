@@ -39,7 +39,7 @@ type LoadFunc func(string) (*Blob, error)
 // Processor process image buffer
 type Processor interface {
 	Startup(ctx context.Context) error
-	Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
+	Process(ctx context.Context, blob *Blob, params imagorpath.Params, load LoadFunc) (*Blob, error)
 	Shutdown(ctx context.Context) error
 }
 
@@ -316,8 +316,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
 			Defer(ctx, cancel)
 		}
+		var forwardP = p
 		for _, processor := range app.Processors {
-			b, e := checkBlob(processor.Process(ctx, blob, p, load))
+			b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
+			if !isBlobEmpty(b) {
+				blob = b // forward blob to next processor if exists
+			}
 			if e == nil {
 				blob = b
 				err = nil
@@ -325,13 +329,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					app.Logger.Debug("processed", zap.Any("params", p))
 				}
 				break
-			} else if e == ErrPass {
-				if !isBlobEmpty(b) {
-					// pass to next processor
-					blob = b
-				}
+			} else if forward, ok := e.(ErrForward); ok {
+				err = e
+				forwardP = forward.Params
 				if app.Debug {
-					app.Logger.Debug("process", zap.Any("params", p), zap.Error(e))
+					app.Logger.Debug("forward", zap.Any("params", p))
 				}
 			} else {
 				if ctx.Err() == nil {
@@ -339,8 +341,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
 				} else {
 					err = ctx.Err()
-					break
 				}
+				break
 			}
 		}
 		cb(blob, err)

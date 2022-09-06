@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cshum/imagor/imagorpath"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 
 var (
 	ErrNotFound              = NewError("not found", http.StatusNotFound)
-	ErrPass                  = NewError("pass", http.StatusBadRequest)
 	ErrInvalid               = NewError("invalid", http.StatusBadRequest)
 	ErrMethodNotAllowed      = NewError("method not allowed", http.StatusMethodNotAllowed)
 	ErrSignatureMismatch     = NewError("url signature mismatch", http.StatusForbidden)
@@ -28,6 +28,14 @@ var (
 const errPrefix = "imagor:"
 
 var errMsgRegexp = regexp.MustCompile(fmt.Sprintf("^%s ([0-9]+) (.*)$", errPrefix))
+
+type ErrForward struct {
+	imagorpath.Params
+}
+
+func (p ErrForward) Error() string {
+	return fmt.Sprintf("%s forward %s", errPrefix, imagorpath.GeneratePath(p.Params))
+}
 
 // Error imagor error convention
 type Error struct {
@@ -64,6 +72,10 @@ func WrapError(err error) Error {
 	}
 	if e, ok := err.(Error); ok {
 		return e
+	}
+	if _, ok := err.(ErrForward); ok {
+		// ErrForward till the end means no supported processor
+		return ErrUnsupportedFormat
 	}
 	if e, ok := err.(timeoutErr); ok {
 		if e.Timeout() {

@@ -3,6 +3,7 @@ package imagor
 import (
 	"context"
 	"errors"
+	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
 	"net"
 	"net/http"
@@ -38,5 +39,9 @@ func TestWrapError(t *testing.T) {
 
 	err = &net.DNSError{IsTimeout: true}
 	assert.Equal(t, ErrTimeout, WrapError(err))
+
+	err = ErrForward{imagorpath.Params{Width: 167, Height: 169, Image: "foo"}}
+	assert.Equal(t, "imagor: forward 167x169/foo", err.Error())
+	assert.Equal(t, ErrUnsupportedFormat, WrapError(err))
 
 }
