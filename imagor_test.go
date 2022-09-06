@@ -649,7 +649,7 @@ func TestWithResultStorageHasher(t *testing.T) {
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
-		WithResultStorageHasher(resultKeyFunc(func(p imagorpath.Params) string {
+		WithResultStoragePathStyle(resultKeyFunc(func(p imagorpath.Params) string {
 			if strings.Contains(p.Path, "bar") {
 				return ""
 			}
@@ -728,7 +728,7 @@ func TestWithStorageHasher(t *testing.T) {
 			loadCnt[image]++
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
-		WithStorageHasher(storageKeyFunc(func(img string) string {
+		WithStoragePathStyle(storageKeyFunc(func(img string) string {
 			if img == "bar" {
 				return ""
 			}

@@ -51,31 +51,31 @@ type Stat struct {
 
 // Imagor image resize HTTP handler
 type Imagor struct {
-	Unsafe                bool
-	Signer                imagorpath.Signer
-	StorageHasher         imagorpath.StorageHasher
-	ResultStorageHasher   imagorpath.ResultStorageHasher
-	BasePathRedirect      string
-	Loaders               []Loader
-	Storages              []Storage
-	ResultStorages        []Storage
-	Processors            []Processor
-	RequestTimeout        time.Duration
-	LoadTimeout           time.Duration
-	SaveTimeout           time.Duration
-	ProcessTimeout        time.Duration
-	CacheHeaderTTL        time.Duration
-	CacheHeaderSWR        time.Duration
-	ProcessConcurrency    int64
-	ProcessQueueSize      int64
-	AutoWebP              bool
-	AutoAVIF              bool
-	ModifiedTimeCheck     bool
-	DisableErrorBody      bool
-	DisableParamsEndpoint bool
-	BaseParams            string
-	Logger                *zap.Logger
-	Debug                 bool
+	Unsafe                 bool
+	Signer                 imagorpath.Signer
+	StoragePathStyle       imagorpath.StorageHasher
+	ResultStoragePathStyle imagorpath.ResultStorageHasher
+	BasePathRedirect       string
+	Loaders                []Loader
+	Storages               []Storage
+	ResultStorages         []Storage
+	Processors             []Processor
+	RequestTimeout         time.Duration
+	LoadTimeout            time.Duration
+	SaveTimeout            time.Duration
+	ProcessTimeout         time.Duration
+	CacheHeaderTTL         time.Duration
+	CacheHeaderSWR         time.Duration
+	ProcessConcurrency     int64
+	ProcessQueueSize       int64
+	AutoWebP               bool
+	AutoAVIF               bool
+	ModifiedTimeCheck      bool
+	DisableErrorBody       bool
+	DisableParamsEndpoint  bool
+	BaseParams             string
+	Logger                 *zap.Logger
+	Debug                  bool
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
@@ -247,8 +247,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	if !hasPreview {
-		if app.ResultStorageHasher != nil {
-			resultKey = app.ResultStorageHasher.HashResult(p)
+		if app.ResultStoragePathStyle != nil {
+			resultKey = app.ResultStoragePathStyle.HashResult(p)
 		} else {
 			resultKey = p.Path
 		}
@@ -257,8 +257,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		blob, shouldSave, err := app.loadStorage(r, image)
 		if shouldSave {
 			var storageKey = image
-			if app.StorageHasher != nil {
-				storageKey = app.StorageHasher.Hash(image)
+			if app.StoragePathStyle != nil {
+				storageKey = app.StoragePathStyle.Hash(image)
 			}
 			go app.save(ctx, app.Storages, storageKey, blob)
 		}
@@ -300,8 +300,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if shouldSave {
 			doneSave = make(chan struct{}, 1)
 			var storageKey = p.Image
-			if app.StorageHasher != nil {
-				storageKey = app.StorageHasher.Hash(p.Image)
+			if app.StoragePathStyle != nil {
+				storageKey = app.StoragePathStyle.Hash(p.Image)
 			}
 			go func(blob *Blob) {
 				app.save(ctx, app.Storages, storageKey, blob)
@@ -428,8 +428,8 @@ func (app *Imagor) fromStoragesAndLoaders(
 		return
 	}
 	var storageKey = image
-	if app.StorageHasher != nil {
-		storageKey = app.StorageHasher.Hash(image)
+	if app.StoragePathStyle != nil {
+		storageKey = app.StoragePathStyle.Hash(image)
 	}
 	if storageKey != "" {
 		blob, origin, err = fromStorages(r, storages, storageKey)

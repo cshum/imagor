@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
@@ -145,4 +146,20 @@ func TestFileStorage(t *testing.T) {
 	assert.Equal(t, "./bar", resultStorage.BaseDir)
 	assert.Equal(t, "/bcda/", resultStorage.PathPrefix)
 	assert.Equal(t, "!", resultStorage.SafeChars)
+}
+
+func TestPathStyle(t *testing.T) {
+	srv := CreateServer([]string{
+		"-imagor-storage-path-style", "digest",
+		"-imagor-result-storage-path-style", "digest",
+	})
+	app := srv.App.(*imagor.Imagor)
+	assert.Equal(t, "a9/993e364706816aba3e25717850c26c9cd0d89d", app.StoragePathStyle.Hash("abc"))
+	assert.Equal(t, "30/fdbe2aa5086e0f0c50ea72dd3859a10d8071ad", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
+
+	srv = CreateServer([]string{
+		"-imagor-result-storage-path-style", "suffix",
+	})
+	app = srv.App.(*imagor.Imagor)
+	assert.Equal(t, "abc.30fdbe2aa5086e0f0c50", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
 }
