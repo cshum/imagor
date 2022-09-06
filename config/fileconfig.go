@@ -56,17 +56,13 @@ func withFileSystem(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 		}
 		if *fileLoaderBaseDir != "" {
 			// activate File Loader only if base dir config presents
-			if *fileStorageBaseDir != *fileLoaderBaseDir ||
-				*fileStoragePathPrefix != *fileLoaderPathPrefix {
-				// create another loader if different from storage
-				o.Loaders = append(o.Loaders,
-					filestorage.New(
-						*fileLoaderBaseDir,
-						filestorage.WithPathPrefix(*fileLoaderPathPrefix),
-						filestorage.WithSafeChars(*fileSafeChars),
-					),
-				)
-			}
+			o.Loaders = append(o.Loaders,
+				filestorage.New(
+					*fileLoaderBaseDir,
+					filestorage.WithPathPrefix(*fileLoaderPathPrefix),
+					filestorage.WithSafeChars(*fileSafeChars),
+				),
+			)
 		}
 		if *fileResultStorageBaseDir != "" {
 			// activate File Result Storage only if base dir config presents

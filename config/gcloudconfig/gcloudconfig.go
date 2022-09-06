@@ -68,18 +68,13 @@ func WithGCloud(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 			if *gcloudLoaderBucket != "" {
 				// activate Google Cloud Loader only if bucket config presents
-				if *gcloudLoaderPathPrefix != *gcloudStoragePathPrefix ||
-					*gcloudLoaderBucket != *gcloudStorageBucket ||
-					*gcloudLoaderBaseDir != *gcloudStorageBaseDir {
-					// create another loader if different from storage
-					app.Loaders = append(app.Loaders,
-						gcloudstorage.New(gcloudClient, *gcloudLoaderBucket,
-							gcloudstorage.WithPathPrefix(*gcloudLoaderPathPrefix),
-							gcloudstorage.WithBaseDir(*gcloudLoaderBaseDir),
-							gcloudstorage.WithSafeChars(*gcloudSafeChars),
-						),
-					)
-				}
+				app.Loaders = append(app.Loaders,
+					gcloudstorage.New(gcloudClient, *gcloudLoaderBucket,
+						gcloudstorage.WithPathPrefix(*gcloudLoaderPathPrefix),
+						gcloudstorage.WithBaseDir(*gcloudLoaderBaseDir),
+						gcloudstorage.WithSafeChars(*gcloudSafeChars),
+					),
+				)
 			}
 			if *gcloudResultStorageBucket != "" {
 				// activate Google Cloud ResultStorage only if bucket config presents

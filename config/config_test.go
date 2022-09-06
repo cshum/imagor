@@ -130,8 +130,6 @@ func TestFileStorage(t *testing.T) {
 
 		"-file-storage-base-dir", "./foo",
 		"-file-storage-path-prefix", "abcd",
-		"-file-loader-base-dir", "./foo",
-		"-file-loader-path-prefix", "abcd",
 
 		"-file-result-storage-base-dir", "./bar",
 		"-file-result-storage-path-prefix", "bcda",

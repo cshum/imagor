@@ -38,9 +38,6 @@ func TestS3Storage(t *testing.T) {
 		"-s3-force-path-style",
 		"-s3-safe-chars", "!",
 
-		"-s3-loader-bucket", "a",
-		"-s3-loader-base-dir", "foo",
-		"-s3-loader-path-prefix", "abcd",
 		"-s3-storage-bucket", "a",
 		"-s3-storage-base-dir", "foo",
 		"-s3-storage-path-prefix", "abcd",
