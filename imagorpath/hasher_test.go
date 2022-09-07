@@ -7,9 +7,6 @@ import (
 )
 
 func TestHasher(t *testing.T) {
-	assert.Equal(t, "45/d8/ebb31bd4ed80c26e7c2572957ac3eb99d3db", DigestStorageHasher.Hash("foobar.jpg"))
-	assert.Equal(t, "45/d8/ebb31bd4ed80c26e7c2572957ac3eb99d3db", SuffixResultStorageHasher.HashResult(Parse("fit-in/16x17/foobar.jpg")))
-	assert.Equal(t, "aa/f4/c61ddcc5e8a2dabede0f3b482cd9aea9434d", DigestStorageHasher.Hash("path/to/foobar.jpg"))
 	p := Params{
 		FitIn: true, Width: 16, Height: 17, Image: "foobar",
 	}
