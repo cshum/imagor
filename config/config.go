@@ -59,10 +59,10 @@ func NewImagor(
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
 		imagorDisableErrorBody       = fs.Bool("imagor-disable-error-body", false, "imagor disable response body on error")
 		imagorDisableParamsEndpoint  = fs.Bool("imagor-disable-params-endpoint", false, "imagor disable /params endpoint")
-		imagorSignerType             = fs.String("imagor-signer-type", "sha1", "imagor URL signature hasher type sha1 or sha256")
+		imagorSignerType             = fs.String("imagor-signer-type", "sha1", "imagor URL signature hasher type: sha1, sha256, sha512")
 		imagorSignerTruncate         = fs.Int("imagor-signer-truncate", 0, "imagor URL signature truncate at length")
-		imagorStoragePathStyle       = fs.String("imagor-storage-path-style", "", "imagor storage path style options: digest")
-		imagorResultStoragePathStyle = fs.String("imagor-result-storage-path-style", "", "imagor result storage path style options: digest, suffix")
+		imagorStoragePathStyle       = fs.String("imagor-storage-path-style", "original", "imagor storage path style: original, digest")
+		imagorResultStoragePathStyle = fs.String("imagor-result-storage-path-style", "original", "imagor result storage path style: original, digest, suffix")
 
 		options, logger, isDebug = applyFuncs(fs, cb, append(funcs, baseConfig...)...)
 

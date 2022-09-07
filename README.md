@@ -461,9 +461,13 @@ Usage of imagor:
   -imagor-base-params string
         imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
   -imagor-signer-type string
-        imagor URL signature hasher type sha1, sha256, sha512 (default "sha1")
+        imagor URL signature hasher type: sha1, sha256, sha512 (default "sha1")
   -imagor-signer-truncate int
         imagor URL signature truncate at length
+  -imagor-result-storage-path-style string
+        imagor result storage path style: original, digest, suffix (default "original")
+  -imagor-storage-path-style string
+        imagor storage path style: original, digest (default "original")
   -imagor-cache-header-ttl duration
         imagor HTTP cache header ttl for successful image response (default 168h0m0s)
   -imagor-cache-header-swr duration
