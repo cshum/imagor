@@ -300,6 +300,36 @@ services:
       - "8000:8000"
 ```
 
+#### Storage and Result Storage Path Style
+
+By default, imagor encode the storage path the same way it is located in the image endpoint. Storage and Result Storage Path Style enables additional hashing logic that encodes the storage and result storage path:
+
+`digest` storage path style
+```yaml
+      IMAGOR_STORAGE_PATH_STYLE: digest
+```
+
+`foobar.jpg` becomes `e6/86/1a810ff186b4f747ef85f7c53946f0e6d8cb`
+
+`digest` result storage path style
+```yaml
+      IMAGOR_RESULT_STORAGE_PATH_STYLE: digest
+```
+
+`fit-in/16x17/foobar.jpg` becomes `61/4c/9ba1725e8cdd8263a4ad437c56b35f33deba`
+
+`suffix` result storage path style
+```yaml
+      IMAGOR_RESULT_STORAGE_PATH_STYLE: suffix
+```
+
+`166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e.jpg`
+`17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729`
+`17x19/smart/filters:format(webp)/example.com/foobar.jpg` becomes `example.com/foobar.8aade9060badfcb289f9.webp`
+
+This allows result storage path to be located right next to the original file.
+
+
 ### Security
 
 #### URL Signature

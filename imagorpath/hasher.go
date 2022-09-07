@@ -33,7 +33,7 @@ func (h ResultStorageHasherFunc) HashResult(p Params) string {
 func hexDigestPath(path string) string {
 	var digest = sha1.Sum([]byte(path))
 	var hash = hex.EncodeToString(digest[:])
-	return hash[:2] + "/" + hash[2:]
+	return hash[:2] + "/" + hash[2:4] + "/" + hash[4:]
 }
 
 var DigestStorageHasher = StorageHasherFunc(hexDigestPath)

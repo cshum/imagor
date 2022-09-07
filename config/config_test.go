@@ -154,8 +154,8 @@ func TestPathStyle(t *testing.T) {
 		"-imagor-result-storage-path-style", "digest",
 	})
 	app := srv.App.(*imagor.Imagor)
-	assert.Equal(t, "a9/993e364706816aba3e25717850c26c9cd0d89d", app.StoragePathStyle.Hash("abc"))
-	assert.Equal(t, "30/fdbe2aa5086e0f0c50ea72dd3859a10d8071ad", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
+	assert.Equal(t, "a9/99/3e364706816aba3e25717850c26c9cd0d89d", app.StoragePathStyle.Hash("abc"))
+	assert.Equal(t, "30/fd/be2aa5086e0f0c50ea72dd3859a10d8071ad", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
 
 	srv = CreateServer([]string{
 		"-imagor-result-storage-path-style", "suffix",
