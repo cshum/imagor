@@ -213,23 +213,8 @@ func (v *Processor) NewThumbnail(
 				return nil, WrapErr(err)
 			}
 		}
-	} else if blob.BlobType() == imagor.BlobTypePNG {
-		return v.newThumbnailPNG(ctx, blob, width, height, crop, size)
 	} else {
 		img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, nil)
-	}
-	return v.CheckResolution(img, WrapErr(err))
-}
-
-func (v *Processor) newThumbnailPNG(
-	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size,
-) (img *Image, err error) {
-	if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, nil)); err != nil {
-		return
-	}
-	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
-		img.Close()
-		return
 	}
 	return v.CheckResolution(img, WrapErr(err))
 }
