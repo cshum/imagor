@@ -36,11 +36,11 @@ func NewImagor(
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
 			time.Second*30, "Timeout for performing imagor request")
 		imagorLoadTimeout = fs.Duration("imagor-load-timeout",
-			time.Second*20, "Timeout for imagor Loader request, should be smaller than imagor-request-timeout")
+			0, "Timeout for imagor Loader request, should be smaller than imagor-request-timeout")
 		imagorSaveTimeout = fs.Duration("imagor-save-timeout",
-			time.Second*20, "Timeout for saving image to imagor Storage")
+			0, "Timeout for saving image to imagor Storage")
 		imagorProcessTimeout = fs.Duration("imagor-process-timeout",
-			time.Second*20, "Timeout for image processing")
+			0, "Timeout for image processing")
 		imagorBasePathRedirect = fs.String("imagor-base-path-redirect", "",
 			"URL to redirect for imagor / base path e.g. https://www.google.com")
 		imagorBaseParams = fs.String("imagor-base-params", "",

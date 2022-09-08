@@ -6,11 +6,11 @@ import (
 	"sync"
 )
 
-// FanoutReader fan-out io.ReadCloser - known size, unknown number of consumers
-func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
+func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, io.Closer) {
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
+	var done = make(chan struct{})
 	var closed []bool
 	var err error
 	var buf []byte
@@ -18,11 +18,11 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 
 	var init = func() {
 		defer func() {
-			_ = reader.Close()
+			_ = source.Close()
 		}()
 		for {
 			b := make([]byte, 512)
-			n, e := reader.Read(b)
+			n, e := source.Read(b)
 			if curr+n > size {
 				n = size - curr
 			}
@@ -45,6 +45,9 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 					ch <- bn
 				}
 			}
+			if curr >= size {
+				close(done)
+			}
 			lock.RUnlock()
 			if e != nil || curr >= size {
 				return
@@ -52,7 +55,7 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 		}
 	}
 
-	return func() io.ReadCloser {
+	return func() (reader io.Reader, seeker io.Seeker, closer io.Closer) {
 		ch := make(chan []byte, size/512+1)
 
 		lock.Lock()
@@ -63,66 +66,97 @@ func FanoutReader(reader io.ReadCloser, size int) func() io.ReadCloser {
 		bufReader := bytes.NewReader(buf)
 		lock.Unlock()
 
-		closeCh := closerFunc(func() (e error) {
-			lock.Lock()
-			e = err
-			if closed[i] {
-				lock.Unlock()
-				return
-			}
-			closed[i] = true
-			lock.Unlock()
-			close(ch)
-			return
-		})
+		var readerClosed bool
+		var fullBufReader *bytes.Reader
 
 		var b []byte
-
-		return &readerCloser{
-			Reader: io.MultiReader(
-				bufReader,
-				readerFunc(func(p []byte) (n int, e error) {
-					once.Do(func() {
-						go init()
-					})
-
-					lock.RLock()
-					e = err
-					s := size
-					c := closed[i]
-					lock.RUnlock()
-
-					if cnt >= s {
-						return 0, io.EOF
-					}
-					if c {
-						return 0, io.ErrClosedPipe
-					}
-					if e != nil {
-						_ = closeCh()
-						return
-					}
-					if len(b) == 0 {
-						b = <-ch
-					}
-					n = copy(p, b)
-					b = b[n:]
-					cnt += n
-					if cnt >= s {
-						_ = closeCh()
-						e = io.EOF
-					}
-					return
-				}),
-			),
-			Closer: closeCh,
+		var closeCh = func(closeReader bool) (e error) {
+			lock.Lock()
+			e = err
+			readerClosed = closeReader
+			if closed[i] {
+				lock.Unlock()
+			} else {
+				closed[i] = true
+				lock.Unlock()
+				close(ch)
+			}
+			return
 		}
-	}
-}
+		closer = closerFunc(func() error {
+			return closeCh(true)
+		})
+		reader = readerFunc(func(p []byte) (n int, e error) {
+			once.Do(func() {
+				go init()
+			})
+			if readerClosed {
+				return 0, io.ErrClosedPipe
+			}
 
-type readerCloser struct {
-	io.Reader
-	io.Closer
+			if bufReader != nil {
+				n, e = bufReader.Read(p)
+				if e == io.EOF {
+					bufReader = nil
+					e = nil
+					// Don't return EOF, pass to next reader instead
+				}
+				if n > 0 || e != nil {
+					return
+				}
+			}
+
+			if fullBufReader != nil && !readerClosed {
+				// proxy to full buf if ready
+				return fullBufReader.Read(p)
+			}
+
+			lock.RLock()
+			e = err
+			s := size
+			c := closed[i]
+			lock.RUnlock()
+
+			if cnt >= s {
+				return 0, io.EOF
+			}
+			if c {
+				return 0, io.ErrClosedPipe
+			}
+			if e != nil {
+				_ = closeCh(true)
+				return
+			}
+			if len(b) == 0 {
+				b = <-ch
+			}
+			n = copy(p, b)
+			b = b[n:]
+			cnt += n
+			if cnt >= s {
+				_ = closeCh(false)
+				e = io.EOF
+			}
+			return
+		})
+		seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
+			once.Do(func() {
+				go init()
+			})
+
+			if fullBufReader != nil && !readerClosed {
+				return fullBufReader.Seek(offset, whence)
+			} else if fullBufReader == nil && !readerClosed {
+				<-done
+				fullBufReader = bytes.NewReader(buf)
+				_ = closeCh(false)
+				return fullBufReader.Seek(offset, whence)
+			} else {
+				return 0, io.ErrClosedPipe
+			}
+		})
+		return
+	}
 }
 
 type readerFunc func(p []byte) (n int, err error)
@@ -132,3 +166,7 @@ func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
 type closerFunc func() error
 
 func (cf closerFunc) Close() error { return cf() }
+
+type seekerFunc func(offset int64, whence int) (int64, error)
+
+func (sf seekerFunc) Seek(offset int64, whence int) (int64, error) { return sf(offset, whence) }

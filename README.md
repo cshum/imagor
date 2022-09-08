@@ -507,11 +507,11 @@ Usage of imagor:
   -imagor-request-timeout duration
         Timeout for performing imagor request (default 30s)
   -imagor-load-timeout duration
-        Timeout for imagor Loader request, should be smaller than imagor-request-timeout (default 20s)
+        Timeout for imagor Loader request, should be smaller than imagor-request-timeout
   -imagor-save-timeout duration
-        Timeout for saving image to imagor Storage (default 20s)
+        Timeout for saving image to imagor Storage
   -imagor-process-timeout duration
-        Timeout for image processing (default 20s)
+        Timeout for image processing
   -imagor-process-concurrency int
         Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit (default -1)
   -imagor-process-queue-size int

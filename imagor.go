@@ -298,14 +298,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		var doneSave chan struct{}
 		if shouldSave {
-			doneSave = make(chan struct{}, 1)
+			doneSave = make(chan struct{})
 			var storageKey = p.Image
 			if app.StoragePathStyle != nil {
 				storageKey = app.StoragePathStyle.Hash(p.Image)
 			}
 			go func(blob *Blob) {
 				app.save(ctx, app.Storages, storageKey, blob)
-				doneSave <- struct{}{}
+				close(doneSave)
 			}(blob)
 		}
 		if isBlobEmpty(blob) {
@@ -326,14 +326,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				blob = b
 				err = nil
 				if app.Debug {
-					app.Logger.Debug("processed", zap.Any("params", p))
+					app.Logger.Debug("processed", zap.Any("params", forwardP))
 				}
 				break
 			} else if forward, ok := e.(ErrForward); ok {
 				err = e
 				forwardP = forward.Params
 				if app.Debug {
-					app.Logger.Debug("forward", zap.Any("params", p))
+					app.Logger.Debug("forward", zap.Any("params", forwardP))
 				}
 			} else {
 				if ctx.Err() == nil {

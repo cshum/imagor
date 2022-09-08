@@ -12,7 +12,7 @@ import (
 
 type BlobType int
 
-const maxBodySize = int64(32 << 20) // 32MB
+const maxMemorySize = int64(100 << 20) // 100MB
 
 const (
 	BlobTypeUnknown BlobType = iota
@@ -28,14 +28,15 @@ const (
 )
 
 type Blob struct {
-	newReader  func() (r io.ReadCloser, size int64, err error)
-	peekReader *peekReaderCloser
-	fanout     bool
-	once       sync.Once
-	onceReader sync.Once
-	buf        []byte
-	err        error
-	size       int64
+	newReader     func() (r io.ReadCloser, size int64, err error)
+	newReadSeeker func() (rs io.ReadSeekCloser, size int64, err error)
+	peekReader    *peekReadCloser
+	fanout        bool
+	once          sync.Once
+	onceReader    sync.Once
+	buf           []byte
+	err           error
+	size          int64
 
 	blobType    BlobType
 	filepath    string
@@ -83,7 +84,8 @@ func NewBlobFromJsonMarshal(v any) *Blob {
 		blobType: BlobTypeJSON,
 		fanout:   false,
 		newReader: func() (io.ReadCloser, int64, error) {
-			return io.NopCloser(bytes.NewReader(buf)), size, err
+			rs := bytes.NewReader(buf)
+			return &readSeekNopCloser{ReadSeeker: rs}, size, err
 		},
 	}
 }
@@ -93,7 +95,8 @@ func NewBlobFromBytes(buf []byte) *Blob {
 	return &Blob{
 		fanout: false,
 		newReader: func() (io.ReadCloser, int64, error) {
-			return io.NopCloser(bytes.NewReader(buf)), size, nil
+			rs := bytes.NewReader(buf)
+			return &readSeekNopCloser{ReadSeeker: rs}, size, nil
 		},
 	}
 }
@@ -117,13 +120,30 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
-type peekReaderCloser struct {
+type peekReadCloser struct {
 	*bufio.Reader
 	io.Closer
 }
 
+type readSeekCloser struct {
+	io.Reader
+	io.Seeker
+	io.Closer
+}
+
+type readCloser struct {
+	io.Reader
+	io.Closer
+}
+
+type readSeekNopCloser struct {
+	io.ReadSeeker
+}
+
+func (readSeekNopCloser) Close() error { return nil }
+
 func newEmptyReader() (io.ReadCloser, int64, error) {
-	return io.NopCloser(bytes.NewReader(nil)), 0, nil
+	return &readSeekNopCloser{bytes.NewReader(nil)}, 0, nil
 }
 
 func (b *Blob) init() {
@@ -144,16 +164,33 @@ func (b *Blob) init() {
 			return
 		}
 		b.size = size
-		if b.fanout && size > 0 && size < maxBodySize && err == nil {
-			// use fan-out reader if buf size known and < 32MB
-			// otherwise create new readers
-			newReader := FanoutReader(reader, int(size))
-			b.newReader = func() (io.ReadCloser, int64, error) {
-				return newReader(), size, nil
+		if _, ok := reader.(io.ReadSeekCloser); ok {
+			// construct seeker factory if source supports seek
+			newReader := b.newReader
+			b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
+				r, size, err := newReader()
+				return r.(io.ReadSeekCloser), size, err
 			}
-			reader = newReader()
 		}
-		b.peekReader = &peekReaderCloser{
+		if b.fanout && size > 0 && size < maxMemorySize && err == nil {
+			// use fan-out reader if buf size known and within memory size
+			// otherwise create new readers
+			factory := fanoutReader(reader, int(size))
+			newReader := func() (io.ReadCloser, int64, error) {
+				r, _, c := factory()
+				return &readCloser{Reader: r, Closer: c}, size, nil
+			}
+			b.newReader = newReader
+			reader, _, _ = newReader()
+			// if source not seekable, simulate seek from fanout buffer
+			if b.newReadSeeker == nil {
+				b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
+					r, s, c := factory()
+					return &readSeekCloser{Reader: r, Seeker: s, Closer: c}, size, nil
+				}
+			}
+		}
+		b.peekReader = &peekReadCloser{
 			Reader: bufio.NewReader(reader),
 			Closer: reader,
 		}
@@ -260,12 +297,22 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 		if b.peekReader != nil {
 			reader = b.peekReader
 			size = b.size
+			b.peekReader = nil
 		}
 	})
 	if reader == nil && err == nil {
 		reader, size, err = b.newReader()
 	}
 	return
+}
+
+// NewReadSeeker create read seeker if reader supports seek, or attempts to simulate seek using memory buffer
+func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
+	b.init()
+	if b.newReadSeeker == nil {
+		return nil, b.size, ErrMethodNotAllowed
+	}
+	return b.newReadSeeker()
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {
