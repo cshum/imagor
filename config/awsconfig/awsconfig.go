@@ -86,18 +86,13 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			}
 			if *s3LoaderBucket != "" {
 				// activate S3 Loader only if bucket config presents
-				if *s3LoaderPathPrefix != *s3StoragePathPrefix ||
-					*s3LoaderBucket != *s3StorageBucket ||
-					*s3LoaderBaseDir != *s3StorageBaseDir {
-					// create another loader if different from storage
-					app.Loaders = append(app.Loaders,
-						s3storage.New(sess, *s3LoaderBucket,
-							s3storage.WithPathPrefix(*s3LoaderPathPrefix),
-							s3storage.WithBaseDir(*s3LoaderBaseDir),
-							s3storage.WithSafeChars(*s3SafeChars),
-						),
-					)
-				}
+				app.Loaders = append(app.Loaders,
+					s3storage.New(sess, *s3LoaderBucket,
+						s3storage.WithPathPrefix(*s3LoaderPathPrefix),
+						s3storage.WithBaseDir(*s3LoaderBaseDir),
+						s3storage.WithSafeChars(*s3SafeChars),
+					),
+				)
 			}
 			if *s3ResultStorageBucket != "" {
 				// activate S3 ResultStorage only if bucket config presents

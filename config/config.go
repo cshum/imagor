@@ -57,20 +57,34 @@ func NewImagor(
 			false, "imagor HTTP Cache-Control header no-cache for successful image response")
 		imagorModifiedTimeCheck = fs.Bool("imagor-modified-time-check", false,
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
-		imagorDisableErrorBody      = fs.Bool("imagor-disable-error-body", false, "imagor disable response body on error")
-		imagorDisableParamsEndpoint = fs.Bool("imagor-disable-params-endpoint", false, "Imagor disable /params endpoint")
-		imagorSignerType            = fs.String("imagor-signer-type", "sha1", "Imagor URL signature hasher type sha1 or sha256")
-		imagorSignerTruncate        = fs.Int("imagor-signer-truncate", 0, "Imagor URL signature truncate at length")
+		imagorDisableErrorBody       = fs.Bool("imagor-disable-error-body", false, "imagor disable response body on error")
+		imagorDisableParamsEndpoint  = fs.Bool("imagor-disable-params-endpoint", false, "imagor disable /params endpoint")
+		imagorSignerType             = fs.String("imagor-signer-type", "sha1", "imagor URL signature hasher type: sha1, sha256, sha512")
+		imagorSignerTruncate         = fs.Int("imagor-signer-truncate", 0, "imagor URL signature truncate at length")
+		imagorStoragePathStyle       = fs.String("imagor-storage-path-style", "original", "imagor storage path style: original, digest")
+		imagorResultStoragePathStyle = fs.String("imagor-result-storage-path-style", "original", "imagor result storage path style: original, digest, suffix")
 
 		options, logger, isDebug = applyFuncs(fs, cb, append(funcs, baseConfig...)...)
 
-		alg = sha1.New
+		alg          = sha1.New
+		hasher       imagorpath.StorageHasher
+		resultHasher imagorpath.ResultStorageHasher
 	)
 
 	if strings.ToLower(*imagorSignerType) == "sha256" {
 		alg = sha256.New
 	} else if strings.ToLower(*imagorSignerType) == "sha512" {
 		alg = sha512.New
+	}
+
+	if strings.ToLower(*imagorStoragePathStyle) == "digest" {
+		hasher = imagorpath.DigestStorageHasher
+	}
+
+	if strings.ToLower(*imagorResultStoragePathStyle) == "digest" {
+		resultHasher = imagorpath.DigestResultStorageHasher
+	} else if strings.ToLower(*imagorResultStoragePathStyle) == "suffix" {
+		resultHasher = imagorpath.SuffixResultStorageHasher
 	}
 
 	return imagor.New(append(
@@ -94,6 +108,8 @@ func NewImagor(
 		imagor.WithModifiedTimeCheck(*imagorModifiedTimeCheck),
 		imagor.WithDisableErrorBody(*imagorDisableErrorBody),
 		imagor.WithDisableParamsEndpoint(*imagorDisableParamsEndpoint),
+		imagor.WithStoragePathStyle(hasher),
+		imagor.WithResultStoragePathStyle(resultHasher),
 		imagor.WithUnsafe(*imagorUnsafe),
 		imagor.WithLogger(logger),
 		imagor.WithDebug(isDebug),
@@ -108,7 +124,7 @@ func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
 		app    *imagor.Imagor
 
 		debug        = fs.Bool("debug", false, "Debug mode")
-		version      = fs.Bool("version", false, "Imagor version")
+		version      = fs.Bool("version", false, "imagor version")
 		port         = fs.Int("port", 8000, "Sever port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 

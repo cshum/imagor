@@ -300,6 +300,23 @@ services:
       - "8000:8000"
 ```
 
+#### Storage and Result Storage Path Style
+
+`Storage` and `Result Storage` path style enables additional hashing rules to the storage path when loading and saving images:
+
+`IMAGOR_STORAGE_PATH_STYLE=digest`
+
+* `foobar.jpg` becomes `e6/86/1a810ff186b4f747ef85f7c53946f0e6d8cb`
+
+`IMAGOR_RESULT_STORAGE_PATH_STYLE=digest`
+
+* `fit-in/16x17/foobar.jpg` becomes `61/4c/9ba1725e8cdd8263a4ad437c56b35f33deba`
+
+`IMAGOR_RESULT_STORAGE_PATH_STYLE=suffix`
+
+* `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e.jpg`
+* `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729`
+
 ### Security
 
 #### URL Signature
@@ -461,9 +478,13 @@ Usage of imagor:
   -imagor-base-params string
         imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
   -imagor-signer-type string
-        imagor URL signature hasher type sha1, sha256, sha512 (default "sha1")
+        imagor URL signature hasher type: sha1, sha256, sha512 (default "sha1")
   -imagor-signer-truncate int
         imagor URL signature truncate at length
+  -imagor-result-storage-path-style string
+        imagor result storage path style: original, digest, suffix (default "original")
+  -imagor-storage-path-style string
+        imagor storage path style: original, digest (default "original")
   -imagor-cache-header-ttl duration
         imagor HTTP cache header ttl for successful image response (default 168h0m0s)
   -imagor-cache-header-swr duration

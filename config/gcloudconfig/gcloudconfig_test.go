@@ -49,9 +49,6 @@ func TestGCSStorage(t *testing.T) {
 	srv := config.CreateServer([]string{
 		"-gcloud-safe-chars", "!",
 
-		"-gcloud-loader-bucket", "a",
-		"-gcloud-loader-base-dir", "foo",
-		"-gcloud-loader-path-prefix", "abcd",
 		"-gcloud-storage-bucket", "a",
 		"-gcloud-storage-base-dir", "foo",
 		"-gcloud-storage-path-prefix", "abcd",

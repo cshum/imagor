@@ -166,9 +166,19 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-func WithResultKey(resultKey ResultKey) Option {
+func WithResultStoragePathStyle(hasher imagorpath.ResultStorageHasher) Option {
 	return func(app *Imagor) {
-		app.ResultKey = resultKey
+		if hasher != nil {
+			app.ResultStoragePathStyle = hasher
+		}
+	}
+}
+
+func WithStoragePathStyle(hasher imagorpath.StorageHasher) Option {
+	return func(app *Imagor) {
+		if hasher != nil {
+			app.StoragePathStyle = hasher
+		}
 	}
 }
 

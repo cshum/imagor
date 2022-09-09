@@ -627,13 +627,19 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 	}
 }
 
+type storageKeyFunc func(img string) string
+
+func (fn storageKeyFunc) Hash(img string) string {
+	return fn(img)
+}
+
 type resultKeyFunc func(p imagorpath.Params) string
 
-func (fn resultKeyFunc) Generate(p imagorpath.Params) string {
+func (fn resultKeyFunc) HashResult(p imagorpath.Params) string {
 	return fn(p)
 }
 
-func TestWithResultKey(t *testing.T) {
+func TestWithResultStorageHasher(t *testing.T) {
 	store := newMapStore()
 	resultStore := newMapStore()
 	app := New(
@@ -643,7 +649,7 @@ func TestWithResultKey(t *testing.T) {
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromBytes([]byte(image)), nil
 		})),
-		WithResultKey(resultKeyFunc(func(p imagorpath.Params) string {
+		WithResultStoragePathStyle(resultKeyFunc(func(p imagorpath.Params) string {
 			if strings.Contains(p.Path, "bar") {
 				return ""
 			}
@@ -710,6 +716,64 @@ func TestWithResultKey(t *testing.T) {
 	assert.Equal(t, 1, store.SaveCnt["hi"])
 	assert.Equal(t, 1, len(resultStore.LoadCnt))
 	assert.Equal(t, 1, len(resultStore.SaveCnt))
+}
+
+func TestWithStorageHasher(t *testing.T) {
+	var loadCnt = map[string]int{}
+	store := newMapStore()
+	app := New(
+		WithDebug(true), WithLogger(zap.NewExample()),
+		WithStorages(store),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			loadCnt[image]++
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+		WithStoragePathStyle(storageKeyFunc(func(img string) string {
+			if img == "bar" {
+				return ""
+			}
+			return "storage:" + img
+		})),
+		WithUnsafe(true),
+		WithModifiedTimeCheck(true),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	assert.Equal(t, 1, store.LoadCnt["storage:foo"])
+	assert.Equal(t, 1, store.SaveCnt["storage:foo"])
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/bar", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "bar", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/bar", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "bar", w.Body.String())
+
+	assert.Equal(t, 0, store.LoadCnt["storage:bar"])
+	assert.Equal(t, 0, store.SaveCnt["storage:bar"])
+	assert.Equal(t, 1, len(store.LoadCnt))
+	assert.Equal(t, 1, len(store.SaveCnt))
+	assert.Equal(t, 1, loadCnt["foo"], 1)
+	assert.Equal(t, 2, loadCnt["bar"], 2)
 }
 
 func TestClientCancel(t *testing.T) {
