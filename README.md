@@ -302,26 +302,17 @@ services:
 
 #### Storage and Result Storage Path Style
 
-Path style enables additional hashing rules to the storage path for `Storage` and `Result Storage`:
+`Storage` and `Result Storage` path style enables additional hashing rules to the storage path when loading and saving images:
 
-`digest` storage path style:
-```yaml
-      IMAGOR_STORAGE_PATH_STYLE: digest
-```
+`IMAGOR_STORAGE_PATH_STYLE=digest`
 
 * `foobar.jpg` becomes `e6/86/1a810ff186b4f747ef85f7c53946f0e6d8cb`
 
-`digest` result storage path style:
-```yaml
-      IMAGOR_RESULT_STORAGE_PATH_STYLE: digest
-```
+`IMAGOR_RESULT_STORAGE_PATH_STYLE=digest`
 
 * `fit-in/16x17/foobar.jpg` becomes `61/4c/9ba1725e8cdd8263a4ad437c56b35f33deba`
 
-`suffix` result storage path style:
-```yaml
-      IMAGOR_RESULT_STORAGE_PATH_STYLE: suffix
-```
+`IMAGOR_RESULT_STORAGE_PATH_STYLE=suffix`
 
 * `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e.jpg`
 * `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729`
