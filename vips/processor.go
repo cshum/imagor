@@ -97,15 +97,13 @@ func (v *Processor) Startup(_ context.Context) error {
 				v.Logger.Debug(domain, zap.String("log", msg))
 			case LogLevelMessage, LogLevelInfo:
 				v.Logger.Info(domain, zap.String("log", msg))
-			case LogLevelWarning, LogLevelCritical:
+			case LogLevelWarning, LogLevelCritical, LogLevelError:
 				v.Logger.Warn(domain, zap.String("log", msg))
-			case LogLevelError:
-				v.Logger.Error(domain, zap.String("log", msg))
 			}
 		}, LogLevelDebug)
 	} else {
 		SetLogging(func(domain string, level LogLevel, msg string) {
-			v.Logger.Error(domain, zap.String("log", msg))
+			v.Logger.Warn(domain, zap.String("log", msg))
 		}, LogLevelError)
 	}
 	Startup(&config{
