@@ -60,12 +60,6 @@ func (v *Processor) Process(
 	if maxN == 0 || maxN < -1 {
 		maxN = 1
 	}
-	switch blob.BlobType() {
-	case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP:
-	default:
-		// only allow thumbnail for jpeg gif webp
-		thumbnailNotSupported = true
-	}
 	for _, p := range p.Filters {
 		switch p.Name {
 		case "format":
