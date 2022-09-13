@@ -6,7 +6,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -232,12 +231,7 @@ func newImageRef(vipsImage *C.VipsImage, format ImageType, buf []byte) *Image {
 		format: format,
 		buf:    buf,
 	}
-	runtime.SetFinalizer(imageRef, finalizeImage)
 	return imageRef
-}
-
-func finalizeImage(ref *Image) {
-	ref.Close()
 }
 
 // Close manually closes the image and frees the memory. Calling Close() is optional.

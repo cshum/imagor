@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/cshum/imagor/vips/pointer"
 	"io"
-	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -32,13 +31,7 @@ func NewSource(reader io.ReadCloser) *Source {
 		s.ptr = pointer.Save(s)
 		s.src = C.create_go_custom_source(s.ptr)
 	}
-
-	runtime.SetFinalizer(s, finalizeSource)
 	return s
-}
-
-func finalizeSource(src *Source) {
-	src.Close()
 }
 
 func (s *Source) Close() {
