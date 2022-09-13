@@ -206,6 +206,23 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.Empty(t, buf)
 }
 
+func TestNewBlobFromMemory(t *testing.T) {
+	b := NewEmptyBlob()
+	data, width, height, bands, ok := b.Memory()
+	assert.Empty(t, data)
+	assert.Empty(t, width)
+	assert.Empty(t, height)
+	assert.Empty(t, bands)
+	assert.False(t, ok)
+	b = NewBlobFromMemory([]byte{167, 169}, 2, 1, 1)
+	data, width, height, bands, ok = b.Memory()
+	assert.Equal(t, []byte{167, 169}, data)
+	assert.Equal(t, 2, width)
+	assert.Equal(t, 1, height)
+	assert.Equal(t, 1, bands)
+	assert.True(t, ok)
+}
+
 func TestNewJsonMarshalBlob(t *testing.T) {
 	b := NewBlobFromJsonMarshal(map[string]string{
 		"foo": "bar",
