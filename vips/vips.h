@@ -18,6 +18,8 @@ int image_new_from_buffer(const void *buf, size_t len, VipsImage **out);
 
 int image_new_from_buffer_with_option(const void *buf, size_t len, VipsImage **out, const char *option_string);
 
+int image_new_from_memory(const void *buf, size_t len, int width, int height, int bands, VipsImage **out);
+
 int thumbnail(const char *filename, VipsImage **out, int width, int height,
                     int crop, int size);
 int thumbnail_image(VipsImage *in, VipsImage **out, int width, int height,

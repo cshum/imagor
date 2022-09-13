@@ -136,7 +136,10 @@ func newImageFromBlob(
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
-	if filepath := blob.FilePath(); filepath != "" {
+	if blob.BlobType() == imagor.BlobTypeMemory {
+		buf, width, height, bands, _ := blob.Memory()
+		return LoadImageFromMemory(buf, width, height, bands)
+	} else if filepath := blob.FilePath(); filepath != "" {
 		if err := blob.Err(); err != nil {
 			return nil, err
 		}

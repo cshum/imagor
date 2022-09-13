@@ -43,6 +43,12 @@ int image_new_from_buffer(const void *buf, size_t len, VipsImage **out) {
   return 0;
 }
 
+int image_new_from_memory(const void *buf, size_t len, int width, int height, int bands, VipsImage **out) {
+  *out = vips_image_new_from_memory(buf, len, width, height, bands, VIPS_FORMAT_UCHAR);
+  if (!*out) return 1;
+  return 0;
+}
+
 int image_new_from_buffer_with_option(const void *buf, size_t len, VipsImage **out, const char *option_string) {
   *out = vips_image_new_from_buffer(buf, len, option_string, NULL);
   if (!*out) return 1;

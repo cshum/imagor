@@ -17,6 +17,7 @@ const maxMemorySize = int64(100 << 20) // 100MB
 const (
 	BlobTypeUnknown BlobType = iota
 	BlobTypeEmpty
+	BlobTypeMemory
 	BlobTypeJSON
 	BlobTypeJPEG
 	BlobTypePNG
@@ -37,10 +38,10 @@ type Blob struct {
 	buf           []byte
 	err           error
 	size          int64
-
-	blobType    BlobType
-	filepath    string
-	contentType string
+	blobType      BlobType
+	filepath      string
+	contentType   string
+	memory        *memory
 }
 
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
@@ -101,6 +102,15 @@ func NewBlobFromBytes(buf []byte) *Blob {
 	}
 }
 
+func NewBlobFromMemory(buf []byte, width, height, bands int) *Blob {
+	return &Blob{memory: &memory{
+		data:   buf,
+		width:  width,
+		height: height,
+		bands:  bands,
+	}}
+}
+
 func NewEmptyBlob() *Blob {
 	return &Blob{}
 }
@@ -140,6 +150,13 @@ type readSeekNopCloser struct {
 	io.ReadSeeker
 }
 
+type memory struct {
+	data   []byte
+	width  int
+	height int
+	bands  int
+}
+
 func (readSeekNopCloser) Close() error { return nil }
 
 func newEmptyReader() (io.ReadCloser, int64, error) {
@@ -152,7 +169,11 @@ func (b *Blob) init() {
 			return
 		}
 		if b.newReader == nil {
-			b.blobType = BlobTypeEmpty
+			if b.memory != nil {
+				b.blobType = BlobTypeMemory
+			} else {
+				b.blobType = BlobTypeEmpty
+			}
 			b.newReader = newEmptyReader
 			return
 		}
@@ -277,6 +298,17 @@ func (b *Blob) Size() int64 {
 
 func (b *Blob) FilePath() string {
 	return b.filepath
+}
+
+func (b *Blob) Memory() (data []byte, width, height, bands int, ok bool) {
+	if m := b.memory; m != nil {
+		data = m.data
+		width = m.width
+		height = m.height
+		bands = m.bands
+		ok = true
+	}
+	return
 }
 
 func (b *Blob) SetContentType(contentType string) {
