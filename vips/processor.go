@@ -97,15 +97,13 @@ func (v *Processor) Startup(_ context.Context) error {
 				v.Logger.Debug(domain, zap.String("log", msg))
 			case LogLevelMessage, LogLevelInfo:
 				v.Logger.Info(domain, zap.String("log", msg))
-			case LogLevelWarning, LogLevelCritical:
+			case LogLevelWarning, LogLevelCritical, LogLevelError:
 				v.Logger.Warn(domain, zap.String("log", msg))
-			case LogLevelError:
-				v.Logger.Error(domain, zap.String("log", msg))
 			}
 		}, LogLevelDebug)
 	} else {
 		SetLogging(func(domain string, level LogLevel, msg string) {
-			v.Logger.Error(domain, zap.String("log", msg))
+			v.Logger.Warn(domain, zap.String("log", msg))
 		}, LogLevelError)
 	}
 	Startup(&config{
@@ -217,9 +215,28 @@ func (v *Processor) NewThumbnail(
 			}
 		}
 	} else {
-		img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, nil)
+		switch blob.BlobType() {
+		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP:
+			// only allow real thumbnail for jpeg gif webp
+			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, nil)
+		default:
+			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size)
+		}
 	}
 	return v.CheckResolution(img, WrapErr(err))
+}
+
+func (v *Processor) newThumbnailFallback(
+	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size,
+) (img *Image, err error) {
+	if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, nil)); err != nil {
+		return
+	}
+	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
+		img.Close()
+		return
+	}
+	return img, WrapErr(err)
 }
 
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Image, error) {
