@@ -80,6 +80,23 @@ func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageT
 	return out, imageType, nil
 }
 
+// https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-buffer
+func vipsImageFromMemory(buf []byte, width, height, bands int) (*C.VipsImage, ImageType, error) {
+	src := buf
+	// Reference src here so it's not garbage collected during image initialization.
+	defer runtime.KeepAlive(src)
+
+	var out *C.VipsImage
+	var code C.int
+	code = C.image_new_from_memory(unsafe.Pointer(&src[0]), C.size_t(len(src)), C.int(width), C.int(height), C.int(bands), &out)
+	if code != 0 {
+		return nil, ImageTypeUnknown, handleImageError(out)
+	}
+
+	imageType := vipsDetermineImageTypeFromMetaLoader(out)
+	return out, imageType, nil
+}
+
 // https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail-source
 func vipsThumbnailFromSource(
 	src *C.VipsSourceCustom, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {

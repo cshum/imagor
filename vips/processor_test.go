@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -200,6 +201,13 @@ func TestProcessor(t *testing.T) {
 			{name: "max-filter-ops exceeded no ops", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif"},
 		}, WithDebug(true), WithMaxFilterOps(1))
 	})
+	t.Run("image from memory", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/memory")
+		doGoldenTests(t, resultDir, []test{
+			{name: "memory", path: "filters:format(png)/memory-test.png"},
+			{name: "memory resize", path: "30x0/filters:format(png)/memory-test.png"},
+		}, WithDebug(true), WithMaxAnimationFrames(-167))
+	})
 	t.Run("unsupported", func(t *testing.T) {
 		loader := filestorage.New(testDataDir + "/../")
 		app := imagor.New(
@@ -279,7 +287,16 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 	}
 	for i, loader := range loaders {
 		app := imagor.New(
-			imagor.WithLoaders(loader),
+			imagor.WithLoaders(loader, loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
+				if strings.HasPrefix(image, "memory-test") {
+					return imagor.NewBlobFromMemory([]byte{
+						255, 0, 0,
+						0, 255, 0,
+						0, 0, 255,
+					}, 3, 1, 3), nil
+				}
+				return nil, imagor.ErrNotFound
+			})),
 			imagor.WithUnsafe(true),
 			imagor.WithDebug(true),
 			imagor.WithLogger(zap.NewExample()),
