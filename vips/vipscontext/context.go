@@ -2,30 +2,24 @@ package vipscontext
 
 import (
 	"context"
-	"sync"
 )
 
 type contextRefKey struct{}
 
 type contextRef struct {
-	l        sync.Mutex
 	cbs      []func()
 	Rotate90 bool
 }
 
 func (r *contextRef) Defer(cb func()) {
-	r.l.Lock()
 	r.cbs = append(r.cbs, cb)
-	r.l.Unlock()
 }
 
 func (r *contextRef) Done() {
-	r.l.Lock()
 	for _, cb := range r.cbs {
 		cb()
 	}
 	r.cbs = nil
-	r.l.Unlock()
 }
 
 // WithContext with callback tracking
