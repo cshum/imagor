@@ -31,6 +31,8 @@ var imageTypeMap = map[string]ImageType{
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
+	ctx = vipscontext.WithContext(ctx)
+	defer vipscontext.Done(ctx)
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
@@ -43,14 +45,6 @@ func (v *Processor) Process(
 		focalRects            []focal
 		err                   error
 	)
-	ctx = vipscontext.WithContext(ctx, 2)
-	go func() {
-		// when ctx signaled
-		<-ctx.Done()
-		vipscontext.Done(ctx)
-	}()
-	// when vips process finished
-	defer vipscontext.Done(ctx)
 	if p.Trim {
 		thumbnailNotSupported = true
 	}

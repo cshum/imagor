@@ -9,7 +9,6 @@ type contextRefKey struct{}
 
 type contextRef struct {
 	l        sync.Mutex
-	cnt      int
 	cbs      []func()
 	Rotate90 bool
 }
@@ -22,33 +21,26 @@ func (r *contextRef) Defer(cb func()) {
 
 func (r *contextRef) Done() {
 	r.l.Lock()
-	r.cnt--
-	if r.cnt == 0 {
-		for _, cb := range r.cbs {
-			cb()
-		}
-		r.cbs = nil
+	for _, cb := range r.cbs {
+		cb()
 	}
+	r.cbs = nil
 	r.l.Unlock()
 }
 
 // WithContext with callback tracking
-func WithContext(ctx context.Context, cnt int) context.Context {
-	return context.WithValue(ctx, contextRefKey{}, &contextRef{cnt: cnt})
+func WithContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, contextRefKey{}, &contextRef{})
 }
 
 // Defer context add func for callback tracking for callback gc
 func Defer(ctx context.Context, cb func()) {
-	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
-		r.Defer(cb)
-	}
+	ctx.Value(contextRefKey{}).(*contextRef).Defer(cb)
 }
 
 // Done closes all image refs that are being tracked through the context
 func Done(ctx context.Context) {
-	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
-		r.Done()
-	}
+	ctx.Value(contextRefKey{}).(*contextRef).Done()
 }
 
 func SetRotate90(ctx context.Context) {
