@@ -187,7 +187,7 @@ func (v *Processor) Process(
 			}
 		}
 	}
-	vipscontext.Defer(ctx, img.Close)
+	defer img.Close()
 	var (
 		quality    int
 		origWidth  = float64(img.Width())
