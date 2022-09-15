@@ -187,6 +187,7 @@ func (v *Processor) Process(
 			}
 		}
 	}
+	// this should be called BEFORE vipscontext.Done
 	defer img.Close()
 	var (
 		quality    int
