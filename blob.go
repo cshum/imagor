@@ -216,7 +216,6 @@ func (b *Blob) init() {
 			b.blobType = BlobTypeEmpty
 		}
 		if err != nil &&
-			err != io.ErrShortBuffer &&
 			err != io.ErrUnexpectedEOF &&
 			err != io.EOF {
 			if b.err == nil {
