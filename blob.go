@@ -33,7 +33,7 @@ type Blob struct {
 	newReadSeeker func() (rs io.ReadSeekCloser, size int64, err error)
 	fanout        bool
 	once          sync.Once
-	buf           []byte
+	sniffBuf      []byte
 	err           error
 	size          int64
 	blobType      BlobType
@@ -208,9 +208,9 @@ func (b *Blob) init() {
 		}
 		bufReader := bufio.NewReader(reader)
 		// peek first 512 bytes for type sniffing
-		b.buf, err = bufReader.Peek(512)
+		b.sniffBuf, err = bufReader.Peek(512)
 		_ = reader.Close()
-		if len(b.buf) == 0 {
+		if len(b.sniffBuf) == 0 {
 			b.blobType = BlobTypeEmpty
 		}
 		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
@@ -220,22 +220,22 @@ func (b *Blob) init() {
 			return
 		}
 		if b.blobType != BlobTypeEmpty && b.blobType != BlobTypeJSON &&
-			len(b.buf) > 24 {
-			if bytes.Equal(b.buf[:3], jpegHeader) {
+			len(b.sniffBuf) > 24 {
+			if bytes.Equal(b.sniffBuf[:3], jpegHeader) {
 				b.blobType = BlobTypeJPEG
-			} else if bytes.Equal(b.buf[:4], pngHeader) {
+			} else if bytes.Equal(b.sniffBuf[:4], pngHeader) {
 				b.blobType = BlobTypePNG
-			} else if bytes.Equal(b.buf[:3], gifHeader) {
+			} else if bytes.Equal(b.sniffBuf[:3], gifHeader) {
 				b.blobType = BlobTypeGIF
-			} else if bytes.Equal(b.buf[8:12], webpHeader) {
+			} else if bytes.Equal(b.sniffBuf[8:12], webpHeader) {
 				b.blobType = BlobTypeWEBP
-			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
+			} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], avif) {
 				b.blobType = BlobTypeAVIF
-			} else if bytes.Equal(b.buf[4:8], ftyp) && (bytes.Equal(b.buf[8:12], heic) ||
-				bytes.Equal(b.buf[8:12], mif1) ||
-				bytes.Equal(b.buf[8:12], msf1)) {
+			} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && (bytes.Equal(b.sniffBuf[8:12], heic) ||
+				bytes.Equal(b.sniffBuf[8:12], mif1) ||
+				bytes.Equal(b.sniffBuf[8:12], msf1)) {
 				b.blobType = BlobTypeHEIF
-			} else if bytes.Equal(b.buf[:4], tifII) || bytes.Equal(b.buf[:4], tifMM) {
+			} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 				b.blobType = BlobTypeTIFF
 			}
 		}
@@ -258,7 +258,7 @@ func (b *Blob) init() {
 			case BlobTypeTIFF:
 				b.contentType = "image/tiff"
 			default:
-				b.contentType = http.DetectContentType(b.buf)
+				b.contentType = http.DetectContentType(b.sniffBuf)
 			}
 		}
 	})
@@ -281,7 +281,7 @@ func (b *Blob) BlobType() BlobType {
 
 func (b *Blob) Sniff() []byte {
 	b.init()
-	return b.buf
+	return b.sniffBuf
 }
 
 func (b *Blob) Size() int64 {
