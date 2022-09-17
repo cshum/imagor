@@ -230,8 +230,8 @@ func TestNewJsonMarshalBlob(t *testing.T) {
 	b := NewBlobFromJsonMarshal(map[string]string{
 		"foo": "bar",
 	})
-	assert.Equal(t, b.BlobType(), BlobTypeJSON)
-	assert.Equal(t, b.ContentType(), "application/json")
+	assert.Equal(t, BlobTypeJSON, b.BlobType())
+	assert.Equal(t, "application/json", b.ContentType())
 	assert.Equal(t, `{"foo":"bar"}`, string(b.Sniff()))
 	buf, _ := b.ReadAll()
 	assert.Equal(t, `{"foo":"bar"}`, string(buf))

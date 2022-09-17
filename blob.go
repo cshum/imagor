@@ -1,7 +1,6 @@
 package imagor
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -31,11 +30,9 @@ const (
 type Blob struct {
 	newReader     func() (r io.ReadCloser, size int64, err error)
 	newReadSeeker func() (rs io.ReadSeekCloser, size int64, err error)
-	peekReader    *peekReadCloser
 	fanout        bool
 	once          sync.Once
-	onceReader    sync.Once
-	buf           []byte
+	sniffBuf      []byte
 	err           error
 	size          int64
 	blobType      BlobType
@@ -130,11 +127,6 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
-type peekReadCloser struct {
-	*bufio.Reader
-	io.Closer
-}
-
 type readSeekCloser struct {
 	io.Reader
 	io.Seeker
@@ -150,14 +142,14 @@ type readSeekNopCloser struct {
 	io.ReadSeeker
 }
 
+func (readSeekNopCloser) Close() error { return nil }
+
 type memory struct {
 	data   []byte
 	width  int
 	height int
 	bands  int
 }
-
-func (readSeekNopCloser) Close() error { return nil }
 
 func newEmptyReader() (io.ReadCloser, int64, error) {
 	return &readSeekNopCloser{bytes.NewReader(nil)}, 0, nil
@@ -210,39 +202,44 @@ func (b *Blob) init() {
 					return &readSeekCloser{Reader: r, Seeker: s, Closer: c}, size, nil
 				}
 			}
+		} else {
+			b.fanout = false
 		}
-		b.peekReader = &peekReadCloser{
-			Reader: bufio.NewReader(reader),
-			Closer: reader,
+		// sniff first 512 bytes for type sniffing
+		b.sniffBuf = make([]byte, 512)
+		n, err := io.ReadAtLeast(reader, b.sniffBuf, 512)
+		_ = reader.Close()
+		if n < 512 {
+			b.sniffBuf = b.sniffBuf[:n]
 		}
-		// peek first 512 bytes for type sniffing
-		b.buf, err = b.peekReader.Peek(512)
-		if len(b.buf) == 0 {
+		if len(b.sniffBuf) == 0 {
 			b.blobType = BlobTypeEmpty
 		}
-		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
+		if err != nil &&
+			err != io.ErrUnexpectedEOF &&
+			err != io.EOF {
 			if b.err == nil {
 				b.err = err
 			}
 			return
 		}
 		if b.blobType != BlobTypeEmpty && b.blobType != BlobTypeJSON &&
-			len(b.buf) > 24 {
-			if bytes.Equal(b.buf[:3], jpegHeader) {
+			len(b.sniffBuf) > 24 {
+			if bytes.Equal(b.sniffBuf[:3], jpegHeader) {
 				b.blobType = BlobTypeJPEG
-			} else if bytes.Equal(b.buf[:4], pngHeader) {
+			} else if bytes.Equal(b.sniffBuf[:4], pngHeader) {
 				b.blobType = BlobTypePNG
-			} else if bytes.Equal(b.buf[:3], gifHeader) {
+			} else if bytes.Equal(b.sniffBuf[:3], gifHeader) {
 				b.blobType = BlobTypeGIF
-			} else if bytes.Equal(b.buf[8:12], webpHeader) {
+			} else if bytes.Equal(b.sniffBuf[8:12], webpHeader) {
 				b.blobType = BlobTypeWEBP
-			} else if bytes.Equal(b.buf[4:8], ftyp) && bytes.Equal(b.buf[8:12], avif) {
+			} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], avif) {
 				b.blobType = BlobTypeAVIF
-			} else if bytes.Equal(b.buf[4:8], ftyp) && (bytes.Equal(b.buf[8:12], heic) ||
-				bytes.Equal(b.buf[8:12], mif1) ||
-				bytes.Equal(b.buf[8:12], msf1)) {
+			} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && (bytes.Equal(b.sniffBuf[8:12], heic) ||
+				bytes.Equal(b.sniffBuf[8:12], mif1) ||
+				bytes.Equal(b.sniffBuf[8:12], msf1)) {
 				b.blobType = BlobTypeHEIF
-			} else if bytes.Equal(b.buf[:4], tifII) || bytes.Equal(b.buf[:4], tifMM) {
+			} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 				b.blobType = BlobTypeTIFF
 			}
 		}
@@ -265,7 +262,7 @@ func (b *Blob) init() {
 			case BlobTypeTIFF:
 				b.contentType = "image/tiff"
 			default:
-				b.contentType = http.DetectContentType(b.buf)
+				b.contentType = http.DetectContentType(b.sniffBuf)
 			}
 		}
 	})
@@ -288,7 +285,7 @@ func (b *Blob) BlobType() BlobType {
 
 func (b *Blob) Sniff() []byte {
 	b.init()
-	return b.buf
+	return b.sniffBuf
 }
 
 func (b *Blob) Size() int64 {
@@ -322,20 +319,7 @@ func (b *Blob) ContentType() string {
 
 func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	b.init()
-	b.onceReader.Do(func() {
-		if b.err != nil {
-			err = b.err
-		}
-		if b.peekReader != nil {
-			reader = b.peekReader
-			size = b.size
-			b.peekReader = nil
-		}
-	})
-	if reader == nil && err == nil {
-		reader, size, err = b.newReader()
-	}
-	return
+	return b.newReader()
 }
 
 // NewReadSeeker create read seeker if reader supports seek, or attempts to simulate seek using memory buffer
