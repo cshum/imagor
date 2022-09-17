@@ -279,7 +279,7 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 		loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
 			image, _ = loader.Path(image)
 			return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
-				// force vips not to load from file
+				// unknown size
 				reader, err = os.Open(image)
 				return
 			}), nil
@@ -331,7 +331,7 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				if reflect.DeepEqual(buf, w.Body.Bytes()) {
 					return
 				}
-				img1, err := LoadImageFromFile(path, nil)
+				img1, err := LoadImageFromBuffer(buf, nil)
 				require.NoError(t, err)
 				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
 				require.NoError(t, err)
