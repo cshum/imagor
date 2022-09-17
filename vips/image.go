@@ -144,24 +144,6 @@ func LoadThumbnailFromSource(s *Source, width, height int, crop Interesting, siz
 	return ref, nil
 }
 
-// LoadImageFromFile loads an image from file and creates a new Image
-func LoadImageFromFile(file string, params *ImportParams) (*Image, error) {
-	startupIfNeeded()
-
-	if params == nil {
-		params = NewImportParams()
-	}
-
-	vipsImage, format, err := vipsImageFromFile(file, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, nil)
-	log("vips", LogLevelDebug, fmt.Sprintf("creating imageRef from file %s", file))
-	return ref, nil
-}
-
 // LoadImageFromBuffer loads an image buffer and creates a new Image
 func LoadImageFromBuffer(buf []byte, params *ImportParams) (*Image, error) {
 	startupIfNeeded()

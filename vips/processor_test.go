@@ -331,7 +331,7 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 				if reflect.DeepEqual(buf, w.Body.Bytes()) {
 					return
 				}
-				img1, err := LoadImageFromFile(path, nil)
+				img1, err := LoadImageFromBuffer(buf, nil)
 				require.NoError(t, err)
 				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
 				require.NoError(t, err)

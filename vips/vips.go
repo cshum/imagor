@@ -34,24 +34,6 @@ func vipsImageFromSource(
 	return out, imageType, nil
 }
 
-// https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-file
-func vipsImageFromFile(filename string, params *ImportParams) (*C.VipsImage, ImageType, error) {
-	var out *C.VipsImage
-	filenameOption := filename
-	if params != nil {
-		filenameOption += "[" + params.OptionString() + "]"
-	}
-	cFileName := C.CString(filenameOption)
-	defer freeCString(cFileName)
-
-	if code := C.image_new_from_file(cFileName, &out); code != 0 {
-		return nil, ImageTypeUnknown, handleImageError(out)
-	}
-
-	imageType := vipsDetermineImageTypeFromMetaLoader(out)
-	return out, imageType, nil
-}
-
 // https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-buffer
 func vipsImageFromBuffer(buf []byte, params *ImportParams) (*C.VipsImage, ImageType, error) {
 	src := buf
