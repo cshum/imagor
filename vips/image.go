@@ -196,25 +196,6 @@ func LoadImageFromMemory(buf []byte, width, height, bands int) (*Image, error) {
 	return ref, nil
 }
 
-// LoadThumbnailFromFile loads an image from file and creates a new Image with thumbnail crop and size
-func LoadThumbnailFromFile(file string, width, height int, crop Interesting, size Size, params *ImportParams) (*Image, error) {
-	startupIfNeeded()
-
-	if params == nil {
-		params = NewImportParams()
-	}
-
-	vipsImage, format, err := vipsThumbnailFromFile(file, width, height, crop, size, params)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := newImageRef(vipsImage, format, nil)
-
-	log("vips", LogLevelDebug, fmt.Sprintf("created imageref %p", ref))
-	return ref, nil
-}
-
 // Copy creates a new copy of the given image.
 func (r *Image) Copy() (*Image, error) {
 	out, err := vipsCopyImage(r.image)
