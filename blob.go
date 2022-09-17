@@ -142,14 +142,14 @@ type readSeekNopCloser struct {
 	io.ReadSeeker
 }
 
+func (readSeekNopCloser) Close() error { return nil }
+
 type memory struct {
 	data   []byte
 	width  int
 	height int
 	bands  int
 }
-
-func (readSeekNopCloser) Close() error { return nil }
 
 func newEmptyReader() (io.ReadCloser, int64, error) {
 	return &readSeekNopCloser{bytes.NewReader(nil)}, 0, nil
