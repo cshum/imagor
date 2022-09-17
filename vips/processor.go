@@ -137,11 +137,6 @@ func newImageFromBlob(
 	if blob.BlobType() == imagor.BlobTypeMemory {
 		buf, width, height, bands, _ := blob.Memory()
 		return LoadImageFromMemory(buf, width, height, bands)
-	} else if filepath := blob.FilePath(); filepath != "" {
-		if err := blob.Err(); err != nil {
-			return nil, err
-		}
-		return LoadImageFromFile(filepath, params)
 	} else {
 		reader, _, err := blob.NewReader()
 		if err != nil {
@@ -160,20 +155,13 @@ func newThumbnailFromBlob(
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
-	if filepath := blob.FilePath(); filepath != "" {
-		if err := blob.Err(); err != nil {
-			return nil, err
-		}
-		return LoadThumbnailFromFile(filepath, width, height, crop, size, params)
-	} else {
-		reader, _, err := blob.NewReader()
-		if err != nil {
-			return nil, err
-		}
-		src := NewSource(reader)
-		vipscontext.Defer(ctx, src.Close)
-		return src.LoadThumbnail(width, height, crop, size, params)
+	reader, _, err := blob.NewReader()
+	if err != nil {
+		return nil, err
 	}
+	src := NewSource(reader)
+	vipscontext.Defer(ctx, src.Close)
+	return src.LoadThumbnail(width, height, crop, size, params)
 }
 
 func (v *Processor) NewThumbnail(

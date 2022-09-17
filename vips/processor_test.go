@@ -9,11 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -274,79 +272,64 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 	loader := filestorage.New(testDataDir)
 	processor := NewProcessor(opts...)
 
-	loaders := []imagor.Loader{
-		loader,
-		loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
-			image, _ = loader.Path(image)
-			return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
-				// force vips not to load from file
-				reader, err = os.Open(image)
+	app := imagor.New(
+		imagor.WithLoaders(loader, loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
+			if strings.HasPrefix(image, "memory-test") {
+				return imagor.NewBlobFromMemory([]byte{
+					255, 0, 0,
+					0, 255, 0,
+					0, 0, 255,
+				}, 3, 1, 3), nil
+			}
+			return nil, imagor.ErrNotFound
+		})),
+		imagor.WithUnsafe(true),
+		imagor.WithDebug(true),
+		imagor.WithLogger(zap.NewExample()),
+		imagor.WithProcessors(processor),
+	)
+	require.NoError(t, app.Startup(context.Background()))
+	t.Cleanup(func() {
+		assert.NoError(t, app.Shutdown(context.Background()))
+	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			ctx, cancel := context.WithCancel(context.Background())
+			req := httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil).WithContext(ctx)
+			app.ServeHTTP(w, req)
+			cancel()
+			assert.Equal(t, 200, w.Code)
+			b := imagor.NewBlobFromBytes(w.Body.Bytes())
+			_ = resStorage.Put(context.Background(), tt.path, b)
+			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
+
+			bc := imagor.NewBlobFromFile(path)
+			buf, err := bc.ReadAll()
+			require.NoError(t, err)
+			if tt.checkTypeOnly {
+				require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
+				assert.Equal(t, bc.ContentType(), b.ContentType())
+				assert.Equal(t, bc.BlobType(), b.BlobType())
 				return
-			}), nil
-		}),
-	}
-	for i, loader := range loaders {
-		app := imagor.New(
-			imagor.WithLoaders(loader, loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
-				if strings.HasPrefix(image, "memory-test") {
-					return imagor.NewBlobFromMemory([]byte{
-						255, 0, 0,
-						0, 255, 0,
-						0, 0, 255,
-					}, 3, 1, 3), nil
-				}
-				return nil, imagor.ErrNotFound
-			})),
-			imagor.WithUnsafe(true),
-			imagor.WithDebug(true),
-			imagor.WithLogger(zap.NewExample()),
-			imagor.WithProcessors(processor),
-		)
-		require.NoError(t, app.Startup(context.Background()))
-		t.Cleanup(func() {
-			assert.NoError(t, app.Shutdown(context.Background()))
+			}
+			if reflect.DeepEqual(buf, w.Body.Bytes()) {
+				return
+			}
+			img1, err := LoadImageFromFile(path, nil)
+			require.NoError(t, err)
+			img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
+			require.NoError(t, err)
+			require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
+			require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
+			buf1, err := img1.ExportWebp(nil)
+			require.NoError(t, err)
+			buf2, err := img2.ExportWebp(nil)
+			require.NoError(t, err)
+			require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
 		})
-		for _, tt := range tests {
-			t.Run(fmt.Sprintf("%s-%d", tt.name, i+1), func(t *testing.T) {
-				w := httptest.NewRecorder()
-				ctx, cancel := context.WithCancel(context.Background())
-				req := httptest.NewRequest(
-					http.MethodGet, fmt.Sprintf("/unsafe/%s", tt.path), nil).WithContext(ctx)
-				app.ServeHTTP(w, req)
-				cancel()
-				assert.Equal(t, 200, w.Code)
-				b := imagor.NewBlobFromBytes(w.Body.Bytes())
-				_ = resStorage.Put(context.Background(), tt.path, b)
-				path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
-
-				bc := imagor.NewBlobFromFile(path)
-				buf, err := bc.ReadAll()
-				require.NoError(t, err)
-				if tt.checkTypeOnly {
-					require.NotEqual(t, imagor.BlobTypeUnknown, b.BlobType())
-					assert.Equal(t, bc.ContentType(), b.ContentType())
-					assert.Equal(t, bc.BlobType(), b.BlobType())
-					return
-				}
-				if reflect.DeepEqual(buf, w.Body.Bytes()) {
-					return
-				}
-				img1, err := LoadImageFromFile(path, nil)
-				require.NoError(t, err)
-				img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
-				require.NoError(t, err)
-				require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
-				require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
-				buf1, err := img1.ExportWebp(nil)
-				require.NoError(t, err)
-				buf2, err := img2.ExportWebp(nil)
-				require.NoError(t, err)
-				require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
-			})
-		}
-
 	}
-
 }
 
 type loaderFunc func(r *http.Request, image string) (blob *imagor.Blob, err error)
