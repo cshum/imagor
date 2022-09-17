@@ -38,17 +38,17 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 					err = e
 				}
 			}
+			consumersCopy := consumers
+			closedCopy := closed
 			lock.Unlock()
-			lock.RLock()
-			for i, ch := range consumers {
-				if !closed[i] {
+			for i, ch := range consumersCopy {
+				if !closedCopy[i] {
 					ch <- bn
 				}
 			}
 			if curr >= size {
 				close(done)
 			}
-			lock.RUnlock()
 			if e != nil || curr >= size {
 				return
 			}
@@ -113,14 +113,14 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 
 			lock.RLock()
 			e = err
-			s := size
-			c := closed[i]
+			sizeCopy := size
+			closedCopy := closed[i]
 			lock.RUnlock()
 
-			if cnt >= s {
+			if cnt >= sizeCopy {
 				return 0, io.EOF
 			}
-			if c {
+			if closedCopy {
 				return 0, io.ErrClosedPipe
 			}
 			if e != nil {
@@ -133,7 +133,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			n = copy(p, b)
 			b = b[n:]
 			cnt += n
-			if cnt >= s {
+			if cnt >= sizeCopy {
 				_ = closeCh(false)
 				e = io.EOF
 			}
