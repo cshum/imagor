@@ -1,7 +1,6 @@
 package imagor
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -206,14 +205,20 @@ func (b *Blob) init() {
 		} else {
 			b.fanout = false
 		}
-		bufReader := bufio.NewReader(reader)
-		// peek first 512 bytes for type sniffing
-		b.sniffBuf, err = bufReader.Peek(512)
+		// sniff first 512 bytes for type sniffing
+		b.sniffBuf = make([]byte, 512)
+		n, err := io.ReadAtLeast(reader, b.sniffBuf, 512)
 		_ = reader.Close()
+		if n < 512 {
+			b.sniffBuf = b.sniffBuf[:n]
+		}
 		if len(b.sniffBuf) == 0 {
 			b.blobType = BlobTypeEmpty
 		}
-		if err != nil && err != bufio.ErrBufferFull && err != io.EOF {
+		if err != nil &&
+			err != io.ErrShortBuffer &&
+			err != io.ErrUnexpectedEOF &&
+			err != io.EOF {
 			if b.err == nil {
 				b.err = err
 			}
