@@ -31,10 +31,8 @@ const (
 type Blob struct {
 	newReader     func() (r io.ReadCloser, size int64, err error)
 	newReadSeeker func() (rs io.ReadSeekCloser, size int64, err error)
-	peekReader    *peekReadCloser
 	fanout        bool
 	once          sync.Once
-	onceReader    sync.Once
 	buf           []byte
 	err           error
 	size          int64
@@ -130,11 +128,6 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
-type peekReadCloser struct {
-	*bufio.Reader
-	io.Closer
-}
-
 type readSeekCloser struct {
 	io.Reader
 	io.Seeker
@@ -210,13 +203,13 @@ func (b *Blob) init() {
 					return &readSeekCloser{Reader: r, Seeker: s, Closer: c}, size, nil
 				}
 			}
+		} else {
+			b.fanout = false
 		}
-		b.peekReader = &peekReadCloser{
-			Reader: bufio.NewReader(reader),
-			Closer: reader,
-		}
+		bufReader := bufio.NewReader(reader)
 		// peek first 512 bytes for type sniffing
-		b.buf, err = b.peekReader.Peek(512)
+		b.buf, err = bufReader.Peek(512)
+		_ = reader.Close()
 		if len(b.buf) == 0 {
 			b.blobType = BlobTypeEmpty
 		}
@@ -322,20 +315,7 @@ func (b *Blob) ContentType() string {
 
 func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	b.init()
-	b.onceReader.Do(func() {
-		if b.err != nil {
-			err = b.err
-		}
-		if b.peekReader != nil {
-			reader = b.peekReader
-			size = b.size
-			b.peekReader = nil
-		}
-	})
-	if reader == nil && err == nil {
-		reader, size, err = b.newReader()
-	}
-	return
+	return b.newReader()
 }
 
 // NewReadSeeker create read seeker if reader supports seek, or attempts to simulate seek using memory buffer
