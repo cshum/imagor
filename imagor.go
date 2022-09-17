@@ -345,11 +345,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				break
 			}
 		}
-		cb(blob, err)
 		if shouldSave {
-			// make sure storage saved before result storage
+			// make sure storage saved before response and result storage
 			<-doneSave
 		}
+		cb(blob, err)
+		ctx = DetachContext(ctx)
 		if err == nil && !isBlobEmpty(blob) && resultKey != "" &&
 			len(app.ResultStorages) > 0 {
 			app.save(ctx, app.ResultStorages, resultKey, blob)
@@ -467,7 +468,6 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 	if key == "" {
 		return
 	}
-	ctx = DetachContext(ctx)
 	if app.SaveTimeout > 0 {
 		var cancel func()
 		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
