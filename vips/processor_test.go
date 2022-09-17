@@ -9,9 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -269,9 +271,17 @@ func TestProcessor(t *testing.T) {
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 	resStorage := filestorage.New(resultDir,
 		filestorage.WithSaveErrIfExists(true))
-	loader := filestorage.New(testDataDir)
+	fileLoader := filestorage.New(testDataDir)
 	processor := NewProcessor(opts...)
 
+	loader := loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
+		image, _ = fileLoader.Path(image)
+		return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+			// unknown size to force enable seek
+			reader, err = os.Open(image)
+			return
+		}), nil
+	})
 	app := imagor.New(
 		imagor.WithLoaders(loader, loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
 			if strings.HasPrefix(image, "memory-test") {
