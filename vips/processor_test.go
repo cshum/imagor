@@ -43,7 +43,6 @@ func TestProcessor(t *testing.T) {
 		fmt.Println(stats)
 		require.NoError(t, v.Shutdown(context.Background()))
 	})
-	t.Parallel()
 	t.Run("vips basic", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{
