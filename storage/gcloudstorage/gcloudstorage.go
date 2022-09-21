@@ -81,20 +81,20 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 	if err != nil {
 		return err
 	}
-
 	objectHandle := s.client.Bucket(s.Bucket).Object(image)
 	writer := objectHandle.NewWriter(ctx)
 	defer func() {
+		_ = reader.Close()
 		_ = writer.Close()
 	}()
 	if s.ACL != "" {
 		writer.PredefinedACL = s.ACL
 	}
 	writer.ContentType = blob.ContentType()
-	if _, err := io.Copy(writer, reader); err != nil {
+	if _, err = io.Copy(writer, reader); err != nil {
 		return err
 	}
-	return writer.Close()
+	return
 }
 
 func (s *GCloudStorage) Delete(ctx context.Context, image string) error {
