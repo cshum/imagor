@@ -38,6 +38,7 @@ func (v *Processor) Process(
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
+		stripExif             bool
 		img                   *Image
 		format                = ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
@@ -90,6 +91,9 @@ func (v *Processor) Process(
 			break
 		case "trim":
 			thumbnailNotSupported = true
+			break
+		case "strip_exif":
+			stripExif = true
 			break
 		}
 	}
@@ -241,7 +245,7 @@ func (v *Processor) Process(
 	}
 	if p.Meta {
 		// metadata without export
-		return imagor.NewBlobFromJsonMarshal(metadata(img, format)), nil
+		return imagor.NewBlobFromJsonMarshal(metadata(img, format, stripExif)), nil
 	}
 	for {
 		buf, err := v.export(img, format, quality)
@@ -462,11 +466,15 @@ type Metadata struct {
 	Exif        map[string]any `json:"exif"`
 }
 
-func metadata(img *Image, format ImageType) *Metadata {
+func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
 	format = supportedFormat(format)
 	pages := img.Height() / img.PageHeight()
 	if !IsAnimationSupported(format) {
 		pages = 1
+	}
+	exif := map[string]any{}
+	if !stripExif {
+		exif = img.Exif()
 	}
 	return &Metadata{
 		Format:      ImageTypes[format],
@@ -475,7 +483,7 @@ func metadata(img *Image, format ImageType) *Metadata {
 		Height:      img.PageHeight(),
 		Pages:       pages,
 		Orientation: img.Orientation(),
-		Exif:        img.Exif(),
+		Exif:        exif,
 	}
 }
 

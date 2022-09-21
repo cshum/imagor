@@ -161,6 +161,7 @@ func TestProcessor(t *testing.T) {
 			{name: "label float", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,-0.15,0.1,30,red,30)/gopher-front.png"},
 			{name: "label animated", path: "fit-in/150x200/10x00:10x50/filters:fill(yellow):label(IMAGOR,center,-30,25,black)/dancing-banana.gif"},
 			{name: "label animated with font", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):label(IMAGOR,center,-30,25,white,0,monospace)/dancing-banana.gif"},
+			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("max frames", func(t *testing.T) {
