@@ -34,6 +34,8 @@ type Processor struct {
 	MaxAnimationFrames int
 	MozJPEG            bool
 	Debug              bool
+
+	disableFilters map[string]bool
 }
 
 func NewProcessor(options ...Option) *Processor {
@@ -45,6 +47,7 @@ func NewProcessor(options ...Option) *Processor {
 		MaxFilterOps:       -1,
 		MaxAnimationFrames: -1,
 		Logger:             zap.NewNop(),
+		disableFilters:     map[string]bool{},
 	}
 	v.Filters = FilterMap{
 		"watermark":        v.watermark,
@@ -75,7 +78,7 @@ func NewProcessor(options ...Option) *Processor {
 		v.DisableFilters = append(v.DisableFilters, "blur", "sharpen")
 	}
 	for _, name := range v.DisableFilters {
-		delete(v.Filters, name)
+		v.disableFilters[name] = true
 	}
 	if v.Concurrency == -1 {
 		v.Concurrency = runtime.NumCPU()
