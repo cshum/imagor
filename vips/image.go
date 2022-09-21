@@ -470,9 +470,17 @@ func (r *Image) RemoveICCProfile() error {
 	if err != nil {
 		return err
 	}
-
 	vipsRemoveICCProfile(out)
+	r.setImage(out)
+	return nil
+}
 
+// RemoveExif removes Exif metadata from the image.
+func (r *Image) RemoveExif() error {
+	out, err := vipsRemoveExif(r.image)
+	if err != nil {
+		return err
+	}
 	r.setImage(out)
 	return nil
 }

@@ -562,6 +562,10 @@ func stripIcc(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (er
 	return img.RemoveICCProfile()
 }
 
+func stripExif(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
+	return img.RemoveExif()
+}
+
 func trim(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
 	var (
 		ln        = len(args)

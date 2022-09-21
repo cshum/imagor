@@ -460,3 +460,25 @@ const char * get_meta_string(const VipsImage *image, const char *name) {
 	}
 	return "";
 }
+
+int remove_exif(VipsImage *in, VipsImage **out) {
+  static double default_resolution = 72.0 / 25.4;
+
+  if (vips_copy(
+    in, out,
+    "xres", default_resolution,
+    "yres", default_resolution,
+    NULL
+  )) return 1;
+
+  gchar **fields = vips_image_get_fields(in);
+
+  for (int i = 0; fields[i] != NULL; i++) {
+    gchar *name = fields[i];
+    if (strcmp(name, VIPS_META_ICC_NAME) == 0) continue;
+    if (strcmp(name, "palette-bit-depth") == 0) continue;
+    vips_image_remove(*out, name);
+  }
+  g_strfreev(fields);
+  return 0;
+}
