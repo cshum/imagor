@@ -188,6 +188,13 @@ func TestProcessor(t *testing.T) {
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
 		}, WithDebug(true), WithDisableBlur(true), WithMaxAnimationFrames(3))
 	})
+	t.Run("disable filters", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/disable-filters")
+		doGoldenTests(t, resultDir, []test{
+			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
+			{name: "watermark fill disabled", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
+		}, WithDebug(true), WithDisableFilters("fill", "watermark", "format"))
+	})
 	t.Run("no animation", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden/no-animation")
 		doGoldenTests(t, resultDir, []test{

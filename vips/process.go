@@ -56,6 +56,9 @@ func (v *Processor) Process(
 		maxN = 1
 	}
 	for _, p := range p.Filters {
+		if v.disableFilters[p.Name] {
+			continue
+		}
 		switch p.Name {
 		case "format":
 			if imageType, ok := imageTypeMap[p.Args]; ok {
@@ -213,6 +216,9 @@ func (v *Processor) Process(
 			zap.Int("page_height", img.PageHeight()))
 	}
 	for _, p := range p.Filters {
+		if v.disableFilters[p.Name] {
+			continue
+		}
 		switch p.Name {
 		case "quality":
 			quality, _ = strconv.Atoi(p.Args)
@@ -422,6 +428,9 @@ func (v *Processor) process(
 	for i, filter := range p.Filters {
 		if err := ctx.Err(); err != nil {
 			return err
+		}
+		if v.disableFilters[filter.Name] {
+			continue
 		}
 		if v.MaxFilterOps > 0 && i >= v.MaxFilterOps {
 			if v.Debug {
