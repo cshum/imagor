@@ -190,7 +190,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
-	setContentDecomposition(w, p, blob)
+	w.Header().Set("Content-Disposition", getContentDecomposition(p, blob))
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	writeBody(w, r, reader, size)
 	return
@@ -651,37 +651,22 @@ func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, siz
 	}
 }
 
-func setContentDecomposition(w http.ResponseWriter, p imagorpath.Params, blob *Blob) {
+func getContentDecomposition(p imagorpath.Params, blob *Blob) string {
 	for _, f := range p.Filters {
 		if f.Name == "attachment" {
 			filename := f.Args
 			if filename == "" {
 				_, filename = filepath.Split(p.Image)
 			}
-			var ext string
-			switch blob.BlobType() {
-			case BlobTypeJPEG:
-				ext = ".jpg"
-				filename = strings.TrimSuffix(filename, ".jpeg")
-			case BlobTypePNG:
-				ext = ".png"
-			case BlobTypeGIF:
-				ext = ".gif"
-			case BlobTypeWEBP:
-				ext = ".webp"
-			case BlobTypeAVIF:
-				ext = ".avif"
-			case BlobTypeHEIF:
-				ext = ".heif"
-			case BlobTypeTIFF:
-				ext = ".tiff"
-			case BlobTypeJSON:
-				ext = ".json"
+			filename = strings.ReplaceAll(filename, `"`, "%22")
+			if ext := getExt(blob.BlobType()); ext != "" &&
+				!(ext == ".jpg" && strings.HasSuffix(filename, ".jpeg")) {
+				filename = strings.TrimSuffix(filename, ext) + ext
 			}
-			filename = strings.TrimSuffix(filename, ext) + ext
-			w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+			return fmt.Sprintf(`attachment; filename="%s"`, filename)
 		}
 	}
+	return "inline"
 }
 
 func getType(v interface{}) string {
