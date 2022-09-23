@@ -653,7 +653,7 @@ func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, siz
 
 func getContentDecomposition(p imagorpath.Params, blob *Blob) string {
 	for _, f := range p.Filters {
-		if f.Name == "attachment" {
+		if f.Name == "return_attachment" {
 			filename := f.Args
 			if filename == "" {
 				_, filename = filepath.Split(p.Image)
