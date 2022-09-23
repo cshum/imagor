@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/singleflight"
 	"io"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -160,20 +161,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	var hasAttachment bool
-	var filters imagorpath.Filters
-	for _, f := range p.Filters {
-		if f.Name == "attachment" {
-			hasAttachment = true
-		} else {
-			filters = append(filters, f)
-		}
-	}
-	if hasAttachment {
-		// todo set filename https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
-		w.Header().Set("Content-Disposition", "attachment")
-		p.Path = imagorpath.GeneratePath(p)
-	}
 	blob, err := checkBlob(app.Do(r, p))
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -203,6 +190,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
+	setContentDecomposition(w, p, blob)
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	writeBody(w, r, reader, size)
 	return
@@ -659,6 +647,39 @@ func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, siz
 		w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
 		if r.Method != http.MethodHead {
 			_, _ = w.Write(buf)
+		}
+	}
+}
+
+func setContentDecomposition(w http.ResponseWriter, p imagorpath.Params, blob *Blob) {
+	for _, f := range p.Filters {
+		if f.Name == "attachment" {
+			filename := f.Args
+			if filename == "" {
+				_, filename = filepath.Split(p.Image)
+			}
+			var ext string
+			switch blob.BlobType() {
+			case BlobTypeJPEG:
+				ext = ".jpg"
+				filename = strings.TrimSuffix(filename, ".jpeg")
+			case BlobTypePNG:
+				ext = ".png"
+			case BlobTypeGIF:
+				ext = ".gif"
+			case BlobTypeWEBP:
+				ext = ".webp"
+			case BlobTypeAVIF:
+				ext = ".avif"
+			case BlobTypeHEIF:
+				ext = ".heif"
+			case BlobTypeTIFF:
+				ext = ".tiff"
+			case BlobTypeJSON:
+				ext = ".json"
+			}
+			filename = strings.TrimSuffix(filename, ext) + ext
+			w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		}
 	}
 }
