@@ -160,6 +160,20 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	var hasAttachment bool
+	var filters imagorpath.Filters
+	for _, f := range p.Filters {
+		if f.Name == "attachment" {
+			hasAttachment = true
+		} else {
+			filters = append(filters, f)
+		}
+	}
+	if hasAttachment {
+		// todo set filename https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
+		w.Header().Set("Content-Disposition", "attachment")
+		p.Path = imagorpath.GeneratePath(p)
+	}
 	blob, err := checkBlob(app.Do(r, p))
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
