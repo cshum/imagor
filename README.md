@@ -123,6 +123,7 @@ imagor supports the following filters:
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
 - `sharpen(sigma)` sharpens the image
 - `strip_exif()` removes Exif metadata from the resulting image
+- `strip_icc()` removes ICC profile information from the resulting image
 - `upscale()` upscale the image if `fit-in` is used
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for imagor
