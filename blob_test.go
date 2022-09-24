@@ -38,6 +38,7 @@ func TestBlobTypes(t *testing.T) {
 		name              string
 		path              string
 		contentType       string
+		extension         string
 		bytesType         BlobType
 		supportsAnimation bool
 	}{
@@ -45,24 +46,28 @@ func TestBlobTypes(t *testing.T) {
 			name:        "jpeg",
 			path:        "demo1.jpg",
 			contentType: "image/jpeg",
+			extension:   ".jpg",
 			bytesType:   BlobTypeJPEG,
 		},
 		{
 			name:        "png",
 			path:        "gopher.png",
 			contentType: "image/png",
+			extension:   ".png",
 			bytesType:   BlobTypePNG,
 		},
 		{
 			name:        "tiff",
 			path:        "gopher.tiff",
 			contentType: "image/tiff",
+			extension:   ".tiff",
 			bytesType:   BlobTypeTIFF,
 		},
 		{
 			name:              "gif",
 			path:              "dancing-banana.gif",
 			contentType:       "image/gif",
+			extension:         ".gif",
 			bytesType:         BlobTypeGIF,
 			supportsAnimation: true,
 		},
@@ -70,6 +75,7 @@ func TestBlobTypes(t *testing.T) {
 			name:              "webp",
 			path:              "demo3.webp",
 			contentType:       "image/webp",
+			extension:         ".webp",
 			bytesType:         BlobTypeWEBP,
 			supportsAnimation: true,
 		},
@@ -77,12 +83,14 @@ func TestBlobTypes(t *testing.T) {
 			name:        "avif",
 			path:        "gopher-front.avif",
 			contentType: "image/avif",
+			extension:   ".avif",
 			bytesType:   BlobTypeAVIF,
 		},
 		{
 			name:        "heif",
 			path:        "gopher-front.heif",
 			contentType: "image/heif",
+			extension:   ".heif",
 			bytesType:   BlobTypeHEIF,
 		},
 	}
@@ -97,6 +105,7 @@ func TestBlobTypes(t *testing.T) {
 			assert.Equal(t, tt.contentType, b.ContentType())
 			assert.Equal(t, filepath, b.FilePath())
 			assert.Equal(t, tt.bytesType, b.BlobType())
+			assert.Equal(t, tt.extension, getExtension(b.BlobType()))
 			assert.False(t, b.IsEmpty())
 			assert.NotEmpty(t, b.Sniff())
 			assert.NotEmpty(t, b.Size())
