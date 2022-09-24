@@ -366,7 +366,7 @@ func checkBlob(blob *Blob, err error) (*Blob, error) {
 	return blob, err
 }
 
-func getExt(typ BlobType) (ext string) {
+func getExtension(typ BlobType) (ext string) {
 	switch typ {
 	case BlobTypeJPEG:
 		ext = ".jpg"

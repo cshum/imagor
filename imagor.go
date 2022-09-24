@@ -659,7 +659,7 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 				_, filename = filepath.Split(p.Image)
 			}
 			filename = strings.ReplaceAll(filename, `"`, "%22")
-			if ext := getExt(blob.BlobType()); ext != "" &&
+			if ext := getExtension(blob.BlobType()); ext != "" &&
 				!(ext == ".jpg" && strings.HasSuffix(filename, ".jpeg")) {
 				filename = strings.TrimSuffix(filename, ext) + ext
 			}
