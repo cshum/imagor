@@ -190,7 +190,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
-	w.Header().Set("Content-Disposition", getContentDecomposition(p, blob))
+	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	writeBody(w, r, reader, size)
 	return
@@ -651,9 +651,9 @@ func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, siz
 	}
 }
 
-func getContentDecomposition(p imagorpath.Params, blob *Blob) string {
+func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 	for _, f := range p.Filters {
-		if f.Name == "return_attachment" {
+		if f.Name == "attachment" {
 			filename := f.Args
 			if filename == "" {
 				_, filename = filepath.Split(p.Image)
