@@ -198,7 +198,7 @@ func TestProcessor(t *testing.T) {
 		doGoldenTests(t, resultDir, []test{
 			{name: "png", path: "gopher-front.png"},
 			{name: "gif", path: "dancing-banana.gif"},
-		}, WithDebug(true), WithMaxAnimationFrames(-167))
+		}, WithDebug(true), WithMaxAnimationFrames(1))
 	})
 	t.Run("max-filter-ops", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden/max-filter-ops")
