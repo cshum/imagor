@@ -5,7 +5,7 @@ go 1.18
 require (
 	cloud.google.com/go/storage v1.27.0
 	github.com/aws/aws-sdk-go v1.44.93
-	github.com/fsouza/fake-gcs-server v1.40.1
+	github.com/fsouza/fake-gcs-server v1.40.2
 	github.com/johannesboyne/gofakes3 v0.0.0-20220517215058-83a58ec253b6
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/rs/cors v1.8.2
@@ -25,7 +25,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.1.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.5.1 // indirect
@@ -33,7 +33,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/pkg/xattr v0.4.8 // indirect
+	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20180507124511-f6ea450bfb63 // indirect
