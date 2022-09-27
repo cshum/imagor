@@ -45,7 +45,6 @@ func New(app Service, options ...Option) *Server {
 	s.StartupTimeout = time.Second * 10
 	s.ShutdownTimeout = time.Second * 10
 	s.Logger = zap.NewNop()
-
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
 		"/favicon.ico": handleOk,
 		"/healthcheck": handleOk,
@@ -61,6 +60,7 @@ func New(app Service, options ...Option) *Server {
 	if s.Addr == "" {
 		s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
 	}
+	s.ErrorLog = newServerErrorLog(s.Logger)
 	return s
 }
 

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -106,4 +108,24 @@ func (s *Server) accessLogHandler(next http.Handler) http.Handler {
 			zap.Duration("took", time.Since(start)),
 		)
 	})
+}
+
+type serverErrorLogWriter struct {
+	Logger *zap.Logger
+}
+
+func (s *serverErrorLogWriter) Write(p []byte) (int, error) {
+	m := string(p)
+	if strings.HasPrefix(m, "http: TLS handshake error") && strings.HasSuffix(m, ": EOF\n") {
+		s.Logger.Debug("server", zap.String("log", m)) // https://github.com/golang/go/issues/26918
+	} else if strings.HasPrefix(m, "http: URL query contains semicolon") {
+		s.Logger.Debug("server", zap.String("log", m)) // https://github.com/golang/go/issues/25192
+	} else {
+		s.Logger.Warn("server", zap.String("log", m))
+	}
+	return len(p), nil
+}
+
+func newServerErrorLog(logger *zap.Logger) *log.Logger {
+	return log.New(&serverErrorLogWriter{logger}, "", 0)
 }
