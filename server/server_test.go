@@ -7,6 +7,8 @@ import (
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -108,6 +110,51 @@ func TestServer(t *testing.T) {
 	assert.NotEmpty(t, w.Header().Get("Vary"))
 	assert.Equal(t, "Bar", w.Header().Get("X-Foo"))
 	assert.Equal(t, `{"message":"booooom","status":500}`, w.Body.String())
+}
+
+func TestServerErrorLog(t *testing.T) {
+	expectLogged := []string{"panic", "server"}
+	var logged []string
+	logger := zap.NewExample(zap.Hooks(func(entry zapcore.Entry) error {
+		logged = append(logged, entry.Message)
+		return nil
+	}))
+	s := New(
+		imagor.New(
+			imagor.WithUnsafe(true),
+			imagor.WithLoaders(loaderFunc(func(r *http.Request, image string) (*imagor.Blob, error) {
+				return imagor.NewBlobFromBytes([]byte("foo")), nil
+			})),
+		),
+		WithAccessLog(true),
+		WithDebug(true),
+		WithLogger(logger),
+		WithMiddleware(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("X-Foo", "Bar")
+				if strings.Contains(r.URL.String(), "boom") {
+					panic("booooom")
+				}
+				next.ServeHTTP(w, r)
+			})
+		}),
+		WithCORS(true),
+	)
+
+	ts := httptest.NewServer(s.Handler)
+	ts.Config = &s.Server
+	defer ts.Close()
+
+	w, err := http.Get(ts.URL + "/unsafe/bar.jpg?boom;asdf")
+	assert.NoError(t, err)
+	assert.Equal(t, 500, w.StatusCode)
+	assert.NotEmpty(t, w.Header.Get("Vary"))
+	assert.Equal(t, "Bar", w.Header.Get("X-Foo"))
+	resp, err := io.ReadAll(w.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, `{"message":"booooom","status":500}`, string(resp))
+
+	assert.Equal(t, expectLogged, logged)
 }
 
 func TestWithStripQueryString(t *testing.T) {
