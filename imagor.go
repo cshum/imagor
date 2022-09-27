@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/singleflight"
 	"io"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -189,6 +190,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
+	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	writeBody(w, r, reader, size)
 	return
@@ -647,6 +649,24 @@ func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, siz
 			_, _ = w.Write(buf)
 		}
 	}
+}
+
+func getContentDisposition(p imagorpath.Params, blob *Blob) string {
+	for _, f := range p.Filters {
+		if f.Name == "attachment" {
+			filename := f.Args
+			if filename == "" {
+				_, filename = filepath.Split(p.Image)
+			}
+			filename = strings.ReplaceAll(filename, `"`, "%22")
+			if ext := getExtension(blob.BlobType()); ext != "" &&
+				!(ext == ".jpg" && strings.HasSuffix(filename, ".jpeg")) {
+				filename = strings.TrimSuffix(filename, ext) + ext
+			}
+			return fmt.Sprintf(`attachment; filename="%s"`, filename)
+		}
+	}
+	return "inline"
 }
 
 func getType(v interface{}) string {
