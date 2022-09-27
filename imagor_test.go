@@ -107,6 +107,12 @@ func TestWithContentDisposition(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/testdata/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "inline", w.Header().Get("Content-Disposition"))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/filters:attachment()/testdata/gopher.png", nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, `attachment; filename="gopher.png"`, w.Header().Get("Content-Disposition"))
@@ -122,6 +128,7 @@ func TestWithContentDisposition(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/filters:attachment(foo.jpeg)/testdata/demo1.jpg", nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, `attachment; filename="foo.jpeg"`, w.Header().Get("Content-Disposition"))
+
 }
 
 func TestSuppressDeadlockResolve(t *testing.T) {
