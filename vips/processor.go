@@ -65,7 +65,7 @@ func NewProcessor(options ...Option) *Processor {
 		"blur":             blur,
 		"sharpen":          sharpen,
 		"strip_icc":        stripIcc,
-		"strip_exif":       stripIcc,
+		"strip_exif":       stripExif,
 		"trim":             trim,
 		"frames":           frames,
 		"padding":          v.padding,

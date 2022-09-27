@@ -18,6 +18,8 @@ var exifTags = map[string]bool{
 	"exif-ifd0-Software":                false,
 	"exif-ifd0-DateTime":                false,
 	"exif-ifd0-YCbCrPositioning":        true,
+	"exif-ifd0-Copyright":               false,
+	"exif-ifd0-Artist":                  false,
 	"exif-ifd1-Compression":             true,
 	"exif-ifd2-ExposureTime":            false,
 	"exif-ifd2-FNumber":                 false,

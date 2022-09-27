@@ -374,6 +374,16 @@ func vipsRemoveICCProfile(in *C.VipsImage) bool {
 	return fromGboolean(C.remove_icc_profile(in))
 }
 
+func vipsRemoveExif(in *C.VipsImage) (*C.VipsImage, error) {
+	var out *C.VipsImage
+
+	if err := C.remove_exif(in, &out); err != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
 func vipsGetMetaOrientation(in *C.VipsImage) int {
 	return int(C.get_meta_orientation(in))
 }
