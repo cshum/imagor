@@ -113,7 +113,7 @@ func TestServer(t *testing.T) {
 }
 
 func TestServerErrorLog(t *testing.T) {
-	expectLogged := []string{"panic", "server"}
+	expectLogged := []string{"panic", "server", "server", "server"}
 	var logged []string
 	logger := zap.NewExample(zap.Hooks(func(entry zapcore.Entry) error {
 		logged = append(logged, entry.Message)
@@ -153,6 +153,11 @@ func TestServerErrorLog(t *testing.T) {
 	resp, err := io.ReadAll(w.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, `{"message":"booooom","status":500}`, string(resp))
+
+	_, err = ts.Config.ErrorLog.Writer().Write([]byte("http: TLS handshake error from 172.16.0.3:42672: EOF"))
+	assert.NoError(t, err)
+	_, err = ts.Config.ErrorLog.Writer().Write([]byte("foobar"))
+	assert.NoError(t, err)
 
 	assert.Equal(t, expectLogged, logged)
 }
