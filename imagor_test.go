@@ -94,6 +94,36 @@ func TestWithUnsafe(t *testing.T) {
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 }
 
+func TestWithContentDisposition(t *testing.T) {
+	logger := zap.NewExample()
+	app := New(
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromFile(image), nil
+		})),
+		WithLogger(logger))
+	assert.Equal(t, false, app.Debug)
+	assert.Equal(t, logger, app.Logger)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:attachment()/testdata/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, `attachment; filename="gopher.png"`, w.Header().Get("Content-Disposition"))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:attachment(foo.png)/testdata/demo1.jpg", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, `attachment; filename="foo.png.jpg"`, w.Header().Get("Content-Disposition"))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:attachment(foo.jpeg)/testdata/demo1.jpg", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, `attachment; filename="foo.jpeg"`, w.Header().Get("Content-Disposition"))
+}
+
 func TestSuppressDeadlockResolve(t *testing.T) {
 	ctx := context.Background()
 	app := New()
