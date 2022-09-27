@@ -182,7 +182,7 @@ func (v *Processor) NewThumbnail(
 		}
 		if crop == InterestingNone || size == SizeForce {
 			if img, err = v.CheckResolution(
-				newThumbnailFromBlob(ctx, blob, width, height, crop, size, params),
+				v.newThumbnailFallback(ctx, blob, width, height, crop, size, params),
 			); err != nil {
 				return nil, WrapErr(err)
 			}
@@ -211,16 +211,16 @@ func (v *Processor) NewThumbnail(
 			// only allow real thumbnail for jpeg gif webp
 			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, nil)
 		default:
-			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size)
+			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, nil)
 		}
 	}
 	return v.CheckResolution(img, WrapErr(err))
 }
 
 func (v *Processor) newThumbnailFallback(
-	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size,
+	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size, params *ImportParams,
 ) (img *Image, err error) {
-	if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, nil)); err != nil {
+	if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, params)); err != nil {
 		return
 	}
 	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
