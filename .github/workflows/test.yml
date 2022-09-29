@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
-      VIPS_VERSION: 8.13.0
+      VIPS_VERSION: 8.13.2
       V: 1
 
     steps:
