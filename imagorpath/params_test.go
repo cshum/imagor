@@ -115,11 +115,74 @@ func TestParseGenerate(t *testing.T) {
 			},
 		},
 		{
-			name: "image contains endpoint keywords",
+			name: "image contains  keyword center",
 			uri:  "unsafe/center%2Fimg",
 			params: Params{
 				Path:   "center%2Fimg",
 				Image:  "center/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword smart",
+			uri:  "unsafe/smart%2Fimg",
+			params: Params{
+				Path:   "smart%2Fimg",
+				Image:  "smart/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword fit-in",
+			uri:  "unsafe/fit-in%2Fimg",
+			params: Params{
+				Path:   "fit-in%2Fimg",
+				Image:  "fit-in/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword stretch",
+			uri:  "unsafe/stretch%2Fimg",
+			params: Params{
+				Path:   "stretch%2Fimg",
+				Image:  "stretch/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword top",
+			uri:  "unsafe/top%2Fimg",
+			params: Params{
+				Path:   "top%2Fimg",
+				Image:  "top/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword left",
+			uri:  "unsafe/left%2Fimg",
+			params: Params{
+				Path:   "left%2Fimg",
+				Image:  "left/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword right",
+			uri:  "unsafe/right%2Fimg",
+			params: Params{
+				Path:   "right%2Fimg",
+				Image:  "right/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword bottom",
+			uri:  "unsafe/bottom%2Fimg",
+			params: Params{
+				Path:   "bottom%2Fimg",
+				Image:  "bottom/img",
 				Unsafe: true,
 			},
 		},
