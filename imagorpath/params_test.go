@@ -74,6 +74,7 @@ func TestParseGenerate(t *testing.T) {
 				Filters: []Filter{{Name: "watermark", Args: "s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0"}},
 			},
 		},
+
 		{
 			name: "multiple filters",
 			uri:  "filters:watermark(s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0):brightness(-50):grayscale()/img",
@@ -110,6 +111,15 @@ func TestParseGenerate(t *testing.T) {
 			params: Params{
 				Path:   "https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
 				Image:  "https://foobar/en/latest/_images/man_before_sharpen.png?foo=bar",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains endpoint keywords",
+			uri:  "unsafe/center%2Fimg",
+			params: Params{
+				Path:   "center%2Fimg",
+				Image:  "center/img",
 				Unsafe: true,
 			},
 		},

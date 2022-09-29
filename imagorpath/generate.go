@@ -83,7 +83,15 @@ func GeneratePath(p Params) string {
 		}
 		parts = append(parts, "filters:"+strings.Join(filters, ":"))
 	}
-	if strings.Contains(p.Image, "?") {
+	if strings.Contains(p.Image, "?") ||
+		strings.HasPrefix(p.Image, "fit-in/") ||
+		strings.HasPrefix(p.Image, "stretch/") ||
+		strings.HasPrefix(p.Image, "top/") ||
+		strings.HasPrefix(p.Image, "left/") ||
+		strings.HasPrefix(p.Image, "right/") ||
+		strings.HasPrefix(p.Image, "bottom/") ||
+		strings.HasPrefix(p.Image, "center/") ||
+		strings.HasPrefix(p.Image, "smart/") {
 		p.Image = url.QueryEscape(p.Image)
 	}
 	parts = append(parts, p.Image)
