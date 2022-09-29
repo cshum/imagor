@@ -115,7 +115,25 @@ func TestParseGenerate(t *testing.T) {
 			},
 		},
 		{
-			name: "image contains  keyword center",
+			name: "image contains keyword trim",
+			uri:  "unsafe/trim%2Fimg",
+			params: Params{
+				Path:   "trim%2Fimg",
+				Image:  "trim/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword meta",
+			uri:  "unsafe/meta%2Fimg",
+			params: Params{
+				Path:   "meta%2Fimg",
+				Image:  "meta/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword center",
 			uri:  "unsafe/center%2Fimg",
 			params: Params{
 				Path:   "center%2Fimg",

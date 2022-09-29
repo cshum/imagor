@@ -84,6 +84,8 @@ func GeneratePath(p Params) string {
 		parts = append(parts, "filters:"+strings.Join(filters, ":"))
 	}
 	if strings.Contains(p.Image, "?") ||
+		strings.HasPrefix(p.Image, "trim/") ||
+		strings.HasPrefix(p.Image, "meta/") ||
 		strings.HasPrefix(p.Image, "fit-in/") ||
 		strings.HasPrefix(p.Image, "stretch/") ||
 		strings.HasPrefix(p.Image, "top/") ||
