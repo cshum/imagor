@@ -74,6 +74,7 @@ func TestParseGenerate(t *testing.T) {
 				Filters: []Filter{{Name: "watermark", Args: "s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0"}},
 			},
 		},
+
 		{
 			name: "multiple filters",
 			uri:  "filters:watermark(s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0):brightness(-50):grayscale()/img",
@@ -110,6 +111,96 @@ func TestParseGenerate(t *testing.T) {
 			params: Params{
 				Path:   "https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
 				Image:  "https://foobar/en/latest/_images/man_before_sharpen.png?foo=bar",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword trim",
+			uri:  "unsafe/trim%2Fimg",
+			params: Params{
+				Path:   "trim%2Fimg",
+				Image:  "trim/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword meta",
+			uri:  "unsafe/meta%2Fimg",
+			params: Params{
+				Path:   "meta%2Fimg",
+				Image:  "meta/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword center",
+			uri:  "unsafe/center%2Fimg",
+			params: Params{
+				Path:   "center%2Fimg",
+				Image:  "center/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword smart",
+			uri:  "unsafe/smart%2Fimg",
+			params: Params{
+				Path:   "smart%2Fimg",
+				Image:  "smart/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword fit-in",
+			uri:  "unsafe/fit-in%2Fimg",
+			params: Params{
+				Path:   "fit-in%2Fimg",
+				Image:  "fit-in/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword stretch",
+			uri:  "unsafe/stretch%2Fimg",
+			params: Params{
+				Path:   "stretch%2Fimg",
+				Image:  "stretch/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword top",
+			uri:  "unsafe/top%2Fimg",
+			params: Params{
+				Path:   "top%2Fimg",
+				Image:  "top/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword left",
+			uri:  "unsafe/left%2Fimg",
+			params: Params{
+				Path:   "left%2Fimg",
+				Image:  "left/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword right",
+			uri:  "unsafe/right%2Fimg",
+			params: Params{
+				Path:   "right%2Fimg",
+				Image:  "right/img",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains keyword bottom",
+			uri:  "unsafe/bottom%2Fimg",
+			params: Params{
+				Path:   "bottom%2Fimg",
+				Image:  "bottom/img",
 				Unsafe: true,
 			},
 		},
