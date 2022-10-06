@@ -190,7 +190,7 @@ func (v *Processor) NewThumbnail(
 				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n)
 			}
 			if _, err = v.CheckResolution(img, nil); err != nil {
-				return nil, WrapErr(err)
+				return nil, err
 			}
 			if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
 				img.Close()
