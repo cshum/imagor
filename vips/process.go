@@ -69,6 +69,11 @@ func (v *Processor) Process(
 				}
 			}
 			break
+		case "max_frames":
+			if n, _ := strconv.Atoi(p.Args); n > 0 {
+				maxN = n
+			}
+			break
 		case "stretch":
 			stretch = true
 			break
