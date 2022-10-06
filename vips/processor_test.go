@@ -274,6 +274,48 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/trim/1000x0/gopher-front.png", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("resolution exceeded max frames within", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithMaxResolution(300*300),
+				WithMaxAnimationFrames(3),
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
+		assert.Equal(t, 200, w.Code)
+	})
+	t.Run("resolution exceeded max frames", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithMaxResolution(300*300),
+				WithMaxAnimationFrames(6),
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
+		assert.Equal(t, 422, w.Code)
+	})
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
