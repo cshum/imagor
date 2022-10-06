@@ -184,6 +184,7 @@ func TestProcessor(t *testing.T) {
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
 			{name: "original animated trim no-op", path: "trim/dancing-banana.gif"},
+			{name: "original animated no-ops", path: "filters:max_frames(6)/dancing-banana.gif"},
 			{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
 			{name: "resize top animated", path: "200x100/top/dancing-banana.gif"},
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif"},
