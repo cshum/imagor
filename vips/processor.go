@@ -181,15 +181,20 @@ func (v *Processor) NewThumbnail(
 			params.NumPages.Set(-1)
 		}
 		if crop == InterestingNone || size == SizeForce {
-			if img, err = v.CheckResolution(
-				v.newThumbnailFallback(ctx, blob, width, height, crop, size, params),
-			); err != nil {
+			if img, err = newImageFromBlob(ctx, blob, params); err != nil {
 				return nil, WrapErr(err)
 			}
 			if n > 1 && img.Pages() > n {
 				// reload image to restrict frames loaded
 				img.Close()
 				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n)
+			}
+			if _, err = v.CheckResolution(img, nil); err != nil {
+				return nil, WrapErr(err)
+			}
+			if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
+				img.Close()
+				return nil, WrapErr(err)
 			}
 		} else {
 			if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, params)); err != nil {
