@@ -125,6 +125,7 @@ func TestProcessor(t *testing.T) {
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
 			{name: "original animated quality", path: "filters:quality(60)/dancing-banana.gif"},
+			{name: "original animated max_frames", path: "filters:max_frames(3)/dancing-banana.gif"},
 			{name: "rotate animated", path: "fit-in/100x150/filters:rotate(90):fill(yellow)/dancing-banana.gif"},
 			{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
 			{name: "crop-percent animated", path: "0.1x0.2:0.89x0.72/dancing-banana.gif"},
