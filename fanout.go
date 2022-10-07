@@ -111,12 +111,12 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 				// proxy to full buf if ready
 				return fullBufReader.Read(p)
 			}
-			lock.RLock()
-			e = err
-			sizeCopy := size
-			closedCopy := closed[i]
-			lock.RUnlock()
 			for {
+				lock.RLock()
+				e = err
+				sizeCopy := size
+				closedCopy := closed[i]
+				lock.RUnlock()
 				if cnt >= sizeCopy {
 					return 0, io.EOF
 				}
