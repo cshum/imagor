@@ -111,34 +111,38 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 				// proxy to full buf if ready
 				return fullBufReader.Read(p)
 			}
-
 			lock.RLock()
 			e = err
 			sizeCopy := size
 			closedCopy := closed[i]
 			lock.RUnlock()
-
-			if cnt >= sizeCopy {
-				return 0, io.EOF
+			for {
+				if cnt >= sizeCopy {
+					return 0, io.EOF
+				}
+				if closedCopy {
+					return 0, io.ErrClosedPipe
+				}
+				if e != nil {
+					_ = closeCh(true)
+					return
+				}
+				if len(b) == 0 {
+					b = <-ch
+				}
+				nn := copy(p[n:], b)
+				if nn == 0 {
+					return
+				}
+				b = b[nn:]
+				cnt += nn
+				n += nn
+				if cnt >= sizeCopy {
+					_ = closeCh(false)
+					e = io.EOF
+					return
+				}
 			}
-			if closedCopy {
-				return 0, io.ErrClosedPipe
-			}
-			if e != nil {
-				_ = closeCh(true)
-				return
-			}
-			if len(b) == 0 {
-				b = <-ch
-			}
-			n = copy(p, b)
-			b = b[n:]
-			cnt += n
-			if cnt >= sizeCopy {
-				_ = closeCh(false)
-				e = io.EOF
-			}
-			return
 		})
 		seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
 			once.Do(func() {
