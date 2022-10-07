@@ -93,10 +93,12 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			})
 			if readerClosed {
 				return 0, io.ErrClosedPipe
-			} else if fullBufReader != nil {
+			}
+			if fullBufReader != nil {
 				// proxy to full buf if ready
 				return fullBufReader.Read(p)
-			} else if bufReader != nil {
+			}
+			if bufReader != nil {
 				n, e = bufReader.Read(p)
 				if e == io.EOF {
 					bufReader = nil
