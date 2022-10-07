@@ -119,6 +119,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			lock.RUnlock()
 
 			if cnt >= sizeCopy {
+				_ = closeCh(false)
 				return 0, io.EOF
 			}
 			if closedCopy {
@@ -136,7 +137,6 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			cnt += n
 			if cnt >= sizeCopy {
 				_ = closeCh(false)
-				e = io.EOF
 			}
 			return
 		})
