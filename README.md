@@ -110,6 +110,7 @@ imagor supports the following filters:
   - `alpha` - text label transparency, a number between 0 (fully opaque) and 100 (fully transparent).
   - `font` - text label font type
 - `max_bytes(amount)` automatically degrades the quality of the image until the image is under the specified `amount` of bytes
+- `max_frames(n)` limit maximum number of animation frames `n` to be loaded
 - `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
