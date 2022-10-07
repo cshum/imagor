@@ -62,7 +62,7 @@ func (v *Processor) Process(
 		switch p.Name {
 		case "format":
 			if imageType, ok := imageTypeMap[p.Args]; ok {
-				format = supportedFormat(imageType)
+				format = supportedSaveFormat(imageType)
 				if !IsAnimationSupported(format) {
 					// no frames if export format not support animation
 					maxN = 1
@@ -211,7 +211,7 @@ func (v *Processor) Process(
 			// meta loader determined as heif
 			format = ImageTypeAVIF
 		} else {
-			format = supportedFormat(img.Format())
+			format = img.Format()
 		}
 	}
 	if v.Debug {
@@ -291,7 +291,9 @@ func (v *Processor) Process(
 			}
 		}
 		blob := imagor.NewBlobFromBytes(buf)
-		blob.SetContentType(ImageMimeTypes[format])
+		if typ, ok := ImageMimeTypes[supportedSaveFormat(format)]; ok {
+			blob.SetContentType(typ)
+		}
 		return blob, nil
 	}
 }
@@ -500,7 +502,7 @@ func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
 	}
 }
 
-func supportedFormat(format ImageType) ImageType {
+func supportedSaveFormat(format ImageType) ImageType {
 	switch format {
 	case ImageTypePNG, ImageTypeWEBP, ImageTypeTIFF, ImageTypeGIF, ImageTypeAVIF, ImageTypeHEIF, ImageTypeJP2K:
 		if IsSaveSupported(format) {
@@ -514,6 +516,7 @@ func supportedFormat(format ImageType) ImageType {
 }
 
 func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, error) {
+	format = supportedSaveFormat(format)
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()

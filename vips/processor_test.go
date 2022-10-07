@@ -63,6 +63,7 @@ func TestProcessor(t *testing.T) {
 		doGoldenTests(t, resultDir, []test{
 			{name: "meta jpeg", path: "meta/fit-in/100x100/demo1.jpg"},
 			{name: "meta gif", path: "meta/fit-in/100x100/dancing-banana.gif"},
+			{name: "meta svg", path: "meta/test.svg"},
 			{name: "meta format no animate", path: "meta/fit-in/100x100/filters:format(jpg)/dancing-banana.gif"},
 			{name: "meta exif", path: "meta/Canon_40D.jpg"},
 			{name: "meta strip exif", path: "meta/filters:strip_exif()/Canon_40D.jpg"},
