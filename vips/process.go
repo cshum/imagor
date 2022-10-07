@@ -211,7 +211,7 @@ func (v *Processor) Process(
 			// meta loader determined as heif
 			format = ImageTypeAVIF
 		} else {
-			format = img.Format()
+			format = supportedFormat(img.Format())
 		}
 	}
 	if v.Debug {
@@ -481,7 +481,6 @@ type Metadata struct {
 }
 
 func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
-	format = supportedFormat(format)
 	pages := img.Height() / img.PageHeight()
 	if !IsAnimationSupported(format) {
 		pages = 1
