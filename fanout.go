@@ -33,6 +33,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			curr += n
 			if e != nil {
 				if e == io.EOF {
+					e = nil
 					if n == 0 {
 						size = curr
 					}
