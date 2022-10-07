@@ -44,6 +44,9 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			for i, ch := range consumersCopy {
 				if !closed[i] {
 					ch <- bn
+					if e == io.EOF && n > 0 {
+						ch <- nil
+					}
 				}
 			}
 			lock.RUnlock()
