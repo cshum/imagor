@@ -21,14 +21,14 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			_ = source.Close()
 		}()
 		for {
-			n, e := source.Read(buf[currentSize:])
+			b := buf[currentSize:]
+			n, e := source.Read(b)
 			if currentSize+n > size {
 				n = size - currentSize
 			}
 			var bn []byte
 			if n > 0 {
-				bn = make([]byte, n)
-				copy(bn, buf[currentSize:])
+				bn = b[:n]
 			}
 			lock.Lock()
 			currentSize += n
