@@ -13,29 +13,29 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 	var done = make(chan struct{})
 	var closed []bool
 	var err error
-	var buf []byte
-	var curr int
+	var buf = make([]byte, size)
+	var currentSize int
 
 	var init = func() {
 		defer func() {
 			_ = source.Close()
 		}()
 		for {
-			b := make([]byte, 4096)
-			n, e := source.Read(b)
-			if curr+n > size {
-				n = size - curr
+			n, e := source.Read(buf[currentSize:])
+			var bn []byte
+			if n > 0 {
+				bn = buf[currentSize:n]
 			}
-			bn := b[:n]
-
 			lock.Lock()
-			buf = append(buf, bn...)
-			curr += n
+			currentSize += n
 			if e != nil {
 				if e == io.EOF {
 					e = nil
 					if n == 0 {
-						size = curr
+						if currentSize < size {
+							buf = buf[:currentSize]
+						}
+						size = currentSize
 					}
 				} else {
 					err = e
@@ -50,10 +50,10 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 				}
 			}
 			lock.RUnlock()
-			if curr >= size {
+			if currentSize >= size {
 				close(done)
 			}
-			if e != nil || curr >= size {
+			if e != nil || currentSize >= size {
 				return
 			}
 		}
@@ -66,8 +66,8 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 		i := len(consumers)
 		consumers = append(consumers, ch)
 		closed = append(closed, false)
-		cnt := len(buf)
-		bufReader := bytes.NewReader(buf)
+		cnt := currentSize
+		bufReader := bytes.NewReader(buf[:currentSize])
 		lock.Unlock()
 
 		var readerClosed bool
