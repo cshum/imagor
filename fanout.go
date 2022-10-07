@@ -21,7 +21,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			_ = source.Close()
 		}()
 		for {
-			b := make([]byte, 512)
+			b := make([]byte, 4096)
 			n, e := source.Read(b)
 			if curr+n > size {
 				n = size - curr
@@ -60,7 +60,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 	}
 
 	return func() (reader io.Reader, seeker io.Seeker, closer io.Closer) {
-		ch := make(chan []byte, size/512+1)
+		ch := make(chan []byte, size/4096+1)
 
 		lock.Lock()
 		i := len(consumers)
