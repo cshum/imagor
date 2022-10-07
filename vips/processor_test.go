@@ -63,6 +63,7 @@ func TestProcessor(t *testing.T) {
 		doGoldenTests(t, resultDir, []test{
 			{name: "meta jpeg", path: "meta/fit-in/100x100/demo1.jpg"},
 			{name: "meta gif", path: "meta/fit-in/100x100/dancing-banana.gif"},
+			{name: "meta svg", path: "meta/test.svg"},
 			{name: "meta format no animate", path: "meta/fit-in/100x100/filters:format(jpg)/dancing-banana.gif"},
 			{name: "meta exif", path: "meta/Canon_40D.jpg"},
 			{name: "meta strip exif", path: "meta/filters:strip_exif()/Canon_40D.jpg"},
@@ -163,6 +164,7 @@ func TestProcessor(t *testing.T) {
 			{name: "label animated", path: "fit-in/150x200/10x00:10x50/filters:fill(yellow):label(IMAGOR,center,-30,25,black)/dancing-banana.gif"},
 			{name: "label animated with font", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):label(IMAGOR,center,-30,25,white,0,monospace)/dancing-banana.gif"},
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
+			{name: "svg", path: "test.svg"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("max frames", func(t *testing.T) {
