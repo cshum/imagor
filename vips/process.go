@@ -258,6 +258,7 @@ func (v *Processor) Process(
 		// metadata without export
 		return imagor.NewBlobFromJsonMarshal(metadata(img, format, stripExif)), nil
 	}
+	format = supportedSaveFormat(format) // convert to supported export format
 	for {
 		buf, err := v.export(img, format, quality)
 		if err != nil {
@@ -291,7 +292,7 @@ func (v *Processor) Process(
 			}
 		}
 		blob := imagor.NewBlobFromBytes(buf)
-		if typ, ok := ImageMimeTypes[supportedSaveFormat(format)]; ok {
+		if typ, ok := ImageMimeTypes[format]; ok {
 			blob.SetContentType(typ)
 		}
 		return blob, nil
@@ -516,7 +517,6 @@ func supportedSaveFormat(format ImageType) ImageType {
 }
 
 func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, error) {
-	format = supportedSaveFormat(format)
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()
