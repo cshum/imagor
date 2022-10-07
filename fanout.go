@@ -33,7 +33,9 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			curr += n
 			if e != nil {
 				if e == io.EOF {
-					size = curr
+					if n == 0 {
+						size = curr
+					}
 				} else {
 					err = e
 				}
@@ -44,9 +46,6 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			for i, ch := range consumersCopy {
 				if !closed[i] {
 					ch <- bn
-					if e == io.EOF && n > 0 {
-						ch <- nil
-					}
 				}
 			}
 			lock.RUnlock()
@@ -97,7 +96,10 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			if readerClosed {
 				return 0, io.ErrClosedPipe
 			}
-
+			if fullBufReader != nil && !readerClosed {
+				// proxy to full buf if ready
+				return fullBufReader.Read(p)
+			}
 			if bufReader != nil {
 				n, e = bufReader.Read(p)
 				if e == io.EOF {
@@ -107,11 +109,6 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 				} else if n > 0 || e != nil {
 					return
 				}
-			}
-
-			if fullBufReader != nil && !readerClosed {
-				// proxy to full buf if ready
-				return fullBufReader.Read(p)
 			}
 
 			lock.RLock()
