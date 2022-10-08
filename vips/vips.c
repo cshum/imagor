@@ -476,6 +476,9 @@ int remove_exif(VipsImage *in, VipsImage **out) {
   for (int i = 0; fields[i] != NULL; i++) {
     gchar *name = fields[i];
     if (strcmp(name, VIPS_META_ICC_NAME) == 0) continue;
+    if (strcmp(name, VIPS_META_ORIENTATION) == 0) continue;
+    if (strcmp(name, VIPS_META_N_PAGES) == 0) continue;
+    if (strcmp(name, VIPS_META_PAGE_HEIGHT) == 0) continue;
     if (strcmp(name, "palette-bit-depth") == 0) continue;
     vips_image_remove(*out, name);
   }
