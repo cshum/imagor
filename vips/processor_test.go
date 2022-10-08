@@ -91,6 +91,7 @@ func TestProcessor(t *testing.T) {
 			{name: "resize right", path: "100x200/right/top/gopher.png"},
 			{name: "proportion", path: "filters:proportion(10)/gopher.png"},
 			{name: "proportion float", path: "filters:proportion(0.1)/gopher.png"},
+			{name: "resize orient", path: "100x200/filters:orient(90)/gopher.png"},
 			{name: "fit-in unspecified height", path: "fit-in/50x0/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "resize unspecified height", path: "50x0/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "fit-in unspecified width", path: "fit-in/0x50/filters:fill(white):format(jpg)/Canon_40D.jpg"},

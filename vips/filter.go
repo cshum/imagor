@@ -412,22 +412,28 @@ func rotate(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 		return
 	}
 	if angle, _ := strconv.Atoi(args[0]); angle > 0 {
-		vAngle := Angle0
 		switch angle {
-		case 90:
-			vAngle = Angle270
-			vipscontext.SetRotate90(ctx)
-		case 180:
-			vAngle = Angle180
-		case 270:
-			vAngle = Angle90
+		case 90, 270:
 			vipscontext.SetRotate90(ctx)
 		}
-		if err = img.Rotate(vAngle); err != nil {
+		if err = img.Rotate(getAngle(angle)); err != nil {
 			return err
 		}
 	}
 	return
+}
+
+func getAngle(angle int) Angle {
+	switch angle {
+	case 90:
+		return Angle270
+	case 180:
+		return Angle180
+	case 270:
+		return Angle90
+	default:
+		return Angle0
+	}
 }
 
 func proportion(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
