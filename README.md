@@ -111,11 +111,13 @@ imagor supports the following filters:
   - `font` - text label font type
 - `max_bytes(amount)` automatically degrades the quality of the image until the image is under the specified `amount` of bytes
 - `max_frames(n)` limit maximum number of animation frames `n` to be loaded
+- `orient(angle)` rotates the image before resizing and cropping, according to the angle value
+  - `angle` accepts 0, 90, 180, 270
 - `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
 - `rgb(r,g,b)` amount of color in each of the rgb channels in %. Can range from -100 to 100
-- `rotate(angle)` rotates the given image according to the angle value passed
+- `rotate(angle)` rotates the given image according to the angle value
   - `angle` accepts 0, 90, 180, 270
 - `round_corner(rx [, ry [, color]])` adds rounded corners to the image with the specified color as background
   - `rx`, `ry` amount of pixel to use as radius. ry = rx if ry is not provided

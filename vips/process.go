@@ -39,6 +39,7 @@ func (v *Processor) Process(
 		stretch               = p.Stretch
 		thumbnail             = false
 		stripExif             bool
+		orient                int
 		img                   *Image
 		format                = ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
@@ -88,16 +89,19 @@ func (v *Processor) Process(
 				thumbnailNotSupported = true
 			}
 			break
+		case "orient":
+			if n, _ := strconv.Atoi(p.Args); n > 0 {
+				orient = n
+				thumbnailNotSupported = true
+			}
+			break
 		case "max_bytes":
 			if n, _ := strconv.Atoi(p.Args); n > 0 {
 				maxBytes = n
 				thumbnailNotSupported = true
 			}
 			break
-		case "focal":
-			thumbnailNotSupported = true
-			break
-		case "trim":
+		case "trim", "focal", "rotate":
 			thumbnailNotSupported = true
 			break
 		case "strip_exif":
@@ -201,6 +205,13 @@ func (v *Processor) Process(
 	}
 	// this should be called BEFORE vipscontext.Done
 	defer img.Close()
+
+	if orient > 0 {
+		// orient rotate before resize
+		if err = img.Rotate(getAngle(orient)); err != nil {
+			return nil, err
+		}
+	}
 	var (
 		quality    int
 		origWidth  = float64(img.Width())
