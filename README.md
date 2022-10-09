@@ -8,12 +8,12 @@
 imagor is a fast, Docker-ready image processing server written in Go.
 
 imagor uses one of the most efficient image processing library
-[libvips](https://www.libvips.org/). It is scary [fast](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) and comes with a very low memory footprint. 
+[libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings. 
 imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that enables parallel processing pipelines, achieving high network throughput. 
 
-imagor is a Go application that is highly optimized for speed and extensibility. Alongside [imagorvideo](https://github.com/cshum/imagorvideo), the imagor video thumbnail extension using ffmpeg C bindings.
+imagor is a Go application which is highly optimized for speed and extensibility. Alongside [imagorvideo](https://github.com/cshum/imagorvideo), the imagor video thumbnail extension using ffmpeg C bindings.
 
-imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement and more.
+imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
 
 ### Quick Start
 
