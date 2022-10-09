@@ -166,6 +166,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			}
 			<-fullBufReady
 			fullBufReader = bytes.NewReader(buf)
+			bufReader = nil
 			_ = closeCh(false)
 			return fullBufReader.Seek(offset, whence)
 		})
