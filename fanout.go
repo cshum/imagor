@@ -10,7 +10,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
-	var done = make(chan struct{})
+	var fullBufReady = make(chan struct{})
 	var closed []bool
 	var err error
 	var buf = make([]byte, size)
@@ -55,7 +55,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			}
 			lock.RUnlock()
 			if currentSize >= size {
-				close(done)
+				close(fullBufReady)
 			}
 			if e != nil || currentSize >= size {
 				return
@@ -101,7 +101,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			if readerClosed {
 				return 0, io.ErrClosedPipe
 			}
-			if fullBufReader != nil && !readerClosed {
+			if fullBufReader != nil {
 				// proxy to full buf if ready
 				return fullBufReader.Read(p)
 			}
@@ -153,17 +153,21 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			once.Do(func() {
 				go init()
 			})
-
-			if fullBufReader != nil && !readerClosed {
-				return fullBufReader.Seek(offset, whence)
-			} else if fullBufReader == nil && !readerClosed {
-				<-done
-				fullBufReader = bytes.NewReader(buf)
-				_ = closeCh(false)
-				return fullBufReader.Seek(offset, whence)
-			} else {
+			if readerClosed {
 				return 0, io.ErrClosedPipe
 			}
+			if bufReader != nil &&
+				((whence == io.SeekStart && offset < bufReader.Size()) ||
+					(whence == io.SeekCurrent && offset < int64(bufReader.Len()))) {
+				return bufReader.Seek(offset, whence)
+			}
+			if fullBufReader != nil {
+				return fullBufReader.Seek(offset, whence)
+			}
+			<-fullBufReady
+			fullBufReader = bytes.NewReader(buf)
+			_ = closeCh(false)
+			return fullBufReader.Seek(offset, whence)
 		})
 		return
 	}
