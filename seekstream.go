@@ -6,35 +6,35 @@ import (
 	"sync"
 )
 
-type seekStream struct {
-	source  io.ReadCloser
-	total   int64
-	current int64
-	loaded  bool
-	file    *os.File
-	l       sync.RWMutex
+type SeekStream struct {
+	source io.ReadCloser
+	size   int64
+	curr   int64
+	loaded bool
+	file   *os.File
+	l      sync.RWMutex
 }
 
-func newSeekStream(source io.ReadCloser) (*seekStream, error) {
+func NewSeekStream(source io.ReadCloser) (*SeekStream, error) {
 	file, err := os.CreateTemp("", "imagor-")
 	if err != nil {
 		return nil, err
 	}
-	return &seekStream{
+	return &SeekStream{
 		source: source,
 		file:   file,
 	}, nil
 }
 
-func (s *seekStream) Read(p []byte) (n int, err error) {
+func (s *SeekStream) Read(p []byte) (n int, err error) {
 	s.l.RLock()
 	defer s.l.RUnlock()
 	if s.file == nil || s.source == nil {
 		return 0, io.ErrClosedPipe
 	}
-	if s.current < s.total {
+	if s.curr < s.size {
 		n, err = s.file.Read(p)
-		s.current += int64(n)
+		s.curr += int64(n)
 		if err == io.EOF {
 			err = nil
 		}
@@ -42,7 +42,7 @@ func (s *seekStream) Read(p []byte) (n int, err error) {
 			return
 		}
 	}
-	if len(p) == n {
+	if s.loaded || len(p) == n {
 		return
 	}
 	pn := p[n:]
@@ -56,12 +56,12 @@ func (s *seekStream) Read(p []byte) (n int, err error) {
 	if err == io.EOF {
 		s.loaded = true
 	}
-	s.total += int64(nn)
-	s.current += int64(nn)
+	s.size += int64(nn)
+	s.curr += int64(nn)
 	return
 }
 
-func (s *seekStream) Seek(offset int64, whence int) (int64, error) {
+func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 	s.l.Lock()
 	defer s.l.Unlock()
 	if s.file == nil || s.source == nil {
@@ -72,32 +72,39 @@ func (s *seekStream) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekStart:
 		dest = offset
 	case io.SeekCurrent:
-		dest = s.current + offset
+		dest = s.curr + offset
 	case io.SeekEnd:
 		if !s.loaded {
-			if s.current != s.total {
-				n, err := s.file.Seek(s.total, io.SeekStart)
+			if s.curr != s.size {
+				n, err := s.file.Seek(s.size, io.SeekStart)
 				if err != nil {
 					return n, err
 				}
-				s.current = n
+				s.curr = n
 			}
 			n, err := io.Copy(s.file, s.source)
 			if err != nil {
 				return 0, err
 			}
-			s.current += n
-			s.total += n
+			s.curr += n
+			s.size += n
 			s.loaded = true
 		}
-		dest = s.total + offset
+		dest = s.size + offset
+	}
+	if dest > s.size {
+		nn, err := io.CopyN(s.file, s.source, dest-s.size)
+		s.size += nn
+		if err != nil {
+			return 0, err
+		}
 	}
 	n, err := s.file.Seek(dest, io.SeekStart)
-	s.current = n
+	s.curr = n
 	return n, err
 }
 
-func (s *seekStream) Close() (err error) {
+func (s *SeekStream) Close() (err error) {
 	s.l.Lock()
 	defer s.l.Unlock()
 	if s.file != nil {
@@ -111,4 +118,12 @@ func (s *seekStream) Close() (err error) {
 		s.source = nil
 	}
 	return
+}
+
+func (s *SeekStream) Len() int {
+	return int(s.size - s.curr)
+}
+
+func (s *SeekStream) Size() int64 {
+	return s.size
 }

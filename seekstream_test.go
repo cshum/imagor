@@ -12,27 +12,29 @@ import (
 func TestSeekStream(t *testing.T) {
 	buf := []byte("0123456789")
 	source := io.NopCloser(bytes.NewReader(buf))
-	rs, err := newSeekStream(source)
+	rs, err := NewSeekStream(source)
 	require.NoError(t, err)
 
 	tests := []struct {
 		off     int64
 		seek    int
 		n       int
+		len     int
+		size    int
 		want    string
 		wantpos int64
 		readerr error
 		seekerr string
 	}{
-		{seek: -1, n: 3, want: "012"},
-		{seek: -1, n: 2, want: "34"},
-		{seek: io.SeekStart, off: 0, n: 20, want: "0123456789"},
-		{seek: io.SeekStart, off: 1, n: 1, want: "1"},
-		{seek: io.SeekCurrent, off: 1, wantpos: 3, n: 2, want: "34"},
-		{seek: io.SeekStart, off: -1, seekerr: "invalid argument"},
-		{seek: io.SeekStart, n: 5, want: "01234"},
-		{seek: io.SeekCurrent, n: 5, want: "56789"},
-		{seek: io.SeekEnd, off: -1, n: 1, wantpos: 9, want: "9"},
+		{seek: -1, n: 3, size: 3, want: "012"},
+		{seek: -1, n: 2, size: 5, want: "34"},
+		{seek: io.SeekStart, off: 0, n: 20, size: 10, want: "0123456789"},
+		{seek: io.SeekStart, off: 1, n: 1, len: 8, size: 10, want: "1"},
+		{seek: io.SeekCurrent, off: 1, wantpos: 3, n: 2, len: 5, size: 10, want: "34"},
+		{seek: io.SeekStart, off: -1, len: 10, size: 10, seekerr: "invalid argument"},
+		{seek: io.SeekStart, n: 5, len: 5, size: 10, want: "01234"},
+		{seek: io.SeekCurrent, n: 5, len: 0, size: 10, want: "56789"},
+		{seek: io.SeekEnd, off: -1, n: 1, wantpos: 9, len: 0, size: 10, want: "9"},
 	}
 
 	for i, tt := range tests {
@@ -60,6 +62,8 @@ func TestSeekStream(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("%d. got %q; want %q", i, got, tt.want)
 		}
+		assert.Equal(t, tt.len, rs.Len())
+		assert.Equal(t, tt.size, int(rs.Size()))
 	}
 	n64, err := rs.Seek(0, io.SeekEnd)
 	assert.NoError(t, err)
