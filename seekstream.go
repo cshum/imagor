@@ -78,7 +78,7 @@ func (s *seekStream) Seek(offset int64, whence int) (int64, error) {
 			if s.current != s.total {
 				n, err := s.file.Seek(s.total, io.SeekStart)
 				if err != nil {
-					return 0, err
+					return n, err
 				}
 				s.current = n
 			}
