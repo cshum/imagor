@@ -330,7 +330,7 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 		if err != nil {
 			return nil, size, err
 		}
-		readSeeker, err := newSeekStream(reader)
+		readSeeker, err := NewSeekStream(reader)
 		return readSeeker, size, err
 	}
 	return b.newReadSeeker()
