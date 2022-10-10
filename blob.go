@@ -326,7 +326,12 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	b.init()
 	if b.newReadSeeker == nil {
-		return nil, b.size, ErrMethodNotAllowed
+		reader, size, err := b.NewReader()
+		if err != nil {
+			return nil, size, err
+		}
+		readSeeker, err := NewSeekStream(reader)
+		return readSeeker, size, err
 	}
 	return b.newReadSeeker()
 }

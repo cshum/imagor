@@ -163,9 +163,12 @@ func TestBlobTypes(t *testing.T) {
 			assert.Equal(t, buf, buf2, "bytes not equal")
 
 			rs, size, err := b.NewReadSeeker()
-			assert.Equal(t, ErrMethodNotAllowed, err)
-			assert.Nil(t, rs)
-			assert.Empty(t, size)
+			require.NoError(t, err)
+			defer rs.Close()
+			buf3, err := io.ReadAll(rs)
+			require.NoError(t, err)
+			assert.NotEmpty(t, buf3)
+			assert.Equal(t, buf, buf3, "bytes not equal")
 		})
 	}
 }
