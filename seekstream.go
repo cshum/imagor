@@ -123,6 +123,9 @@ func (s *SeekStream) Close() (err error) {
 }
 
 func (s *SeekStream) Len() int {
+	if s.curr >= s.size {
+		return 0
+	}
 	return int(s.size - s.curr)
 }
 

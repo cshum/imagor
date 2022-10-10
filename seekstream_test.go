@@ -29,7 +29,7 @@ func TestSeekStream(t *testing.T) {
 		{seek: -1, n: 3, size: 3, want: "012"},
 		{seek: -1, n: 2, size: 5, want: "34"},
 		{seek: io.SeekCurrent, off: 2, n: 2, size: 9, want: "78"},
-		{seek: io.SeekEnd, off: -2, n: 2, size: 10, want: "89"},
+		{seek: io.SeekStart, off: 20, n: 2, size: 10},
 		{seek: io.SeekStart, off: 0, n: 20, size: 10, want: "0123456789"},
 		{seek: io.SeekStart, off: 1, n: 1, len: 8, size: 10, want: "1"},
 		{seek: io.SeekCurrent, off: 1, wantpos: 3, n: 2, len: 5, size: 10, want: "34"},
