@@ -24,7 +24,8 @@ func TestSeekStream(t *testing.T) {
 		readerr error
 		seekerr string
 	}{
-		{seek: -1, n: 5, want: "01234"},
+		{seek: -1, n: 3, want: "012"},
+		{seek: -1, n: 2, want: "34"},
 		{seek: io.SeekStart, off: 0, n: 20, want: "0123456789"},
 		{seek: io.SeekStart, off: 1, n: 1, want: "1"},
 		{seek: io.SeekCurrent, off: 1, wantpos: 3, n: 2, want: "34"},
