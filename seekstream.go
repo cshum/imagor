@@ -7,10 +7,12 @@ import (
 )
 
 type seekStream struct {
-	source io.ReadCloser
-	file   *os.File
-	seeked bool
-	l      sync.RWMutex
+	source  io.ReadCloser
+	total   int64
+	current int64
+	loaded  bool
+	file    *os.File
+	l       sync.RWMutex
 }
 
 func newSeekStream(source io.ReadCloser) (*seekStream, error) {
@@ -30,16 +32,33 @@ func (s *seekStream) Read(p []byte) (n int, err error) {
 	if s.file == nil || s.source == nil {
 		return 0, io.ErrClosedPipe
 	}
-	if !s.seeked {
-		n, err = s.source.Read(p)
-		if n > 0 {
-			if n, err := s.file.Write(p[:n]); err != nil {
-				return n, err
-			}
+	if s.current < s.total {
+		n, err = s.file.Read(p)
+		s.current += int64(n)
+		if err == io.EOF {
+			err = nil
 		}
+		if err != nil {
+			return
+		}
+	}
+	if len(p) == n {
 		return
 	}
-	return s.file.Read(p)
+	pn := p[n:]
+	nn, err := s.source.Read(pn)
+	n += nn
+	if nn > 0 {
+		if n, err := s.file.Write(pn[:nn]); err != nil {
+			return n, err
+		}
+	}
+	if err == io.EOF {
+		s.loaded = true
+	}
+	s.total += int64(nn)
+	s.current += int64(nn)
+	return
 }
 
 func (s *seekStream) Seek(offset int64, whence int) (int64, error) {
@@ -48,14 +67,34 @@ func (s *seekStream) Seek(offset int64, whence int) (int64, error) {
 	if s.file == nil || s.source == nil {
 		return 0, io.ErrClosedPipe
 	}
-	if !s.seeked {
-		_, err := io.Copy(s.file, s.source)
-		if err != nil {
-			return 0, err
+	var dest int64
+	switch whence {
+	case io.SeekStart:
+		dest = offset
+	case io.SeekCurrent:
+		dest = s.current + offset
+	case io.SeekEnd:
+		if !s.loaded {
+			if s.current != s.total {
+				n, err := s.file.Seek(s.total, io.SeekStart)
+				if err != nil {
+					return 0, err
+				}
+				s.current = n
+			}
+			n, err := io.Copy(s.file, s.source)
+			if err != nil {
+				return 0, err
+			}
+			s.current += n
+			s.total += n
+			s.loaded = true
 		}
-		s.seeked = true
+		dest = s.total + offset
 	}
-	return s.file.Seek(offset, whence)
+	n, err := s.file.Seek(dest, io.SeekStart)
+	s.current = n
+	return n, err
 }
 
 func (s *seekStream) Close() (err error) {
