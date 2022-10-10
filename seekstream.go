@@ -92,10 +92,10 @@ func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 		}
 		dest = s.size + offset
 	}
-	if dest > s.size {
+	if !s.loaded && dest > s.size {
 		nn, err := io.CopyN(s.file, s.source, dest-s.size)
 		s.size += nn
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return 0, err
 		}
 	}
