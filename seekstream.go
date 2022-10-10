@@ -28,6 +28,9 @@ func NewSeekStream(source io.ReadCloser) (*SeekStream, error) {
 func (s *SeekStream) Read(p []byte) (n int, err error) {
 	s.l.RLock()
 	defer s.l.RUnlock()
+	if s.file == nil || s.source == nil {
+		return 0, io.ErrClosedPipe
+	}
 	if !s.seeked {
 		n, err = s.source.Read(p)
 		if n > 0 {
@@ -38,38 +41,30 @@ func (s *SeekStream) Read(p []byte) (n int, err error) {
 		}
 		return
 	}
-	if s.file != nil {
-		return s.file.Read(p)
-	}
-	return 0, io.ErrClosedPipe
+	return s.file.Read(p)
 }
 
 func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 	s.l.Lock()
 	defer s.l.Unlock()
+	if s.file == nil || s.source == nil {
+		return 0, io.ErrClosedPipe
+	}
 	if !s.seeked {
-		s.seeked = true
-		if s.file != nil {
-			filename := s.file.Name()
-			_ = s.file.Close()
-			var err error
-			if s.file, err = os.Open(filename); err != nil {
-				_ = s.Close()
-				return 0, err
-			}
-		} else {
-			return 0, io.ErrClosedPipe
-		}
 		n, err := io.Copy(s.file, s.source)
 		s.size += n
 		if err != nil {
 			return 0, err
 		}
+		filename := s.file.Name()
+		_ = s.file.Close()
+		if s.file, err = os.Open(filename); err != nil {
+			_ = s.Close()
+			return 0, err
+		}
+		s.seeked = true
 	}
-	if s.file != nil {
-		return s.file.Seek(offset, whence)
-	}
-	return 0, io.ErrClosedPipe
+	return s.file.Seek(offset, whence)
 }
 
 func (s *SeekStream) Close() (err error) {
