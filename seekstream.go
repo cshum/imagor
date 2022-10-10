@@ -53,12 +53,6 @@ func (s *seekStream) Seek(offset int64, whence int) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		filename := s.file.Name()
-		_ = s.file.Close()
-		if s.file, err = os.Open(filename); err != nil {
-			_ = s.Close()
-			return 0, err
-		}
 		s.seeked = true
 	}
 	return s.file.Seek(offset, whence)
