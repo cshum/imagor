@@ -9,7 +9,6 @@ import (
 type SeekStream struct {
 	source io.ReadCloser
 	file   *os.File
-	size   int64
 	seeked bool
 	l      sync.RWMutex
 }
@@ -34,7 +33,6 @@ func (s *SeekStream) Read(p []byte) (n int, err error) {
 	if !s.seeked {
 		n, err = s.source.Read(p)
 		if n > 0 {
-			s.size += int64(n)
 			if n, err := s.file.Write(p[:n]); err != nil {
 				return n, err
 			}
@@ -51,8 +49,7 @@ func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 		return 0, io.ErrClosedPipe
 	}
 	if !s.seeked {
-		n, err := io.Copy(s.file, s.source)
-		s.size += n
+		_, err := io.Copy(s.file, s.source)
 		if err != nil {
 			return 0, err
 		}
@@ -81,10 +78,4 @@ func (s *SeekStream) Close() (err error) {
 		s.source = nil
 	}
 	return
-}
-
-func (s *SeekStream) Size() int64 {
-	s.l.RLock()
-	defer s.l.RUnlock()
-	return s.size
 }

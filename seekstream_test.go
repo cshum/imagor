@@ -67,12 +67,17 @@ func TestSeekStream(t *testing.T) {
 			t.Errorf("%d. got %q; want %q", i, got, tt.want)
 		}
 	}
-	assert.Equal(t, int64(10), rs.Size())
+	n64, err := rs.Seek(0, io.SeekEnd)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(10), n64)
+
 	assert.NoError(t, rs.Close())
-	b = make([]byte, 1)
-	n64, err := rs.Seek(0, 0)
+
+	n64, err = rs.Seek(0, 0)
 	assert.Equal(t, io.ErrClosedPipe, err)
 	assert.Empty(t, n64)
+
+	b = make([]byte, 1)
 	n, err = rs.Read(b)
 	assert.Equal(t, io.ErrClosedPipe, err)
 	assert.Empty(t, n)
