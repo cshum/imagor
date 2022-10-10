@@ -35,10 +35,7 @@ func (s *SeekStream) Read(p []byte) (n int, err error) {
 	if s.curr < s.size {
 		n, err = s.file.Read(p)
 		s.curr += int64(n)
-		if err == io.EOF {
-			err = nil
-		}
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return
 		}
 	}
