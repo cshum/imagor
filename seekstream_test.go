@@ -12,11 +12,11 @@ import (
 func TestSeekStream(t *testing.T) {
 	buf := []byte("0123456789")
 	source := io.NopCloser(bytes.NewReader(buf))
-	readSeeker, err := NewSeekStream(source)
+	rs, err := NewSeekStream(source)
 	require.NoError(t, err)
 
 	b := make([]byte, 5)
-	n, err := readSeeker.Read(b)
+	n, err := rs.Read(b)
 	assert.NoError(t, err)
 	assert.Equal(t, 5, n)
 	assert.Equal(t, []byte("01234"), b)
@@ -44,7 +44,7 @@ func TestSeekStream(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		pos, err := readSeeker.Seek(tt.off, tt.seek)
+		pos, err := rs.Seek(tt.off, tt.seek)
 		if err == nil && tt.seekerr != "" {
 			t.Errorf("%d. want seek error %q", i, tt.seekerr)
 			continue
@@ -57,7 +57,7 @@ func TestSeekStream(t *testing.T) {
 			t.Errorf("%d. pos = %d, want %d", i, pos, tt.wantpos)
 		}
 		buf := make([]byte, tt.n)
-		n, err := readSeeker.Read(buf)
+		n, err := rs.Read(buf)
 		if err != tt.readerr {
 			t.Errorf("%d. read = %v; want %v", i, err, tt.readerr)
 			continue
@@ -67,5 +67,14 @@ func TestSeekStream(t *testing.T) {
 			t.Errorf("%d. got %q; want %q", i, got, tt.want)
 		}
 	}
-	assert.Equal(t, int64(10), readSeeker.Size())
+	assert.Equal(t, int64(10), rs.Size())
+	assert.NoError(t, rs.Close())
+	b = make([]byte, 1)
+	n64, err := rs.Seek(0, 0)
+	assert.Equal(t, io.ErrClosedPipe, err)
+	assert.Empty(t, n64)
+	n, err = rs.Read(b)
+	assert.Equal(t, io.ErrClosedPipe, err)
+	assert.Empty(t, n)
+	assert.Empty(t, b[0])
 }
