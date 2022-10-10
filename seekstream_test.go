@@ -12,7 +12,7 @@ import (
 func TestSeekStream(t *testing.T) {
 	buf := []byte("0123456789")
 	source := io.NopCloser(bytes.NewReader(buf))
-	rs, err := NewSeekStream(source)
+	rs, err := newSeekStream(source)
 	require.NoError(t, err)
 
 	tests := []struct {

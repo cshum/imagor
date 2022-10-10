@@ -6,25 +6,25 @@ import (
 	"sync"
 )
 
-type SeekStream struct {
+type seekStream struct {
 	source io.ReadCloser
 	file   *os.File
 	seeked bool
 	l      sync.RWMutex
 }
 
-func NewSeekStream(source io.ReadCloser) (*SeekStream, error) {
+func newSeekStream(source io.ReadCloser) (*seekStream, error) {
 	file, err := os.CreateTemp("", "imagor-")
 	if err != nil {
 		return nil, err
 	}
-	return &SeekStream{
+	return &seekStream{
 		source: source,
 		file:   file,
 	}, nil
 }
 
-func (s *SeekStream) Read(p []byte) (n int, err error) {
+func (s *seekStream) Read(p []byte) (n int, err error) {
 	s.l.RLock()
 	defer s.l.RUnlock()
 	if s.file == nil || s.source == nil {
@@ -42,7 +42,7 @@ func (s *SeekStream) Read(p []byte) (n int, err error) {
 	return s.file.Read(p)
 }
 
-func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
+func (s *seekStream) Seek(offset int64, whence int) (int64, error) {
 	s.l.Lock()
 	defer s.l.Unlock()
 	if s.file == nil || s.source == nil {
@@ -64,7 +64,7 @@ func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 	return s.file.Seek(offset, whence)
 }
 
-func (s *SeekStream) Close() (err error) {
+func (s *seekStream) Close() (err error) {
 	s.l.Lock()
 	defer s.l.Unlock()
 	if s.file != nil {
