@@ -45,7 +45,7 @@ func Test(t *testing.T) {
 
 ## TempFileBuffer
 
-Use `NewTempFileBuffer(dir, pattern)` if total size is not known or too large to fit inside memory:
+Use `NewTempFileBuffer(dir, pattern)` if total size is not known or does not fit inside memory:
 
 ```go
 package main
