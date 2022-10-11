@@ -43,7 +43,8 @@ func (s *SeekStream) Read(p []byte) (n int, err error) {
 		return
 	}
 	pn := p[n:]
-	nn, err := s.source.Read(pn)
+	var nn int
+	nn, err = s.source.Read(pn)
 	n += nn
 	if nn > 0 {
 		if n, err := s.file.Write(pn[:nn]); err != nil {
@@ -74,10 +75,10 @@ func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 		if !s.loaded {
 			if s.curr != s.size {
 				n, err := s.file.Seek(s.size, io.SeekStart)
+				s.curr = n
 				if err != nil {
 					return n, err
 				}
-				s.curr = n
 			}
 			n, err := io.Copy(s.file, s.source)
 			if err != nil {
