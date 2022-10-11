@@ -106,7 +106,7 @@ func (s *SeekStream) Close() (err error) {
 	s.l.Lock()
 	defer s.l.Unlock()
 	if s.buffer != nil {
-		s.buffer.Cleanup()
+		s.buffer.Clear()
 		s.buffer = nil
 	}
 	if s.source != nil {

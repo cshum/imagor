@@ -8,14 +8,14 @@ import (
 
 type Buffer interface {
 	io.ReadWriteSeeker
-	Cleanup()
+	Clear()
 }
 
 type TempFileBuffer struct {
 	*os.File
 }
 
-func (b *TempFileBuffer) Cleanup() {
+func (b *TempFileBuffer) Clear() {
 	filename := b.File.Name()
 	_ = b.File.Close()
 	_ = os.Remove(filename)
@@ -73,6 +73,6 @@ func (r *MemoryBuffer) Seek(offset int64, whence int) (int64, error) {
 	return abs, nil
 }
 
-func (r *MemoryBuffer) Cleanup() {
+func (r *MemoryBuffer) Clear() {
 	r.buf = nil
 }

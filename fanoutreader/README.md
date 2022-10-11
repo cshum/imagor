@@ -1,6 +1,6 @@
 # fanoutreader
 
-fanoutreader allows fan-out an arbitrary number of reader streams concurrently from one data source with known total size, using channel and memory buffer.
+fanoutreader allows fanout arbitrary number of reader streams concurrently from one data source with known total size, using channel and memory buffer.
 
 ```go
 package main
