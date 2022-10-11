@@ -1,7 +1,6 @@
 package fanout
 
 import (
-	"bytes"
 	"io"
 	"sync"
 )
@@ -20,11 +19,10 @@ type Fanout struct {
 type Reader struct {
 	fanout        *Fanout
 	channel       chan []byte
+	buf           []byte
+	current       int
 	channelClosed bool
 	readerClosed  bool
-	buf           []byte
-	bufReader     *bytes.Reader
-	current       int
 }
 
 func New(source io.ReadCloser, size int) *Fanout {
@@ -60,14 +58,14 @@ func (f *Fanout) readAll() {
 		if e != nil {
 			if e == io.EOF {
 				e = nil
-				if n == 0 {
-					if f.current < f.size {
-						f.buf = f.buf[:f.current]
-					}
-					f.size = f.current
-				}
 			} else {
 				f.err = e
+			}
+			if n == 0 {
+				if f.current < f.size {
+					f.buf = f.buf[:f.current]
+				}
+				f.size = f.current
 			}
 		}
 		readersCopy := f.readers
@@ -91,8 +89,7 @@ func (f *Fanout) NewReader() *Reader {
 	r.fanout = f
 
 	f.lock.Lock()
-	r.current = f.current
-	r.bufReader = bytes.NewReader(f.buf[:f.current])
+	r.buf = f.buf[:f.current]
 	f.readers = append(f.readers, r)
 	f.lock.Unlock()
 	return r
@@ -103,16 +100,6 @@ func (r *Reader) Read(p []byte) (n int, e error) {
 	if r.readerClosed {
 		return 0, io.ErrClosedPipe
 	}
-	if r.bufReader != nil {
-		n, e = r.bufReader.Read(p)
-		if e == io.EOF {
-			r.bufReader = nil
-			e = nil
-			// Don't return EOF, pass to next reader instead
-		} else {
-			return
-		}
-	}
 	r.fanout.lock.RLock()
 	e = r.fanout.err
 	size := r.fanout.size
@@ -121,14 +108,13 @@ func (r *Reader) Read(p []byte) (n int, e error) {
 
 	for {
 		if r.current >= size {
+			if e != nil {
+				return 0, e
+			}
 			return 0, io.EOF
 		}
 		if closed {
 			return 0, io.ErrClosedPipe
-		}
-		if e != nil {
-			_ = r.close(true)
-			return
 		}
 		if len(r.buf) == 0 {
 			r.buf = <-r.channel
