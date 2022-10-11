@@ -2,6 +2,13 @@
 
 `SeekStream` allows seeking on non-seekable `io.ReadCloser` source by buffering read data using memory or temp file.
 
+```go
+var source io.ReadCloser
+var buffer seekstream.Buffer
+... 
+var rs io.ReadSeekCloser = seekstream.New(source, buffer)
+```
+
 ## MemoryBuffer
 
 Use `NewMemoryBuffer(size)` if total size is known and can be fit inside memory:
