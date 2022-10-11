@@ -3,6 +3,7 @@ package imagor
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/cshum/imagor/fanout"
 	"github.com/cshum/imagor/seekstream"
 	"io"
 	"net/http"
@@ -128,17 +129,6 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
-type readSeekCloser struct {
-	io.Reader
-	io.Seeker
-	io.Closer
-}
-
-type readCloser struct {
-	io.Reader
-	io.Closer
-}
-
 type readSeekNopCloser struct {
 	io.ReadSeeker
 }
@@ -189,15 +179,15 @@ func (b *Blob) init() {
 		if b.fanout && size > 0 && size < maxMemorySize && err == nil {
 			// use fan-out reader if buf size known and within memory size
 			// otherwise create new readers
-			factory := fanoutReader(reader, int(size))
+			factory := fanout.New(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
-				return factory(), size, nil
+				return factory.NewReader(), size, nil
 			}
-			reader = factory()
+			reader = factory.NewReader()
 			// if source not seekable, simulate seek from fanout buffer
 			if b.newReadSeeker == nil {
 				b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
-					source := factory()
+					source := factory.NewReader()
 					buffer := seekstream.NewMemoryBuffer(size)
 					return seekstream.New(source, buffer), size, nil
 				}
