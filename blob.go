@@ -3,7 +3,7 @@ package imagor
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/cshum/imagor/fanout"
+	"github.com/cshum/imagor/fanoutreader"
 	"github.com/cshum/imagor/seekstream"
 	"io"
 	"net/http"
@@ -179,11 +179,11 @@ func (b *Blob) init() {
 		if b.fanout && size > 0 && size < maxMemorySize && err == nil {
 			// use fan-out reader if buf size known and within memory size
 			// otherwise create new readers
-			factory := fanout.New(reader, int(size))
+			fanout := fanoutreader.New(reader, int(size))
 			b.newReader = func() (io.ReadCloser, int64, error) {
-				return factory.NewReader(), size, nil
+				return fanout.NewReader(), size, nil
 			}
-			reader = factory.NewReader()
+			reader = fanout.NewReader()
 		} else {
 			b.fanout = false
 		}

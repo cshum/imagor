@@ -1,12 +1,12 @@
-# SeekStream
+# seekstream
 
-`SeekStream` allows seeking on non-seekable `io.ReadCloser` source by buffering read data using memory or temp file.
+seekstream allows seeking on non-seekable `io.ReadCloser` source by buffering read data using memory or temp file.
 
 ```go
-var source io.ReadCloser
+var source io.ReadCloser // non-seekable
 var buffer seekstream.Buffer
 ... 
-var rs io.ReadSeekCloser = seekstream.New(source, buffer)
+var rs io.ReadSeekCloser = seekstream.New(source, buffer) // seekable
 ```
 
 ## MemoryBuffer
@@ -56,7 +56,7 @@ import (
 func Test(t *testing.T) {
 	source := io.NopCloser(bytes.NewBuffer([]byte("0123456789")))
 	
-	buffer, err := seekstream.NewTempFileBuffer("", "seekstream-")
+	buffer, err := seekstream.NewTempFileBuffer("", "seekstream-") 
 	assert.NoError(t, err)
 	rs := seekstream.New(source, buffer)
 	defer rs.Close()
