@@ -3,6 +3,7 @@ package imagor
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/cshum/imagor/seekstream"
 	"io"
 	"net/http"
 	"os"
@@ -189,17 +190,16 @@ func (b *Blob) init() {
 			// use fan-out reader if buf size known and within memory size
 			// otherwise create new readers
 			factory := fanoutReader(reader, int(size))
-			newReader := func() (io.ReadCloser, int64, error) {
-				r, _, c := factory()
-				return &readCloser{Reader: r, Closer: c}, size, nil
+			b.newReader = func() (io.ReadCloser, int64, error) {
+				return factory(), size, nil
 			}
-			b.newReader = newReader
-			reader, _, _ = newReader()
+			reader = factory()
 			// if source not seekable, simulate seek from fanout buffer
 			if b.newReadSeeker == nil {
 				b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
-					r, s, c := factory()
-					return &readSeekCloser{Reader: r, Seeker: s, Closer: c}, size, nil
+					source := factory()
+					buffer := seekstream.NewMemoryBuffer(size)
+					return seekstream.New(source, buffer), size, nil
 				}
 			}
 		} else {
@@ -330,8 +330,16 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 		if err != nil {
 			return nil, size, err
 		}
-		readSeeker, err := NewSeekStream(reader)
-		return readSeeker, size, err
+		var buffer seekstream.Buffer
+		if size > 0 && size < maxMemorySize {
+			buffer = seekstream.NewMemoryBuffer(size)
+		} else {
+			buffer, err = seekstream.NewTempFileBuffer("", "imagor")
+			if err != nil {
+				return nil, size, err
+			}
+		}
+		return seekstream.New(reader, buffer), size, err
 	}
 	return b.newReadSeeker()
 }
