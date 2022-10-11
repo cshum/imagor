@@ -184,14 +184,6 @@ func (b *Blob) init() {
 				return factory.NewReader(), size, nil
 			}
 			reader = factory.NewReader()
-			// if source not seekable, simulate seek from fanout buffer
-			if b.newReadSeeker == nil {
-				b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
-					source := factory.NewReader()
-					buffer := seekstream.NewMemoryBuffer(size)
-					return seekstream.New(source, buffer), size, nil
-				}
-			}
 		} else {
 			b.fanout = false
 		}
@@ -315,23 +307,26 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 // NewReadSeeker create read seeker if reader supports seek, or attempts to simulate seek using memory buffer
 func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	b.init()
-	if b.newReadSeeker == nil {
-		reader, size, err := b.NewReader()
+	if b.newReadSeeker != nil {
+		return b.newReadSeeker()
+	}
+	// if source not seekable, simulate seek with seek stream
+	reader, size, err := b.NewReader()
+	if err != nil {
+		return nil, size, err
+	}
+	var buffer seekstream.Buffer
+	if size > 0 && size < maxMemorySize {
+		// in memory buffer if size is known and less then 100mb
+		buffer = seekstream.NewMemoryBuffer(size)
+	} else {
+		// otherwise temp file buffer
+		buffer, err = seekstream.NewTempFileBuffer("", "imagor")
 		if err != nil {
 			return nil, size, err
 		}
-		var buffer seekstream.Buffer
-		if size > 0 && size < maxMemorySize {
-			buffer = seekstream.NewMemoryBuffer(size)
-		} else {
-			buffer, err = seekstream.NewTempFileBuffer("", "imagor")
-			if err != nil {
-				return nil, size, err
-			}
-		}
-		return seekstream.New(reader, buffer), size, err
 	}
-	return b.newReadSeeker()
+	return seekstream.New(reader, buffer), size, err
 }
 
 func (b *Blob) ReadAll() ([]byte, error) {
