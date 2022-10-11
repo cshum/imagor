@@ -1,4 +1,4 @@
-package imagor
+package seekstream
 
 import (
 	"io"
@@ -15,7 +15,7 @@ type SeekStream struct {
 	l      sync.RWMutex
 }
 
-func NewSeekStream(source io.ReadCloser) (*SeekStream, error) {
+func New(source io.ReadCloser) (*SeekStream, error) {
 	file, err := os.CreateTemp("", "imagor-")
 	if err != nil {
 		return nil, err

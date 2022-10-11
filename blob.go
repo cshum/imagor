@@ -3,6 +3,7 @@ package imagor
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/cshum/imagor/seekstream"
 	"io"
 	"net/http"
 	"os"
@@ -330,7 +331,7 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 		if err != nil {
 			return nil, size, err
 		}
-		readSeeker, err := NewSeekStream(reader)
+		readSeeker, err := seekstream.New(reader)
 		return readSeeker, size, err
 	}
 	return b.newReadSeeker()
