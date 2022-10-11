@@ -14,6 +14,7 @@ var rs io.ReadSeekCloser = seekstream.New(source, buffer) // seekable
 Use `NewMemoryBuffer(size)` if total size is known and can be fit inside memory:
 
 ```go
+package main
 
 import (
 	"github.com/cshum/imagor/seekstream"
@@ -47,6 +48,7 @@ func Test(t *testing.T) {
 Use `NewTempFileBuffer(dir, pattern)` if total size is not known or too large to fit inside memory:
 
 ```go
+package main
 
 import (
 	"github.com/cshum/imagor/seekstream"
