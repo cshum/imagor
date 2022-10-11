@@ -1,10 +1,13 @@
-package fanout
+package fanoutreader
 
 import (
 	"io"
 	"sync"
 )
 
+// Fanout allows fanout arbitrary number of reader streams concurrently
+// from one data source with known total size,
+// using channel and memory buffer.
 type Fanout struct {
 	source  io.ReadCloser
 	size    int
@@ -13,10 +16,11 @@ type Fanout struct {
 	err     error
 	lock    sync.RWMutex
 	once    sync.Once
-	readers []*Reader
+	readers []*reader
 }
 
-type Reader struct {
+// reader io.ReadCloser spawned via Fanout
+type reader struct {
 	fanout        *Fanout
 	channel       chan []byte
 	buf           []byte
@@ -25,6 +29,7 @@ type Reader struct {
 	readerClosed  bool
 }
 
+// New Fanout factory via single io.ReadCloser source with known size
 func New(source io.ReadCloser, size int) *Fanout {
 	return &Fanout{
 		source: source,
@@ -33,6 +38,7 @@ func New(source io.ReadCloser, size int) *Fanout {
 	}
 }
 
+// do triggers reading data from source
 func (f *Fanout) do() {
 	f.once.Do(func() {
 		go f.readAll()
@@ -80,8 +86,9 @@ func (f *Fanout) readAll() {
 	}
 }
 
-func (f *Fanout) NewReader() *Reader {
-	r := &Reader{}
+// NewReader spawns new io.ReadCloser
+func (f *Fanout) NewReader() io.ReadCloser {
+	r := &reader{}
 	r.channel = make(chan []byte, f.size/4096+1)
 	r.fanout = f
 
@@ -92,7 +99,8 @@ func (f *Fanout) NewReader() *Reader {
 	return r
 }
 
-func (r *Reader) Read(p []byte) (n int, err error) {
+// Read implements the io.Reader interface.
+func (r *reader) Read(p []byte) (n int, err error) {
 	r.fanout.do()
 	if r.readerClosed {
 		return 0, io.ErrClosedPipe
@@ -129,7 +137,8 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 	}
 }
 
-func (r *Reader) close(closeReader bool) (e error) {
+// close reader or just closing the underlying channel
+func (r *reader) close(closeReader bool) (e error) {
 	r.fanout.lock.Lock()
 	e = r.fanout.err
 	r.readerClosed = closeReader
@@ -143,6 +152,7 @@ func (r *Reader) close(closeReader bool) (e error) {
 	return
 }
 
-func (r *Reader) Close() error {
+// Close implements the io.Closer interface.
+func (r *reader) Close() error {
 	return r.close(true)
 }

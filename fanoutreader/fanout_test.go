@@ -1,4 +1,4 @@
-package fanout
+package fanoutreader
 
 import (
 	"bytes"
