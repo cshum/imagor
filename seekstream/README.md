@@ -53,19 +53,7 @@ func Test(t *testing.T) {
 	assert.NoError(t, err)
 	rs := seekstream.New(source, buffer)
 	defer rs.Close()
-
-	b := make([]byte, 4)
-	_, _ = rs.Read(b)
-	assert.Equal(t, "0123", string(b))
-
-	b = make([]byte, 3)
-	_, _ = rs.Seek(-2, io.SeekCurrent)
-	_, _ = rs.Read(b)
-	assert.Equal(t, "234", string(b))
-
-	b = make([]byte, 4)
-	_, _ = rs.Seek(-5, io.SeekEnd)
-	_, _ = rs.Read(b)
-	assert.Equal(t, "5678", string(b))
+	
+	...
 }
 ```
