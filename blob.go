@@ -331,8 +331,11 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 		if err != nil {
 			return nil, size, err
 		}
-		readSeeker, err := seekstream.New(reader)
-		return readSeeker, size, err
+		buffer, err := seekstream.NewTempFileBuffer("", "imagor")
+		if err != nil {
+			return nil, size, err
+		}
+		return seekstream.New(reader, buffer), size, err
 	}
 	return b.newReadSeeker()
 }

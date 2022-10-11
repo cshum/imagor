@@ -12,8 +12,9 @@ import (
 func TestSeekStream(t *testing.T) {
 	buf := []byte("0123456789")
 	source := io.NopCloser(bytes.NewReader(buf))
-	rs, err := New(source)
+	buffer, err := NewTempFileBuffer("", "imagor-")
 	require.NoError(t, err)
+	rs := New(source, buffer)
 
 	tests := []struct {
 		off     int64
