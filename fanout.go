@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, io.Closer) {
+func fanoutReader(source io.ReadCloser, size int) func() io.ReadCloser {
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
@@ -63,7 +63,7 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 		}
 	}
 
-	return func() (reader io.Reader, seeker io.Seeker, closer io.Closer) {
+	return func() io.ReadCloser {
 		ch := make(chan []byte, size/4096+1)
 
 		lock.Lock()
@@ -75,8 +75,6 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 		lock.Unlock()
 
 		var readerClosed bool
-		var fullBufReader *bytes.Reader
-
 		var b []byte
 		var closeCh = func(closeReader bool) (e error) {
 			lock.Lock()
@@ -91,86 +89,62 @@ func fanoutReader(source io.ReadCloser, size int) func() (io.Reader, io.Seeker, 
 			}
 			return
 		}
-		closer = closerFunc(func() error {
-			return closeCh(true)
-		})
-		reader = readerFunc(func(p []byte) (n int, e error) {
-			once.Do(func() {
-				go init()
-			})
-			if readerClosed {
-				return 0, io.ErrClosedPipe
-			}
-			if fullBufReader != nil {
-				// proxy to full buf if ready
-				return fullBufReader.Read(p)
-			}
-			if bufReader != nil {
-				n, e = bufReader.Read(p)
-				if e == io.EOF {
-					bufReader = nil
-					e = nil
-					// Don't return EOF, pass to next reader instead
-				} else {
-					return
-				}
-			}
-
-			lock.RLock()
-			e = err
-			sizeCopy := size
-			closedCopy := closed[i]
-			lock.RUnlock()
-
-			for {
-				if cnt >= sizeCopy {
-					return 0, io.EOF
-				}
-				if closedCopy {
+		return &readCloser{
+			Reader: readerFunc(func(p []byte) (n int, e error) {
+				once.Do(func() {
+					go init()
+				})
+				if readerClosed {
 					return 0, io.ErrClosedPipe
 				}
-				if e != nil {
-					_ = closeCh(true)
-					return
+				if bufReader != nil {
+					n, e = bufReader.Read(p)
+					if e == io.EOF {
+						bufReader = nil
+						e = nil
+						// Don't return EOF, pass to next reader instead
+					} else {
+						return
+					}
 				}
-				if len(b) == 0 {
-					b = <-ch
+
+				lock.RLock()
+				e = err
+				sizeCopy := size
+				closedCopy := closed[i]
+				lock.RUnlock()
+
+				for {
+					if cnt >= sizeCopy {
+						return 0, io.EOF
+					}
+					if closedCopy {
+						return 0, io.ErrClosedPipe
+					}
+					if e != nil {
+						_ = closeCh(true)
+						return
+					}
+					if len(b) == 0 {
+						b = <-ch
+					}
+					nn := copy(p[n:], b)
+					if nn == 0 {
+						return
+					}
+					b = b[nn:]
+					cnt += nn
+					n += nn
+					if cnt >= sizeCopy {
+						_ = closeCh(false)
+						return
+					}
 				}
-				nn := copy(p[n:], b)
-				if nn == 0 {
-					return
-				}
-				b = b[nn:]
-				cnt += nn
-				n += nn
-				if cnt >= sizeCopy {
-					_ = closeCh(false)
-					return
-				}
-			}
-		})
-		seeker = seekerFunc(func(offset int64, whence int) (int64, error) {
-			once.Do(func() {
-				go init()
-			})
-			if readerClosed {
-				return 0, io.ErrClosedPipe
-			}
-			if bufReader != nil &&
-				((whence == io.SeekStart && offset < bufReader.Size()) ||
-					(whence == io.SeekCurrent && offset < int64(bufReader.Len()))) {
-				return bufReader.Seek(offset, whence)
-			}
-			if fullBufReader != nil {
-				return fullBufReader.Seek(offset, whence)
-			}
-			<-fullBufReady
-			fullBufReader = bytes.NewReader(buf)
-			bufReader = nil
-			_ = closeCh(false)
-			return fullBufReader.Seek(offset, whence)
-		})
-		return
+			}),
+			Closer: closerFunc(func() error {
+				return closeCh(true)
+			}),
+		}
 	}
 }
 
@@ -181,7 +155,3 @@ func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
 type closerFunc func() error
 
 func (cf closerFunc) Close() error { return cf() }
-
-type seekerFunc func(offset int64, whence int) (int64, error)
-
-func (sf seekerFunc) Seek(offset int64, whence int) (int64, error) { return sf(offset, whence) }
