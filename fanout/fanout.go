@@ -6,14 +6,14 @@ import (
 )
 
 type Fanout struct {
-	size    int
-	lock    sync.RWMutex
 	source  io.ReadCloser
-	once    sync.Once
-	err     error
-	readers []*Reader
-	buf     []byte
+	size    int
 	current int
+	buf     []byte
+	err     error
+	lock    sync.RWMutex
+	once    sync.Once
+	readers []*Reader
 }
 
 type Reader struct {

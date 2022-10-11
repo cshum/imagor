@@ -321,7 +321,7 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 		buffer = seekstream.NewMemoryBuffer(size)
 	} else {
 		// otherwise temp file buffer
-		buffer, err = seekstream.NewTempFileBuffer("", "imagor")
+		buffer, err = seekstream.NewTempFileBuffer("", "imagor-")
 		if err != nil {
 			return nil, size, err
 		}
