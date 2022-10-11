@@ -5,7 +5,9 @@ import (
 	"sync"
 )
 
-// Fanout fanout reader factory
+// Fanout allows fanout arbitrary number of reader streams concurrently
+// from one data source with known total size,
+// using channel and memory buffer.
 type Fanout struct {
 	source  io.ReadCloser
 	size    int
@@ -27,7 +29,7 @@ type reader struct {
 	readerClosed  bool
 }
 
-// New Fanout reader factory via single io.ReadCloser source with known size
+// New Fanout factory via single io.ReadCloser source with known size
 func New(source io.ReadCloser, size int) *Fanout {
 	return &Fanout{
 		source: source,
