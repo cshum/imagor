@@ -43,7 +43,7 @@ func (f *Fanout) readAll() {
 	defer func() {
 		_ = f.source.Close()
 	}()
-	for {
+	for f.current < f.size {
 		b := f.buf[f.current:]
 		n, e := f.source.Read(b)
 		if f.current+n > f.size {
@@ -77,9 +77,6 @@ func (f *Fanout) readAll() {
 			}
 		}
 		f.lock.RUnlock()
-		if e != nil || f.current >= f.size {
-			return
-		}
 	}
 }
 
@@ -95,17 +92,16 @@ func (f *Fanout) NewReader() *Reader {
 	return r
 }
 
-func (r *Reader) Read(p []byte) (n int, e error) {
+func (r *Reader) Read(p []byte) (n int, err error) {
 	r.fanout.do()
 	if r.readerClosed {
 		return 0, io.ErrClosedPipe
 	}
 	r.fanout.lock.RLock()
-	e = r.fanout.err
+	e := r.fanout.err
 	size := r.fanout.size
 	closed := r.channelClosed
 	r.fanout.lock.RUnlock()
-
 	for {
 		if r.current >= size {
 			if e != nil {
