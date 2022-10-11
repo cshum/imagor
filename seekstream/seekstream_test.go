@@ -88,12 +88,63 @@ func doSeekStreamTests(t *testing.T, buffer Buffer) {
 	assert.Empty(t, b[0])
 }
 
-func TestSeekStream_TempFile(t *testing.T) {
+func TestSeekStream_TempFileBuffer(t *testing.T) {
 	buffer, err := NewTempFileBuffer("", "imagor-")
 	require.NoError(t, err)
 	doSeekStreamTests(t, buffer)
 }
 
-func TestSeekStream_Memory(t *testing.T) {
+func TestSeekStream_MemoryBuffer(t *testing.T) {
 	doSeekStreamTests(t, NewMemoryBuffer(10))
+}
+
+func TestMemoryBuffer_Seek(t *testing.T) {
+	r := NewMemoryBuffer(10)
+	n, err := r.Write([]byte("0123456789"))
+	assert.Equal(t, 10, n)
+	assert.NoError(t, err)
+	tests := []struct {
+		off     int64
+		seek    int
+		n       int
+		want    string
+		wantpos int64
+		readerr error
+		seekerr string
+	}{
+		{seek: io.SeekStart, off: 0, n: 20, want: "0123456789"},
+		{seek: io.SeekStart, off: 1, n: 1, want: "1"},
+		{seek: io.SeekCurrent, off: 1, wantpos: 3, n: 2, want: "34"},
+		{seek: io.SeekStart, off: -1, seekerr: "invalid argument"},
+		{seek: io.SeekStart, off: 1 << 33, wantpos: 1 << 33, readerr: io.EOF},
+		{seek: io.SeekCurrent, off: 1, wantpos: 1<<33 + 1, readerr: io.EOF},
+		{seek: io.SeekStart, n: 5, want: "01234"},
+		{seek: io.SeekCurrent, n: 5, want: "56789"},
+		{seek: io.SeekEnd, off: -1, n: 1, wantpos: 9, want: "9"},
+	}
+
+	for i, tt := range tests {
+		pos, err := r.Seek(tt.off, tt.seek)
+		if err == nil && tt.seekerr != "" {
+			t.Errorf("%d. want seek error %q", i, tt.seekerr)
+			continue
+		}
+		if err != nil && err.Error() != tt.seekerr {
+			t.Errorf("%d. seek error = %q; want %q", i, err.Error(), tt.seekerr)
+			continue
+		}
+		if tt.wantpos != 0 && tt.wantpos != pos {
+			t.Errorf("%d. pos = %d, want %d", i, pos, tt.wantpos)
+		}
+		buf := make([]byte, tt.n)
+		n, err := r.Read(buf)
+		if err != tt.readerr {
+			t.Errorf("%d. read = %v; want %v", i, err, tt.readerr)
+			continue
+		}
+		got := string(buf[:n])
+		if got != tt.want {
+			t.Errorf("%d. got %q; want %q", i, got, tt.want)
+		}
+	}
 }
