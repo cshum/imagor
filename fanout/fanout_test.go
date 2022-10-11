@@ -1,4 +1,4 @@
-package imagor
+package fanout
 
 import (
 	"bytes"
@@ -27,9 +27,9 @@ func doFanoutTest(t *testing.T, do func(), n, m int) {
 func TestFanoutSizeOver(t *testing.T) {
 	buf := []byte("abcdefghi")
 	source := io.NopCloser(bytes.NewReader(buf))
-	newReader := fanoutReader(source, 5)
+	factory := New(source, 5)
 	doFanoutTest(t, func() {
-		r := newReader()
+		r := factory.NewReader()
 		res1, err := io.ReadAll(r)
 		assert.NoError(t, err)
 		assert.NoError(t, r.Close())
@@ -40,15 +40,19 @@ func TestFanoutSizeOver(t *testing.T) {
 func TestFanoutSizeBelow(t *testing.T) {
 	buf := []byte("abcd")
 	source := io.NopCloser(bytes.NewReader(buf))
-	newReader := fanoutReader(source, 5)
+	factory := New(source, 5)
 	doFanoutTest(t, func() {
-		r := newReader()
+		r := factory.NewReader()
 		res1, err := io.ReadAll(r)
 		assert.NoError(t, err)
 		assert.NoError(t, r.Close())
 		assert.Equal(t, buf, res1)
 	}, 100, 1)
 }
+
+type readerFunc func(p []byte) (n int, err error)
+
+func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
 
 func TestFanoutUpstreamError(t *testing.T) {
 	e := errors.New("upstream error")
@@ -62,9 +66,9 @@ func TestFanoutUpstreamError(t *testing.T) {
 		n = copy(p, buf)
 		return
 	}))
-	newReader := fanoutReader(source, 10000)
+	factory := New(source, 10000)
 	doFanoutTest(t, func() {
-		r := newReader()
+		r := factory.NewReader()
 		res, err := io.ReadAll(r)
 		assert.ErrorIs(t, err, e)
 		assert.Equal(t, []byte("abcdefghi"), res)
@@ -74,8 +78,8 @@ func TestFanoutUpstreamError(t *testing.T) {
 func TestFanoutErrClosedPipe(t *testing.T) {
 	buf := []byte("abcdefghi")
 	source := io.NopCloser(bytes.NewReader(buf))
-	newReader := fanoutReader(source, len(buf))
-	r := newReader()
+	factory := New(source, len(buf))
+	r := factory.NewReader()
 	b := make([]byte, 5)
 	n, err := r.Read(b)
 	assert.NoError(t, err)

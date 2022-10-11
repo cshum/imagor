@@ -255,3 +255,11 @@ func TestBlobOverrideContentType(t *testing.T) {
 	assert.Equal(t, BlobTypeJPEG, b.BlobType())
 	assert.Equal(t, "foo/bar", b.ContentType())
 }
+
+type readerFunc func(p []byte) (n int, err error)
+
+func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
+
+type closerFunc func() error
+
+func (cf closerFunc) Close() error { return cf() }
