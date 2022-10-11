@@ -10,7 +10,6 @@ func fanoutReader(source io.ReadCloser, size int) func() io.ReadCloser {
 	var lock sync.RWMutex
 	var once sync.Once
 	var consumers []chan []byte
-	var fullBufReady = make(chan struct{})
 	var closed []bool
 	var err error
 	var buf = make([]byte, size)
@@ -54,9 +53,6 @@ func fanoutReader(source io.ReadCloser, size int) func() io.ReadCloser {
 				}
 			}
 			lock.RUnlock()
-			if currentSize >= size {
-				close(fullBufReady)
-			}
 			if e != nil || currentSize >= size {
 				return
 			}
