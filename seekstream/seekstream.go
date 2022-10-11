@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+// SeekStream allows seeking on non-seekable io.ReadCloser source
+// by buffering read data using memory or temp file.
 type SeekStream struct {
 	source io.ReadCloser
 	buffer Buffer
@@ -14,6 +16,7 @@ type SeekStream struct {
 	l      sync.RWMutex
 }
 
+// New SeekStream proving io.ReadCloser source and buffer interface
 func New(source io.ReadCloser, buffer Buffer) *SeekStream {
 	return &SeekStream{
 		source: source,
@@ -21,6 +24,7 @@ func New(source io.ReadCloser, buffer Buffer) *SeekStream {
 	}
 }
 
+// Read implements the io.Reader interface.
 func (s *SeekStream) Read(p []byte) (n int, err error) {
 	s.l.RLock()
 	defer s.l.RUnlock()
@@ -57,6 +61,7 @@ func (s *SeekStream) Read(p []byte) (n int, err error) {
 	return
 }
 
+// Seek implements the io.Seeker interface.
 func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 	s.l.Lock()
 	defer s.l.Unlock()
@@ -102,6 +107,7 @@ func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 	return n, err
 }
 
+// Close implements the io.Closer interface.
 func (s *SeekStream) Close() (err error) {
 	s.l.Lock()
 	defer s.l.Unlock()
@@ -116,6 +122,7 @@ func (s *SeekStream) Close() (err error) {
 	return
 }
 
+// Len returns the number of bytes of the unread portion of buffer
 func (s *SeekStream) Len() int {
 	if s.curr >= s.size {
 		return 0
@@ -123,6 +130,7 @@ func (s *SeekStream) Len() int {
 	return int(s.size - s.curr)
 }
 
+// Size returns the length of the underlying buffer
 func (s *SeekStream) Size() int64 {
 	return s.size
 }
