@@ -93,3 +93,7 @@ func TestSeekStream_TempFile(t *testing.T) {
 	require.NoError(t, err)
 	doSeekStreamTests(t, buffer)
 }
+
+func TestSeekStream_Memory(t *testing.T) {
+	doSeekStreamTests(t, NewMemoryBuffer(10))
+}
