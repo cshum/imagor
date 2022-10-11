@@ -9,11 +9,9 @@ import (
 	"testing"
 )
 
-func TestSeekStream(t *testing.T) {
+func doSeekStreamTests(t *testing.T, buffer Buffer) {
 	buf := []byte("0123456789")
 	source := io.NopCloser(bytes.NewReader(buf))
-	buffer, err := NewTempFileBuffer("", "imagor-")
-	require.NoError(t, err)
 	rs := New(source, buffer)
 
 	tests := []struct {
@@ -88,4 +86,10 @@ func TestSeekStream(t *testing.T) {
 	assert.Equal(t, io.ErrClosedPipe, err)
 	assert.Empty(t, n)
 	assert.Empty(t, b[0])
+}
+
+func TestSeekStream_TempFile(t *testing.T) {
+	buffer, err := NewTempFileBuffer("", "imagor-")
+	require.NoError(t, err)
+	doSeekStreamTests(t, buffer)
 }
