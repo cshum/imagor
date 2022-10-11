@@ -22,7 +22,8 @@ func Test(t *testing.T) {
 	// http source with known size via Content-Length header
 	resp, err := http.DefaultClient.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 	require.NoError(t, err)
-	size, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
+	size, err := strconv.Atoi(resp.Header.Get("Content-Length"))
+	require.NoError(t, err)
 
 	fanout := fanoutreader.New(resp.Body, size) // create fanout from single reader source
 
@@ -37,12 +38,11 @@ func Test(t *testing.T) {
 					return err
 				}
 				defer file.Close()
-				_, err := io.Copy(file, reader)
+				_, err = io.Copy(file, reader)
 				return err
 			})
 		}(i)
 	}
 	require.NoError(t, g.Wait())
 }
-
 ```
