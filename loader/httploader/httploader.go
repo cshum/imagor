@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -113,7 +112,7 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		resp, err := client.Do(req)
 		if err != nil {
-			if b, _ := regexp.MatchString("(no such host)$", err.Error()); b {
+			if strings.Contains(err.Error(), "no such host") {
 				err = imagor.ErrNotFound
 			}
 
