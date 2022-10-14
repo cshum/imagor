@@ -6,7 +6,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -20,7 +20,7 @@ func (t testTransport) RoundTrip(r *http.Request) (w *http.Response, err error) 
 	if res, ok := t[r.URL.String()]; ok {
 		w = &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       ioutil.NopCloser(strings.NewReader(res)),
+			Body:       io.NopCloser(strings.NewReader(res)),
 			Header:     map[string][]string{},
 		}
 		w.Header.Set("Content-Type", "image/jpeg")
@@ -28,7 +28,7 @@ func (t testTransport) RoundTrip(r *http.Request) (w *http.Response, err error) 
 	}
 	w = &http.Response{
 		StatusCode: http.StatusNotFound,
-		Body:       ioutil.NopCloser(strings.NewReader("not found")),
+		Body:       io.NopCloser(strings.NewReader("not found")),
 	}
 	return
 }
@@ -205,7 +205,7 @@ func TestWithUserAgent(t *testing.T) {
 			res := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+				Body:       io.NopCloser(strings.NewReader("ok")),
 			}
 			res.Header.Set("Content-Type", "image/jpeg")
 			return res, nil
@@ -229,7 +229,7 @@ func TestWithForwardHeaders(t *testing.T) {
 			res := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+				Body:       io.NopCloser(strings.NewReader("ok")),
 			}
 			res.Header.Set("Content-Type", "image/jpeg")
 			return res, nil
@@ -254,7 +254,7 @@ func TestWithForwardHeadersOverrideUserAgent(t *testing.T) {
 			res := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+				Body:       io.NopCloser(strings.NewReader("ok")),
 			}
 			res.Header.Set("Content-Type", "image/jpeg")
 			return res, nil
@@ -279,7 +279,7 @@ func TestWithForwardClientHeaders(t *testing.T) {
 			res := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+				Body:       io.NopCloser(strings.NewReader("ok")),
 			}
 			res.Header.Set("Content-Type", "image/jpeg")
 			return res, nil
@@ -304,7 +304,7 @@ func TestWithOverrideHeaders(t *testing.T) {
 			res := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+				Body:       io.NopCloser(strings.NewReader("ok")),
 			}
 			res.Header.Set("Content-Type", "image/jpeg")
 			return res, nil
@@ -329,7 +329,7 @@ func TestWithOverrideForwardHeaders(t *testing.T) {
 			res := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+				Body:       io.NopCloser(strings.NewReader("ok")),
 			}
 			res.Header.Set("Content-Type", "image/jpeg")
 			return res, nil
@@ -448,7 +448,7 @@ func TestWithAccept(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(strings.NewReader("ok")),
+				Body:       io.NopCloser(strings.NewReader("ok")),
 			}
 			resp.Header.Set("Content-Type", strings.TrimPrefix(r.URL.Path, "/"))
 			return resp, nil
@@ -491,7 +491,7 @@ func TestWithGzip(t *testing.T) {
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     map[string][]string{},
-				Body:       ioutil.NopCloser(bytes.NewReader(gzipBytes([]byte("ok")))),
+				Body:       io.NopCloser(bytes.NewReader(gzipBytes([]byte("ok")))),
 			}
 			resp.Header.Set("Content-Encoding", "gzip")
 			resp.Header.Set("Content-Type", "image/jpeg")
