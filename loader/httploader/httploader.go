@@ -112,6 +112,10 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		resp, err := client.Do(req)
 		if err != nil {
+			if strings.Contains(err.Error(), "no such host") {
+				err = imagor.ErrNotFound
+			}
+
 			return nil, 0, err
 		}
 		body := resp.Body
