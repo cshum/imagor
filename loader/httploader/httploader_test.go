@@ -505,3 +505,37 @@ func TestWithGzip(t *testing.T) {
 		},
 	})
 }
+
+func TestWithHostDomains(t *testing.T) {
+	doTests(t, New(
+		WithTransport(testTransport{
+			"https://foo.bar/baz":      "baz",
+			"foo/bar":                  "bar",
+			"http://10.0.0.1:8080/foo": "foo",
+			"http://baz/qux":           "qux",
+		}),
+	), []test{
+		{
+			name:   "valid host",
+			target: "https://foo.bar/baz",
+			result: "baz",
+		},
+		{
+			name:   "invalid host not found",
+			target: "foo/bar",
+			result: "not found",
+			err:    "imagor: 404 Not Found",
+		},
+		{
+			name:   "valid host",
+			target: "http://10.0.0.1:8080/foo",
+			result: "foo",
+		},
+		{
+			name:   "invalid host not found",
+			target: "http://baz/qux.jpeg",
+			result: "not found",
+			err:    "imagor: 404 Not Found",
+		},
+	})
+}
