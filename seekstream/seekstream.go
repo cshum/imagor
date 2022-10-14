@@ -2,7 +2,6 @@ package seekstream
 
 import (
 	"io"
-	"sync"
 )
 
 // SeekStream allows seeking on non-seekable io.ReadCloser source
@@ -13,7 +12,6 @@ type SeekStream struct {
 	size   int64
 	curr   int64
 	loaded bool
-	l      sync.RWMutex
 }
 
 // New SeekStream proving io.ReadCloser source and buffer interface
@@ -26,8 +24,6 @@ func New(source io.ReadCloser, buffer Buffer) *SeekStream {
 
 // Read implements the io.Reader interface.
 func (s *SeekStream) Read(p []byte) (n int, err error) {
-	s.l.RLock()
-	defer s.l.RUnlock()
 	if s.source == nil || s.buffer == nil {
 		return 0, io.ErrClosedPipe
 	}
@@ -63,8 +59,6 @@ func (s *SeekStream) Read(p []byte) (n int, err error) {
 
 // Seek implements the io.Seeker interface.
 func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
-	s.l.Lock()
-	defer s.l.Unlock()
 	if s.source == nil || s.buffer == nil {
 		return 0, io.ErrClosedPipe
 	}
@@ -109,8 +103,6 @@ func (s *SeekStream) Seek(offset int64, whence int) (int64, error) {
 
 // Close implements the io.Closer interface.
 func (s *SeekStream) Close() (err error) {
-	s.l.Lock()
-	defer s.l.Unlock()
 	if s.buffer != nil {
 		s.buffer.Clear()
 		s.buffer = nil
