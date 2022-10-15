@@ -253,7 +253,9 @@ func TestNewBlobFromPathNotFound(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r)
 	assert.Equal(t, 404, w.Code)
-	assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+	e := ErrNotFound
+	e.Data = "foobar"
+	assert.Equal(t, jsonStr(e), w.Body.String())
 
 	app = New(
 		WithDebug(true),
@@ -625,7 +627,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/empty", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 404, w.Code)
-			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+			e := ErrNotFound
+			e.Data = "empty"
+			assert.Equal(t, jsonStr(e), w.Body.String())
 			assert.Nil(t, store.Map["empty"])
 		})
 		t.Run(fmt.Sprintf("not found on pass %d", i), func(t *testing.T) {
@@ -634,7 +638,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/boooo", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 404, w.Code)
-			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
+			e := ErrNotFound
+			e.Data = "boooo"
+			assert.Equal(t, jsonStr(e), w.Body.String())
 		})
 		t.Run(fmt.Sprintf("unexpected error %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
