@@ -191,7 +191,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
+	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR, app.Debug)
 	writeBody(w, r, reader, size)
 	return
 }
@@ -592,9 +592,11 @@ func (app *Imagor) debugLog() {
 	)
 }
 
-func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration) {
+func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration, isDebug bool) {
+	if isDebug {
+		ttl = 0
+	}
 	expires := time.Now().Add(ttl)
-
 	w.Header().Add("Expires", strings.Replace(expires.Format(time.RFC1123), "UTC", "GMT", -1))
 	w.Header().Add("Cache-Control", getCacheControl(ttl, swr))
 }
