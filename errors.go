@@ -41,6 +41,7 @@ func (p ErrForward) Error() string {
 type Error struct {
 	Message string `json:"message,omitempty"`
 	Code    int    `json:"status,omitempty"`
+	Data    string `json:"data,omitempty"`
 }
 
 type timeoutErr interface {
