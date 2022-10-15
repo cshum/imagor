@@ -291,7 +291,6 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 	})
 	t.Run("default", func(t *testing.T) {
 		app := New(
-			WithDebug(true),
 			WithLogger(zap.NewExample()),
 			WithLoaders(loader),
 			WithUnsafe(true))
@@ -303,7 +302,6 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 	})
 	t.Run("custom ttl swr", func(t *testing.T) {
 		app := New(
-			WithDebug(true),
 			WithLogger(zap.NewExample()),
 			WithCacheHeaderSWR(time.Second*167),
 			WithCacheHeaderTTL(time.Second*169),
@@ -317,7 +315,6 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 	})
 	t.Run("custom ttl no swr", func(t *testing.T) {
 		app := New(
-			WithDebug(true),
 			WithLogger(zap.NewExample()),
 			WithCacheHeaderSWR(time.Second*169),
 			WithCacheHeaderTTL(time.Second*169),
@@ -329,9 +326,23 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
 	})
-	t.Run("no cache", func(t *testing.T) {
+	t.Run("custom ttl debug no cache", func(t *testing.T) {
 		app := New(
 			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithCacheHeaderSWR(time.Second*169),
+			WithCacheHeaderTTL(time.Second*169),
+			WithLoaders(loader),
+			WithUnsafe(true))
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.NotEmpty(t, w.Header().Get("Expires"))
+		assert.Equal(t, "private, no-cache, no-store, must-revalidate", w.Header().Get("Cache-Control"))
+	})
+	t.Run("no cache", func(t *testing.T) {
+		app := New(
 			WithLoaders(loader),
 			WithCacheHeaderNoCache(true),
 			WithUnsafe(true))
