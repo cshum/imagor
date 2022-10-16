@@ -21,14 +21,12 @@ func goSourceRead(
 	if !ok {
 		return -1
 	}
-	// https://stackoverflow.com/questions/51187973/how-to-create-an-array-or-a-slice-from-an-array-unsafe-pointer-in-golang
 	sh := &reflect.SliceHeader{
 		Data: uintptr(buffer),
 		Len:  int(size),
 		Cap:  int(size),
 	}
 	buf := *(*[]byte)(unsafe.Pointer(sh))
-
 	n, err := src.reader.Read(buf)
 	if err == io.EOF {
 		return C.longlong(n)
@@ -43,20 +41,13 @@ func goSourceSeek(
 	ptr unsafe.Pointer, offset C.longlong, whence int,
 ) C.longlong {
 	src, ok := pointer.Restore(ptr).(*Source)
-	if !ok {
-		return -1
+	if ok && src.seeker != nil {
+		switch whence {
+		case io.SeekStart, io.SeekCurrent, io.SeekEnd:
+			if n, err := src.seeker.Seek(int64(offset), whence); err == nil {
+				return C.longlong(n)
+			}
+		}
 	}
-	if src.seeker == nil {
-		return -1
-	}
-	switch whence {
-	case io.SeekStart, io.SeekCurrent, io.SeekEnd:
-	default:
-		return -1
-	}
-	n, err := src.seeker.Seek(int64(offset), whence)
-	if err != nil {
-		return -1
-	}
-	return C.longlong(n)
+	return -1
 }
