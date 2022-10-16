@@ -72,7 +72,7 @@ int replicate(VipsImage *in, VipsImage **out, int across, int down);
 
 int linear(VipsImage *in, VipsImage **out, double *a, double *b, int n);
 int find_trim(VipsImage *in, int *left, int *top, int *width, int *height,
-              double threshold, double r, double g, double b);
+  double threshold, int x, int y);
 int getpoint(VipsImage *in, double **vector, int n, int x, int y);
 
 int to_colorspace(VipsImage *in, VipsImage **out, VipsInterpretation space);

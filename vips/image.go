@@ -582,8 +582,8 @@ func (r *Image) Modulate(brightness, saturation, hue float64) error {
 
 // FindTrim returns the bounding box of the non-border part of the image
 // Returned values are left, top, width, height
-func (r *Image) FindTrim(threshold float64, backgroundColor *Color) (int, int, int, int, error) {
-	return vipsFindTrim(r.image, threshold, backgroundColor)
+func (r *Image) FindTrim(threshold float64, x, y int) (int, int, int, int, error) {
+	return vipsFindTrim(r.image, threshold, x, y)
 }
 
 // GetPoint reads a single pixel on an image.
