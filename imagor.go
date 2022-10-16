@@ -188,6 +188,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s := blob.Stat; s != nil {
 		if s.ETag != "" {
 			w.Header().Set("ETag", s.ETag)
+		} else if s.Size > 0 && !s.ModifiedTime.IsZero() {
+			w.Header().Set("ETag", fmt.Sprintf(
+				"%x-%x", int(s.ModifiedTime.Unix()), int(s.Size)))
 		}
 	}
 	reader, size, _ := blob.NewReader()

@@ -2,7 +2,6 @@ package filestorage
 
 import (
 	"context"
-	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"io"
@@ -127,6 +126,5 @@ func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, 
 	return &imagor.Stat{
 		Size:         size,
 		ModifiedTime: modTime,
-		ETag:         fmt.Sprintf("%x-%x", int(modTime.Unix()), int(size)),
 	}, nil
 }
