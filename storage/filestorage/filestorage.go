@@ -61,19 +61,12 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	var stats *imagor.Stat
-	blob := imagor.NewBlobFromFile(image, func(stat os.FileInfo) error {
-		stats = &imagor.Stat{
-			Size:         stat.Size(),
-			ModifiedTime: stat.ModTime(),
-		}
+	return imagor.NewBlobFromFile(image, func(stat os.FileInfo) error {
 		if s.Expiration > 0 && time.Now().Sub(stat.ModTime()) > s.Expiration {
 			return imagor.ErrExpired
 		}
 		return nil
-	})
-	blob.Stat = stats
-	return blob, nil
+	}), nil
 }
 
 func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (err error) {

@@ -72,7 +72,7 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 			}
 		}
 	}
-	return &Blob{
+	blob := &Blob{
 		err:      err,
 		filepath: filepath,
 		fanout:   true,
@@ -84,6 +84,13 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 			return reader, stat.Size(), err
 		},
 	}
+	if stat != nil {
+		blob.Stat = &Stat{
+			Size:         stat.Size(),
+			ModifiedTime: stat.ModTime(),
+		}
+	}
+	return blob
 }
 
 func NewBlobFromJsonMarshal(v any) *Blob {
