@@ -3,6 +3,7 @@ package imagor
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/cshum/imagor/fanoutreader"
 	"github.com/cshum/imagor/seekstream"
 	"io"
@@ -84,10 +85,13 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 			return reader, stat.Size(), err
 		},
 	}
-	if stat != nil {
+	if err == nil && stat != nil {
+		size := stat.Size()
+		modTime := stat.ModTime()
 		blob.Stat = &Stat{
-			Size:         stat.Size(),
-			ModifiedTime: stat.ModTime(),
+			Size:         size,
+			ModifiedTime: modTime,
+			ETag:         fmt.Sprintf("%x-%x", int(modTime.Unix()), int(size)),
 		}
 	}
 	return blob
