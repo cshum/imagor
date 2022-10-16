@@ -311,11 +311,11 @@ func vipsLinear(in *C.VipsImage, a, b []float64, n int) (*C.VipsImage, error) {
 }
 
 // https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-find-trim
-func vipsFindTrim(in *C.VipsImage, threshold float64, backgroundColor *Color) (int, int, int, int, error) {
+func vipsFindTrim(in *C.VipsImage, threshold float64, x, y int) (int, int, int, int, error) {
 	var left, top, width, height C.int
 
-	if err := C.find_trim(in, &left, &top, &width, &height, C.double(threshold), C.double(backgroundColor.R),
-		C.double(backgroundColor.G), C.double(backgroundColor.B)); err != 0 {
+	if err := C.find_trim(in, &left, &top, &width, &height, C.double(threshold), C.int(x),
+		C.int(y)); err != 0 {
 		return -1, -1, -1, -1, handleVipsError()
 	}
 

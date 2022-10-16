@@ -611,7 +611,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 }
 
 func findTrim(
-	ctx context.Context, img *Image, pos string, tolerance int,
+	_ context.Context, img *Image, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
 	if isAnimated(img) {
 		// skip animation support
@@ -625,12 +625,6 @@ func findTrim(
 	if tolerance == 0 {
 		tolerance = 1
 	}
-	p, err := img.GetPoint(x, y)
-	if err != nil {
-		return
-	}
-	l, t, w, h, err = img.FindTrim(float64(tolerance), &Color{
-		R: uint8(p[0]), G: uint8(p[1]), B: uint8(p[2]),
-	})
+	l, t, w, h, err = img.FindTrim(float64(tolerance), x, y)
 	return
 }

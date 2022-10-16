@@ -279,6 +279,8 @@ int rotate_image_multi_page(VipsImage *in, VipsImage **out, VipsAngle angle) {
 
 int flatten_image(VipsImage *in, VipsImage **out, double r, double g,
                   double b) {
+  if (!vips_image_hasalpha(in))
+    return vips_copy(in, out, NULL);
   if (is_16bit(in->Type)) {
     r = 65535 * r / 255;
     g = 65535 * g / 255;
@@ -377,21 +379,47 @@ int linear(VipsImage *in, VipsImage **out, double *a, double *b, int n) {
 }
 
 int find_trim(VipsImage *in, int *left, int *top, int *width, int *height,
-              double threshold, double r, double g, double b) {
+  double threshold, int x, int y) {
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 2);
+  VipsImage *tmp = in;
 
-  if (in->Type == VIPS_INTERPRETATION_RGB16 || in->Type == VIPS_INTERPRETATION_GREY16) {
-    r = 65535 * r / 255;
-    g = 65535 * g / 255;
-    b = 65535 * b / 255;
+  if (vips_image_guess_interpretation(in) != VIPS_INTERPRETATION_sRGB) {
+    if (vips_colourspace(in, &t[0], VIPS_INTERPRETATION_sRGB, NULL)) {
+      clear_image(&base);
+      return 1;
+    }
+    tmp = t[0];
   }
 
-  double background[3] = {r, g, b};
-  VipsArrayDouble *vipsBackground = vips_array_double_new(background, 3);
+  if (vips_image_hasalpha(tmp)) {
+    if (flatten_image(tmp, &t[1], 255.0, 0, 255.0)) {
+      clear_image(&base);
+      return 1;
+    }
+    tmp = t[1];
+  }
 
-  int code = vips_find_trim(in, left, top, width, height, "threshold", threshold, "background", vipsBackground, NULL);
+  double *bg = NULL;
+  int bgn;
+  VipsArrayDouble *bga;
 
-  vips_area_unref(VIPS_AREA(vipsBackground));
-  return code;
+  if (vips_getpoint(tmp, &bg, &bgn, x, y, NULL)) {
+    clear_image(&base);
+    return 1;
+  }
+  bga = vips_array_double_new(bg, bgn);
+
+  int res = vips_find_trim(tmp, left, top, width, height, "background", bga, "threshold", threshold, NULL);
+
+  clear_image(&base);
+  vips_area_unref((VipsArea *)bga);
+  g_free(bg);
+
+  if (res) {
+    return 1;
+  }
+  return 0;
 }
 
 int getpoint(VipsImage *in, double **vector, int n, int x, int y) {
