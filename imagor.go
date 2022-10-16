@@ -185,6 +185,11 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if isBlobEmpty(blob) {
 		return
 	}
+	if s := blob.Stat; s != nil {
+		if s.ETag != "" {
+			w.Header().Set("ETag", s.ETag)
+		}
+	}
 	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
@@ -377,12 +382,10 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 	ctx := r.Context()
 	blob, origin, err := fromStorages(r, app.ResultStorages, resultKey)
 	if err == nil && !isBlobEmpty(blob) {
-		if origin != nil {
-			if app.ModifiedTimeCheck && blob.Stat != nil {
-				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
-					if !blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime) {
-						return blob
-					}
+		if app.ModifiedTimeCheck && origin != nil && blob.Stat != nil {
+			if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
+				if !blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime) {
+					return blob
 				}
 			}
 		} else {
