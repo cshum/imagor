@@ -25,10 +25,6 @@ type GCloudStorage struct {
 	safeChars imagorpath.SafeChars
 }
 
-type statKey struct {
-	Key string
-}
-
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
 	s := &GCloudStorage{client: client, Bucket: bucket}
 	for _, option := range options {
@@ -52,25 +48,28 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		}
 		return nil, err
 	}
+	var stat *imagor.Stat
 	if attrs != nil {
-		imagor.ContextCachePut(ctx, statKey{image}, imagor.Stat{
+		stat = &imagor.Stat{
 			Size:         attrs.Size,
 			ETag:         attrs.Etag,
 			ModifiedTime: attrs.Updated,
-		})
+		}
 	}
 	if s.Expiration > 0 {
 		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
 			return nil, imagor.ErrExpired
 		}
 	}
-	return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+	blob := imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
 		if attrs != nil {
 			size = attrs.Size
 		}
 		reader, err = object.NewReader(ctx)
 		return
-	}), err
+	})
+	blob.Stat = stat
+	return blob, err
 }
 
 func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {
@@ -121,11 +120,6 @@ func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.St
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
-	}
-	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
-		if stat, ok2 := s.(imagor.Stat); ok2 {
-			return &stat, nil
-		}
 	}
 	object := s.client.Bucket(s.Bucket).Object(image)
 	attrs, err := object.Attrs(ctx)

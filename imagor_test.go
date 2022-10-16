@@ -423,7 +423,7 @@ func TestParams(t *testing.T) {
 var clock time.Time
 
 type mapStore struct {
-	l       sync.Mutex
+	l       sync.RWMutex
 	Map     map[string]*Blob
 	ModTime map[string]time.Time
 	LoadCnt map[string]int
@@ -439,12 +439,13 @@ func newMapStore() *mapStore {
 }
 
 func (s *mapStore) Get(r *http.Request, image string) (*Blob, error) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.l.RLock()
+	defer s.l.RUnlock()
 	buf, ok := s.Map[image]
 	if !ok {
 		return nil, ErrNotFound
 	}
+	buf.Stat, _ = s.Stat(r.Context(), image)
 	s.LoadCnt[image] = s.LoadCnt[image] + 1
 	return buf, nil
 }
@@ -468,8 +469,8 @@ func (s *mapStore) Delete(ctx context.Context, image string) error {
 }
 
 func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.l.RLock()
+	defer s.l.RUnlock()
 	t, ok := s.ModTime[image]
 	if !ok {
 		return nil, ErrNotFound

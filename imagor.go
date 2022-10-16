@@ -44,13 +44,6 @@ type Processor interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Stat image attributes
-type Stat struct {
-	ModifiedTime time.Time
-	ETag         string
-	Size         int64
-}
-
 // Imagor image resize HTTP handler
 type Imagor struct {
 	Unsafe                 bool
@@ -384,10 +377,10 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 	ctx := r.Context()
 	blob, origin, err := fromStorages(r, app.ResultStorages, resultKey)
 	if err == nil && !isBlobEmpty(blob) {
-		if app.ModifiedTimeCheck && origin != nil {
-			if resStat, err1 := origin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
+		if origin != nil {
+			if app.ModifiedTimeCheck && blob.Stat != nil {
 				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
-					if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
+					if !blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime) {
 						return blob
 					}
 				}

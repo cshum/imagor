@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 type BlobType int
@@ -41,6 +42,15 @@ type Blob struct {
 	filepath      string
 	contentType   string
 	memory        *memory
+
+	Stat *Stat
+}
+
+// Stat blob stat attributes
+type Stat struct {
+	ModifiedTime time.Time
+	ETag         string
+	Size         int64
 }
 
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
