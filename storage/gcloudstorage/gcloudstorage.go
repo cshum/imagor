@@ -48,14 +48,6 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		}
 		return nil, err
 	}
-	var stat *imagor.Stat
-	if attrs != nil {
-		stat = &imagor.Stat{
-			Size:         attrs.Size,
-			ETag:         attrs.Etag,
-			ModifiedTime: attrs.Updated,
-		}
-	}
 	if s.Expiration > 0 {
 		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
 			return nil, imagor.ErrExpired
@@ -68,7 +60,13 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		reader, err = object.NewReader(ctx)
 		return
 	})
-	blob.Stat = stat
+	if attrs != nil {
+		blob.Stat = &imagor.Stat{
+			Size:         attrs.Size,
+			ETag:         attrs.Etag,
+			ModifiedTime: attrs.Updated,
+		}
+	}
 	return blob, err
 }
 
