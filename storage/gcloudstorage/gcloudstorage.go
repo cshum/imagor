@@ -55,6 +55,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 	if attrs != nil {
 		imagor.ContextCachePut(ctx, statKey{image}, imagor.Stat{
 			Size:         attrs.Size,
+			ETag:         attrs.Etag,
 			ModifiedTime: attrs.Updated,
 		})
 	}
@@ -136,6 +137,7 @@ func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.St
 	}
 	return &imagor.Stat{
 		Size:         attrs.Size,
+		ETag:         attrs.Etag,
 		ModifiedTime: attrs.Updated,
 	}, nil
 }

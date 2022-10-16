@@ -47,6 +47,7 @@ type Processor interface {
 // Stat image attributes
 type Stat struct {
 	ModifiedTime time.Time
+	ETag         string
 	Size         int64
 }
 

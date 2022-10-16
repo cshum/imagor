@@ -86,6 +86,7 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		}
 		imagor.ContextCachePut(ctx, statKey{image}, imagor.Stat{
 			Size:         *out.ContentLength,
+			ETag:         *out.ETag,
 			ModifiedTime: *out.LastModified,
 		})
 		if s.Expiration > 0 && out.LastModified != nil {
@@ -160,6 +161,7 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 	}
 	return &imagor.Stat{
 		Size:         *head.ContentLength,
+		ETag:         *head.ETag,
 		ModifiedTime: *head.LastModified,
 	}, nil
 }
