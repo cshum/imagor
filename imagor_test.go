@@ -715,6 +715,14 @@ func TestWithResultStorageNotModified(t *testing.T) {
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-None-Match", "abcd")
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
 	r.Header.Set("If-Modified-Since", clock.Format(http.TimeFormat))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, 304, w.Code)
