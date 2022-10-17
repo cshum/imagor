@@ -607,16 +607,17 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 		}
 	}
 	var isNotModified bool
-	if !stat.ModifiedTime.IsZero() {
+	if mTime := stat.ModifiedTime; !mTime.IsZero() {
+		w.Header().Set("Last-Modified", mTime.Format(http.TimeFormat))
 		if ims := r.Header.Get("If-Modified-Since"); ims != "" {
 			if imsTime, err := time.Parse(http.TimeFormat, ims); err == nil {
-				isNotModified = stat.ModifiedTime.Before(imsTime)
+				isNotModified = mTime.Before(imsTime)
 			}
 		}
 		if !isNotModified {
 			if ius := r.Header.Get("If-Unmodified-Since"); ius != "" {
 				if iusTime, err := time.Parse(http.TimeFormat, ius); err == nil {
-					isNotModified = stat.ModifiedTime.After(iusTime)
+					isNotModified = mTime.After(iusTime)
 				}
 			}
 		}
