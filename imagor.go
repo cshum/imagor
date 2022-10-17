@@ -188,7 +188,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
-	if validateCacheHeaders(w, r, blob.Stat) {
+	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
 		_, _ = w.Write(nil)
 		return
@@ -592,26 +592,37 @@ func (app *Imagor) debugLog() {
 	)
 }
 
-func validateCacheHeaders(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
-	if strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
+func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
+	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
 		return false
 	}
-	if stat != nil {
-		var isEtagMatched bool
-		var etag = stat.ETag
-		if etag == "" && stat.Size > 0 && !stat.ModifiedTime.IsZero() {
-			etag = fmt.Sprintf(
-				"%x-%x", int(stat.ModifiedTime.Unix()), int(stat.Size))
+	var isEtagMatched, isModifiedTimeMatch bool
+	var etag = stat.ETag
+	if etag == "" && stat.Size > 0 && !stat.ModifiedTime.IsZero() {
+		etag = fmt.Sprintf(
+			"%x-%x", int(stat.ModifiedTime.Unix()), int(stat.Size))
+	}
+	if etag != "" {
+		w.Header().Set("ETag", etag)
+		if inm := r.Header.Get("If-None-Match"); inm == etag {
+			isEtagMatched = true
 		}
-		if etag != "" {
-			w.Header().Set("ETag", etag)
-			if inm := r.Header.Get("If-None-Match"); inm == etag {
-				isEtagMatched = true
+	}
+	if !stat.ModifiedTime.IsZero() {
+		if ims := r.Header.Get("If-Modified-Since"); ims != "" {
+			if imsTime, err := time.Parse(http.TimeFormat, ims); err == nil {
+				isModifiedTimeMatch = stat.ModifiedTime.Before(imsTime)
 			}
 		}
-		return isEtagMatched
+		if !isModifiedTimeMatch {
+			if ius := r.Header.Get("If-Unmodified-Since"); ius != "" {
+				if iusTime, err := time.Parse(http.TimeFormat, ius); err == nil {
+					isModifiedTimeMatch = stat.ModifiedTime.After(iusTime)
+				}
+			}
+		}
 	}
-	return false
+	return isEtagMatched || isModifiedTimeMatch
 }
 
 func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration) {
