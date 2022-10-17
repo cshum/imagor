@@ -6,17 +6,17 @@ https://pkg.go.dev/github.com/cshum/imagor/fanoutreader
 
 ### Why?
 
-There are many scenarios you are trying to fan out a reader stream to multiple writers. For example, reading from a HTTP request that writes to several cloud storages.
+There are some scenarios you may want to fan out a reader stream to multiple writers. For example, reading from a HTTP request that writes to several cloud storages.
 
-Normally you would first download the file into a `[]byte` buffer if it fits inside memory. You may do that with `io.ReadAll`, or better `io.ReadFull` to avoid continuous memory allocations. When the bytes are fully loaded, it is then safe to be written to multiple `io.Writer` concurrently. However, that means data need to be fully loaded before proceeding to the consumers, which is not an optimal way of using a stream pipe.
+Normally you can first download the file into a `[]byte` buffer if it fits inside memory. You may do that with `io.ReadAll`, or better `io.ReadFull` to avoid continuous memory allocations. When the bytes are fully loaded, it is then safe to write to multiple `io.Writer` concurrently. However, it means data needs to be fully loaded before proceeding to the consumers, which is not an optimal way of stream pipe.
 
-Here comes `io.TeeReader` and `io.MultiWriter` where you can mirror the reader content to a writer, or writing to several writers in a row. This is great and it works perfectly, if the writers always write at lighting speed and there is zero backpressure when consuming from the reader.
+Here comes `io.TeeReader` and `io.MultiWriter` where you can mirror the reader content to a writer, or write to several writers in a row. This is great and it works perfectly, assuming if the writers always write at lighting speed and there is zero backpressure when consuming from the reader.
 
-However, in the real world of network I/O, slowdown exists and it may happen at any time. If the writer cannot consume at the expected pace, it blocks, causing backpressure to the reader. This problem magnifies if `io.TeeReader` or `io.MultiWriter` are used, as the writers are sequential throughout the process. Because when any of the writer/consumer backpressure happens, it simply blocks all other writers/consumers in the stack.
+However, in the real world of network I/O, slowdown exists and it may happen at any time. If the writer cannot consume at expected pace, it blocks, causing backpressure to the reader. This problem magnifies if `io.TeeReader` or `io.MultiWriter` are used, as the writers are sequential throughout the process. When any of the writer/consumer backpressure happens, it simply blocks all other writers/consumers from continuing, causing even further slowdowns.
 
-So what now? Is it possible to achieve both stream pipe and concurrency? That's where fanoutreader comes handy. fanoutreader achieves both stream pipe and concurrency by leveraging memory buffer and channels. So if the data size is known and can be fit inside memory, then fanoutreader can be used.
+So what now? Is it possible to achieve both stream pipe and concurrency? This is where fanoutreader comes handy. fanoutreader achieves both stream pipe and concurrency by leveraging memory buffer and channels. So if the data size is known and can be fit inside memory, then fanoutreader can be used.
 
-fanoutreader is simple to use. Just wrap the `io.ReadCloser` source providing the size: 
+fanoutreader is easy to use. Just wrap the `io.ReadCloser` source providing the size:
 ```go
 fanout := fanoutreader.New(source, size)
 ``` 
