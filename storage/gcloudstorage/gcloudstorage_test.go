@@ -123,16 +123,16 @@ func TestCRUD(t *testing.T) {
 	stat, err := s.Stat(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	assert.True(t, stat.ModifiedTime.Before(time.Now()))
+	assert.NotEmpty(t, stat.ETag)
 
 	b, err = s.Get(r, "/foo/fooo/asdf")
 	require.NoError(t, err)
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
 	assert.Equal(t, "bar", string(buf))
-
-	stat, err = s.Stat(ctx, "/foo/fooo/asdf")
-	require.NoError(t, err)
-	assert.True(t, stat.ModifiedTime.Before(time.Now()))
+	assert.NotEmpty(t, b.Stat)
+	assert.Equal(t, stat.ModifiedTime, b.Stat.ModifiedTime)
+	assert.Equal(t, stat.ETag, b.Stat.ETag)
 
 	err = s.Delete(ctx, "/foo/fooo/asdf")
 	require.NoError(t, err)
