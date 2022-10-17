@@ -185,23 +185,15 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if isBlobEmpty(blob) {
 		return
 	}
-	if s := blob.Stat; s != nil {
-		var etag = s.ETag
-		if etag == "" && s.Size > 0 && !s.ModifiedTime.IsZero() {
-			etag = fmt.Sprintf(
-				"%x-%x", int(s.ModifiedTime.Unix()), int(s.Size))
-		}
-		if etag != "" {
-			w.Header().Set("ETag", etag)
-			if inm := r.Header.Get("If-None-Match"); inm == etag {
-				w.WriteHeader(http.StatusNotModified)
-			}
-		}
-	}
-	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR, app.Debug)
+	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
+	if validateCacheHeaders(w, r, blob.Stat) {
+		w.WriteHeader(http.StatusNotModified)
+		_, _ = w.Write(nil)
+		return
+	}
+	reader, size, _ := blob.NewReader()
 	writeBody(w, r, reader, size)
 	return
 }
@@ -600,10 +592,29 @@ func (app *Imagor) debugLog() {
 	)
 }
 
-func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration, isDebug bool) {
-	if isDebug {
-		ttl = 0
+func validateCacheHeaders(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
+	if strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
+		return false
 	}
+	if stat != nil {
+		var isEtagMatched bool
+		var etag = stat.ETag
+		if etag == "" && stat.Size > 0 && !stat.ModifiedTime.IsZero() {
+			etag = fmt.Sprintf(
+				"%x-%x", int(stat.ModifiedTime.Unix()), int(stat.Size))
+		}
+		if etag != "" {
+			w.Header().Set("ETag", etag)
+			if inm := r.Header.Get("If-None-Match"); inm == etag {
+				isEtagMatched = true
+			}
+		}
+		return isEtagMatched
+	}
+	return false
+}
+
+func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration) {
 	expires := time.Now().Add(ttl)
 	w.Header().Add("Expires", strings.Replace(expires.Format(time.RFC1123), "UTC", "GMT", -1))
 	w.Header().Add("Cache-Control", getCacheControl(ttl, swr))
