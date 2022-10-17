@@ -190,7 +190,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
-		_, _ = w.Write(nil)
 		return
 	}
 	reader, size, _ := blob.NewReader()
