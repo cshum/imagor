@@ -460,8 +460,13 @@ func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
 	if !ok {
 		return nil, ErrNotFound
 	}
+	b, ok := s.Map[image]
+	if !ok {
+		return nil, ErrNotFound
+	}
 	return &Stat{
 		ModifiedTime: t,
+		Size:         b.Size(),
 	}, nil
 }
 

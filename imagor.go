@@ -595,7 +595,6 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
 		return false
 	}
-	var isEtagMatched, isModifiedTimeMatch bool
 	var etag = stat.ETag
 	if etag == "" && stat.Size > 0 && !stat.ModifiedTime.IsZero() {
 		etag = fmt.Sprintf(
@@ -604,24 +603,25 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 	if etag != "" {
 		w.Header().Set("ETag", etag)
 		if inm := r.Header.Get("If-None-Match"); inm == etag {
-			isEtagMatched = true
+			return true
 		}
 	}
+	var isNotModified bool
 	if !stat.ModifiedTime.IsZero() {
 		if ims := r.Header.Get("If-Modified-Since"); ims != "" {
 			if imsTime, err := time.Parse(http.TimeFormat, ims); err == nil {
-				isModifiedTimeMatch = stat.ModifiedTime.Before(imsTime)
+				isNotModified = stat.ModifiedTime.Before(imsTime)
 			}
 		}
-		if !isModifiedTimeMatch {
+		if !isNotModified {
 			if ius := r.Header.Get("If-Unmodified-Since"); ius != "" {
 				if iusTime, err := time.Parse(http.TimeFormat, ius); err == nil {
-					isModifiedTimeMatch = stat.ModifiedTime.After(iusTime)
+					isNotModified = stat.ModifiedTime.After(iusTime)
 				}
 			}
 		}
 	}
-	return isEtagMatched || isModifiedTimeMatch
+	return isNotModified
 }
 
 func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration) {
