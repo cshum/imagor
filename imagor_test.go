@@ -405,7 +405,7 @@ func TestParams(t *testing.T) {
 	assert.Empty(t, w.Body.String())
 }
 
-var clock time.Time
+var clock = time.Now()
 
 type mapStore struct {
 	l       sync.RWMutex
@@ -670,6 +670,71 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			assert.Nil(t, store.Map["bond"])
 		})
 	}
+}
+
+func TestWithResultStorageNotModified(t *testing.T) {
+	resultStore := newMapStore()
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithResultStorages(resultStore),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+		WithUnsafe(true),
+	)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	app.ServeHTTP(w, r)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	assert.Empty(t, w.Header().Get("ETag"))
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	app.ServeHTTP(w, r)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	etag := w.Header().Get("ETag")
+	lastModified := w.Header().Get("Last-Modified")
+	assert.NotEmpty(t, etag)
+	assert.NotEmpty(t, lastModified)
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-None-Match", etag)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 304, w.Code)
+	assert.Empty(t, w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-Modified-Since", clock.Format(http.TimeFormat))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 304, w.Code)
+	assert.Empty(t, w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-Modified-Since", time.Time{}.Format(http.TimeFormat))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-Unmodified-Since", time.Time{}.Format(http.TimeFormat))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 304, w.Code)
+	assert.Empty(t, w.Body.String())
 }
 
 type storageKeyFunc func(img string) string
