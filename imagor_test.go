@@ -696,7 +696,6 @@ func TestWithResultStorageNotModified(t *testing.T) {
 	r = httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil)
 	app.ServeHTTP(w, r)
-	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 	etag := w.Header().Get("ETag")
@@ -711,6 +710,15 @@ func TestWithResultStorageNotModified(t *testing.T) {
 	app.ServeHTTP(w, r)
 	assert.Equal(t, 304, w.Code)
 	assert.Empty(t, w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-None-Match", etag)
+	r.Header.Set("Cache-Control", "no-cache")
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
 
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest(
