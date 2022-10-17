@@ -187,7 +187,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR)
+	setCacheHeaders(w, r, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -595,6 +595,7 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
 		return false
 	}
+	var isETagMatch, isNotModified bool
 	var etag = stat.ETag
 	if etag == "" && stat.Size > 0 && !stat.ModifiedTime.IsZero() {
 		etag = fmt.Sprintf(
@@ -603,10 +604,9 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 	if etag != "" {
 		w.Header().Set("ETag", etag)
 		if inm := r.Header.Get("If-None-Match"); inm == etag {
-			return true
+			isETagMatch = true
 		}
 	}
-	var isNotModified bool
 	if mTime := stat.ModifiedTime; !mTime.IsZero() {
 		w.Header().Set("Last-Modified", mTime.Format(http.TimeFormat))
 		if ims := r.Header.Get("If-Modified-Since"); ims != "" {
@@ -622,10 +622,13 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 			}
 		}
 	}
-	return isNotModified
+	return isETagMatch || isNotModified
 }
 
-func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration) {
+func setCacheHeaders(w http.ResponseWriter, r *http.Request, ttl, swr time.Duration) {
+	if strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
+		ttl = 0
+	}
 	expires := time.Now().Add(ttl)
 	w.Header().Add("Expires", strings.Replace(expires.Format(time.RFC1123), "UTC", "GMT", -1))
 	w.Header().Add("Cache-Control", getCacheControl(ttl, swr))
