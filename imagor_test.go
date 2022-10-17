@@ -405,7 +405,7 @@ func TestParams(t *testing.T) {
 	assert.Empty(t, w.Body.String())
 }
 
-var clock = time.Now()
+var clock time.Time
 
 type mapStore struct {
 	l       sync.RWMutex
@@ -731,7 +731,7 @@ func TestWithResultStorageNotModified(t *testing.T) {
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil)
-	r.Header.Set("If-Modified-Since", clock.Format(http.TimeFormat))
+	r.Header.Set("If-Modified-Since", clock.Add(time.Hour).Format(http.TimeFormat))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, 304, w.Code)
 	assert.Empty(t, w.Body.String())
