@@ -186,11 +186,16 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s := blob.Stat; s != nil {
-		if s.ETag != "" {
-			w.Header().Set("ETag", s.ETag)
-		} else if s.Size > 0 && !s.ModifiedTime.IsZero() {
-			w.Header().Set("ETag", fmt.Sprintf(
-				"%x-%x", int(s.ModifiedTime.Unix()), int(s.Size)))
+		var etag = s.ETag
+		if etag == "" && s.Size > 0 && !s.ModifiedTime.IsZero() {
+			etag = fmt.Sprintf(
+				"%x-%x", int(s.ModifiedTime.Unix()), int(s.Size))
+		}
+		if etag != "" {
+			w.Header().Set("ETag", etag)
+			if inm := r.Header.Get("If-None-Match"); inm == etag {
+				w.WriteHeader(http.StatusNotModified)
+			}
 		}
 	}
 	reader, size, _ := blob.NewReader()
