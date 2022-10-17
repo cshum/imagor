@@ -44,12 +44,6 @@ type Processor interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Stat image attributes
-type Stat struct {
-	ModifiedTime time.Time
-	Size         int64
-}
-
 // Imagor image resize HTTP handler
 type Imagor struct {
 	Unsafe                 bool
@@ -191,10 +185,14 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if isBlobEmpty(blob) {
 		return
 	}
-	reader, size, _ := blob.NewReader()
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, app.CacheHeaderTTL, app.CacheHeaderSWR, app.Debug)
+	setCacheHeaders(w, r, app.CacheHeaderTTL, app.CacheHeaderSWR)
+	if checkStatNotModified(w, r, blob.Stat) {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	reader, size, _ := blob.NewReader()
 	writeBody(w, r, reader, size)
 	return
 }
@@ -383,12 +381,10 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 	ctx := r.Context()
 	blob, origin, err := fromStorages(r, app.ResultStorages, resultKey)
 	if err == nil && !isBlobEmpty(blob) {
-		if app.ModifiedTimeCheck && origin != nil {
-			if resStat, err1 := origin.Stat(ctx, resultKey); resStat != nil && err1 == nil {
-				if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
-					if !resStat.ModifiedTime.Before(sourceStat.ModifiedTime) {
-						return blob
-					}
+		if app.ModifiedTimeCheck && origin != nil && blob.Stat != nil {
+			if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
+				if !blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime) {
+					return blob
 				}
 			}
 		} else {
@@ -595,8 +591,42 @@ func (app *Imagor) debugLog() {
 	)
 }
 
-func setCacheHeaders(w http.ResponseWriter, ttl, swr time.Duration, isDebug bool) {
-	if isDebug {
+func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
+	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
+		return false
+	}
+	var isETagMatch, isNotModified bool
+	var etag = stat.ETag
+	if etag == "" && stat.Size > 0 && !stat.ModifiedTime.IsZero() {
+		etag = fmt.Sprintf(
+			"%x-%x", int(stat.ModifiedTime.Unix()), int(stat.Size))
+	}
+	if etag != "" {
+		w.Header().Set("ETag", etag)
+		if inm := r.Header.Get("If-None-Match"); inm == etag {
+			isETagMatch = true
+		}
+	}
+	if mTime := stat.ModifiedTime; !mTime.IsZero() {
+		w.Header().Set("Last-Modified", mTime.Format(http.TimeFormat))
+		if ims := r.Header.Get("If-Modified-Since"); ims != "" {
+			if imsTime, err := time.Parse(http.TimeFormat, ims); err == nil {
+				isNotModified = mTime.Before(imsTime)
+			}
+		}
+		if !isNotModified {
+			if ius := r.Header.Get("If-Unmodified-Since"); ius != "" {
+				if iusTime, err := time.Parse(http.TimeFormat, ius); err == nil {
+					isNotModified = mTime.After(iusTime)
+				}
+			}
+		}
+	}
+	return isETagMatch || isNotModified
+}
+
+func setCacheHeaders(w http.ResponseWriter, r *http.Request, ttl, swr time.Duration) {
+	if strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
 		ttl = 0
 	}
 	expires := time.Now().Add(ttl)

@@ -11,7 +11,6 @@ type imagorContextKey struct{}
 type imagorContextRef struct {
 	funcs []func()
 	l     sync.Mutex
-	Cache sync.Map
 }
 
 func (r *imagorContextRef) Defer(fn func()) {
@@ -50,19 +49,4 @@ func mustContextValue(ctx context.Context) *imagorContextRef {
 // Defer add func to context, defer called at the end of request
 func Defer(ctx context.Context, fn func()) {
 	mustContextValue(ctx).Defer(fn)
-}
-
-// ContextCachePut put cache within the imagor request context lifetime
-func ContextCachePut(ctx context.Context, key any, val any) {
-	if r, ok := ctx.Value(imagorContextKey{}).(*imagorContextRef); ok && r != nil {
-		r.Cache.Store(key, val)
-	}
-}
-
-// ContextCacheGet get cache within the imagor request context lifetime
-func ContextCacheGet(ctx context.Context, key any) (any, bool) {
-	if r, ok := ctx.Value(imagorContextKey{}).(*imagorContextRef); ok && r != nil {
-		return r.Cache.Load(key)
-	}
-	return nil, false
 }

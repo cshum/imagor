@@ -15,10 +15,6 @@ import (
 
 var dotFileRegex = regexp.MustCompile("/\\.")
 
-type statKey struct {
-	Key string
-}
-
 type FileStorage struct {
 	BaseDir         string
 	PathPrefix      string
@@ -60,16 +56,12 @@ func (s *FileStorage) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
-func (s *FileStorage) Get(r *http.Request, image string) (*imagor.Blob, error) {
+func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
 	return imagor.NewBlobFromFile(image, func(stat os.FileInfo) error {
-		imagor.ContextCachePut(r.Context(), statKey{image}, imagor.Stat{
-			Size:         stat.Size(),
-			ModifiedTime: stat.ModTime(),
-		})
 		if s.Expiration > 0 && time.Now().Sub(stat.ModTime()) > s.Expiration {
 			return imagor.ErrExpired
 		}
@@ -117,15 +109,10 @@ func (s *FileStorage) Delete(_ context.Context, image string) error {
 	return os.Remove(image)
 }
 
-func (s *FileStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
-	}
-	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
-		if stat, ok2 := s.(imagor.Stat); ok2 {
-			return &stat, nil
-		}
 	}
 	osStat, err := os.Stat(image)
 	if err != nil {
@@ -134,8 +121,10 @@ func (s *FileStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat
 		}
 		return nil, err
 	}
+	size := osStat.Size()
+	modTime := osStat.ModTime()
 	return &imagor.Stat{
-		Size:         osStat.Size(),
-		ModifiedTime: osStat.ModTime(),
+		Size:         size,
+		ModifiedTime: modTime,
 	}, nil
 }

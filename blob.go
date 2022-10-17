@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 type BlobType int
@@ -41,6 +42,15 @@ type Blob struct {
 	filepath      string
 	contentType   string
 	memory        *memory
+
+	Stat *Stat
+}
+
+// Stat blob stat attributes
+type Stat struct {
+	ModifiedTime time.Time
+	ETag         string
+	Size         int64
 }
 
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
@@ -62,7 +72,7 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 			}
 		}
 	}
-	return &Blob{
+	blob := &Blob{
 		err:      err,
 		filepath: filepath,
 		fanout:   true,
@@ -74,6 +84,15 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 			return reader, stat.Size(), err
 		},
 	}
+	if err == nil && stat != nil {
+		size := stat.Size()
+		modTime := stat.ModTime()
+		blob.Stat = &Stat{
+			Size:         size,
+			ModifiedTime: modTime,
+		}
+	}
+	return blob
 }
 
 func NewBlobFromJsonMarshal(v any) *Blob {

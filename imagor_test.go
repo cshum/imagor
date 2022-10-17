@@ -328,21 +328,6 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
 	})
-	t.Run("custom ttl debug no cache", func(t *testing.T) {
-		app := New(
-			WithDebug(true),
-			WithLogger(zap.NewExample()),
-			WithCacheHeaderSWR(time.Second*169),
-			WithCacheHeaderTTL(time.Second*169),
-			WithLoaders(loader),
-			WithUnsafe(true))
-		w := httptest.NewRecorder()
-		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
-		assert.Equal(t, 200, w.Code)
-		assert.NotEmpty(t, w.Header().Get("Expires"))
-		assert.Equal(t, "private, no-cache, no-store, must-revalidate", w.Header().Get("Cache-Control"))
-	})
 	t.Run("no cache", func(t *testing.T) {
 		app := New(
 			WithLoaders(loader),
@@ -423,7 +408,7 @@ func TestParams(t *testing.T) {
 var clock time.Time
 
 type mapStore struct {
-	l       sync.Mutex
+	l       sync.RWMutex
 	Map     map[string]*Blob
 	ModTime map[string]time.Time
 	LoadCnt map[string]int
@@ -439,12 +424,13 @@ func newMapStore() *mapStore {
 }
 
 func (s *mapStore) Get(r *http.Request, image string) (*Blob, error) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.l.RLock()
+	defer s.l.RUnlock()
 	buf, ok := s.Map[image]
 	if !ok {
 		return nil, ErrNotFound
 	}
+	buf.Stat, _ = s.Stat(r.Context(), image)
 	s.LoadCnt[image] = s.LoadCnt[image] + 1
 	return buf, nil
 }
@@ -468,14 +454,19 @@ func (s *mapStore) Delete(ctx context.Context, image string) error {
 }
 
 func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
-	s.l.Lock()
-	defer s.l.Unlock()
+	s.l.RLock()
+	defer s.l.RUnlock()
 	t, ok := s.ModTime[image]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	b, ok := s.Map[image]
 	if !ok {
 		return nil, ErrNotFound
 	}
 	return &Stat{
 		ModifiedTime: t,
+		Size:         b.Size(),
 	}, nil
 }
 
@@ -679,6 +670,87 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			assert.Nil(t, store.Map["bond"])
 		})
 	}
+}
+
+func TestWithResultStorageNotModified(t *testing.T) {
+	resultStore := newMapStore()
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithResultStorages(resultStore),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+		WithUnsafe(true),
+	)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	app.ServeHTTP(w, r)
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	assert.Empty(t, w.Header().Get("ETag"))
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	etag := w.Header().Get("ETag")
+	lastModified := w.Header().Get("Last-Modified")
+	assert.NotEmpty(t, etag)
+	assert.NotEmpty(t, lastModified)
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-None-Match", etag)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 304, w.Code)
+	assert.Empty(t, w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-None-Match", etag)
+	r.Header.Set("Cache-Control", "no-cache")
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-None-Match", "abcd")
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-Modified-Since", clock.Add(time.Hour).Format(http.TimeFormat))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 304, w.Code)
+	assert.Empty(t, w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-Modified-Since", time.Time{}.Format(http.TimeFormat))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo", nil)
+	r.Header.Set("If-Unmodified-Since", time.Time{}.Format(http.TimeFormat))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, 304, w.Code)
+	assert.Empty(t, w.Body.String())
 }
 
 type storageKeyFunc func(img string) string

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -29,10 +30,6 @@ type S3Storage struct {
 	Expiration time.Duration
 
 	safeChars imagorpath.SafeChars
-}
-
-type statKey struct {
-	Key string
 }
 
 func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
@@ -73,7 +70,9 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+	var blob *imagor.Blob
+	var once sync.Once
+	blob = imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		input := &s3.GetObjectInput{
 			Bucket: aws.String(s.Bucket),
 			Key:    aws.String(image),
@@ -84,9 +83,12 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		} else if err != nil {
 			return nil, 0, err
 		}
-		imagor.ContextCachePut(ctx, statKey{image}, imagor.Stat{
-			Size:         *out.ContentLength,
-			ModifiedTime: *out.LastModified,
+		once.Do(func() {
+			blob.Stat = &imagor.Stat{
+				Size:         *out.ContentLength,
+				ETag:         *out.ETag,
+				ModifiedTime: *out.LastModified,
+			}
 		})
 		if s.Expiration > 0 && out.LastModified != nil {
 			if time.Now().Sub(*out.LastModified) > s.Expiration {
@@ -98,7 +100,8 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			size = *out.ContentLength
 		}
 		return out.Body, size, nil
-	}), nil
+	})
+	return blob, nil
 }
 
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {
@@ -143,11 +146,6 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	if s, ok := imagor.ContextCacheGet(ctx, statKey{image}); ok && s != nil {
-		if stat, ok2 := s.(imagor.Stat); ok2 {
-			return &stat, nil
-		}
-	}
 	input := &s3.HeadObjectInput{
 		Bucket: aws.String(s.Bucket),
 		Key:    aws.String(image),
@@ -160,6 +158,7 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 	}
 	return &imagor.Stat{
 		Size:         *head.ContentLength,
+		ETag:         *head.ETag,
 		ModifiedTime: *head.LastModified,
 	}, nil
 }
