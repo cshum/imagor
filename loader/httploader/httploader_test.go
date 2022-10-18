@@ -517,5 +517,5 @@ func TestWithInvalidHost(t *testing.T) {
 	assert.NoError(t, err)
 	b, err := blob.ReadAll()
 	assert.Empty(t, b)
-	assert.Equal(t, "imagor: 404 no such host: https://foo/bar", err.Error())
+	assert.Equal(t, 404, err.(imagor.Error).Code)
 }
