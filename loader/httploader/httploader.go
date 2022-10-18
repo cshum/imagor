@@ -113,7 +113,9 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		resp, err := client.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "no such host") {
-				err = imagor.ErrNotFound
+				err = imagor.NewError(
+					fmt.Sprintf("no such host: %s", image),
+					http.StatusNotFound)
 			}
 
 			return nil, 0, err

@@ -26,6 +26,9 @@ func (t testTransport) RoundTrip(r *http.Request) (w *http.Response, err error) 
 		w.Header.Set("Content-Type", "image/jpeg")
 		return
 	}
+	if !strings.Contains(r.URL.Host, ".") {
+		return
+	}
 	w = &http.Response{
 		StatusCode: http.StatusNotFound,
 		Body:       io.NopCloser(strings.NewReader("not found")),
@@ -506,36 +509,13 @@ func TestWithGzip(t *testing.T) {
 	})
 }
 
-func TestWithHostDomains(t *testing.T) {
-	doTests(t, New(
-		WithTransport(testTransport{
-			"https://foo.bar/baz":      "baz",
-			"foo/bar":                  "bar",
-			"http://10.0.0.1:8080/foo": "foo",
-			"http://baz/qux":           "qux",
-		}),
-	), []test{
-		{
-			name:   "valid host",
-			target: "https://foo.bar/baz",
-			result: "baz",
-		},
-		{
-			name:   "invalid host not found",
-			target: "foo/bar",
-			result: "not found",
-			err:    "imagor: 404 Not Found",
-		},
-		{
-			name:   "valid host",
-			target: "http://10.0.0.1:8080/foo",
-			result: "foo",
-		},
-		{
-			name:   "invalid host not found",
-			target: "http://baz/qux.jpeg",
-			result: "not found",
-			err:    "imagor: 404 Not Found",
-		},
-	})
+func TestWithInvalidHost(t *testing.T) {
+	r, err := http.NewRequest(http.MethodGet, "http://example.com/unsafe/foo/bar", nil)
+	assert.NoError(t, err)
+	loader := New()
+	blob, err := loader.Get(r, "foo/bar")
+	assert.NoError(t, err)
+	b, err := blob.ReadAll()
+	assert.Empty(t, b)
+	assert.Equal(t, "imagor: 404 no such host: https://foo/bar", err.Error())
 }

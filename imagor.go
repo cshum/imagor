@@ -175,9 +175,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		if e == ErrNotFound {
-			e.Data = p.Image
-		}
 		w.WriteHeader(e.Code)
 		writeJSON(w, r, e)
 		return
