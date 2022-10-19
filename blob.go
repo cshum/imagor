@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -244,8 +245,6 @@ func (b *Blob) init() {
 				b.blobType = BlobTypeHEIF
 			} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 				b.blobType = BlobTypeTIFF
-			} else if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
-				b.blobType = BlobTypeJSON
 			}
 		}
 		if b.contentType == "" {
@@ -268,6 +267,12 @@ func (b *Blob) init() {
 				b.contentType = "image/tiff"
 			default:
 				b.contentType = http.DetectContentType(b.sniffBuf)
+			}
+		}
+		if strings.HasPrefix(b.contentType, "text/plain") {
+			if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
+				b.blobType = BlobTypeJSON
+				b.contentType = "application/json"
 			}
 		}
 	})

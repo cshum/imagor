@@ -256,10 +256,8 @@ func TestBlobOverrideContentType(t *testing.T) {
 	assert.Equal(t, "foo/bar", b.ContentType())
 }
 
-type readerFunc func(p []byte) (n int, err error)
-
-func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
-
-type closerFunc func() error
-
-func (cf closerFunc) Close() error { return cf() }
+func TestBlobJsonBytes(t *testing.T) {
+	b := NewBlobFromBytes([]byte(`{"foo": "bar"}`))
+	assert.Equal(t, BlobTypeJSON, b.BlobType())
+	assert.Equal(t, "application/json", b.ContentType())
+}
