@@ -148,6 +148,8 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
+var jsonPrefix = []byte(`{"`)
+
 type readSeekNopCloser struct {
 	io.ReadSeeker
 }
@@ -242,6 +244,8 @@ func (b *Blob) init() {
 				b.blobType = BlobTypeHEIF
 			} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 				b.blobType = BlobTypeTIFF
+			} else if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
+				b.blobType = BlobTypeJSON
 			}
 		}
 		if b.contentType == "" {
