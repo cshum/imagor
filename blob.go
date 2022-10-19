@@ -269,7 +269,8 @@ func (b *Blob) init() {
 				b.contentType = http.DetectContentType(b.sniffBuf)
 			}
 		}
-		if strings.HasPrefix(b.contentType, "text/plain") {
+		if b.blobType == BlobTypeUnknown &&
+			strings.HasPrefix(b.contentType, "text/plain") {
 			if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
 				b.blobType = BlobTypeJSON
 				b.contentType = "application/json"
