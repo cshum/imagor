@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -148,6 +149,8 @@ var avif = []byte("avif")
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
+var jsonPrefix = []byte(`{"`)
+
 type readSeekNopCloser struct {
 	io.ReadSeeker
 }
@@ -264,6 +267,13 @@ func (b *Blob) init() {
 				b.contentType = "image/tiff"
 			default:
 				b.contentType = http.DetectContentType(b.sniffBuf)
+			}
+		}
+		if b.blobType == BlobTypeUnknown &&
+			strings.HasPrefix(b.contentType, "text/plain") {
+			if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
+				b.blobType = BlobTypeJSON
+				b.contentType = "application/json"
 			}
 		}
 	})
