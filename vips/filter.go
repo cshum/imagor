@@ -146,7 +146,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	return
 }
 
-func frames(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func setFrames(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
