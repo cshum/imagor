@@ -38,7 +38,7 @@ func (v *Processor) Process(
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
-		stripExif             bool
+		stripExif             int8
 		orient                int
 		img                   *Image
 		format                = ImageTypeUnknown
@@ -105,7 +105,11 @@ func (v *Processor) Process(
 			thumbnailNotSupported = true
 			break
 		case "strip_exif":
-			stripExif = true
+			if strings.ToLower(p.Args) == "all" {
+				stripExif = 2
+			} else {
+				stripExif = 1
+			}
 			break
 		}
 	}
@@ -494,13 +498,13 @@ type Metadata struct {
 	Exif        map[string]any `json:"exif"`
 }
 
-func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
+func metadata(img *Image, format ImageType, stripExif int8) *Metadata {
 	pages := img.Height() / img.PageHeight()
 	if !IsAnimationSupported(format) {
 		pages = 1
 	}
 	exif := map[string]any{}
-	if !stripExif {
+	if stripExif < 2 {
 		exif = img.Exif()
 	}
 	return &Metadata{
