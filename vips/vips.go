@@ -374,10 +374,10 @@ func vipsRemoveICCProfile(in *C.VipsImage) bool {
 	return fromGboolean(C.remove_icc_profile(in))
 }
 
-func vipsRemoveExif(in *C.VipsImage) (*C.VipsImage, error) {
+func vipsRemoveExif(in *C.VipsImage, keepCopyright bool) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
-	if err := C.remove_exif(in, &out); err != 0 {
+	if err := C.remove_exif(in, &out, C.int(boolToInt(keepCopyright))); err != 0 {
 		return nil, handleImageError(out)
 	}
 

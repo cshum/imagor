@@ -569,7 +569,7 @@ func stripIcc(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (er
 }
 
 func stripExif(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
-	return img.RemoveExif()
+	return img.RemoveExif(false)
 }
 
 func trim(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {

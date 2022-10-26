@@ -489,7 +489,7 @@ const char * get_meta_string(const VipsImage *image, const char *name) {
 	return "";
 }
 
-int remove_exif(VipsImage *in, VipsImage **out) {
+int remove_exif(VipsImage *in, VipsImage **out, int keep_copyright) {
   static double default_resolution = 72.0 / 25.4;
 
   if (vips_copy(
@@ -508,6 +508,11 @@ int remove_exif(VipsImage *in, VipsImage **out) {
     if (strcmp(name, VIPS_META_N_PAGES) == 0) continue;
     if (strcmp(name, VIPS_META_PAGE_HEIGHT) == 0) continue;
     if (strcmp(name, "palette-bit-depth") == 0) continue;
+    if (keep_copyright) {
+      if (strcmp(name, VIPS_META_EXIF_NAME) == 0) continue;
+      if (strcmp(name, "exif-ifd0-Copyright") == 0) continue;
+      if (strcmp(name, "exif-ifd0-Artist") == 0) continue;
+    }
     vips_image_remove(*out, name);
   }
   g_strfreev(fields);

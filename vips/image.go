@@ -476,8 +476,8 @@ func (r *Image) RemoveICCProfile() error {
 }
 
 // RemoveExif removes Exif metadata from the image.
-func (r *Image) RemoveExif() error {
-	out, err := vipsRemoveExif(r.image)
+func (r *Image) RemoveExif(keepCopyright bool) error {
+	out, err := vipsRemoveExif(r.image, keepCopyright)
 	if err != nil {
 		return err
 	}
