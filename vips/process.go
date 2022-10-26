@@ -28,6 +28,14 @@ var imageTypeMap = map[string]ImageType{
 	"jp2":    ImageTypeJP2K,
 }
 
+type stripExifType int8
+
+const (
+	stripExifNone stripExifType = iota
+	stripExifKeepCopyright
+	stripExifAll
+)
+
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
@@ -38,7 +46,7 @@ func (v *Processor) Process(
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
-		stripExif             int8
+		stripExif             stripExifType
 		orient                int
 		img                   *Image
 		format                = ImageTypeUnknown
@@ -106,9 +114,9 @@ func (v *Processor) Process(
 			break
 		case "strip_exif":
 			if strings.ToLower(p.Args) == "all" {
-				stripExif = 2
+				stripExif = stripExifAll
 			} else {
-				stripExif = 1
+				stripExif = stripExifKeepCopyright
 			}
 			break
 		}
@@ -498,13 +506,13 @@ type Metadata struct {
 	Exif        map[string]any `json:"exif"`
 }
 
-func metadata(img *Image, format ImageType, stripExif int8) *Metadata {
+func metadata(img *Image, format ImageType, stripExif stripExifType) *Metadata {
 	pages := img.Height() / img.PageHeight()
 	if !IsAnimationSupported(format) {
 		pages = 1
 	}
 	exif := map[string]any{}
-	if stripExif < 2 {
+	if stripExif != stripExifAll {
 		exif = img.Exif()
 	}
 	return &Metadata{
