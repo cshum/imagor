@@ -65,8 +65,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - `smart` means using smart detection of focal points
 - `filters` a pipeline of image filter operations to be applied, see filters section
 - `IMAGE` is the image path or URI
-
-For `IMAGE` that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent)
+  - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent)
 
 ### Filters
 
