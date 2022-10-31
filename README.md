@@ -64,7 +64,9 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 - `smart` means using smart detection of focal points
 - `filters` a pipeline of image filter operations to be applied, see filters section
-- `IMAGE` is the image URI
+- `IMAGE` is the image path or URI
+
+For `IMAGE` that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent)
 
 ### Filters
 
