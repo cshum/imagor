@@ -9,7 +9,7 @@ require (
 	github.com/johannesboyne/gofakes3 v0.0.0-20220517215058-83a58ec253b6
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/rs/cors v1.8.2
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.23.0
 	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
