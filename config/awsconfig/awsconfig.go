@@ -20,6 +20,34 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"AWS Secret Access Key. Required if using S3 Loader or Storage")
 		s3Endpoint = fs.String("s3-endpoint", "",
 			"Optional S3 Endpoint to override default")
+
+		awsLoaderRegion = fs.String("aws-loader-region", "",
+			"AWS Region for S3 Loader to override global config")
+		awsLoaderAccessKeyId = fs.String("aws-loader-access-key-id", "",
+			"AWS Access Key ID for S3 Loader to override global config")
+		awsLoaderSecretAccessKey = fs.String("aws-loader-secret-access-key", "",
+			"AWS Secret Access Key for S3 Loader to override global config")
+		s3LoaderEndpoint = fs.String("s3-loader-endpoint", "",
+			"Optional S3 Loader Endpoint to override default")
+
+		awsStorageRegion = fs.String("aws-storage-region", "",
+			"AWS Region for S3 Storage to override global config")
+		awsStorageAccessKeyId = fs.String("aws-storage-access-key-id", "",
+			"AWS Access Key ID for S3 Storage to override global config")
+		awsStorageSecretAccessKey = fs.String("aws-storage-secret-access-key", "",
+			"AWS Secret Access Key for S3 Storage to override global config")
+		s3StorageEndpoint = fs.String("s3-storage-endpoint", "",
+			"Optional S3 Storage Endpoint to override default")
+
+		awsResultStorageRegion = fs.String("aws-result-storage-region", "",
+			"AWS Region for S3 Result Storage to override global config")
+		awsResultStorageAccessKeyId = fs.String("aws-result-storage-access-key-id", "",
+			"AWS Access Key ID for S3 Result Storage to override global config")
+		awsResultStorageSecretAccessKey = fs.String("aws-result-storage-secret-access-key", "",
+			"AWS Secret Access Key for S3 Result Storage to override global config")
+		s3ResultStorageEndpoint = fs.String("s3-result-storage-endpoint", "",
+			"Optional S3 Storage Endpoint to override default")
+
 		s3ForcePathStyle = fs.Bool("s3-force-path-style", false,
 			"S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key")
 		s3SafeChars = fs.String("s3-safe-chars", "",
@@ -57,55 +85,96 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
+		var sess, loaderSess, storageSess, resultStorageSess *session.Session
+		var err error
 		if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
 			cfg := &aws.Config{
 				Endpoint: s3Endpoint,
 				Region:   awsRegion,
 				Credentials: credentials.NewStaticCredentials(
 					*awsAccessKeyId, *awsSecretAccessKey, ""),
-			}
-			if *s3ForcePathStyle {
-				cfg.WithS3ForcePathStyle(true)
+				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present
-			sess, err := session.NewSession(cfg)
-			if err != nil {
+			if sess, err = session.NewSession(cfg); err != nil {
 				panic(err)
 			}
-			if *s3StorageBucket != "" {
-				// activate S3 Storage only if bucket config presents
-				app.Storages = append(app.Storages,
-					s3storage.New(sess, *s3StorageBucket,
-						s3storage.WithPathPrefix(*s3StoragePathPrefix),
-						s3storage.WithBaseDir(*s3StorageBaseDir),
-						s3storage.WithACL(*s3StorageACL),
-						s3storage.WithSafeChars(*s3SafeChars),
-						s3storage.WithExpiration(*s3StorageExpiration),
-					),
-				)
+			loaderSess = sess
+			storageSess = sess
+			resultStorageSess = sess
+		}
+		if *awsLoaderRegion != "" && *awsLoaderAccessKeyId != "" && *awsLoaderSecretAccessKey != "" {
+			cfg := &aws.Config{
+				Endpoint: s3LoaderEndpoint,
+				Region:   awsLoaderRegion,
+				Credentials: credentials.NewStaticCredentials(
+					*awsLoaderAccessKeyId, *awsLoaderSecretAccessKey, ""),
+				S3ForcePathStyle: s3ForcePathStyle,
 			}
-			if *s3LoaderBucket != "" {
-				// activate S3 Loader only if bucket config presents
-				app.Loaders = append(app.Loaders,
-					s3storage.New(sess, *s3LoaderBucket,
-						s3storage.WithPathPrefix(*s3LoaderPathPrefix),
-						s3storage.WithBaseDir(*s3LoaderBaseDir),
-						s3storage.WithSafeChars(*s3SafeChars),
-					),
-				)
+			// activate AWS Session only if credentials present
+			if loaderSess, err = session.NewSession(cfg); err != nil {
+				panic(err)
 			}
-			if *s3ResultStorageBucket != "" {
-				// activate S3 ResultStorage only if bucket config presents
-				app.ResultStorages = append(app.ResultStorages,
-					s3storage.New(sess, *s3ResultStorageBucket,
-						s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
-						s3storage.WithBaseDir(*s3ResultStorageBaseDir),
-						s3storage.WithACL(*s3ResultStorageACL),
-						s3storage.WithSafeChars(*s3SafeChars),
-						s3storage.WithExpiration(*s3ResultStorageExpiration),
-					),
-				)
+		}
+		if *awsStorageRegion != "" && *awsStorageAccessKeyId != "" && *awsStorageSecretAccessKey != "" {
+			cfg := &aws.Config{
+				Endpoint: s3StorageEndpoint,
+				Region:   awsStorageRegion,
+				Credentials: credentials.NewStaticCredentials(
+					*awsStorageAccessKeyId, *awsStorageSecretAccessKey, ""),
+				S3ForcePathStyle: s3ForcePathStyle,
 			}
+			// activate AWS Session only if credentials present
+			if storageSess, err = session.NewSession(cfg); err != nil {
+				panic(err)
+			}
+		}
+		if *awsResultStorageRegion != "" && *awsResultStorageAccessKeyId != "" && *awsResultStorageSecretAccessKey != "" {
+			cfg := &aws.Config{
+				Endpoint: s3ResultStorageEndpoint,
+				Region:   awsResultStorageRegion,
+				Credentials: credentials.NewStaticCredentials(
+					*awsResultStorageAccessKeyId, *awsResultStorageSecretAccessKey, ""),
+				S3ForcePathStyle: s3ForcePathStyle,
+			}
+			// activate AWS Session only if credentials present
+			if resultStorageSess, err = session.NewSession(cfg); err != nil {
+				panic(err)
+			}
+		}
+		if storageSess != nil && *s3StorageBucket != "" {
+			// activate S3 Storage only if bucket config presents
+			app.Storages = append(app.Storages,
+				s3storage.New(storageSess, *s3StorageBucket,
+					s3storage.WithPathPrefix(*s3StoragePathPrefix),
+					s3storage.WithBaseDir(*s3StorageBaseDir),
+					s3storage.WithACL(*s3StorageACL),
+					s3storage.WithSafeChars(*s3SafeChars),
+					s3storage.WithExpiration(*s3StorageExpiration),
+				),
+			)
+		}
+		if loaderSess != nil && *s3LoaderBucket != "" {
+			// activate S3 Loader only if bucket config presents
+			app.Loaders = append(app.Loaders,
+				s3storage.New(loaderSess, *s3LoaderBucket,
+					s3storage.WithPathPrefix(*s3LoaderPathPrefix),
+					s3storage.WithBaseDir(*s3LoaderBaseDir),
+					s3storage.WithSafeChars(*s3SafeChars),
+				),
+			)
+		}
+		if resultStorageSess != nil && *s3ResultStorageBucket != "" {
+			// activate S3 ResultStorage only if bucket config presents
+			app.ResultStorages = append(app.ResultStorages,
+				s3storage.New(resultStorageSess, *s3ResultStorageBucket,
+					s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
+					s3storage.WithBaseDir(*s3ResultStorageBaseDir),
+					s3storage.WithACL(*s3ResultStorageACL),
+					s3storage.WithSafeChars(*s3SafeChars),
+					s3storage.WithExpiration(*s3ResultStorageExpiration),
+				),
+			)
 		}
 	}
 }
