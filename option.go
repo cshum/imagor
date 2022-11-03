@@ -11,7 +11,9 @@ type Option func(app *Imagor)
 func WithOptions(options ...Option) Option {
 	return func(app *Imagor) {
 		for _, option := range options {
-			option(app)
+			if option != nil {
+				option(app)
+			}
 		}
 	}
 }
