@@ -153,13 +153,9 @@ func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
 			panic(err)
 		}
 		if *debug {
-			if logger, err = zap.NewDevelopment(); err != nil {
-				panic(err)
-			}
+			logger = zap.Must(zap.NewDevelopment())
 		} else {
-			if logger, err = zap.NewProduction(); err != nil {
-				panic(err)
-			}
+			logger = zap.Must(zap.NewProduction())
 		}
 		return logger, *debug
 	}, funcs...)
