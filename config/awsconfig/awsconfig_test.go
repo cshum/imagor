@@ -8,6 +8,14 @@ import (
 	"testing"
 )
 
+func TestS3Empty(t *testing.T) {
+	srv := config.CreateServer([]string{}, WithAWS)
+	app := srv.App.(*imagor.Imagor)
+	assert.Equal(t, 1, len(app.Loaders))
+	assert.Empty(t, app.Storages)
+	assert.Empty(t, app.ResultStorages)
+}
+
 func TestS3Loader(t *testing.T) {
 	srv := config.CreateServer([]string{
 		"-aws-region", "asdf",

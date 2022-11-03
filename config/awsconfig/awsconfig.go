@@ -85,21 +85,23 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
+		if *s3StorageBucket == "" && *s3LoaderBucket == "" && *s3ResultStorageBucket == "" {
+			return
+		}
 		var loaderSess, storageSess, resultStorageSess *session.Session
-		if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
-			cfg := &aws.Config{
+		var sess = session.Must(session.NewSessionWithOptions(session.Options{
+			Config: aws.Config{
 				Endpoint: s3Endpoint,
 				Region:   awsRegion,
 				Credentials: credentials.NewStaticCredentials(
 					*awsAccessKeyId, *awsSecretAccessKey, ""),
 				S3ForcePathStyle: s3ForcePathStyle,
-			}
-			// activate AWS Session only if credentials present
-			var sess = session.Must(session.NewSession(cfg))
-			loaderSess = sess
-			storageSess = sess
-			resultStorageSess = sess
-		}
+			},
+			SharedConfigState: session.SharedConfigEnable,
+		}))
+		loaderSess = sess
+		storageSess = sess
+		resultStorageSess = sess
 		if *awsLoaderRegion != "" && *awsLoaderAccessKeyId != "" && *awsLoaderSecretAccessKey != "" {
 			cfg := &aws.Config{
 				Endpoint: s3LoaderEndpoint,
