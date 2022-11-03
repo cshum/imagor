@@ -8,6 +8,14 @@ import (
 
 type Option func(app *Imagor)
 
+func WithOptions(options ...Option) Option {
+	return func(app *Imagor) {
+		for _, option := range options {
+			option(app)
+		}
+	}
+}
+
 func WithLogger(logger *zap.Logger) Option {
 	return func(app *Imagor) {
 		if logger != nil {

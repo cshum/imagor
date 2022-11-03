@@ -67,12 +67,13 @@ func (f processorFunc) Shutdown(_ context.Context) error {
 
 func TestWithUnsafe(t *testing.T) {
 	logger := zap.NewExample()
-	app := New(
+	app := New(WithOptions(
 		WithUnsafe(true),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromBytes([]byte("foo")), nil
 		})),
-		WithLogger(logger))
+		WithLogger(logger),
+	))
 	assert.Equal(t, false, app.Debug)
 	assert.Equal(t, logger, app.Logger)
 
