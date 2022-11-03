@@ -85,6 +85,9 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
+		if *s3StorageBucket == "" && *s3LoaderBucket == "" && *s3ResultStorageBucket == "" {
+			return
+		}
 		var loaderSess, storageSess, resultStorageSess *session.Session
 		var sess = session.Must(session.NewSessionWithOptions(session.Options{
 			Config: aws.Config{
