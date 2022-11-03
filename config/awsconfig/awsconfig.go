@@ -85,8 +85,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
-		var sess, loaderSess, storageSess, resultStorageSess *session.Session
-		var err error
+		var loaderSess, storageSess, resultStorageSess *session.Session
 		if *awsRegion != "" && *awsAccessKeyId != "" && *awsSecretAccessKey != "" {
 			cfg := &aws.Config{
 				Endpoint: s3Endpoint,
@@ -96,9 +95,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present
-			if sess, err = session.NewSession(cfg); err != nil {
-				panic(err)
-			}
+			var sess = session.Must(session.NewSession(cfg))
 			loaderSess = sess
 			storageSess = sess
 			resultStorageSess = sess
@@ -112,9 +109,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present
-			if loaderSess, err = session.NewSession(cfg); err != nil {
-				panic(err)
-			}
+			loaderSess = session.Must(session.NewSession(cfg))
 		}
 		if *awsStorageRegion != "" && *awsStorageAccessKeyId != "" && *awsStorageSecretAccessKey != "" {
 			cfg := &aws.Config{
@@ -125,9 +120,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present
-			if storageSess, err = session.NewSession(cfg); err != nil {
-				panic(err)
-			}
+			storageSess = session.Must(session.NewSession(cfg))
 		}
 		if *awsResultStorageRegion != "" && *awsResultStorageAccessKeyId != "" && *awsResultStorageSecretAccessKey != "" {
 			cfg := &aws.Config{
@@ -138,9 +131,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present
-			if resultStorageSess, err = session.NewSession(cfg); err != nil {
-				panic(err)
-			}
+			resultStorageSess = session.Must(session.NewSession(cfg))
 		}
 		if storageSess != nil && *s3StorageBucket != "" {
 			// activate S3 Storage only if bucket config presents
