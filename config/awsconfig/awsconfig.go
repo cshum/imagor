@@ -89,16 +89,23 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			return
 		}
 		var loaderSess, storageSess, resultStorageSess *session.Session
-		var sess = session.Must(session.NewSessionWithOptions(session.Options{
-			Config: aws.Config{
-				Endpoint: s3Endpoint,
-				Region:   awsRegion,
-				Credentials: credentials.NewStaticCredentials(
-					*awsAccessKeyId, *awsSecretAccessKey, ""),
-				S3ForcePathStyle: s3ForcePathStyle,
-			},
+		var cred = credentials.NewStaticCredentials(
+			*awsAccessKeyId, *awsSecretAccessKey, "")
+		var options = session.Options{
 			SharedConfigState: session.SharedConfigEnable,
-		}))
+		}
+		if _, err := cred.Get(); err != nil {
+			cred = credentials.NewSharedCredentials("", "")
+		}
+		if _, err := cred.Get(); err == nil {
+			options.Config = aws.Config{
+				Endpoint:         s3Endpoint,
+				Region:           awsRegion,
+				Credentials:      cred,
+				S3ForcePathStyle: s3ForcePathStyle,
+			}
+		}
+		var sess = session.Must(session.NewSessionWithOptions(options))
 		loaderSess = sess
 		storageSess = sess
 		resultStorageSess = sess
