@@ -277,6 +277,27 @@ this may not be desirable for a self-hosted endpoint. You can also switch to [pa
 http://minio:9000/mybucket/image.jpg
 ```
 
+##### Different AWS Credentials for S3 Loader, Storage and Result Storage
+
+Set the following environment variables to override the global AWS Credentials for S3 Loader, Storage and Result Storage:
+
+```dotenv
+AWS_LOADER_REGION
+AWS_LOADER_ACCESS_KEY_ID
+AWS_LOADER_SECRET_ACCESS_KEY
+S3_LOADER_ENDPOINT
+
+AWS_STORAGE_REGION
+AWS_STORAGE_ACCESS_KEY_ID
+AWS_STORAGE_SECRET_ACCESS_KEY
+S3_STORAGE_ENDPOINT
+
+AWS_RESULT_STORAGE_REGION
+AWS_RESULT_STORAGE_ACCESS_KEY_ID
+AWS_RESULT_STORAGE_SECRET_ACCESS_KEY
+S3_RESULT_STORAGE_ENDPOINT
+```
+
 #### Google Cloud Storage
 
 Docker Compose example with Google Cloud Storage:
@@ -616,6 +637,31 @@ Usage of imagor:
         Upload ACL for S3 Storage (default "public-read")
   -s3-storage-expiration duration
         S3 Storage expiration duration e.g. 24h. Default no expiration
+        
+  -aws-loader-access-key-id string
+        AWS Access Key ID for S3 Loader to override global config
+  -aws-loader-region string
+        AWS Region for S3 Loader to override global config
+  -aws-loader-secret-access-key string
+        AWS Secret Access Key for S3 Loader to override global config
+  -s3-loader-endpoint string
+        Optional S3 Loader Endpoint to override default
+  -aws-storage-access-key-id string
+        AWS Access Key ID for S3 Storage to override global config
+  -aws-storage-region string
+        AWS Region for S3 Storage to override global config
+  -aws-storage-secret-access-key string
+        AWS Secret Access Key for S3 Storage to override global config
+  -s3-storage-endpoint string
+        Optional S3 Storage Endpoint to override default
+  -aws-result-storage-access-key-id string
+        AWS Access Key ID for S3 Result Storage to override global config
+  -aws-result-storage-region string
+        AWS Region for S3 Result Storage to override global config
+  -aws-result-storage-secret-access-key string
+        AWS Secret Access Key for S3 Result Storage to override global config
+  -s3-result-storage-endpoint string
+        Optional S3 Storage Endpoint to override default
 
   -gcloud-safe-chars string
         Google Cloud safe characters to be excluded from image key escape
