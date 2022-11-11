@@ -26,6 +26,7 @@ func doTestBlobReaders(t *testing.T, b *Blob, buf []byte) {
 	assert.NotNil(t, rs)
 	assert.NotEmpty(t, size)
 	assert.NoError(t, err)
+	defer rs.Close()
 
 	buf3, err := io.ReadAll(rs)
 	require.NoError(t, err)
