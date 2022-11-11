@@ -424,16 +424,19 @@ func getExtension(typ BlobType) (ext string) {
 	return
 }
 
+// hybridReadSeeker uses io.ReadCloser and switch to io.ReadSeekCloser only when seeked
 type hybridReadSeeker struct {
 	reader        io.ReadCloser
 	seeker        io.ReadSeekCloser
 	newReadSeeker func() (io.ReadSeekCloser, int64, error)
 }
 
+// Read implements the io.Reader interface.
 func (h *hybridReadSeeker) Read(p []byte) (n int, err error) {
 	return h.reader.Read(p)
 }
 
+// Seek implements the io.Seeker interface.
 func (h *hybridReadSeeker) Seek(offset int64, whence int) (n int64, err error) {
 	if h.seeker != nil {
 		return h.seeker.Seek(offset, whence)
@@ -446,6 +449,7 @@ func (h *hybridReadSeeker) Seek(offset int64, whence int) (n int64, err error) {
 	return h.seeker.Seek(offset, whence)
 }
 
+// Close implements the io.Closer interface.
 func (h *hybridReadSeeker) Close() (err error) {
 	return h.reader.Close()
 }
