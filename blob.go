@@ -170,7 +170,7 @@ func (h *hybridReadSeeker) Read(p []byte) (n int, err error) {
 }
 
 // Seek implements the io.Seeker interface.
-func (h *hybridReadSeeker) Seek(offset int64, whence int) (n int64, err error) {
+func (h *hybridReadSeeker) Seek(offset int64, whence int) (_ int64, err error) {
 	if h.seeker != nil {
 		return h.seeker.Seek(offset, whence)
 	}
