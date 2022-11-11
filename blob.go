@@ -206,6 +206,15 @@ func (b *Blob) init() {
 				return fanout.NewReader(), size, nil
 			}
 			reader = fanout.NewReader()
+			if b.newReadSeeker != nil {
+				newReadSeeker := b.newReadSeeker
+				b.newReadSeeker = func() (rs io.ReadSeekCloser, size int64, err error) {
+					return &hybridReadSeeker{
+						reader:        fanout.NewReader(),
+						newReadSeeker: newReadSeeker,
+					}, size, nil
+				}
+			}
 		} else {
 			b.fanout = false
 		}
