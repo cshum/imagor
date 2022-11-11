@@ -174,10 +174,10 @@ func (h *hybridReadSeeker) Seek(offset int64, whence int) (n int64, err error) {
 	if h.seeker != nil {
 		return h.seeker.Seek(offset, whence)
 	}
-	_ = h.reader.Close()
 	if h.seeker, _, err = h.newReadSeeker(); err != nil {
 		return
 	}
+	_ = h.reader.Close()
 	h.reader = h.seeker
 	return h.seeker.Seek(offset, whence)
 }
