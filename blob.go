@@ -157,6 +157,36 @@ type readSeekNopCloser struct {
 
 func (readSeekNopCloser) Close() error { return nil }
 
+// hybridReadSeeker uses io.ReadCloser and switch to io.ReadSeekCloser only when seeked
+type hybridReadSeeker struct {
+	reader        io.ReadCloser
+	seeker        io.ReadSeekCloser
+	newReadSeeker func() (io.ReadSeekCloser, int64, error)
+}
+
+// Read implements the io.Reader interface.
+func (h *hybridReadSeeker) Read(p []byte) (n int, err error) {
+	return h.reader.Read(p)
+}
+
+// Seek implements the io.Seeker interface.
+func (h *hybridReadSeeker) Seek(offset int64, whence int) (_ int64, err error) {
+	if h.seeker != nil {
+		return h.seeker.Seek(offset, whence)
+	}
+	if h.seeker, _, err = h.newReadSeeker(); err != nil {
+		return
+	}
+	_ = h.reader.Close()
+	h.reader = h.seeker
+	return h.seeker.Seek(offset, whence)
+}
+
+// Close implements the io.Closer interface.
+func (h *hybridReadSeeker) Close() (err error) {
+	return h.reader.Close()
+}
+
 type memory struct {
 	data   []byte
 	width  int
@@ -206,6 +236,15 @@ func (b *Blob) init() {
 				return fanout.NewReader(), size, nil
 			}
 			reader = fanout.NewReader()
+			if b.newReadSeeker != nil {
+				newReadSeeker := b.newReadSeeker
+				b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
+					return &hybridReadSeeker{
+						reader:        fanout.NewReader(),
+						newReadSeeker: newReadSeeker,
+					}, size, nil
+				}
+			}
 		} else {
 			b.fanout = false
 		}
