@@ -2,13 +2,15 @@ package httploader
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
-	"github.com/cshum/imagor"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/cshum/imagor"
 )
 
 type HTTPLoader struct {
@@ -49,6 +51,7 @@ func New(options ...Option) *HTTPLoader {
 		Accept:          "*/*",
 		UserAgent:       fmt.Sprintf("imagor/%s", imagor.Version),
 	}
+
 	for _, option := range options {
 		option(h)
 	}
@@ -86,7 +89,10 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if !isURLAllowed(u, h.AllowedSources) {
 		return nil, imagor.ErrInvalid
 	}
-	client := &http.Client{Transport: h.Transport}
+	client := &http.Client{
+		Transport:     h.Transport,
+		CheckRedirect: h.checkRedirect,
+	}
 	if h.MaxAllowedSize > 0 {
 		req, err := h.newRequest(r, http.MethodHead, image)
 		if err != nil {
@@ -162,4 +168,14 @@ func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Requ
 		req.Header.Set(key, value)
 	}
 	return req, nil
+}
+
+func (h *HTTPLoader) checkRedirect(r *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if !isURLAllowed(r.URL, h.AllowedSources) {
+		return imagor.ErrInvalid
+	}
+	return nil
 }
