@@ -3,15 +3,16 @@ package httploader
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/cshum/imagor"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/cshum/imagor"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testTransport map[string]string
@@ -129,6 +130,63 @@ func TestWithAllowedSources(t *testing.T) {
 			result: "foobar",
 		},
 	})
+}
+
+func TestWithAllowedSourcesRedirect(t *testing.T) {
+
+	t.Run("Forbidden redirect", func(t *testing.T) {
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Error("should not redirect to here")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("error"))
+		}))
+		defer ts2.Close()
+
+		ts1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Log("redirecting")
+			http.Redirect(w, r, ts2.URL, http.StatusTemporaryRedirect)
+		}))
+		defer ts1.Close()
+
+		loader := New(
+			WithAllowedSources(strings.TrimPrefix(ts1.URL, "http://")),
+		)
+		req, err := http.NewRequest(http.MethodGet, ts1.URL, nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, ts1.URL)
+
+		b, err := blob.ReadAll()
+		assert.Empty(t, b)
+		assert.ErrorIs(t, err, imagor.ErrInvalid)
+	})
+
+	t.Run("Allowed redirect", func(t *testing.T) {
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+
+		}))
+		defer ts2.Close()
+
+		ts1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Log("redirecting")
+			http.Redirect(w, r, ts2.URL, http.StatusTemporaryRedirect)
+		}))
+		defer ts1.Close()
+
+		loader := New()
+		req, err := http.NewRequest(http.MethodGet, ts1.URL, nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, ts1.URL)
+		assert.NoError(t, err)
+		if !assert.NotNil(t, blob) {
+			return
+		}
+		b, err := blob.ReadAll()
+		assert.Equal(t, []byte("ok"), b)
+	})
+
 }
 
 func TestWithDefaultScheme(t *testing.T) {
