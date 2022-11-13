@@ -2,6 +2,8 @@ package config
 
 import (
 	"flag"
+	"net"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/loader/httploader"
 	"go.uber.org/zap"
@@ -29,11 +31,19 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 			"HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port")
 		httpLoaderProxyAllowedSources = fs.String("http-loader-proxy-allowed-sources", "",
 			"HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.")
-		httpLoaderDisable = fs.Bool("http-loader-disable", false,
+		httpLoaderBlockLoopbackNetworks = fs.Bool("http-loader-block-loopback-networks", false,
+			"HTTP Loader Proxy rejects connections to loopback network IP addresses.")
+		httpLoaderBlockPrivateNetworks = fs.Bool("http-loader-block-private-networks", false,
+			"HTTP Loader Proxy rejects connections to private network IP addresses.")
+		httpLoaderBlockLinkLocalNetworks = fs.Bool("http-loader-block-link-local-networks", false,
+			"HTTP Loader Proxy rejects connections to link local network IP addresses.")
+		httpLoaderBlockNetworks []*net.IPNet
+		httpLoaderDisable       = fs.Bool("http-loader-disable", false,
 			"Disable HTTP Loader")
-
-		_, _ = cb()
 	)
+	fs.Var((*CIDRSliceFlag)(&httpLoaderBlockNetworks), "http-loader-block-networks",
+		"HTTP Loader Proxy rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g. ::1/128,127.0.0.0/8.")
+	_, _ = cb()
 	return func(app *imagor.Imagor) {
 		if !*httpLoaderDisable {
 			// fallback with HTTP Loader unless explicitly disabled
@@ -48,6 +58,10 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 					httploader.WithInsecureSkipVerifyTransport(*httpLoaderInsecureSkipVerifyTransport),
 					httploader.WithDefaultScheme(*httpLoaderDefaultScheme),
 					httploader.WithProxyTransport(*httpLoaderProxyURLs, *httpLoaderProxyAllowedSources),
+					httploader.WithBlockLoopbackNetworks(*httpLoaderBlockLoopbackNetworks),
+					httploader.WithBlockPrivateNetworks(*httpLoaderBlockPrivateNetworks),
+					httploader.WithBlockLinkLocalNetworks(*httpLoaderBlockLinkLocalNetworks),
+					httploader.WithBlockNetworks(httpLoaderBlockNetworks...),
 				),
 			)
 		}

@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -187,6 +188,93 @@ func TestWithAllowedSourcesRedirect(t *testing.T) {
 		assert.Equal(t, []byte("ok"), b)
 	})
 
+}
+
+func TestBlockNetworks(t *testing.T) {
+
+	t.Run("block loopback", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Error("should have been blocked")
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+
+		}))
+		defer ts.Close()
+		loader := New(
+			WithBlockLoopbackNetworks(true),
+		)
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, ts.URL)
+
+		b, err := blob.ReadAll()
+		assert.Empty(t, b)
+		assert.ErrorContains(t, err, "unauthorized request")
+
+	})
+
+	t.Run("block network", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Error("should have been blocked")
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+
+		}))
+		defer ts.Close()
+		var networks []*net.IPNet
+
+		for _, v := range []string{"::1/128", "127.0.0.0/8"} {
+			_, network, err := net.ParseCIDR(v)
+			assert.NoError(t,err)
+			networks = append(networks, network)
+		}
+		loader := New(
+			WithBlockNetworks(networks...),
+		)
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, ts.URL)
+
+		b, err := blob.ReadAll()
+		assert.Empty(t, b)
+		assert.ErrorContains(t, err, "unauthorized request")
+	})
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("should have been blocked")
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+
+	}))
+	defer ts.Close()
+
+	for _, v := range []struct {
+		name string
+		addr string
+		opt  Option
+	}{
+		{
+			name: "link local",
+			addr: "169.254.5.8:2000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
+			name: "private",
+			addr: "10.0.4.3:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+	} {
+		t.Run(v.name, func(t *testing.T) {
+			loader := New(
+				v.opt,
+			)
+			err := loader.DialControl("ipv4", v.addr, nil)
+			assert.ErrorContains(t, err, "unauthorized request")
+		})
+	}
 }
 
 func TestWithDefaultScheme(t *testing.T) {

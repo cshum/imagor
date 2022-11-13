@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/cshum/imagor"
 )
@@ -40,17 +42,32 @@ type HTTPLoader struct {
 	// Can be overridden by ForwardHeaders and OverrideHeaders
 	UserAgent string
 
+	// BlockLoopbackNetworks rejects HTTP connections to loopback network IP addresses.
+	BlockLoopbackNetworks bool
+
+	// BlockPrivateNetworks rejects HTTP connections to private network IP addresses.
+	BlockPrivateNetworks bool
+
+	// BlockLinkLocalNetworks rejects HTTP connections to link local IP addresses.
+	BlockLinkLocalNetworks bool
+
+	// BlockNetworks rejects HTTP connections to a configurable list of networks.
+	BlockNetworks []*net.IPNet
+
 	accepts []string
 }
 
 func New(options ...Option) *HTTPLoader {
 	h := &HTTPLoader{
-		Transport:       http.DefaultTransport.(*http.Transport).Clone(),
 		OverrideHeaders: map[string]string{},
 		DefaultScheme:   "https",
 		Accept:          "*/*",
 		UserAgent:       fmt.Sprintf("imagor/%s", imagor.Version),
 	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	dialer := &net.Dialer{Control: h.DialControl}
+	transport.DialContext = dialer.DialContext
+	h.Transport = transport
 
 	for _, option := range options {
 		option(h)
@@ -118,7 +135,11 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		resp, err := client.Do(req)
 		if err != nil {
-			if idx := strings.Index(err.Error(), "dial tcp: "); idx > -1 {
+			if errors.Is(err, ErrUnauthorizedRequest) {
+				err = imagor.NewError(
+					fmt.Sprintf("%s: %s", err.Error(), image),
+					http.StatusForbidden)
+			} else if idx := strings.Index(err.Error(), "dial tcp: "); idx > -1 {
 				err = imagor.NewError(
 					fmt.Sprintf("%s: %s", err.Error()[idx:], image),
 					http.StatusNotFound)
@@ -176,6 +197,34 @@ func (h *HTTPLoader) checkRedirect(r *http.Request, via []*http.Request) error {
 	}
 	if !isURLAllowed(r.URL, h.AllowedSources) {
 		return imagor.ErrInvalid
+	}
+	return nil
+}
+
+var ErrUnauthorizedRequest = errors.New("unauthorized request")
+
+// DialControl implements a net.Dialer.Control function which is automatically used with the default http.Transport.
+// If the transport is replaced using the WithTransport option it is up to that
+// transport if the control function is used or not.
+func (s *HTTPLoader) DialControl(network string, address string, conn syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	addr := net.ParseIP(host)
+	if s.BlockLoopbackNetworks && addr.IsLoopback() {
+		return ErrUnauthorizedRequest
+	}
+	if s.BlockLinkLocalNetworks && (addr.IsLinkLocalUnicast() || addr.IsLinkLocalMulticast()) {
+		return ErrUnauthorizedRequest
+	}
+	if s.BlockPrivateNetworks && addr.IsPrivate() {
+		return ErrUnauthorizedRequest
+	}
+	for _, network := range s.BlockNetworks {
+		if network.Contains(addr) {
+			return ErrUnauthorizedRequest
+		}
 	}
 	return nil
 }

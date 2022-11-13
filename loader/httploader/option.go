@@ -2,6 +2,7 @@ package httploader
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -109,5 +110,35 @@ func WithDefaultScheme(scheme string) Option {
 		if scheme != "" {
 			h.DefaultScheme = scheme
 		}
+	}
+}
+
+func WithBlockLoopbackNetworks(enabled bool) Option {
+	return func(h *HTTPLoader) {
+		if enabled {
+			h.BlockLoopbackNetworks = true
+		}
+	}
+}
+
+func WithBlockLinkLocalNetworks(enabled bool) Option {
+	return func(h *HTTPLoader) {
+		if enabled {
+			h.BlockLinkLocalNetworks = true
+		}
+	}
+}
+
+func WithBlockPrivateNetworks(enabled bool) Option {
+	return func(h *HTTPLoader) {
+		if enabled {
+			h.BlockPrivateNetworks = true
+		}
+	}
+}
+
+func WithBlockNetworks(networks ...*net.IPNet) Option {
+	return func(h *HTTPLoader) {
+		h.BlockNetworks = networks
 	}
 }
