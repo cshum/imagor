@@ -32,17 +32,17 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 		httpLoaderProxyAllowedSources = fs.String("http-loader-proxy-allowed-sources", "",
 			"HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.")
 		httpLoaderBlockLoopbackNetworks = fs.Bool("http-loader-block-loopback-networks", false,
-			"HTTP Loader Proxy rejects connections to loopback network IP addresses.")
+			"HTTP Loader rejects connections to loopback network IP addresses.")
 		httpLoaderBlockPrivateNetworks = fs.Bool("http-loader-block-private-networks", false,
-			"HTTP Loader Proxy rejects connections to private network IP addresses.")
+			"HTTP Loader rejects connections to private network IP addresses.")
 		httpLoaderBlockLinkLocalNetworks = fs.Bool("http-loader-block-link-local-networks", false,
-			"HTTP Loader Proxy rejects connections to link local network IP addresses.")
+			"HTTP Loader rejects connections to link local network IP addresses.")
 		httpLoaderBlockNetworks []*net.IPNet
 		httpLoaderDisable       = fs.Bool("http-loader-disable", false,
 			"Disable HTTP Loader")
 	)
 	fs.Var((*CIDRSliceFlag)(&httpLoaderBlockNetworks), "http-loader-block-networks",
-		"HTTP Loader Proxy rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g. ::1/128,127.0.0.0/8.")
+		"HTTP Loader rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g. ::1/128,127.0.0.0/8.")
 	_, _ = cb()
 	return func(app *imagor.Imagor) {
 		if !*httpLoaderDisable {

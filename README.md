@@ -570,13 +570,13 @@ Usage of imagor:
   -http-loader-accept string
         HTTP Loader set request Accept header and validate response Content-Type header (default "*/*") 
   -http-loader-block-link-local-networks
-        HTTP Loader Proxy rejects connections to link local network IP addresses.
+        HTTP Loader rejects connections to link local network IP addresses.
   -http-loader-block-loopback-networks
-        HTTP Loader Proxy rejects connections to loopback network IP addresses.
+        HTTP Loader rejects connections to loopback network IP addresses.
   -http-loader-block-private-networks
-        HTTP Loader Proxy rejects connections to private network IP addresses.
+        HTTP Loader rejects connections to private network IP addresses.
   -http-loader-block-networks string
-        HTTP Loader Proxy rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g ::1/128,127.0.0.0/8.
+        HTTP Loader rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g ::1/128,127.0.0.0/8.
   -http-loader-disable
         Disable HTTP Loader
 
