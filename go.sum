@@ -31,8 +31,8 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/felixge/httpsnoop v1.0.3 h1:s/nj+GCswXYzN5v2DpNMuMQYe+0DDwt5WVCU6CWBdXk=
 github.com/felixge/httpsnoop v1.0.3/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/fsouza/fake-gcs-server v1.42.0 h1:t6DKkB08Wlxbtz6XMDZluQsl5xXl9eBZ0HP2er/4qlE=
-github.com/fsouza/fake-gcs-server v1.42.0/go.mod h1:T6fVtpoqkQcpq2ICZdEFDvrrprjpplWiNEBhP0KWZnk=
+github.com/fsouza/fake-gcs-server v1.42.1 h1:AV2JyX51WvXV6sn2AO2M20ZdDK6tCmI+bLd1wwDJMCE=
+github.com/fsouza/fake-gcs-server v1.42.1/go.mod h1:TIot/MGHrgpSCaGcNDK3qVi+vXIiHc6KThR2aXBFSDU=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e/go.mod h1:cIg4eruTrX1D+g88fzRXU5OdNfaM+9IcxsU14FzY7Hc=
 github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da h1:oI5xCqsCo564l8iNU+DwB5epxmsaqB+rhGL0m5jtYqE=
