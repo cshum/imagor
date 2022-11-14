@@ -214,6 +214,17 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p = imagorpath.Apply(p, app.BaseParams)
 		p.Path = imagorpath.GeneratePath(p)
 	}
+	for _, f := range p.Filters {
+		if f.Name == "expire" {
+			if ts, err := strconv.ParseInt(f.Args, 10, 64); err == nil {
+				expire := time.UnixMilli(ts)
+				if !expire.IsZero() && time.Now().After(expire) {
+					err = ErrExpired
+					return
+				}
+			}
+		}
+	}
 	// auto WebP / AVIF
 	if app.AutoWebP || app.AutoAVIF {
 		var hasFormat bool
