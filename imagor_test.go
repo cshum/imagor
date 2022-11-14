@@ -357,11 +357,14 @@ func TestExpire(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
 
+	now := time.Now()
+	time.Sleep(time.Millisecond)
+
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet,
 		fmt.Sprintf("https://example.com/unsafe/filters:expire(%d)/foo.jpg",
-			time.Now().Add(time.Second).UnixMilli(),
+			now.Add(time.Second).UnixMilli(),
 		), nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "private, no-cache, no-store, must-revalidate", w.Header().Get("Cache-Control"))
@@ -370,7 +373,7 @@ func TestExpire(t *testing.T) {
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet,
 		fmt.Sprintf("https://example.com/unsafe/filters:expire(%d)/foo.jpg",
-			time.Now().UnixMilli(),
+			now.UnixMilli(),
 		), nil))
 	assert.Equal(t, 410, w.Code)
 }
