@@ -341,6 +341,40 @@ func TestWithCacheHeaderTTL(t *testing.T) {
 	})
 }
 
+func TestExpire(t *testing.T) {
+	loader := loaderFunc(func(r *http.Request, image string) (blob *Blob, err error) {
+		return NewBlobFromBytes([]byte("ok")), nil
+	})
+	app := New(
+		WithLogger(zap.NewExample()),
+		WithCacheHeaderSWR(time.Second*169),
+		WithCacheHeaderTTL(time.Second*169),
+		WithLoaders(loader),
+		WithUnsafe(true))
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet,
+		fmt.Sprintf("https://example.com/unsafe/filters:expire(%d)/foo.jpg",
+			time.Now().Add(time.Second).UnixMilli(),
+		), nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "private, no-cache, no-store, must-revalidate", w.Header().Get("Cache-Control"))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet,
+		fmt.Sprintf("https://example.com/unsafe/filters:expire(%d)/foo.jpg",
+			time.Now().UnixMilli(),
+		), nil))
+	assert.Equal(t, 410, w.Code)
+}
+
 func TestVersion(t *testing.T) {
 	app := New(
 		WithDebug(true),
