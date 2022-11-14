@@ -216,9 +216,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	}
 	for _, f := range p.Filters {
 		if f.Name == "expire" {
-			if ts, err := strconv.ParseInt(f.Args, 10, 64); err == nil {
-				expire := time.UnixMilli(ts)
-				if !expire.IsZero() && time.Now().After(expire) {
+			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
+				if exp := time.UnixMilli(ts); !exp.IsZero() && time.Now().After(exp) {
 					err = ErrExpired
 					return
 				}
