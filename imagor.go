@@ -210,34 +210,55 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return
 	}
+	var isPathChanged bool
 	if app.BaseParams != "" {
 		p = imagorpath.Apply(p, app.BaseParams)
-		p.Path = imagorpath.GeneratePath(p)
+		isPathChanged = true
+	}
+	var hasFormat bool
+	for _, f := range p.Filters {
+		switch f.Name {
+		case "expire":
+			// expire(timestamp) filter
+			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
+				r.Header.Set("Cache-Control", "no-cache")
+				if exp := time.UnixMilli(ts); !exp.IsZero() && time.Now().After(exp) {
+					err = ErrExpired
+					return
+				}
+				// exclude expire filter from result path
+				filters := p.Filters
+				p.Filters = nil
+				for _, f := range filters {
+					if f.Name != "expire" {
+						p.Filters = append(p.Filters, f)
+					}
+				}
+				isPathChanged = true
+			}
+		case "format":
+			hasFormat = true
+		}
 	}
 	// auto WebP / AVIF
-	if app.AutoWebP || app.AutoAVIF {
-		var hasFormat bool
-		for _, f := range p.Filters {
-			if f.Name == "format" {
-				hasFormat = true
-			}
+	if !hasFormat && (app.AutoWebP || app.AutoAVIF) {
+		accept := r.Header.Get("Accept")
+		if app.AutoAVIF && strings.Contains(accept, "image/avif") {
+			p.Filters = append(p.Filters, imagorpath.Filter{
+				Name: "format",
+				Args: "avif",
+			})
+			isPathChanged = true
+		} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
+			p.Filters = append(p.Filters, imagorpath.Filter{
+				Name: "format",
+				Args: "webp",
+			})
+			isPathChanged = true
 		}
-		if !hasFormat {
-			accept := r.Header.Get("Accept")
-			if app.AutoAVIF && strings.Contains(accept, "image/avif") {
-				p.Filters = append(p.Filters, imagorpath.Filter{
-					Name: "format",
-					Args: "avif",
-				})
-				p.Path = imagorpath.GeneratePath(p)
-			} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
-				p.Filters = append(p.Filters, imagorpath.Filter{
-					Name: "format",
-					Args: "webp",
-				})
-				p.Path = imagorpath.GeneratePath(p)
-			}
-		}
+	}
+	if isPathChanged {
+		p.Path = imagorpath.GeneratePath(p)
 	}
 	var resultKey string
 	var hasPreview bool
