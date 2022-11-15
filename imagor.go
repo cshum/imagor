@@ -215,9 +215,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p = imagorpath.Apply(p, app.BaseParams)
 		isPathChanged = true
 	}
-	// expire timestamp
+	var hasFormat bool
 	for _, f := range p.Filters {
-		if f.Name == "expire" {
+		switch f.Name {
+		case "expire":
+			// expire(timestamp) filter
 			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
 				r.Header.Set("Cache-Control", "no-cache")
 				if exp := time.UnixMilli(ts); !exp.IsZero() && time.Now().After(exp) {
@@ -234,31 +236,25 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				}
 				isPathChanged = true
 			}
+		case "format":
+			hasFormat = true
 		}
 	}
 	// auto WebP / AVIF
-	if app.AutoWebP || app.AutoAVIF {
-		var hasFormat bool
-		for _, f := range p.Filters {
-			if f.Name == "format" {
-				hasFormat = true
-			}
-		}
-		if !hasFormat {
-			accept := r.Header.Get("Accept")
-			if app.AutoAVIF && strings.Contains(accept, "image/avif") {
-				p.Filters = append(p.Filters, imagorpath.Filter{
-					Name: "format",
-					Args: "avif",
-				})
-				isPathChanged = true
-			} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
-				p.Filters = append(p.Filters, imagorpath.Filter{
-					Name: "format",
-					Args: "webp",
-				})
-				isPathChanged = true
-			}
+	if !hasFormat && (app.AutoWebP || app.AutoAVIF) {
+		accept := r.Header.Get("Accept")
+		if app.AutoAVIF && strings.Contains(accept, "image/avif") {
+			p.Filters = append(p.Filters, imagorpath.Filter{
+				Name: "format",
+				Args: "avif",
+			})
+			isPathChanged = true
+		} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
+			p.Filters = append(p.Filters, imagorpath.Filter{
+				Name: "format",
+				Args: "webp",
+			})
+			isPathChanged = true
 		}
 	}
 	if isPathChanged {
