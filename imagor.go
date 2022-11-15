@@ -215,7 +215,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p = imagorpath.Apply(p, app.BaseParams)
 		isPathChanged = true
 	}
-	var hasFormat bool
+	var hasFormat, hasPreview bool
 	var filters = p.Filters
 	p.Filters = nil
 	for _, f := range filters {
@@ -231,6 +231,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 		case "format":
 			hasFormat = true
+		case "preview":
+			hasPreview = true // disable result storage on preview() filter
 		}
 		// exclude utility filters from result path
 		switch f.Name {
@@ -261,12 +263,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p.Path = imagorpath.GeneratePath(p)
 	}
 	var resultKey string
-	var hasPreview bool
-	for _, f := range p.Filters {
-		if f.Name == "preview" {
-			hasPreview = true // disable result storage on preview() filter
-		}
-	}
 	if !hasPreview {
 		if app.ResultStoragePathStyle != nil {
 			resultKey = app.ResultStoragePathStyle.HashResult(p)
