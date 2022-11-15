@@ -404,16 +404,25 @@ func (b *Blob) ReadAll() ([]byte, error) {
 	if b.blobType == BlobTypeEmpty {
 		return nil, b.err
 	}
-	reader, _, err := b.NewReader()
+	reader, size, err := b.NewReader()
 	if reader != nil {
 		defer func() {
 			_ = reader.Close()
 		}()
-		buf, err2 := io.ReadAll(reader)
-		if err != nil {
-			return buf, err
+		if size > 0 {
+			buf := make([]byte, size)
+			_, err2 := io.ReadAtLeast(reader, buf, int(size))
+			if err != nil {
+				return buf, err
+			}
+			return buf, err2
+		} else {
+			buf, err2 := io.ReadAll(reader)
+			if err != nil {
+				return buf, err
+			}
+			return buf, err2
 		}
-		return buf, err2
 	}
 	return nil, err
 }
