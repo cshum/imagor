@@ -215,6 +215,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p = imagorpath.Apply(p, app.BaseParams)
 		isPathChanged = true
 	}
+	// expire timestamp
 	for _, f := range p.Filters {
 		if f.Name == "expire" {
 			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
@@ -223,6 +224,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					err = ErrExpired
 					return
 				}
+				// exclude expire filter from result path
 				filters := p.Filters
 				p.Filters = nil
 				for _, f := range filters {
