@@ -210,18 +210,27 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return
 	}
+	var isPathChanged bool
 	if app.BaseParams != "" {
 		p = imagorpath.Apply(p, app.BaseParams)
-		p.Path = imagorpath.GeneratePath(p)
+		isPathChanged = true
 	}
 	for _, f := range p.Filters {
 		if f.Name == "expire" {
-			r.Header.Set("Cache-Control", "no-cache")
 			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
+				r.Header.Set("Cache-Control", "no-cache")
 				if exp := time.UnixMilli(ts); !exp.IsZero() && time.Now().After(exp) {
 					err = ErrExpired
 					return
 				}
+				filters := p.Filters
+				p.Filters = nil
+				for _, f := range filters {
+					if f.Name != "expire" {
+						p.Filters = append(p.Filters, f)
+					}
+				}
+				isPathChanged = true
 			}
 		}
 	}
@@ -240,15 +249,18 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					Name: "format",
 					Args: "avif",
 				})
-				p.Path = imagorpath.GeneratePath(p)
+				isPathChanged = true
 			} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
 				p.Filters = append(p.Filters, imagorpath.Filter{
 					Name: "format",
 					Args: "webp",
 				})
-				p.Path = imagorpath.GeneratePath(p)
+				isPathChanged = true
 			}
 		}
+	}
+	if isPathChanged {
+		p.Path = imagorpath.GeneratePath(p)
 	}
 	var resultKey string
 	var hasPreview bool
