@@ -199,123 +199,125 @@ func newEmptyReader() (io.ReadCloser, int64, error) {
 }
 
 func (b *Blob) init() {
-	b.once.Do(func() {
-		if b.err != nil {
-			return
-		}
-		if b.newReader == nil {
-			if b.memory != nil {
-				b.blobType = BlobTypeMemory
-			} else {
-				b.blobType = BlobTypeEmpty
-			}
-			b.newReader = newEmptyReader
-			return
-		}
-		reader, size, err := b.newReader()
-		if err != nil {
-			b.err = err
-		}
-		if reader == nil {
-			return
-		}
-		b.size = size
-		if _, ok := reader.(io.ReadSeekCloser); ok {
-			// construct seeker factory if source supports seek
-			newReader := b.newReader
-			b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
-				r, size, err := newReader()
-				return r.(io.ReadSeekCloser), size, err
-			}
-		}
-		if b.fanout && size > 0 && size < maxMemorySize && err == nil {
-			// use fan-out reader if buf size known and within memory size
-			// otherwise create new readers
-			fanout := fanoutreader.New(reader, int(size))
-			b.newReader = func() (io.ReadCloser, int64, error) {
-				return fanout.NewReader(), size, nil
-			}
-			reader = fanout.NewReader()
-			if b.newReadSeeker != nil {
-				newReadSeeker := b.newReadSeeker
-				b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
-					return &hybridReadSeeker{
-						reader:        fanout.NewReader(),
-						newReadSeeker: newReadSeeker,
-					}, size, nil
-				}
-			}
+	b.once.Do(b.doInit)
+}
+
+func (b *Blob) doInit() {
+	if b.err != nil {
+		return
+	}
+	if b.newReader == nil {
+		if b.memory != nil {
+			b.blobType = BlobTypeMemory
 		} else {
-			b.fanout = false
-		}
-		// sniff first 512 bytes for type sniffing
-		b.sniffBuf = make([]byte, 512)
-		n, err := io.ReadAtLeast(reader, b.sniffBuf, 512)
-		_ = reader.Close()
-		if n < 512 {
-			b.sniffBuf = b.sniffBuf[:n]
-		}
-		if len(b.sniffBuf) == 0 {
 			b.blobType = BlobTypeEmpty
 		}
-		if err != nil &&
-			err != io.ErrUnexpectedEOF &&
-			err != io.EOF {
-			if b.err == nil {
-				b.err = err
-			}
-			return
+		b.newReader = newEmptyReader
+		return
+	}
+	reader, size, err := b.newReader()
+	if err != nil {
+		b.err = err
+	}
+	if reader == nil {
+		return
+	}
+	b.size = size
+	if _, ok := reader.(io.ReadSeekCloser); ok {
+		// construct seeker factory if source supports seek
+		newReader := b.newReader
+		b.newReadSeeker = func() (io.ReadSeekCloser, int64, error) {
+			r, size, err := newReader()
+			return r.(io.ReadSeekCloser), size, err
 		}
-		if b.blobType != BlobTypeEmpty && b.blobType != BlobTypeJSON &&
-			len(b.sniffBuf) > 24 {
-			if bytes.Equal(b.sniffBuf[:3], jpegHeader) {
-				b.blobType = BlobTypeJPEG
-			} else if bytes.Equal(b.sniffBuf[:4], pngHeader) {
-				b.blobType = BlobTypePNG
-			} else if bytes.Equal(b.sniffBuf[:3], gifHeader) {
-				b.blobType = BlobTypeGIF
-			} else if bytes.Equal(b.sniffBuf[8:12], webpHeader) {
-				b.blobType = BlobTypeWEBP
-			} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], avif) {
-				b.blobType = BlobTypeAVIF
-			} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && (bytes.Equal(b.sniffBuf[8:12], heic) ||
-				bytes.Equal(b.sniffBuf[8:12], mif1) ||
-				bytes.Equal(b.sniffBuf[8:12], msf1)) {
-				b.blobType = BlobTypeHEIF
-			} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
-				b.blobType = BlobTypeTIFF
-			}
+	}
+	if b.fanout && size > 0 && size < maxMemorySize && err == nil {
+		// use fan-out reader if buf size known and within memory size
+		// otherwise create new readers
+		fanout := fanoutreader.New(reader, int(size))
+		b.newReader = func() (io.ReadCloser, int64, error) {
+			return fanout.NewReader(), size, nil
 		}
-		if b.contentType == "" {
-			switch b.blobType {
-			case BlobTypeJSON:
-				b.contentType = "application/json"
-			case BlobTypeJPEG:
-				b.contentType = "image/jpeg"
-			case BlobTypePNG:
-				b.contentType = "image/png"
-			case BlobTypeGIF:
-				b.contentType = "image/gif"
-			case BlobTypeWEBP:
-				b.contentType = "image/webp"
-			case BlobTypeAVIF:
-				b.contentType = "image/avif"
-			case BlobTypeHEIF:
-				b.contentType = "image/heif"
-			case BlobTypeTIFF:
-				b.contentType = "image/tiff"
-			default:
-				b.contentType = http.DetectContentType(b.sniffBuf)
+		reader = fanout.NewReader()
+		if b.newReadSeeker != nil {
+			newReadSeeker := b.newReadSeeker
+			b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
+				return &hybridReadSeeker{
+					reader:        fanout.NewReader(),
+					newReadSeeker: newReadSeeker,
+				}, size, nil
 			}
 		}
-		if b.blobType == BlobTypeUnknown &&
-			strings.HasPrefix(b.contentType, "text/plain") {
-			if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
-				b.blobType = BlobTypeJSON
-				b.contentType = "application/json"
-			}
+	} else {
+		b.fanout = false
+	}
+	// sniff first 512 bytes for type sniffing
+	b.sniffBuf = make([]byte, 512)
+	n, err := io.ReadAtLeast(reader, b.sniffBuf, 512)
+	_ = reader.Close()
+	if n < 512 {
+		b.sniffBuf = b.sniffBuf[:n]
+	}
+	if len(b.sniffBuf) == 0 {
+		b.blobType = BlobTypeEmpty
+	}
+	if err != nil &&
+		err != io.ErrUnexpectedEOF &&
+		err != io.EOF {
+		if b.err == nil {
+			b.err = err
 		}
-	})
+		return
+	}
+	if b.blobType != BlobTypeEmpty && b.blobType != BlobTypeJSON &&
+		len(b.sniffBuf) > 24 {
+		if bytes.Equal(b.sniffBuf[:3], jpegHeader) {
+			b.blobType = BlobTypeJPEG
+		} else if bytes.Equal(b.sniffBuf[:4], pngHeader) {
+			b.blobType = BlobTypePNG
+		} else if bytes.Equal(b.sniffBuf[:3], gifHeader) {
+			b.blobType = BlobTypeGIF
+		} else if bytes.Equal(b.sniffBuf[8:12], webpHeader) {
+			b.blobType = BlobTypeWEBP
+		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], avif) {
+			b.blobType = BlobTypeAVIF
+		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && (bytes.Equal(b.sniffBuf[8:12], heic) ||
+			bytes.Equal(b.sniffBuf[8:12], mif1) ||
+			bytes.Equal(b.sniffBuf[8:12], msf1)) {
+			b.blobType = BlobTypeHEIF
+		} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
+			b.blobType = BlobTypeTIFF
+		}
+	}
+	if b.contentType == "" {
+		switch b.blobType {
+		case BlobTypeJSON:
+			b.contentType = "application/json"
+		case BlobTypeJPEG:
+			b.contentType = "image/jpeg"
+		case BlobTypePNG:
+			b.contentType = "image/png"
+		case BlobTypeGIF:
+			b.contentType = "image/gif"
+		case BlobTypeWEBP:
+			b.contentType = "image/webp"
+		case BlobTypeAVIF:
+			b.contentType = "image/avif"
+		case BlobTypeHEIF:
+			b.contentType = "image/heif"
+		case BlobTypeTIFF:
+			b.contentType = "image/tiff"
+		default:
+			b.contentType = http.DetectContentType(b.sniffBuf)
+		}
+	}
+	if b.blobType == BlobTypeUnknown &&
+		strings.HasPrefix(b.contentType, "text/plain") {
+		if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
+			b.blobType = BlobTypeJSON
+			b.contentType = "application/json"
+		}
+	}
 }
 
 func (b *Blob) IsEmpty() bool {
