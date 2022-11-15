@@ -216,7 +216,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		isPathChanged = true
 	}
 	var hasFormat bool
-	for _, f := range p.Filters {
+	var filters = p.Filters
+	p.Filters = nil
+	for _, f := range filters {
 		switch f.Name {
 		case "expire":
 			// expire(timestamp) filter
@@ -226,18 +228,16 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					err = ErrExpired
 					return
 				}
-				// exclude expire filter from result path
-				filters := p.Filters
-				p.Filters = nil
-				for _, f := range filters {
-					if f.Name != "expire" {
-						p.Filters = append(p.Filters, f)
-					}
-				}
-				isPathChanged = true
 			}
 		case "format":
 			hasFormat = true
+		}
+		// exclude utility filters from result path
+		switch f.Name {
+		case "expire", "attachment":
+			isPathChanged = true
+		default:
+			p.Filters = append(p.Filters, f)
 		}
 	}
 	// auto WebP / AVIF

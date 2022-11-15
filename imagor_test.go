@@ -102,6 +102,10 @@ func TestWithContentDisposition(t *testing.T) {
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromFile(image), nil
 		})),
+		WithResultStorages(saverFunc(func(ctx context.Context, image string, blob *Blob) error {
+			assert.NotContains(t, image, "attachment")
+			return nil
+		})),
 		WithLogger(logger))
 	assert.Equal(t, false, app.Debug)
 	assert.Equal(t, logger, app.Logger)
