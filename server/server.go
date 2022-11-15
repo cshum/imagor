@@ -2,12 +2,13 @@ package server
 
 import (
 	"context"
-	"go.uber.org/zap"
 	"net/http"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // Service is a http.Handler with Startup and Shutdown lifecycle
@@ -34,6 +35,7 @@ type Server struct {
 	ShutdownTimeout time.Duration
 	Logger          *zap.Logger
 	Debug           bool
+	PprofListen     string
 }
 
 // New create new Server
@@ -73,6 +75,12 @@ func (s *Server) Run() {
 
 func (s *Server) RunContext(ctx context.Context) {
 	s.startup(ctx)
+
+	if s.PprofListen != "" {
+		go func() {
+			s.Logger.Fatal("debug-listen", zap.Error(http.ListenAndServe(s.PprofListen, nil)))
+		}()
+	}
 
 	go func() {
 		if err := s.listenAndServe(); err != nil && err != http.ErrServerClosed {

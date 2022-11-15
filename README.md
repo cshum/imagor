@@ -550,6 +550,8 @@ Usage of imagor:
         Server path prefix
   -server-access-log
         Enable server access log
+  -server-debug-listen
+        start Go pprof HTTP listener on host:port, e.g. localhost:6060
 
   -http-loader-allowed-sources string
         HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.

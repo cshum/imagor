@@ -94,3 +94,9 @@ func WithAccessLog(enabled bool) Option {
 		}
 	}
 }
+
+func WithPprof(listen string) Option {
+	return func(s *Server) {
+		s.PprofListen = listen
+	}
+}

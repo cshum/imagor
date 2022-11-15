@@ -6,14 +6,16 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
+	_ "net/http/pprof"
+	"runtime"
+	"strings"
+	"time"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/server"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
-	"runtime"
-	"strings"
-	"time"
 )
 
 var baseConfig = []Func{
@@ -127,6 +129,7 @@ func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
 		version      = fs.Bool("version", false, "imagor version")
 		port         = fs.Int("port", 8000, "Sever port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
+		pprof        = fs.String("server-debug-listen", "", "start Go pprof HTTP listener on host:port, e.g. localhost:6060")
 
 		_ = fs.String("config", ".env", "Retrieve configuration from the given file")
 
@@ -179,5 +182,6 @@ func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
 		server.WithAccessLog(*serverAccessLog),
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
+		server.WithPprof(*pprof),
 	)
 }
