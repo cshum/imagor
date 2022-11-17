@@ -415,7 +415,7 @@ func (v *Processor) process(
 					interest = InterestingHigh
 				}
 			}
-			if p.Smart && len(focalRects) > 0 {
+			if len(focalRects) > 0 {
 				focalX, focalY := parseFocalPoint(focalRects...)
 				if err := v.FocalThumbnail(
 					img, w, h,
