@@ -302,9 +302,11 @@ func TestBlobErr(t *testing.T) {
 				p = p[:100]
 			}
 			n = copy(p, buf)
+			buf = buf[n:]
 			return
 		})), int64(len(buf)), nil
 	})
-	_, err = b.ReadAll()
+	buf, err = b.ReadAll()
+	assert.Equal(t, 100*11, len(buf))
 	assert.Equal(t, e, err)
 }

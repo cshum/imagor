@@ -411,7 +411,11 @@ func (b *Blob) ReadAll() ([]byte, error) {
 		}()
 		if size > 0 {
 			buf := make([]byte, size)
-			_, err2 := io.ReadAtLeast(reader, buf, int(size))
+			s := int(size)
+			n, err2 := io.ReadAtLeast(reader, buf, s)
+			if n < s {
+				buf = buf[:n]
+			}
 			if err != nil {
 				return buf, err
 			}
