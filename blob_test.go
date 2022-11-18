@@ -318,6 +318,7 @@ func TestBlobReaderError(t *testing.T) {
 		})), int64(len(buf)), nil
 	})
 	assert.Equal(t, e, b.Err())
+	assert.Equal(t, 500, len(b.Sniff()))
 	buf, err = b.ReadAll()
 	assert.Equal(t, 500, len(buf))
 	assert.Equal(t, e, err)
