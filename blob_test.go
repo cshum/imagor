@@ -2,6 +2,7 @@ package imagor
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -279,4 +280,46 @@ func TestBlobJsonBytes(t *testing.T) {
 	b := NewBlobFromBytes([]byte(`{"foo": "bar"}`))
 	assert.Equal(t, BlobTypeJSON, b.BlobType())
 	assert.Equal(t, "application/json", b.ContentType())
+	assert.Equal(t, ".json", getExtension(b.BlobType()))
+}
+
+type readerFunc func(p []byte) (n int, err error)
+
+func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
+
+func TestBlobCreateError(t *testing.T) {
+	e := errors.New("some error")
+	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		return nil, 0, e
+	})
+	assert.Equal(t, e, b.Err())
+	buf, err := b.ReadAll()
+	assert.Empty(t, buf)
+	assert.Equal(t, e, err)
+}
+
+func TestBlobReaderError(t *testing.T) {
+	e := errors.New("some error")
+	buf, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
+	var called int
+	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		return io.NopCloser(readerFunc(func(p []byte) (n int, err error) {
+			if called > 4 {
+				return 0, e
+			}
+			called++
+			if len(p) > 100 {
+				p = p[:100]
+			}
+			n = copy(p, buf)
+			buf = buf[n:]
+			return
+		})), int64(len(buf)), nil
+	})
+	assert.Equal(t, e, b.Err())
+	assert.Equal(t, 500, len(b.Sniff()))
+	buf, err = b.ReadAll()
+	assert.Equal(t, 500, len(buf))
+	assert.Equal(t, e, err)
 }
