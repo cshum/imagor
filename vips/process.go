@@ -243,7 +243,9 @@ func (v *Processor) Process(
 			format = ImageTypeJPEG
 			break
 		case "focal":
-			if args := strings.FieldsFunc(p.Args, argSplit); len(args) == 4 {
+			args := strings.FieldsFunc(p.Args, argSplit)
+			switch len(args) {
+			case 4:
 				f := focal{}
 				f.Left, _ = strconv.ParseFloat(args[0], 64)
 				f.Top, _ = strconv.ParseFloat(args[1], 64)
@@ -258,6 +260,17 @@ func (v *Processor) Process(
 				if f.Right > f.Left && f.Bottom > f.Top {
 					focalRects = append(focalRects, f)
 				}
+			case 2:
+				f := focal{}
+				f.Left, _ = strconv.ParseFloat(args[0], 64)
+				f.Top, _ = strconv.ParseFloat(args[1], 64)
+				if f.Left < 1 && f.Top < 1 {
+					f.Left *= origWidth
+					f.Top *= origHeight
+				}
+				f.Right = f.Left + 1
+				f.Bottom = f.Top + 1
+				focalRects = append(focalRects, f)
 			}
 			break
 		}
