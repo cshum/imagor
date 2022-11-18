@@ -401,7 +401,7 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big, which protects from so-called "image bombs". You can set the max allowed image resolution and dimensions using `VIPS_MAX_RESOLUTION`, `VIPS_MAX_WIDTH`, `VIPS_MAX_HEIGHT`:
 
 ```dotenv
-VIPS_MAX_RESOLUTION=16800000
+VIPS_MAX_RESOLUTION=168000000
 VIPS_MAX_WIDTH=5000
 VIPS_MAX_HEIGHT=5000
 ```

@@ -42,6 +42,7 @@ func TestProcessor(t *testing.T) {
 		ReadVipsMemStats(stats)
 		fmt.Println(stats)
 		require.NoError(t, v.Shutdown(context.Background()))
+		noopLoggingHandler("", LogLevelDebug, "")
 	})
 	t.Run("vips basic", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")

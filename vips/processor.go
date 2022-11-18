@@ -42,7 +42,7 @@ func NewProcessor(options ...Option) *Processor {
 	v := &Processor{
 		MaxWidth:           9999,
 		MaxHeight:          9999,
-		MaxResolution:      16800000,
+		MaxResolution:      168000000,
 		Concurrency:        1,
 		MaxFilterOps:       -1,
 		MaxAnimationFrames: -1,
