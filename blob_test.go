@@ -287,7 +287,18 @@ type readerFunc func(p []byte) (n int, err error)
 
 func (rf readerFunc) Read(p []byte) (n int, err error) { return rf(p) }
 
-func TestBlobErr(t *testing.T) {
+func TestBlobCreateError(t *testing.T) {
+	e := errors.New("some error")
+	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		return nil, 0, e
+	})
+	assert.Equal(t, e, b.Err())
+	buf, err := b.ReadAll()
+	assert.Empty(t, buf)
+	assert.Equal(t, e, err)
+}
+
+func TestBlobReaderError(t *testing.T) {
 	e := errors.New("some error")
 	buf, err := os.ReadFile("testdata/demo1.jpg")
 	require.NoError(t, err)
