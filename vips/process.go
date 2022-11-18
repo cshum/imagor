@@ -243,7 +243,8 @@ func (v *Processor) Process(
 			format = ImageTypeJPEG
 			break
 		case "focal":
-			if args := strings.FieldsFunc(p.Args, argSplit); len(args) == 4 {
+			args := strings.FieldsFunc(p.Args, argSplit)
+			if len(args) == 4 {
 				f := focal{}
 				f.Left, _ = strconv.ParseFloat(args[0], 64)
 				f.Top, _ = strconv.ParseFloat(args[1], 64)
