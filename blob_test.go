@@ -294,7 +294,7 @@ func TestBlobErr(t *testing.T) {
 	var called int
 	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
 		return io.NopCloser(readerFunc(func(p []byte) (n int, err error) {
-			if called > 10 {
+			if called > 4 {
 				return 0, e
 			}
 			called++
@@ -306,7 +306,8 @@ func TestBlobErr(t *testing.T) {
 			return
 		})), int64(len(buf)), nil
 	})
+	assert.Equal(t, e, b.Err())
 	buf, err = b.ReadAll()
-	assert.Equal(t, 100*11, len(buf))
+	assert.Equal(t, 500, len(buf))
 	assert.Equal(t, e, err)
 }
