@@ -148,6 +148,12 @@ imagor supports the following filters:
 
 #### Utility Filters
 
+These filters do not manipulate images but provide useful utilities to the imagor pipeline:
+
+- `attachment(filename)` returns attachment in the `Content-Disposition` header, and the browser will open a "Save as" dialog with `filename`. When `filename` not specified, imagor will get the filename from the image source
+- `expire(timestamp)` adds expiration time to the content. `timestamp` is the unix milliseconds timestamp, e.g. if content is valid for 30s then timestamp would be `Date.now() + 30*1000` in JavaScript.
+- `preview()` skips the result storage even if result storage is enabled. Useful for conditional caching
+
 ### Metadata and Exif
 
 imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
@@ -188,6 +194,12 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
   }
 }
 ```
+
+Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for previewing the endpoint parameters. Example:
+```bash
+curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
+```
+
 
 ### Loader, Storage and Result Storage
 
@@ -427,33 +439,76 @@ However, if the source image involves user generated content, it is advised to d
 IMAGOR_DISABLE_ERROR_BODY=1
 ```
 
-### Utility Endpoint
+### Go Library
 
-#### `GET /params`
+imagor can also be used as a Go library for high-level image processing, by using the Go packages internally. imagor has a modular architecture made up of a series of Go packages:
 
-imagor provides utilities for previewing and generating imagor endpoint URI, including the [imagorpath](https://github.com/cshum/imagor/tree/master/imagorpath) Go package and the `/params` endpoint:
+- [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
+- [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint with all related functions
+- [vips](https://pkg.go.dev/github.com/cshum/imagor/vips) - libvips C bindings with `imagor.Processor` implementation
+- [httploader](https://pkg.go.dev/github.com/cshum/imagor/loader/httploader) - HTTP Loader, an `imagor.Loader` implementation
+- [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
+- [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
+- [gcloudstorage](https://pkg.go.dev/github.com/cshum/imagor/storage/gcloudstorage) - Google Cloud Storage, an `imagor.Storage` implementation
+- [config](https://pkg.go.dev/github.com/cshum/imagor/config) - imagor configuration loader and initializations
+- [fanoutreader](https://pkg.go.dev/github.com/cshum/imagor/fanoutreader) - fan out arbitrary number of reader streams concurrently from one reader source
+- [seekstream](https://pkg.go.dev/github.com/cshum/imagor/seekstream) - enable seeking on non-seekable reader source by using memory or temp file buffer
 
-Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for preview:
+[libvips](https://www.libvips.org/) needs to be installed (`brew install vips` for Mac) and `CGO_CFLAGS_ALLOW=-Xpreprocessor` being set in order to compile Go code. Example usage:
 
-```
-curl http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+```go
+package main
 
-{
-  "path": "fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
-  "image": "raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
-  "hash": "g5bMqZvxaQK65qFPaP1qlJOTuLM=",
-  "fit_in": true,
-  "width": 500,
-  "height": 400,
-  "padding_top": 20,
-  "padding_bottom": 20,
-  "filters": [
-    {
-      "name": "fill",
-      "args": "white"
-    }
-  ]
+import (
+	"context"
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/loader/httploader"
+	"github.com/cshum/imagor/vips"
+	"io"
+	"os"
+)
+
+func main() {
+	app := imagor.New(
+		imagor.WithUnsafe(true),
+		imagor.WithLoaders(httploader.New()),
+		imagor.WithProcessors(vips.NewProcessor()),
+	)
+	ctx := context.Background()
+	if err := app.Startup(ctx); err != nil {
+		panic(err)
+	}
+	defer app.Shutdown(ctx)
+	blob, err := app.Serve(ctx, imagorpath.Params{
+		Unsafe: true,
+		Image:  "https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
+		Width:  500,
+		Height: 500,
+		Smart:  true,
+		Filters: []imagorpath.Filter{
+			{"fill", "white"},
+			{"format", "jpg"},
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	reader, _, err := blob.NewReader()
+	if err != nil {
+		panic(err)
+	}
+	defer reader.Close()
+	file, err := os.Create("gopher.jpg")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	if _, err := io.Copy(file, reader); err != nil {
+		panic(err)
+	}
 }
+
 ```
 
 ### Configuration
