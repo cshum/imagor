@@ -194,7 +194,16 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Do executes Imagor operations
+// Serve serves imagor by context and params
+func (app *Imagor) Serve(ctx context.Context, p imagorpath.Params) (*Blob, error) {
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+	if err != nil {
+		return nil, err
+	}
+	return app.Do(r, p)
+}
+
+// Do executes imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
 	var ctx = WithContext(r.Context())
 	var cancel func()

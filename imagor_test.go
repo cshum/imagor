@@ -21,50 +21,6 @@ import (
 	"time"
 )
 
-func jsonStr(v interface{}) string {
-	buf, _ := json.Marshal(v)
-	return string(buf)
-}
-
-type loaderFunc func(r *http.Request, image string) (blob *Blob, err error)
-
-func (f loaderFunc) Get(r *http.Request, image string) (*Blob, error) {
-	return f(r, image)
-}
-
-type saverFunc func(ctx context.Context, image string, blob *Blob) error
-
-func (f saverFunc) Get(r *http.Request, image string) (*Blob, error) {
-	// dummy
-	return nil, ErrNotFound
-}
-
-func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
-	// dummy
-	return nil, ErrNotFound
-}
-
-func (f saverFunc) Delete(ctx context.Context, image string) error {
-	// dummy
-	return nil
-}
-
-func (f saverFunc) Put(ctx context.Context, image string, blob *Blob) error {
-	return f(ctx, image, blob)
-}
-
-type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
-
-func (f processorFunc) Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
-	return f(ctx, blob, p, load)
-}
-func (f processorFunc) Startup(_ context.Context) error {
-	return nil
-}
-func (f processorFunc) Shutdown(_ context.Context) error {
-	return nil
-}
-
 func TestWithUnsafe(t *testing.T) {
 	logger := zap.NewExample()
 	app := New(WithOptions(
@@ -81,6 +37,15 @@ func TestWithUnsafe(t *testing.T) {
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
 	assert.Equal(t, 200, w.Code)
+
+	blob, err := app.Serve(context.Background(), imagorpath.Params{
+		Unsafe: true,
+		Image:  "foo.jpg",
+	})
+	require.NoError(t, err)
+	buf, err := blob.ReadAll()
+	assert.Equal(t, "foo", string(buf))
+	require.NoError(t, err)
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -1408,4 +1373,48 @@ func TestSuppression(t *testing.T) {
 		}
 	}
 	assert.NotEqual(t, resMap["a"], resMap["b"])
+}
+
+func jsonStr(v interface{}) string {
+	buf, _ := json.Marshal(v)
+	return string(buf)
+}
+
+type loaderFunc func(r *http.Request, image string) (blob *Blob, err error)
+
+func (f loaderFunc) Get(r *http.Request, image string) (*Blob, error) {
+	return f(r, image)
+}
+
+type saverFunc func(ctx context.Context, image string, blob *Blob) error
+
+func (f saverFunc) Get(r *http.Request, image string) (*Blob, error) {
+	// dummy
+	return nil, ErrNotFound
+}
+
+func (f saverFunc) Stat(ctx context.Context, image string) (*Stat, error) {
+	// dummy
+	return nil, ErrNotFound
+}
+
+func (f saverFunc) Delete(ctx context.Context, image string) error {
+	// dummy
+	return nil
+}
+
+func (f saverFunc) Put(ctx context.Context, image string, blob *Blob) error {
+	return f(ctx, image, blob)
+}
+
+type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
+
+func (f processorFunc) Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+	return f(ctx, blob, p, load)
+}
+func (f processorFunc) Startup(_ context.Context) error {
+	return nil
+}
+func (f processorFunc) Shutdown(_ context.Context) error {
+	return nil
 }
