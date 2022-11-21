@@ -27,14 +27,17 @@ func (detachedContext) Err() error {
 	return nil
 }
 
-func (d detachedContext) Value(key interface{}) interface{} {
+func (d detachedContext) Value(key any) any {
+	if key == detachedCtxKey {
+		return true
+	}
 	return d.ctx.Value(key)
 }
 
 // DetachContext returns a context that keeps all the values of its parent context
 // but detaches from cancellation and timeout
 func DetachContext(ctx context.Context) context.Context {
-	return context.WithValue(detachedContext{ctx: ctx}, detachedCtxKey, true)
+	return detachedContext{ctx: ctx}
 }
 
 // IsDetached returns if context is detached

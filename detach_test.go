@@ -10,11 +10,13 @@ import (
 func TestDetachContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 	defer cancel()
+	ctx = context.WithValue(ctx, "foo", "bar")
 	assert.False(t, IsDetached(ctx))
 	time.Sleep(time.Millisecond)
 	assert.Equal(t, ctx.Err(), context.DeadlineExceeded)
 	ctx = DetachContext(ctx)
 	assert.True(t, IsDetached(ctx))
+	assert.Equal(t, "bar", ctx.Value("foo"))
 	assert.NoError(t, ctx.Err())
 	ctx, cancel2 := context.WithTimeout(ctx, time.Millisecond*5)
 	defer cancel2()
