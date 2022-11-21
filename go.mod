@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	cloud.google.com/go/storage v1.28.0
-	github.com/aws/aws-sdk-go v1.44.136
-	github.com/fsouza/fake-gcs-server v1.42.0
+	github.com/aws/aws-sdk-go v1.44.142
+	github.com/fsouza/fake-gcs-server v1.42.2
 	github.com/johannesboyne/gofakes3 v0.0.0-20221110173912-32fb85c5aed6
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/rs/cors v1.8.2
@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.106.0 // indirect
+	cloud.google.com/go v0.107.0 // indirect
 	cloud.google.com/go/compute v1.12.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.1 // indirect
 	cloud.google.com/go/iam v0.7.0 // indirect
@@ -50,8 +50,8 @@ require (
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.103.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221111202108-142d8a6fa32e // indirect
-	google.golang.org/grpc v1.50.1 // indirect
+	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
+	google.golang.org/grpc v1.51.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

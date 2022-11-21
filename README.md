@@ -1,7 +1,7 @@
 # imagor
 
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
-[![Coverage Status](https://img.shields.io/coveralls/github/cshum/imagor)](https://coveralls.io/github/cshum/imagor?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/cshum/imagor/badge.svg?branch=master)](https://coveralls.io/github/cshum/imagor?branch=master)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 [![GitHub Container Registry](https://ghcr-badge.herokuapp.com/cshum/imagor/latest_tag?trim=major&label=ghcr.io&ignore=next,master,vips-thumbnail-disable&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
 
@@ -145,6 +145,8 @@ imagor supports the following filters:
   - `alpha` watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent).
   - `w_ratio` percentage of the width of the image the watermark should fit-in
   - `h_ratio` percentage of the height of the image the watermark should fit-in
+
+#### Utility Filters
 
 ### Metadata and Exif
 
