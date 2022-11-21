@@ -39,13 +39,18 @@ func TestWithUnsafe(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 
 	blob, err := app.Serve(context.Background(), imagorpath.Params{
-		Unsafe: true,
-		Image:  "foo.jpg",
+		Unsafe: true, Image: "foo.jpg",
 	})
 	require.NoError(t, err)
 	buf, err := blob.ReadAll()
 	assert.Equal(t, "foo", string(buf))
 	require.NoError(t, err)
+
+	blob, err = app.Serve(nil, imagorpath.Params{
+		Unsafe: true, Image: "foo.jpg",
+	})
+	assert.Empty(t, blob)
+	assert.Error(t, err)
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
