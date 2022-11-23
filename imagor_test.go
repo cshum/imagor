@@ -29,6 +29,11 @@ func TestWithUnsafe(t *testing.T) {
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromBytes([]byte("foo")), nil
 		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			fmt.Println(p.Path, p.Image)
+			assert.Contains(t, p.Path, p.Image)
+			return blob, nil
+		})),
 		WithLogger(logger),
 	))
 	assert.Equal(t, false, app.Debug)
@@ -53,6 +58,8 @@ func TestWithUnsafe(t *testing.T) {
 
 	blob, err := app.Serve(ctx, imagorpath.Params{
 		Unsafe: true, Image: "foo.jpg",
+		Width: 167, Height: 199,
+		Path: "ghjk",
 	})
 	require.NoError(t, err)
 	buf, err := blob.ReadAll()
@@ -61,18 +68,24 @@ func TestWithUnsafe(t *testing.T) {
 
 	blob, err = app.Serve(nil, imagorpath.Params{
 		Unsafe: true, Image: "foo.jpg",
+		Width: 167, Height: 199,
+		Path: "ghjk",
 	})
 	assert.Empty(t, blob)
 	assert.Error(t, err)
 
 	blob, err = app.ServeBlob(nil, nil, imagorpath.Params{
 		Unsafe: true, Image: "foo.jpg",
+		Width: 167, Height: 199,
+		Path: "ghjk",
 	})
 	assert.Empty(t, blob)
 	assert.Error(t, err)
 
 	blob, err = app.ServeBlob(ctx, NewBlobFromBytes([]byte("asdf")), imagorpath.Params{
 		Unsafe: true, Image: "foo.jpg",
+		Width: 167, Height: 199,
+		Path: "ghjk",
 	})
 	require.NoError(t, err)
 	buf, err = blob.ReadAll()

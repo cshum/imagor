@@ -200,6 +200,7 @@ func (app *Imagor) Serve(ctx context.Context, p imagorpath.Params) (*Blob, error
 	if err != nil {
 		return nil, err
 	}
+	p.Path = "" // make sure path generated
 	return app.Do(r, p)
 }
 
@@ -212,7 +213,7 @@ func (app *Imagor) ServeBlob(
 	}
 	ctx = withContext(ctx)
 	mustContextRef(ctx).Blob = blob
-	p.Image = ""
+	p.Image = "" // make sure blob is used
 	return app.Serve(ctx, p)
 }
 
