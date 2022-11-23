@@ -172,6 +172,7 @@ func TestProcessor(t *testing.T) {
 			{name: "label animated with font", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):label(IMAGOR,center,-30,25,white,0,monospace)/dancing-banana.gif"},
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
 			{name: "svg", path: "test.svg"},
+			{name: "pdf thumbnail", path: "fit-in/200x200/filters:fill(cyan)/sample.pdf"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("max frames", func(t *testing.T) {
