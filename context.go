@@ -4,9 +4,15 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 )
 
-type imagorContextKey struct{}
+type contextKey struct {
+	Type int8
+}
+
+var imagorContextKey = contextKey{1}
+var detachContextKey = contextKey{2}
 
 type imagorContextRef struct {
 	funcs []func()
@@ -31,7 +37,7 @@ func (r *imagorContextRef) Done() {
 // withContext context with imagor defer handling and cache
 func withContext(ctx context.Context) context.Context {
 	r := &imagorContextRef{}
-	ctx = context.WithValue(ctx, imagorContextKey{}, r)
+	ctx = context.WithValue(ctx, imagorContextKey, r)
 	go func() {
 		<-ctx.Done()
 		r.Done()
@@ -40,7 +46,7 @@ func withContext(ctx context.Context) context.Context {
 }
 
 func mustContextValue(ctx context.Context) *imagorContextRef {
-	if r, ok := ctx.Value(imagorContextKey{}).(*imagorContextRef); ok && r != nil {
+	if r, ok := ctx.Value(imagorContextKey).(*imagorContextRef); ok && r != nil {
 		return r
 	}
 	panic(errors.New("not imagor context"))
@@ -49,4 +55,39 @@ func mustContextValue(ctx context.Context) *imagorContextRef {
 // contextDefer add func to context, defer called at the end of request
 func contextDefer(ctx context.Context, fn func()) {
 	mustContextValue(ctx).Defer(fn)
+}
+
+type detachedContext struct {
+	ctx context.Context
+}
+
+func (detachedContext) Deadline() (time.Time, bool) {
+	return time.Time{}, false
+}
+
+func (detachedContext) Done() <-chan struct{} {
+	return nil
+}
+
+func (detachedContext) Err() error {
+	return nil
+}
+
+func (d detachedContext) Value(key any) any {
+	if key == detachContextKey {
+		return true
+	}
+	return d.ctx.Value(key)
+}
+
+// detachContext returns a context that keeps all the values of its parent context
+// but detaches from cancellation and timeout
+func detachContext(ctx context.Context) context.Context {
+	return detachedContext{ctx: ctx}
+}
+
+// isDetached returns if context is detached
+func isDetached(ctx context.Context) bool {
+	_, ok := ctx.Value(detachContextKey).(bool)
+	return ok
 }

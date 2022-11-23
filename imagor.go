@@ -377,7 +377,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			<-doneSave
 		}
 		cb(blob, err)
-		ctx = DetachContext(ctx)
+		ctx = detachContext(ctx)
 		if err == nil && !isBlobEmpty(blob) && resultKey != "" &&
 			len(app.ResultStorages) > 0 {
 			app.save(ctx, app.ResultStorages, resultKey, blob)
@@ -515,7 +515,7 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 }
 
 func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
-	ctx = DetachContext(ctx)
+	ctx = detachContext(ctx)
 	if app.SaveTimeout > 0 {
 		var cancel func()
 		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)

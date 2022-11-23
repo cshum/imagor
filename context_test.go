@@ -30,3 +30,22 @@ func TestDefer(t *testing.T) {
 	})
 	assert.Equal(t, 2, called, "should count all defers before cancel")
 }
+
+func TestDetachContext(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
+	ctx = context.WithValue(ctx, "foo", "bar")
+	assert.False(t, isDetached(ctx))
+	time.Sleep(time.Millisecond)
+	assert.Equal(t, ctx.Err(), context.DeadlineExceeded)
+	ctx = detachContext(ctx)
+	assert.True(t, isDetached(ctx))
+	assert.Equal(t, "bar", ctx.Value("foo"))
+	assert.NoError(t, ctx.Err())
+	ctx, cancel2 := context.WithTimeout(ctx, time.Millisecond*5)
+	defer cancel2()
+	assert.NoError(t, ctx.Err())
+	assert.True(t, isDetached(ctx))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, ctx.Err(), context.DeadlineExceeded)
+}
