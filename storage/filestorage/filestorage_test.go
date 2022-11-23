@@ -121,7 +121,7 @@ func TestFileStore_Path(t *testing.T) {
 }
 
 func TestFileStorage_Load_Save(t *testing.T) {
-	ctx := imagor.WithContext(context.Background())
+	ctx := context.Background()
 	r := (&http.Request{}).WithContext(ctx)
 	dir, err := ioutil.TempDir("", "imagor-test")
 	require.NoError(t, err)

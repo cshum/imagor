@@ -205,11 +205,11 @@ func (app *Imagor) Serve(ctx context.Context, p imagorpath.Params) (*Blob, error
 
 // Do executes imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
-	var ctx = WithContext(r.Context())
+	var ctx = withContext(r.Context())
 	var cancel func()
 	if app.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
-		Defer(ctx, cancel)
+		contextDefer(ctx, cancel)
 		r = r.WithContext(ctx)
 	}
 	if !(app.Unsafe && p.Unsafe) && app.Signer != nil && app.Signer.Sign(p.Path) != p.Hash {
@@ -341,7 +341,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var cancel func()
 		if app.ProcessTimeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
-			Defer(ctx, cancel)
+			contextDefer(ctx, cancel)
 		}
 		var forwardP = p
 		for _, processor := range app.Processors {
@@ -394,7 +394,7 @@ func (app *Imagor) requestWithLoadContext(r *http.Request) *http.Request {
 	var cancel func()
 	if app.LoadTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.LoadTimeout)
-		Defer(ctx, cancel)
+		contextDefer(ctx, cancel)
 		return r.WithContext(ctx)
 	}
 	return r

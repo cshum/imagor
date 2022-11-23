@@ -150,7 +150,7 @@ func TestCRUD(t *testing.T) {
 	defer ts.Close()
 
 	var err error
-	ctx := imagor.WithContext(context.Background())
+	ctx := context.Background()
 	r := (&http.Request{}).WithContext(ctx)
 	s := New(fakeS3Session(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"))
 

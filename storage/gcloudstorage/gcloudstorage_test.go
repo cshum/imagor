@@ -94,7 +94,7 @@ func TestCRUD(t *testing.T) {
 		},
 		Content: []byte(""),
 	}})
-	ctx := imagor.WithContext(context.Background())
+	ctx := context.Background()
 	r := (&http.Request{}).WithContext(ctx)
 	s := New(srv.Client(), "test", WithPathPrefix("/foo"), WithACL("publicRead"))
 	var err error

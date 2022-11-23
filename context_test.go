@@ -11,21 +11,21 @@ func TestDefer(t *testing.T) {
 	var called int
 	ctx, cancel := context.WithCancel(context.Background())
 	assert.Panics(t, func() {
-		Defer(ctx, func() {
+		contextDefer(ctx, func() {
 			t.Fatal("should not call")
 		})
 	})
-	ctx = WithContext(ctx)
-	Defer(ctx, func() {
+	ctx = withContext(ctx)
+	contextDefer(ctx, func() {
 		called++
 	})
-	Defer(ctx, func() {
+	contextDefer(ctx, func() {
 		called++
 	})
 	cancel()
 	assert.Equal(t, 0, called, "should call after signal")
 	time.Sleep(time.Millisecond * 10)
-	Defer(ctx, func() {
+	contextDefer(ctx, func() {
 		called++
 	})
 	assert.Equal(t, 2, called, "should count all defers before cancel")

@@ -28,8 +28,8 @@ func (r *imagorContextRef) Done() {
 	r.l.Unlock()
 }
 
-// WithContext context with imagor defer handling and cache
-func WithContext(ctx context.Context) context.Context {
+// withContext context with imagor defer handling and cache
+func withContext(ctx context.Context) context.Context {
 	r := &imagorContextRef{}
 	ctx = context.WithValue(ctx, imagorContextKey{}, r)
 	go func() {
@@ -46,7 +46,7 @@ func mustContextValue(ctx context.Context) *imagorContextRef {
 	panic(errors.New("not imagor context"))
 }
 
-// Defer add func to context, defer called at the end of request
-func Defer(ctx context.Context, fn func()) {
+// contextDefer add func to context, defer called at the end of request
+func contextDefer(ctx context.Context, fn func()) {
 	mustContextValue(ctx).Defer(fn)
 }
