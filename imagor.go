@@ -541,6 +541,8 @@ type suppressKey struct {
 	Key string
 }
 
+func blobNoop(*Blob, error) {}
+
 func (app *Imagor) suppress(
 	ctx context.Context,
 	key string, fn func(ctx context.Context, cb func(*Blob, error)) (*Blob, error),
@@ -548,13 +550,16 @@ func (app *Imagor) suppress(
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
-	chanCb := make(chan singleflight.Result, 1)
-	cb := func(blob *Blob, err error) {
-		chanCb <- singleflight.Result{Val: blob, Err: err}
+	if key == "" {
+		return fn(ctx, blobNoop)
 	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
-		return fn(ctx, cb)
+		return fn(ctx, blobNoop)
+	}
+	chanCb := make(chan singleflight.Result, 1)
+	cb := func(blob *Blob, err error) {
+		chanCb <- singleflight.Result{Val: blob, Err: err}
 	}
 	isCanceled := false
 	ch := app.g.DoChan(key, func() (v interface{}, err error) {
