@@ -47,7 +47,7 @@ type Blob struct {
 	Stat *Stat
 }
 
-// Stat blob stat attributes
+// Stat Blob stat attributes
 type Stat struct {
 	ModifiedTime time.Time
 	ETag         string

@@ -17,6 +17,8 @@ var detachContextKey = contextKey{2}
 type imagorContextRef struct {
 	funcs []func()
 	l     sync.Mutex
+
+	Blob *Blob
 }
 
 func (r *imagorContextRef) Defer(fn func()) {
@@ -36,6 +38,9 @@ func (r *imagorContextRef) Done() {
 
 // withContext context with imagor defer handling and cache
 func withContext(ctx context.Context) context.Context {
+	if r, ok := ctx.Value(imagorContextKey).(*imagorContextRef); ok && r != nil {
+		return ctx
+	}
 	r := &imagorContextRef{}
 	ctx = context.WithValue(ctx, imagorContextKey, r)
 	go func() {
@@ -45,7 +50,7 @@ func withContext(ctx context.Context) context.Context {
 	return ctx
 }
 
-func mustContextValue(ctx context.Context) *imagorContextRef {
+func mustContextRef(ctx context.Context) *imagorContextRef {
 	if r, ok := ctx.Value(imagorContextKey).(*imagorContextRef); ok && r != nil {
 		return r
 	}
@@ -54,7 +59,7 @@ func mustContextValue(ctx context.Context) *imagorContextRef {
 
 // contextDefer add func to context, defer called at the end of request
 func contextDefer(ctx context.Context, fn func()) {
-	mustContextValue(ctx).Defer(fn)
+	mustContextRef(ctx).Defer(fn)
 }
 
 type detachedContext struct {

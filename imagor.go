@@ -203,6 +203,19 @@ func (app *Imagor) Serve(ctx context.Context, p imagorpath.Params) (*Blob, error
 	return app.Do(r, p)
 }
 
+// Process serves imagor Blob with context and params, skipping loader and storages
+func (app *Imagor) Process(
+	ctx context.Context, blob *Blob, p imagorpath.Params,
+) (*Blob, error) {
+	if ctx == nil {
+		return nil, errors.New("imagor: nil context")
+	}
+	ctx = withContext(ctx)
+	mustContextRef(ctx).Blob = blob
+	p.Image = ""
+	return app.Serve(ctx, p)
+}
+
 // Do executes imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
 	var ctx = withContext(r.Context())
@@ -273,7 +286,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p.Path = imagorpath.GeneratePath(p)
 	}
 	var resultKey string
-	if !hasPreview {
+	if p.Image != "" && !hasPreview {
 		if app.ResultStoragePathStyle != nil {
 			resultKey = app.ResultStoragePathStyle.HashResult(p)
 		} else {
@@ -347,7 +360,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		for _, processor := range app.Processors {
 			b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
 			if !isBlobEmpty(b) {
-				blob = b // forward blob to next processor if exists
+				blob = b // forward Blob to next processor if exists
 			}
 			if e == nil {
 				blob = b
@@ -440,7 +453,8 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldS
 	r = app.requestWithLoadContext(r)
 	var origin Storage
 	blob, origin, err = app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, key)
-	if !isBlobEmpty(blob) && origin == nil && err == nil && len(app.Storages) > 0 {
+	if !isBlobEmpty(blob) && origin == nil &&
+		key != "" && err == nil && len(app.Storages) > 0 {
 		shouldSave = true
 	}
 	return
@@ -450,7 +464,12 @@ func (app *Imagor) fromStoragesAndLoaders(
 	r *http.Request, storages []Storage, loaders []Loader, image string,
 ) (blob *Blob, origin Storage, err error) {
 	if image == "" {
-		err = ErrNotFound
+		ref := mustContextRef(r.Context())
+		if ref.Blob == nil {
+			err = ErrNotFound
+		} else {
+			blob = ref.Blob
+		}
 		return
 	}
 	var storageKey = image
