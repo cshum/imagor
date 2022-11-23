@@ -207,8 +207,8 @@ func (app *Imagor) Serve(ctx context.Context, p imagorpath.Params) (*Blob, error
 func (app *Imagor) ServeBlob(
 	ctx context.Context, blob *Blob, p imagorpath.Params,
 ) (*Blob, error) {
-	if ctx == nil {
-		return nil, errors.New("imagor: nil context")
+	if ctx == nil || blob == nil {
+		return nil, errors.New("imagor: nil context blob")
 	}
 	ctx = withContext(ctx)
 	mustContextRef(ctx).Blob = blob
@@ -282,7 +282,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			isPathChanged = true
 		}
 	}
-	if isPathChanged {
+	if isPathChanged || p.Path == "" {
 		p.Path = imagorpath.GeneratePath(p)
 	}
 	var resultKey string
