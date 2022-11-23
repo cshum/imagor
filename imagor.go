@@ -203,8 +203,8 @@ func (app *Imagor) Serve(ctx context.Context, p imagorpath.Params) (*Blob, error
 	return app.Do(r, p)
 }
 
-// Process serves imagor Blob with context and params, skipping loader and storages
-func (app *Imagor) Process(
+// ServeBlob serves imagor Blob with context and params, skipping loader and storages
+func (app *Imagor) ServeBlob(
 	ctx context.Context, blob *Blob, p imagorpath.Params,
 ) (*Blob, error) {
 	if ctx == nil {
@@ -304,7 +304,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return blob, err
 	}
-	return app.suppress(ctx, p.Path, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
 		if resultKey != "" {
 			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 				return blob, nil
