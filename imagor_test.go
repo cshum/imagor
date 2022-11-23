@@ -23,6 +23,7 @@ import (
 
 func TestWithUnsafe(t *testing.T) {
 	logger := zap.NewExample()
+	ctx := context.Background()
 	app := New(WithOptions(
 		WithUnsafe(true),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
@@ -38,7 +39,19 @@ func TestWithUnsafe(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
 	assert.Equal(t, 200, w.Code)
 
-	blob, err := app.Serve(context.Background(), imagorpath.Params{
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodPost, "https://example.com/unsafe/foo.jpg", nil))
+	assert.Equal(t, 405, w.Code)
+	assert.Equal(t, "", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/foo.jpg", nil))
+	assert.Equal(t, 403, w.Code)
+	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
+
+	blob, err := app.Serve(ctx, imagorpath.Params{
 		Unsafe: true, Image: "foo.jpg",
 	})
 	require.NoError(t, err)
@@ -52,17 +65,19 @@ func TestWithUnsafe(t *testing.T) {
 	assert.Empty(t, blob)
 	assert.Error(t, err)
 
-	w = httptest.NewRecorder()
-	app.ServeHTTP(w, httptest.NewRequest(
-		http.MethodPost, "https://example.com/unsafe/foo.jpg", nil))
-	assert.Equal(t, 405, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	blob, err = app.ServeBlob(nil, nil, imagorpath.Params{
+		Unsafe: true, Image: "foo.jpg",
+	})
+	assert.Empty(t, blob)
+	assert.Error(t, err)
 
-	w = httptest.NewRecorder()
-	app.ServeHTTP(w, httptest.NewRequest(
-		http.MethodGet, "https://example.com/foo.jpg", nil))
-	assert.Equal(t, 403, w.Code)
-	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
+	blob, err = app.ServeBlob(ctx, NewBlobFromBytes([]byte("asdf")), imagorpath.Params{
+		Unsafe: true, Image: "foo.jpg",
+	})
+	require.NoError(t, err)
+	buf, err = blob.ReadAll()
+	assert.Equal(t, "asdf", string(buf))
+	require.NoError(t, err)
 }
 
 func TestWithContentDisposition(t *testing.T) {

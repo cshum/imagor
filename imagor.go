@@ -203,13 +203,26 @@ func (app *Imagor) Serve(ctx context.Context, p imagorpath.Params) (*Blob, error
 	return app.Do(r, p)
 }
 
+// ServeBlob serves imagor Blob with context and params, skipping loader and storages
+func (app *Imagor) ServeBlob(
+	ctx context.Context, blob *Blob, p imagorpath.Params,
+) (*Blob, error) {
+	if ctx == nil || blob == nil {
+		return nil, errors.New("imagor: nil context blob")
+	}
+	ctx = withContext(ctx)
+	mustContextRef(ctx).Blob = blob
+	p.Image = ""
+	return app.Serve(ctx, p)
+}
+
 // Do executes imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
-	var ctx = WithContext(r.Context())
+	var ctx = withContext(r.Context())
 	var cancel func()
 	if app.RequestTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.RequestTimeout)
-		Defer(ctx, cancel)
+		contextDefer(ctx, cancel)
 		r = r.WithContext(ctx)
 	}
 	if !(app.Unsafe && p.Unsafe) && app.Signer != nil && app.Signer.Sign(p.Path) != p.Hash {
@@ -269,11 +282,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			isPathChanged = true
 		}
 	}
-	if isPathChanged {
+	if isPathChanged || p.Path == "" {
 		p.Path = imagorpath.GeneratePath(p)
 	}
 	var resultKey string
-	if !hasPreview {
+	if p.Image != "" && !hasPreview {
 		if app.ResultStoragePathStyle != nil {
 			resultKey = app.ResultStoragePathStyle.HashResult(p)
 		} else {
@@ -291,7 +304,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		return blob, err
 	}
-	return app.suppress(ctx, p.Path, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
 		if resultKey != "" {
 			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 				return blob, nil
@@ -341,13 +354,13 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var cancel func()
 		if app.ProcessTimeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
-			Defer(ctx, cancel)
+			contextDefer(ctx, cancel)
 		}
 		var forwardP = p
 		for _, processor := range app.Processors {
 			b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
 			if !isBlobEmpty(b) {
-				blob = b // forward blob to next processor if exists
+				blob = b // forward Blob to next processor if exists
 			}
 			if e == nil {
 				blob = b
@@ -377,7 +390,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			<-doneSave
 		}
 		cb(blob, err)
-		ctx = DetachContext(ctx)
+		ctx = detachContext(ctx)
 		if err == nil && !isBlobEmpty(blob) && resultKey != "" &&
 			len(app.ResultStorages) > 0 {
 			app.save(ctx, app.ResultStorages, resultKey, blob)
@@ -394,7 +407,7 @@ func (app *Imagor) requestWithLoadContext(r *http.Request) *http.Request {
 	var cancel func()
 	if app.LoadTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, app.LoadTimeout)
-		Defer(ctx, cancel)
+		contextDefer(ctx, cancel)
 		return r.WithContext(ctx)
 	}
 	return r
@@ -440,7 +453,8 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldS
 	r = app.requestWithLoadContext(r)
 	var origin Storage
 	blob, origin, err = app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, key)
-	if !isBlobEmpty(blob) && origin == nil && err == nil && len(app.Storages) > 0 {
+	if !isBlobEmpty(blob) && origin == nil &&
+		key != "" && err == nil && len(app.Storages) > 0 {
 		shouldSave = true
 	}
 	return
@@ -450,7 +464,12 @@ func (app *Imagor) fromStoragesAndLoaders(
 	r *http.Request, storages []Storage, loaders []Loader, image string,
 ) (blob *Blob, origin Storage, err error) {
 	if image == "" {
-		err = ErrNotFound
+		ref := mustContextRef(r.Context())
+		if ref.Blob == nil {
+			err = ErrNotFound
+		} else {
+			blob = ref.Blob
+		}
 		return
 	}
 	var storageKey = image
@@ -515,7 +534,7 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 }
 
 func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
-	ctx = DetachContext(ctx)
+	ctx = detachContext(ctx)
 	if app.SaveTimeout > 0 {
 		var cancel func()
 		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
@@ -541,6 +560,8 @@ type suppressKey struct {
 	Key string
 }
 
+func blobNoop(*Blob, error) {}
+
 func (app *Imagor) suppress(
 	ctx context.Context,
 	key string, fn func(ctx context.Context, cb func(*Blob, error)) (*Blob, error),
@@ -548,13 +569,16 @@ func (app *Imagor) suppress(
 	if app.Debug {
 		app.Logger.Debug("suppress", zap.String("key", key))
 	}
-	chanCb := make(chan singleflight.Result, 1)
-	cb := func(blob *Blob, err error) {
-		chanCb <- singleflight.Result{Val: blob, Err: err}
+	if key == "" {
+		return fn(ctx, blobNoop)
 	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock
-		return fn(ctx, cb)
+		return fn(ctx, blobNoop)
+	}
+	chanCb := make(chan singleflight.Result, 1)
+	cb := func(blob *Blob, err error) {
+		chanCb <- singleflight.Result{Val: blob, Err: err}
 	}
 	isCanceled := false
 	ch := app.g.DoChan(key, func() (v interface{}, err error) {
