@@ -75,8 +75,7 @@ func vipsImageFromMemory(buf []byte, width, height, bands int) (*C.VipsImage, Im
 		return nil, ImageTypeUnknown, handleImageError(out)
 	}
 
-	imageType := vipsDetermineImageTypeFromMetaLoader(out)
-	return out, imageType, nil
+	return out, ImageTypeUnknown, nil
 }
 
 // https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail-source
