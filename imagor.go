@@ -566,11 +566,11 @@ func (app *Imagor) suppress(
 	ctx context.Context,
 	key string, fn func(ctx context.Context, cb func(*Blob, error)) (*Blob, error),
 ) (blob *Blob, err error) {
-	if app.Debug {
-		app.Logger.Debug("suppress", zap.String("key", key))
-	}
 	if key == "" {
 		return fn(ctx, blobNoop)
+	}
+	if app.Debug {
+		app.Logger.Debug("suppress", zap.String("key", key))
 	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock

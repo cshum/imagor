@@ -450,11 +450,14 @@ imagor can also be used as a Go library for high-level image processing, by usin
 - [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
 - [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
 - [gcloudstorage](https://pkg.go.dev/github.com/cshum/imagor/storage/gcloudstorage) - Google Cloud Storage, an `imagor.Storage` implementation
-- [config](https://pkg.go.dev/github.com/cshum/imagor/config) - imagor configuration loader and initializations
 - [fanoutreader](https://pkg.go.dev/github.com/cshum/imagor/fanoutreader) - fan out arbitrary number of reader streams concurrently from one reader source
 - [seekstream](https://pkg.go.dev/github.com/cshum/imagor/seekstream) - enable seeking on non-seekable reader source by using memory or temp file buffer
 
-[libvips](https://www.libvips.org/) needs to be installed (`brew install vips` for Mac) and `CGO_CFLAGS_ALLOW=-Xpreprocessor` being set in order to compile Go code. Example usage:
+Install [libvips](https://www.libvips.org/) and enable CGO:
+- `brew install vips` for Mac
+- `CGO_CFLAGS_ALLOW=-Xpreprocessor` being set to compile Go
+
+See example and [examples](https://github.com/cshum/imagor/tree/master/examples) folder for various ways you can use imagor:
 
 ```go
 package main
@@ -508,7 +511,6 @@ func main() {
 		panic(err)
 	}
 }
-
 ```
 
 ### Configuration
