@@ -4,6 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/cshum/imagor/badge.svg?branch=master)](https://coveralls.io/github/cshum/imagor?branch=master)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 [![GitHub Container Registry](https://ghcr-badge.deta.dev/cshum/imagor/latest_tag?trim=major&label=ghcr.io&ignore=next,master&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
+[![Go Reference](https://pkg.go.dev/badge/github.com/cshum/imagor.svg)](https://pkg.go.dev/github.com/cshum/imagor)
 
 imagor is a fast, Docker-ready image processing server written in Go.
 
@@ -11,7 +12,7 @@ imagor uses one of the most efficient image processing library
 [libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings. 
 imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that enables parallel processing pipelines, achieving high network throughput. 
 
-imagor is a Go application built with security, speed and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
+imagor is a Go library built with security, speed and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
 imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
 
@@ -153,52 +154,6 @@ These filters do not manipulate images but provide useful utilities to the imago
 - `attachment(filename)` returns attachment in the `Content-Disposition` header, and the browser will open a "Save as" dialog with `filename`. When `filename` not specified, imagor will get the filename from the image source
 - `expire(timestamp)` adds expiration time to the content. `timestamp` is the unix milliseconds timestamp, e.g. if content is valid for 30s then timestamp would be `Date.now() + 30*1000` in JavaScript.
 - `preview()` skips the result storage even if result storage is enabled. Useful for conditional caching
-
-### Metadata and Exif
-
-imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
-Under the hood, it tries to retrieve data just enough to extract the header, without reading and processing the whole image in memory.
-
-To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations. Example:
-
-```
-http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
-```
-
-```jsonc
-{
-  "format": "jpeg",
-  "content_type": "image/jpeg",
-  "width": 50,
-  "height": 34,
-  "orientation": 1,
-  "pages": 1,
-  "exif": {
-    "ApertureValue": "368640/65536",
-    "ColorSpace": 1,
-    "ComponentsConfiguration": "Y Cb Cr -",
-    "Compression": 6,
-    "DateTime": "2008:07:31 10:38:11",
-    "ISOSpeedRatings": 100,
-    "Make": "Canon",
-    "MeteringMode": 5,
-    "Model": "Canon EOS 40D",
-    "Orientation": 1,
-    "PixelXDimension": 100,
-    "PixelYDimension": 68,
-    "ResolutionUnit": 2,
-    "XResolution": "72/1",
-    "YCbCrPositioning": 2,
-    "YResolution": "72/1"
-    //...
-  }
-}
-```
-
-Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for previewing the endpoint parameters. Example:
-```bash
-curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
-```
 
 
 ### Loader, Storage and Result Storage
@@ -415,7 +370,7 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 imagor checks the image type and its resolution before the actual processing happens. The processing will be rejected if the image dimensions are too big, which protects from so-called "image bombs". You can set the max allowed image resolution and dimensions using `VIPS_MAX_RESOLUTION`, `VIPS_MAX_WIDTH`, `VIPS_MAX_HEIGHT`:
 
 ```dotenv
-VIPS_MAX_RESOLUTION=168000000
+VIPS_MAX_RESOLUTION=16800000
 VIPS_MAX_WIDTH=5000
 VIPS_MAX_HEIGHT=5000
 ```
@@ -439,25 +394,64 @@ However, if the source image involves user generated content, it is advised to d
 IMAGOR_DISABLE_ERROR_BODY=1
 ```
 
+### Metadata and Exif
+
+imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
+Under the hood, it tries to retrieve data just enough to extract the header, without reading and processing the whole image in memory.
+
+To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations. Example:
+
+```
+http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
+```
+
+```jsonc
+{
+  "format": "jpeg",
+  "content_type": "image/jpeg",
+  "width": 50,
+  "height": 34,
+  "orientation": 1,
+  "pages": 1,
+  "exif": {
+    "ApertureValue": "368640/65536",
+    "ColorSpace": 1,
+    "ComponentsConfiguration": "Y Cb Cr -",
+    "Compression": 6,
+    "DateTime": "2008:07:31 10:38:11",
+    "ISOSpeedRatings": 100,
+    "Make": "Canon",
+    "MeteringMode": 5,
+    "Model": "Canon EOS 40D",
+    //...
+  }
+}
+```
+
+Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for previewing the endpoint parameters. Example:
+```bash
+curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
+```
+
 ### Go Library
 
-imagor can also be used as a Go library for high-level image processing, by using the Go packages internally. imagor has a modular architecture made up of a series of Go packages:
+imagor is a Go library for high-level image processing, with a modular architecture made up of a series of Go packages:
 
 - [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
-- [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint with all related functions
+- [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint
 - [vips](https://pkg.go.dev/github.com/cshum/imagor/vips) - libvips C bindings with `imagor.Processor` implementation
 - [httploader](https://pkg.go.dev/github.com/cshum/imagor/loader/httploader) - HTTP Loader, an `imagor.Loader` implementation
 - [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
 - [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
 - [gcloudstorage](https://pkg.go.dev/github.com/cshum/imagor/storage/gcloudstorage) - Google Cloud Storage, an `imagor.Storage` implementation
-- [fanoutreader](https://pkg.go.dev/github.com/cshum/imagor/fanoutreader) - fan out arbitrary number of reader streams concurrently from one reader source
+- [fanoutreader](https://pkg.go.dev/github.com/cshum/imagor/fanoutreader) - fan-out arbitrary number of reader streams concurrently from one reader source
 - [seekstream](https://pkg.go.dev/github.com/cshum/imagor/seekstream) - enable seeking on non-seekable reader source by using memory or temp file buffer
 
 Install [libvips](https://www.libvips.org/) and enable CGO:
 - `brew install vips` for Mac
 - `CGO_CFLAGS_ALLOW=-Xpreprocessor` being set to compile Go
 
-See example and [examples](https://github.com/cshum/imagor/tree/master/examples) folder for various ways you can use imagor:
+See example below and also [examples](https://github.com/cshum/imagor/tree/master/examples) folder for various ways you can use imagor:
 
 ```go
 package main
