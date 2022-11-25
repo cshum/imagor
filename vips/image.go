@@ -226,6 +226,11 @@ func (r *Image) Height() int {
 	return int(r.image.Ysize)
 }
 
+// Bands returns the number of bands for this image.
+func (r *Image) Bands() int {
+	return int(r.image.Bands)
+}
+
 // HasAlpha returns if the image has an alpha layer.
 func (r *Image) HasAlpha() bool {
 	return vipsHasAlpha(r.image)
