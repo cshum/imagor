@@ -286,6 +286,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	if isPathChanged || p.Path == "" {
 		p.Path = imagorpath.GeneratePath(p)
 	}
+	if p.Width < 0 {
+		p.Width = -p.Width
+		p.HFlip = !p.HFlip
+	}
+	if p.Height < 0 {
+		p.Height = -p.Height
+		p.VFlip = !p.VFlip
+	}
 	var resultKey string
 	if p.Image != "" && !hasPreview {
 		if app.ResultStoragePathStyle != nil {
