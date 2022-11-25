@@ -26,7 +26,9 @@ func main() {
 	// serve via io.ReadCloser Blob
 	in := imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
 		var resp *http.Response
-		resp, err = http.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif")
+		if resp, err = http.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif"); err != nil {
+			return
+		}
 		reader = resp.Body
 		size, _ = strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
 		// known size via Content-Length header

@@ -32,6 +32,9 @@ func main() {
 	}
 	defer resp.Body.Close()
 	img, _, err := image.Decode(resp.Body)
+	if err != nil {
+		panic(err)
+	}
 	nrgba := img.(*image.NRGBA)
 	size := nrgba.Rect.Size()
 

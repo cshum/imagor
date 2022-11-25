@@ -23,7 +23,7 @@ func main() {
 	}
 	defer app.Shutdown(ctx)
 
-	buf := downloadBuf("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
+	buf := downloadBytes("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 
 	in := imagor.NewBlobFromBytes(buf)
 
@@ -56,7 +56,7 @@ func main() {
 	}
 }
 
-func downloadBuf(urlpath string) []byte {
+func downloadBytes(urlpath string) []byte {
 	resp, err := http.Get(urlpath)
 	if err != nil {
 		panic(err)

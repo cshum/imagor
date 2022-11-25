@@ -23,7 +23,7 @@ func main() {
 	}
 	defer app.Shutdown(ctx)
 
-	download("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png", "gopher.png")
+	downloadFile("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png", "gopher.png")
 
 	in := imagor.NewBlobFromFile("gopher.png")
 
@@ -56,7 +56,7 @@ func main() {
 	}
 }
 
-func download(urlpath, filepath string) {
+func downloadFile(urlpath, filepath string) {
 	resp, err := http.Get(urlpath)
 	if err != nil {
 		panic(err)
