@@ -61,6 +61,11 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	}
 	var overlayN = overlay.Height() / overlay.PageHeight()
 	vipscontext.Defer(ctx, overlay.Close)
+	if overlay.Bands() < 3 {
+		if err = overlay.ToColorSpace(InterpretationSRGB); err != nil {
+			return
+		}
+	}
 	if err = overlay.AddAlpha(); err != nil {
 		return
 	}
