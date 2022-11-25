@@ -140,6 +140,12 @@ func WithAutoAVIF(enable bool) Option {
 	}
 }
 
+func WithAutoQueryUnescape(enable bool) Option {
+	return func(app *Imagor) {
+		app.AutoQueryUnescape = enable
+	}
+}
+
 func WithBasePathRedirect(url string) Option {
 	return func(app *Imagor) {
 		app.BasePathRedirect = url
