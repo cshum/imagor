@@ -207,6 +207,11 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 	width := w + pLeft + pRight
 	height := h + pTop + pBottom
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) || isAnimated(img) {
+		if img.Bands() < 3 {
+			if err = img.ToColorSpace(InterpretationSRGB); err != nil {
+				return
+			}
+		}
 		// fill color
 		if img.HasAlpha() {
 			if err = img.Flatten(getColor(img, colour)); err != nil {
