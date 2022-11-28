@@ -140,9 +140,9 @@ func WithAutoAVIF(enable bool) Option {
 	}
 }
 
-func WithAutoQueryUnescape(enable bool) Option {
+func WithRetryQueryUnescape(enable bool) Option {
 	return func(app *Imagor) {
-		app.AutoQueryUnescape = enable
+		app.RetryQueryUnescape = enable
 	}
 }
 
