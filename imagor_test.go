@@ -266,6 +266,48 @@ func TestWithCustomSigner(t *testing.T) {
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 }
 
+func TestWithRetryQueryUnescape(t *testing.T) {
+	opts := WithOptions(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			if image != "gopher.png" {
+				return nil, ErrInvalid
+			}
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			return NewBlobFromBytes([]byte(p.Path)), nil
+		})),
+	)
+
+	app := New(opts, WithUnsafe(true))
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters%3Afill%28red%29/gopher.png", nil))
+	assert.Equal(t, 400, w.Code)
+
+	app = New(opts, WithUnsafe(true), WithRetryQueryUnescape(true))
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters%3Afill%28red%29/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
+
+	app = New(opts, WithSigner(imagorpath.NewDefaultSigner("1234")))
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/GSqGN9NrCj-DlGT38BaycScxM9g=/filters%3Afill%28red%29/gopher.png", nil))
+	assert.Equal(t, 403, w.Code)
+
+	app = New(opts, WithRetryQueryUnescape(true), WithSigner(imagorpath.NewDefaultSigner("1234")))
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/GSqGN9NrCj-DlGT38BaycScxM9g=/filters%3Afill%28red%29/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
+}
+
 func TestNewBlobFromPathNotFound(t *testing.T) {
 	loader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		return NewBlobFromFile("./non-exists-path"), nil
