@@ -440,13 +440,12 @@ func (b *Blob) ReadAll() ([]byte, error) {
 				return buf, err
 			}
 			return buf, err2
-		} else {
-			buf, err2 := io.ReadAll(reader)
-			if err != nil {
-				return buf, err
-			}
-			return buf, err2
 		}
+		buf, err2 := io.ReadAll(reader)
+		if err != nil {
+			return buf, err
+		}
+		return buf, err2
 	}
 	return nil, err
 }
