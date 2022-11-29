@@ -16,13 +16,14 @@ import (
 	"time"
 )
 
-var baseConfig = []Func{
+var baseConfig = []Option{
 	withFileSystem,
 	withHTTPLoader,
 }
 
+// NewImagor create imagor from config flags
 func NewImagor(
-	fs *flag.FlagSet, cb func() (*zap.Logger, bool), funcs ...Func,
+	fs *flag.FlagSet, cb func() (*zap.Logger, bool), funcs ...Option,
 ) *imagor.Imagor {
 	var (
 		imagorSecret = fs.String("imagor-secret", "",
@@ -64,7 +65,7 @@ func NewImagor(
 		imagorStoragePathStyle       = fs.String("imagor-storage-path-style", "original", "imagor storage path style: original, digest")
 		imagorResultStoragePathStyle = fs.String("imagor-result-storage-path-style", "original", "imagor result storage path style: original, digest, suffix")
 
-		options, logger, isDebug = applyFuncs(fs, cb, append(funcs, baseConfig...)...)
+		options, logger, isDebug = applyOptions(fs, cb, append(funcs, baseConfig...)...)
 
 		alg          = sha1.New
 		hasher       imagorpath.StorageHasher
@@ -116,7 +117,8 @@ func NewImagor(
 	)...)
 }
 
-func CreateServer(args []string, funcs ...Func) (srv *server.Server) {
+// CreateServer create server from config flags. Returns nil on version or help command
+func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 	var (
 		fs     = flag.NewFlagSet("imagor", flag.ExitOnError)
 		logger *zap.Logger

@@ -8,6 +8,7 @@ import (
 // CIDRSliceFlag is a flag type which support comma separated CIDR expressions.
 type CIDRSliceFlag []*net.IPNet
 
+// String implements flag.Setter interface
 func (s *CIDRSliceFlag) String() string {
 	var ss []string
 	for _, v := range *s {
@@ -16,6 +17,7 @@ func (s *CIDRSliceFlag) String() string {
 	return strings.Join(ss, ",")
 }
 
+// Set implements flag.Setter interface
 func (s *CIDRSliceFlag) Set(value string) error {
 	var res []*net.IPNet
 	for _, v := range strings.Split(value, ",") {
@@ -29,6 +31,7 @@ func (s *CIDRSliceFlag) Set(value string) error {
 	return nil
 }
 
-func (c *CIDRSliceFlag) Get() any {
-	return c
+// Get implements flag.Getter interface
+func (s *CIDRSliceFlag) Get() any {
+	return s
 }

@@ -8,11 +8,11 @@ import (
 	"testing"
 )
 
-func TestApplyFuncs(t *testing.T) {
+func TestApplyOptions(t *testing.T) {
 	fs := flag.NewFlagSet("imagor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
 	var seq []int
-	options, logger, isDebug := applyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
+	options, logger, isDebug := applyOptions(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
 	}, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
@@ -53,7 +53,7 @@ func TestApplyFuncsNil(t *testing.T) {
 	fs := flag.NewFlagSet("imagor", flag.ExitOnError)
 	nopLogger := zap.NewNop()
 	var seq []int
-	options, logger, isDebug := applyFuncs(fs, func() (logger *zap.Logger, isDebug bool) {
+	options, logger, isDebug := applyOptions(fs, func() (logger *zap.Logger, isDebug bool) {
 		seq = append(seq, 4)
 		return nopLogger, true
 	}, func(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {

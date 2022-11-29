@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// withHTTPLoader with HTTP Loader config option
 func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",

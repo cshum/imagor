@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// WithAWS with AWS S3 Loader, Storage and Result Storage config option
 func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		awsRegion = fs.String("aws-region", "",
