@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// WithVips with libvips processor config option
 func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		vipsDisableBlur = fs.Bool("vips-disable-blur", false,

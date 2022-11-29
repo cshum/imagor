@@ -19,6 +19,7 @@ type ResultStorageHasher interface {
 // StorageHasherFunc StorageHasher handler func
 type StorageHasherFunc func(image string) string
 
+// Hash implements StorageHasher interface
 func (h StorageHasherFunc) Hash(image string) string {
 	return h(image)
 }
@@ -26,6 +27,7 @@ func (h StorageHasherFunc) Hash(image string) string {
 // ResultStorageHasherFunc ResultStorageHasher handler func
 type ResultStorageHasherFunc func(p Params) string
 
+// HashResult implements ResultStorageHasher interface
 func (h ResultStorageHasherFunc) HashResult(p Params) string {
 	return h(p)
 }
@@ -36,8 +38,10 @@ func hexDigestPath(path string) string {
 	return hash[:2] + "/" + hash[2:4] + "/" + hash[4:]
 }
 
+// DigestStorageHasher StorageHasher using SHA digest
 var DigestStorageHasher = StorageHasherFunc(hexDigestPath)
 
+// DigestResultStorageHasher  ResultStorageHasher using SHA digest
 var DigestResultStorageHasher = ResultStorageHasherFunc(func(p Params) string {
 	if p.Path == "" {
 		p.Path = GeneratePath(p)
@@ -45,6 +49,7 @@ var DigestResultStorageHasher = ResultStorageHasherFunc(func(p Params) string {
 	return hexDigestPath(p.Path)
 })
 
+// SuffixResultStorageHasher  ResultStorageHasher using storage path with digest suffix
 var SuffixResultStorageHasher = ResultStorageHasherFunc(func(p Params) string {
 	if p.Path == "" {
 		p.Path = GeneratePath(p)
@@ -65,7 +70,6 @@ var SuffixResultStorageHasher = ResultStorageHasherFunc(func(p Params) string {
 			}
 		}
 		return p.Image[:dotIdx] + hash + ext // /abc/def.{digest}.jpg
-	} else {
-		return p.Image + hash // /abc/def.{digest}
 	}
+	return p.Image + hash // /abc/def.{digest}
 })

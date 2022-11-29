@@ -12,27 +12,40 @@ import (
 )
 
 var (
-	ErrNotFound              = NewError("not found", http.StatusNotFound)
-	ErrInvalid               = NewError("invalid", http.StatusBadRequest)
-	ErrMethodNotAllowed      = NewError("method not allowed", http.StatusMethodNotAllowed)
-	ErrSignatureMismatch     = NewError("url signature mismatch", http.StatusForbidden)
-	ErrTimeout               = NewError("timeout", http.StatusRequestTimeout)
-	ErrExpired               = NewError("expired", http.StatusGone)
-	ErrUnsupportedFormat     = NewError("unsupported format", http.StatusNotAcceptable)
-	ErrMaxSizeExceeded       = NewError("maximum size exceeded", http.StatusBadRequest)
+	// ErrNotFound not found error
+	ErrNotFound = NewError("not found", http.StatusNotFound)
+	// ErrInvalid syntactic invalid path error
+	ErrInvalid = NewError("invalid", http.StatusBadRequest)
+	// ErrMethodNotAllowed method not allowed error
+	ErrMethodNotAllowed = NewError("method not allowed", http.StatusMethodNotAllowed)
+	// ErrSignatureMismatch URL signature mismatch error
+	ErrSignatureMismatch = NewError("url signature mismatch", http.StatusForbidden)
+	// ErrTimeout timeout error
+	ErrTimeout = NewError("timeout", http.StatusRequestTimeout)
+	// ErrExpired expire error
+	ErrExpired = NewError("expired", http.StatusGone)
+	// ErrUnsupportedFormat unsupported format error
+	ErrUnsupportedFormat = NewError("unsupported format", http.StatusNotAcceptable)
+	// ErrMaxSizeExceeded maximum size exceeded error
+	ErrMaxSizeExceeded = NewError("maximum size exceeded", http.StatusBadRequest)
+	// ErrMaxResolutionExceeded maximum resolution exceeded error
 	ErrMaxResolutionExceeded = NewError("maximum resolution exceeded", http.StatusUnprocessableEntity)
-	ErrTooManyRequests       = NewError("too many requests", http.StatusTooManyRequests)
-	ErrInternal              = NewError("internal error", http.StatusInternalServerError)
+	// ErrTooManyRequests too many requests error
+	ErrTooManyRequests = NewError("too many requests", http.StatusTooManyRequests)
+	// ErrInternal internal error
+	ErrInternal = NewError("internal error", http.StatusInternalServerError)
 )
 
 const errPrefix = "imagor:"
 
 var errMsgRegexp = regexp.MustCompile(fmt.Sprintf("^%s ([0-9]+) (.*)$", errPrefix))
 
+// ErrForward indicator passing imagorpath.Params to next processor
 type ErrForward struct {
 	imagorpath.Params
 }
 
+// Error implements error
 func (p ErrForward) Error() string {
 	return fmt.Sprintf("%s forward %s", errPrefix, imagorpath.GeneratePath(p.Params))
 }
@@ -47,10 +60,12 @@ type timeoutErr interface {
 	Timeout() bool
 }
 
+// Error implements error
 func (e Error) Error() string {
 	return fmt.Sprintf("%s %d %s", errPrefix, e.Code, e.Message)
 }
 
+// Timeout indicates if error is timeout
 func (e Error) Timeout() bool {
 	return e.Code == http.StatusRequestTimeout || e.Code == http.StatusGatewayTimeout
 }

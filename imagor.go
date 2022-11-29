@@ -20,6 +20,7 @@ import (
 	"time"
 )
 
+// Version imagor version
 const Version = "1.3.2"
 
 // Loader image loader interface
@@ -29,19 +30,33 @@ type Loader interface {
 
 // Storage image storage interface
 type Storage interface {
+	// Get data Blob by key
 	Get(r *http.Request, key string) (*Blob, error)
+
+	// Stat get Blob Stat by key
 	Stat(ctx context.Context, key string) (*Stat, error)
+
+	// Put data Blob by key
 	Put(ctx context.Context, key string, blob *Blob) error
+
+	// Delete delete data Blob by key
 	Delete(ctx context.Context, key string) error
 }
 
-// LoadFunc load function for Processor
+// LoadFunc function handler for Processor to call loader
 type LoadFunc func(string) (*Blob, error)
 
 // Processor process image buffer
 type Processor interface {
+	// Startup processor startup lifecycle,
+	// called only once for the application lifetime
 	Startup(ctx context.Context) error
+
+	// Process Blob with given params and loader function
 	Process(ctx context.Context, blob *Blob, params imagorpath.Params, load LoadFunc) (*Blob, error)
+
+	// Shutdown processor shutdown lifecycle,
+	// called only once for the application lifetime
 	Shutdown(ctx context.Context) error
 }
 
@@ -141,9 +156,8 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		if app.BasePathRedirect == "" {
-			writeJSON(w, r, json.RawMessage(fmt.Sprintf(
-				`{"imagor":{"version":"%s"}}`, Version,
-			)))
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte(landing))
 		} else {
 			http.Redirect(w, r, app.BasePathRedirect, http.StatusTemporaryRedirect)
 		}
@@ -656,6 +670,18 @@ func (app *Imagor) debugLog() {
 	)
 }
 
+var landing = fmt.Sprintf(`
+<!doctype html>
+<html>
+	<head><title>Welcome to imagor!</title></head>
+	<body>
+		<h1>Welcome to imagor!</h1>
+		<p><a href="https://github.com/cshum/imagor" target="_blank">https://github.com/cshum/imagor</a></p>
+		<p>imagor v%s</p>
+	</body>
+</html>
+`, Version)
+
 func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
 	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
 		return false
@@ -770,9 +796,9 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 }
 
 func getType(v interface{}) string {
-	if t := reflect.TypeOf(v); t.Kind() == reflect.Ptr {
+	t := reflect.TypeOf(v)
+	if t.Kind() == reflect.Ptr {
 		return t.Elem().Name()
-	} else {
-		return t.Name()
 	}
+	return t.Name()
 }

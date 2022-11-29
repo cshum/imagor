@@ -13,10 +13,12 @@ import (
 	"time"
 )
 
+// BlobType blob content type
 type BlobType int
 
 const maxMemorySize = int64(100 << 20) // 100MB
 
+// BlobType enum
 const (
 	BlobTypeUnknown BlobType = iota
 	BlobTypeEmpty
@@ -31,6 +33,7 @@ const (
 	BlobTypeTIFF
 )
 
+// Blob imagor data blob abstraction
 type Blob struct {
 	newReader     func() (r io.ReadCloser, size int64, err error)
 	newReadSeeker func() (rs io.ReadSeekCloser, size int64, err error)
@@ -54,6 +57,7 @@ type Stat struct {
 	Size         int64
 }
 
+// NewBlob creates imagor Blob from io.ReadCloser and size
 func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Blob {
 	return &Blob{
 		fanout:    true,
@@ -61,6 +65,7 @@ func NewBlob(newReader func() (reader io.ReadCloser, size int64, err error)) *Bl
 	}
 }
 
+// NewBlobFromFile creates imagor Blob from file path and optional file info checks
 func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 	stat, err := os.Stat(filepath)
 	if os.IsNotExist(err) {
@@ -96,6 +101,7 @@ func NewBlobFromFile(filepath string, checks ...func(os.FileInfo) error) *Blob {
 	return blob
 }
 
+// NewBlobFromJsonMarshal creates imagor Blob from json marshal of any object
 func NewBlobFromJsonMarshal(v any) *Blob {
 	buf, err := json.Marshal(v)
 	size := int64(len(buf))
@@ -110,6 +116,7 @@ func NewBlobFromJsonMarshal(v any) *Blob {
 	}
 }
 
+// NewBlobFromBytes creates imagor Blob from []byte buffer
 func NewBlobFromBytes(buf []byte) *Blob {
 	size := int64(len(buf))
 	return &Blob{
@@ -121,6 +128,7 @@ func NewBlobFromBytes(buf []byte) *Blob {
 	}
 }
 
+// NewBlobFromMemory creates imagor Blob from raw RGB/RGBA buffer
 func NewBlobFromMemory(buf []byte, width, height, bands int) *Blob {
 	return &Blob{memory: &memory{
 		data:   buf,
@@ -130,6 +138,7 @@ func NewBlobFromMemory(buf []byte, width, height, bands int) *Blob {
 	}}
 }
 
+// NewEmptyBlob creates empty imagor Blob
 func NewEmptyBlob() *Blob {
 	return &Blob{}
 }
@@ -320,35 +329,42 @@ func (b *Blob) doInit() {
 	}
 }
 
+// IsEmpty check if blob is empty
 func (b *Blob) IsEmpty() bool {
 	b.init()
 	return b.blobType == BlobTypeEmpty
 }
 
+// SupportsAnimation check if blob supports animation
 func (b *Blob) SupportsAnimation() bool {
 	b.init()
 	return b.blobType == BlobTypeGIF || b.blobType == BlobTypeWEBP
 }
 
+// BlobType returns BlobType
 func (b *Blob) BlobType() BlobType {
 	b.init()
 	return b.blobType
 }
 
+// Sniff returns first 512 bytes of blob data for type sniffing
 func (b *Blob) Sniff() []byte {
 	b.init()
 	return b.sniffBuf
 }
 
+// Size returns Blob size if known
 func (b *Blob) Size() int64 {
 	b.init()
 	return b.size
 }
 
+// FilePath returns Blob file path if blob is created from file
 func (b *Blob) FilePath() string {
 	return b.filepath
 }
 
+// Memory returns memory data if Blob is created from memory
 func (b *Blob) Memory() (data []byte, width, height, bands int, ok bool) {
 	if m := b.memory; m != nil {
 		data = m.data
@@ -360,21 +376,25 @@ func (b *Blob) Memory() (data []byte, width, height, bands int, ok bool) {
 	return
 }
 
+// SetContentType set Blob content type. which overrides default sniffing if this is set
 func (b *Blob) SetContentType(contentType string) {
 	b.contentType = contentType
 }
 
+// ContentType returns content type
 func (b *Blob) ContentType() string {
 	b.init()
 	return b.contentType
 }
 
+// NewReader creates new io.ReadCloser and returns size if known
 func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	b.init()
 	return b.newReader()
 }
 
-// NewReadSeeker create read seeker if reader supports seek, or attempts to simulate seek using memory buffer
+// NewReadSeeker create read seeker if reader supports seek,
+// or attempts to simulate seek using memory or temp file buffer
 func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	b.init()
 	if b.newReadSeeker != nil {
@@ -399,6 +419,7 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	return seekstream.New(reader, buffer), size, err
 }
 
+// ReadAll real all bytes from Blob
 func (b *Blob) ReadAll() ([]byte, error) {
 	b.init()
 	if b.blobType == BlobTypeEmpty {
@@ -420,17 +441,17 @@ func (b *Blob) ReadAll() ([]byte, error) {
 				return buf, err
 			}
 			return buf, err2
-		} else {
-			buf, err2 := io.ReadAll(reader)
-			if err != nil {
-				return buf, err
-			}
-			return buf, err2
 		}
+		buf, err2 := io.ReadAll(reader)
+		if err != nil {
+			return buf, err
+		}
+		return buf, err2
 	}
 	return nil, err
 }
 
+// Err returns Blob error
 func (b *Blob) Err() error {
 	b.init()
 	return b.err

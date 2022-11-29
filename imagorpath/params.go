@@ -1,14 +1,21 @@
 package imagorpath
 
 const (
-	TrimByTopLeft     = "top-left"
+	// TrimByTopLeft trim by top-left keyword
+	TrimByTopLeft = "top-left"
+	// TrimByBottomRight trim by bottom-right keyword
 	TrimByBottomRight = "bottom-right"
-	HAlignLeft        = "left"
-	HAlignRight       = "right"
-	VAlignTop         = "top"
-	VAlignBottom      = "bottom"
+	// HAlignLeft horizontal align left keyword
+	HAlignLeft = "left"
+	// HAlignRight horizontal align right keyword
+	HAlignRight = "right"
+	// VAlignTop vertical align top keyword
+	VAlignTop = "top"
+	// VAlignBottom vertical align bottom keyword
+	VAlignBottom = "bottom"
 )
 
+// Filters a slice of Filter
 type Filters []Filter
 
 // Params image endpoint parameters
@@ -42,6 +49,7 @@ type Params struct {
 	Filters       Filters `json:"filters,omitempty"`
 }
 
+// Filter imagor endpoint filter
 type Filter struct {
 	Name string `json:"name,omitempty"`
 	Args string `json:"args,omitempty"`

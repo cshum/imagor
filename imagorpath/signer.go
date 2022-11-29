@@ -18,7 +18,7 @@ func NewDefaultSigner(secret string) Signer {
 }
 
 // NewHMACSigner custom HMAC alg signer with secret and string length based truncate
-func NewHMACSigner(alg func() hash.Hash, truncate int, secret string) *hmacSigner {
+func NewHMACSigner(alg func() hash.Hash, truncate int, secret string) Signer {
 	return &hmacSigner{
 		alg:      alg,
 		truncate: truncate,

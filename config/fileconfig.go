@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// withFileSystem with File Loader, Storage, Result Storage based config option
 func withFileSystem(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		fileSafeChars = fs.String("file-safe-chars", "",

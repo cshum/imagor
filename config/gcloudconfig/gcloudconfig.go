@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// WithGCloud with Google Cloud Loader, Storage, Result Storage config option
 func WithGCloud(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		gcloudSafeChars = fs.String("gcloud-safe-chars", "",

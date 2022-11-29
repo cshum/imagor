@@ -110,7 +110,6 @@ func Generate(p Params, signer Signer) string {
 	imgPath := GeneratePath(p)
 	if signer != nil {
 		return signer.Sign(imgPath) + "/" + imgPath
-	} else {
-		return "unsafe/" + imgPath
 	}
+	return "unsafe/" + imgPath
 }

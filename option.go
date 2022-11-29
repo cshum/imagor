@@ -6,8 +6,10 @@ import (
 	"time"
 )
 
+// Option imagor option
 type Option func(app *Imagor)
 
+// WithOptions with nested options
 func WithOptions(options ...Option) Option {
 	return func(app *Imagor) {
 		for _, option := range options {
@@ -18,6 +20,7 @@ func WithOptions(options ...Option) Option {
 	}
 }
 
+// WithLogger with logger option
 func WithLogger(logger *zap.Logger) Option {
 	return func(app *Imagor) {
 		if logger != nil {
@@ -26,30 +29,35 @@ func WithLogger(logger *zap.Logger) Option {
 	}
 }
 
+// WithLoaders with loaders option
 func WithLoaders(loaders ...Loader) Option {
 	return func(app *Imagor) {
 		app.Loaders = append(app.Loaders, loaders...)
 	}
 }
 
+// WithStorages with storages option
 func WithStorages(savers ...Storage) Option {
 	return func(app *Imagor) {
 		app.Storages = append(app.Storages, savers...)
 	}
 }
 
+// WithResultStorages with result storages option
 func WithResultStorages(savers ...Storage) Option {
 	return func(app *Imagor) {
 		app.ResultStorages = append(app.ResultStorages, savers...)
 	}
 }
 
+// WithProcessors with processor option
 func WithProcessors(processors ...Processor) Option {
 	return func(app *Imagor) {
 		app.Processors = append(app.Processors, processors...)
 	}
 }
 
+// WithRequestTimeout with request timeout option
 func WithRequestTimeout(timeout time.Duration) Option {
 	return func(app *Imagor) {
 		if timeout > 0 {
@@ -58,6 +66,7 @@ func WithRequestTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithCacheHeaderTTL with browser cache header ttl option
 func WithCacheHeaderTTL(ttl time.Duration) Option {
 	return func(app *Imagor) {
 		if ttl > 0 {
@@ -66,6 +75,7 @@ func WithCacheHeaderTTL(ttl time.Duration) Option {
 	}
 }
 
+// WithCacheHeaderSWR with browser cache header swr option
 func WithCacheHeaderSWR(swr time.Duration) Option {
 	return func(app *Imagor) {
 		if swr > 0 {
@@ -74,6 +84,7 @@ func WithCacheHeaderSWR(swr time.Duration) Option {
 	}
 }
 
+// WithCacheHeaderNoCache with browser cache header no-cache option
 func WithCacheHeaderNoCache(nocache bool) Option {
 	return func(app *Imagor) {
 		if nocache {
@@ -82,6 +93,7 @@ func WithCacheHeaderNoCache(nocache bool) Option {
 	}
 }
 
+// WithLoadTimeout with load timeout option for loader and storage
 func WithLoadTimeout(timeout time.Duration) Option {
 	return func(app *Imagor) {
 		if timeout > 0 {
@@ -90,6 +102,7 @@ func WithLoadTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithSaveTimeout with save timeout option for storage
 func WithSaveTimeout(timeout time.Duration) Option {
 	return func(app *Imagor) {
 		if timeout > 0 {
@@ -98,6 +111,7 @@ func WithSaveTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithProcessTimeout with process timeout option for processor
 func WithProcessTimeout(timeout time.Duration) Option {
 	return func(app *Imagor) {
 		if timeout > 0 {
@@ -106,6 +120,7 @@ func WithProcessTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithProcessConcurrency maximum number of processor call to be executed simultaneously.
 func WithProcessConcurrency(concurrency int64) Option {
 	return func(app *Imagor) {
 		if concurrency > 0 {
@@ -114,6 +129,7 @@ func WithProcessConcurrency(concurrency int64) Option {
 	}
 }
 
+// WithProcessQueueSize maximum number of processor call that can be put to a queue
 func WithProcessQueueSize(size int64) Option {
 	return func(app *Imagor) {
 		if size > 0 {
@@ -122,60 +138,70 @@ func WithProcessQueueSize(size int64) Option {
 	}
 }
 
+// WithUnsafe with unsafe option
 func WithUnsafe(unsafe bool) Option {
 	return func(app *Imagor) {
 		app.Unsafe = unsafe
 	}
 }
 
+// WithAutoWebP with auto WebP option based on browser Accept header
 func WithAutoWebP(enable bool) Option {
 	return func(app *Imagor) {
 		app.AutoWebP = enable
 	}
 }
 
+// WithAutoAVIF experimental with auto AVIF option based on browser Accept header
 func WithAutoAVIF(enable bool) Option {
 	return func(app *Imagor) {
 		app.AutoAVIF = enable
 	}
 }
 
+// WithBasePathRedirect with base path redirect option
 func WithBasePathRedirect(url string) Option {
 	return func(app *Imagor) {
 		app.BasePathRedirect = url
 	}
 }
 
+// WithBaseParams with base params string option
 func WithBaseParams(params string) Option {
 	return func(app *Imagor) {
 		app.BaseParams = params
 	}
 }
 
+// WithModifiedTimeCheck with option for modified time check of storage against result storage
 func WithModifiedTimeCheck(enabled bool) Option {
 	return func(app *Imagor) {
 		app.ModifiedTimeCheck = enabled
 	}
 }
 
+// WithDisableErrorBody with disable error body option, resulting empty response on error
 func WithDisableErrorBody(disabled bool) Option {
 	return func(app *Imagor) {
 		app.DisableErrorBody = disabled
 	}
 }
 
+// WithDisableParamsEndpoint with disable imagor /params endpoint
 func WithDisableParamsEndpoint(disabled bool) Option {
 	return func(app *Imagor) {
 		app.DisableParamsEndpoint = disabled
 	}
 }
 
+// WithDebug with debug option
 func WithDebug(debug bool) Option {
 	return func(app *Imagor) {
 		app.Debug = debug
 	}
 }
 
+// WithResultStoragePathStyle with result storage path style hasher option
 func WithResultStoragePathStyle(hasher imagorpath.ResultStorageHasher) Option {
 	return func(app *Imagor) {
 		if hasher != nil {
@@ -184,6 +210,7 @@ func WithResultStoragePathStyle(hasher imagorpath.ResultStorageHasher) Option {
 	}
 }
 
+// WithStoragePathStyle with storage path style hasher option
 func WithStoragePathStyle(hasher imagorpath.StorageHasher) Option {
 	return func(app *Imagor) {
 		if hasher != nil {
@@ -192,6 +219,7 @@ func WithStoragePathStyle(hasher imagorpath.StorageHasher) Option {
 	}
 }
 
+// WithSigner with URL signature signer option
 func WithSigner(signer imagorpath.Signer) Option {
 	return func(app *Imagor) {
 		if signer != nil {

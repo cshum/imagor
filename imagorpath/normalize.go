@@ -7,12 +7,15 @@ import (
 
 const upperHex = "0123456789ABCDEF"
 
+// SafeChars safe chars for storage paths
 type SafeChars interface {
+	// ShouldEscape indicates if char byte should be escaped
 	ShouldEscape(c byte) bool
 }
 
 var defaultSafeChars = NewSafeChars("")
 
+// NewSafeChars create SafeChars from predefined set of string
 func NewSafeChars(safechars string) SafeChars {
 	s := &safeChars{safeChars: map[byte]bool{}}
 	for _, c := range safechars {
@@ -27,6 +30,7 @@ type safeChars struct {
 	safeChars map[byte]bool
 }
 
+// ShouldEscape implements SafeChars interface
 func (s *safeChars) ShouldEscape(c byte) bool {
 	// alphanum
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
@@ -122,7 +126,6 @@ func Normalize(image string, safeChars SafeChars) string {
 	image = strings.Trim(image, "/")
 	if safeChars == nil {
 		return escape(image, defaultSafeChars.ShouldEscape)
-	} else {
-		return escape(image, safeChars.ShouldEscape)
 	}
+	return escape(image, safeChars.ShouldEscape)
 }
