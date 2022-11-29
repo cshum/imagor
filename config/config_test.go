@@ -56,7 +56,6 @@ func TestBasic(t *testing.T) {
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 		"-http-loader-insecure-skip-verify-transport",
-		"-imagor-retry-query-unescape",
 	})
 	app := srv.App.(*imagor.Imagor)
 
@@ -76,7 +75,6 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, "fitlers:watermark(example.jpg)/", app.BaseParams)
 	assert.Equal(t, time.Hour*169, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*167, app.CacheHeaderSWR)
-	assert.True(t, app.RetryQueryUnescape)
 
 	httpLoader := app.Loaders[0].(*httploader.HTTPLoader)
 	assert.True(t, httpLoader.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify)
