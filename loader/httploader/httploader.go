@@ -15,6 +15,7 @@ import (
 	"github.com/cshum/imagor"
 )
 
+// HTTPLoader HTTP Loader implements imagor.Loader interface
 type HTTPLoader struct {
 	// The Transport used to request images, default http.DefaultTransport.
 	Transport http.RoundTripper
@@ -57,6 +58,7 @@ type HTTPLoader struct {
 	accepts []string
 }
 
+// New creates HTTPLoader
 func New(options ...Option) *HTTPLoader {
 	h := &HTTPLoader{
 		OverrideHeaders: map[string]string{},
@@ -85,6 +87,7 @@ func New(options ...Option) *HTTPLoader {
 	return h
 }
 
+// Get implements imagor.Loader interface
 func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if image == "" {
 		return nil, imagor.ErrInvalid
@@ -206,22 +209,22 @@ var ErrUnauthorizedRequest = errors.New("unauthorized request")
 // DialControl implements a net.Dialer.Control function which is automatically used with the default http.Transport.
 // If the transport is replaced using the WithTransport option it is up to that
 // transport if the control function is used or not.
-func (s *HTTPLoader) DialControl(network string, address string, conn syscall.RawConn) error {
+func (h *HTTPLoader) DialControl(network string, address string, conn syscall.RawConn) error {
 	host, _, err := net.SplitHostPort(address)
 	if err != nil {
 		return err
 	}
 	addr := net.ParseIP(host)
-	if s.BlockLoopbackNetworks && addr.IsLoopback() {
+	if h.BlockLoopbackNetworks && addr.IsLoopback() {
 		return ErrUnauthorizedRequest
 	}
-	if s.BlockLinkLocalNetworks && (addr.IsLinkLocalUnicast() || addr.IsLinkLocalMulticast()) {
+	if h.BlockLinkLocalNetworks && (addr.IsLinkLocalUnicast() || addr.IsLinkLocalMulticast()) {
 		return ErrUnauthorizedRequest
 	}
-	if s.BlockPrivateNetworks && addr.IsPrivate() {
+	if h.BlockPrivateNetworks && addr.IsPrivate() {
 		return ErrUnauthorizedRequest
 	}
-	for _, network := range s.BlockNetworks {
+	for _, network := range h.BlockNetworks {
 		if network.Contains(addr) {
 			return ErrUnauthorizedRequest
 		}

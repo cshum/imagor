@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
+// Option HTTPLoader option
 type Option func(h *HTTPLoader)
 
+// WithTransport with custom http.RoundTripper transport option
 func WithTransport(transport http.RoundTripper) Option {
 	return func(h *HTTPLoader) {
 		if transport != nil {
@@ -17,6 +19,7 @@ func WithTransport(transport http.RoundTripper) Option {
 	}
 }
 
+// WithProxyTransport with random proxy rotation option for selected proxy URLs
 func WithProxyTransport(proxyURLs, hosts string) Option {
 	return func(h *HTTPLoader) {
 		if proxyURLs != "" {
@@ -28,6 +31,7 @@ func WithProxyTransport(proxyURLs, hosts string) Option {
 	}
 }
 
+// WithInsecureSkipVerifyTransport with insecure HTTPs option
 func WithInsecureSkipVerifyTransport(enabled bool) Option {
 	return func(h *HTTPLoader) {
 		if enabled {
@@ -39,6 +43,7 @@ func WithInsecureSkipVerifyTransport(enabled bool) Option {
 	}
 }
 
+// WithForwardHeaders with forward selected request headers option
 func WithForwardHeaders(headers ...string) Option {
 	return func(h *HTTPLoader) {
 		for _, raw := range headers {
@@ -53,6 +58,7 @@ func WithForwardHeaders(headers ...string) Option {
 	}
 }
 
+// WithForwardClientHeaders with forward browser request headers option
 func WithForwardClientHeaders(enabled bool) Option {
 	return func(h *HTTPLoader) {
 		if enabled {
@@ -61,12 +67,15 @@ func WithForwardClientHeaders(enabled bool) Option {
 	}
 }
 
+// WithOverrideHeader with override request header with name value pair option
 func WithOverrideHeader(name, value string) Option {
 	return func(h *HTTPLoader) {
 		h.OverrideHeaders[name] = value
 	}
 }
 
+// WithAllowedSources with allowed source hosts option.
+// Accept csv wth glob pattern e.g. *.google.com,*.github.com
 func WithAllowedSources(hosts ...string) Option {
 	return func(h *HTTPLoader) {
 		for _, raw := range hosts {
@@ -81,6 +90,7 @@ func WithAllowedSources(hosts ...string) Option {
 	}
 }
 
+// WithMaxAllowedSize with maximum allowed size option
 func WithMaxAllowedSize(maxAllowedSize int) Option {
 	return func(h *HTTPLoader) {
 		if maxAllowedSize > 0 {
@@ -89,6 +99,7 @@ func WithMaxAllowedSize(maxAllowedSize int) Option {
 	}
 }
 
+// WithUserAgent with custom user agent option
 func WithUserAgent(userAgent string) Option {
 	return func(h *HTTPLoader) {
 		if userAgent != "" {
@@ -97,6 +108,7 @@ func WithUserAgent(userAgent string) Option {
 	}
 }
 
+// WithAccept with accepted content type option
 func WithAccept(contentType string) Option {
 	return func(h *HTTPLoader) {
 		if contentType != "" {
@@ -105,6 +117,7 @@ func WithAccept(contentType string) Option {
 	}
 }
 
+// WithDefaultScheme with default URL scheme option https or http, if not specified
 func WithDefaultScheme(scheme string) Option {
 	return func(h *HTTPLoader) {
 		if scheme != "" {
@@ -113,6 +126,8 @@ func WithDefaultScheme(scheme string) Option {
 	}
 }
 
+// WithBlockLoopbackNetworks with option to reject HTTP connections
+// to loopback network IP addresses
 func WithBlockLoopbackNetworks(enabled bool) Option {
 	return func(h *HTTPLoader) {
 		if enabled {
@@ -121,6 +136,8 @@ func WithBlockLoopbackNetworks(enabled bool) Option {
 	}
 }
 
+// WithBlockLinkLocalNetworks with option to reject HTTP connections
+// to link local IP addresses
 func WithBlockLinkLocalNetworks(enabled bool) Option {
 	return func(h *HTTPLoader) {
 		if enabled {
@@ -129,6 +146,8 @@ func WithBlockLinkLocalNetworks(enabled bool) Option {
 	}
 }
 
+// WithBlockPrivateNetworks with option to reject HTTP connections
+// to private network IP addresses
 func WithBlockPrivateNetworks(enabled bool) Option {
 	return func(h *HTTPLoader) {
 		if enabled {
@@ -137,6 +156,8 @@ func WithBlockPrivateNetworks(enabled bool) Option {
 	}
 }
 
+// WithBlockNetworks with option to reject
+// HTTP connections to a configurable list of networks
 func WithBlockNetworks(networks ...*net.IPNet) Option {
 	return func(h *HTTPLoader) {
 		h.BlockNetworks = networks
