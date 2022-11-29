@@ -15,7 +15,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		awsRegion = fs.String("aws-region", "",
 			"AWS Region. Required if using S3 Loader or storage")
-		awsAccessKeyId = fs.String("aws-access-key-id", "",
+		awsAccessKeyID = fs.String("aws-access-key-id", "",
 			"AWS Access Key ID. Required if using S3 Loader or Storage")
 		awsSecretAccessKey = fs.String("aws-secret-access-key", "",
 			"AWS Secret Access Key. Required if using S3 Loader or Storage")
@@ -24,7 +24,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		awsLoaderRegion = fs.String("aws-loader-region", "",
 			"AWS Region for S3 Loader to override global config")
-		awsLoaderAccessKeyId = fs.String("aws-loader-access-key-id", "",
+		awsLoaderAccessKeyID = fs.String("aws-loader-access-key-id", "",
 			"AWS Access Key ID for S3 Loader to override global config")
 		awsLoaderSecretAccessKey = fs.String("aws-loader-secret-access-key", "",
 			"AWS Secret Access Key for S3 Loader to override global config")
@@ -33,7 +33,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		awsStorageRegion = fs.String("aws-storage-region", "",
 			"AWS Region for S3 Storage to override global config")
-		awsStorageAccessKeyId = fs.String("aws-storage-access-key-id", "",
+		awsStorageAccessKeyID = fs.String("aws-storage-access-key-id", "",
 			"AWS Access Key ID for S3 Storage to override global config")
 		awsStorageSecretAccessKey = fs.String("aws-storage-secret-access-key", "",
 			"AWS Secret Access Key for S3 Storage to override global config")
@@ -42,7 +42,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		awsResultStorageRegion = fs.String("aws-result-storage-region", "",
 			"AWS Region for S3 Result Storage to override global config")
-		awsResultStorageAccessKeyId = fs.String("aws-result-storage-access-key-id", "",
+		awsResultStorageAccessKeyID = fs.String("aws-result-storage-access-key-id", "",
 			"AWS Access Key ID for S3 Result Storage to override global config")
 		awsResultStorageSecretAccessKey = fs.String("aws-result-storage-secret-access-key", "",
 			"AWS Secret Access Key for S3 Result Storage to override global config")
@@ -91,7 +91,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		}
 		var loaderSess, storageSess, resultStorageSess *session.Session
 		var cred = credentials.NewStaticCredentials(
-			*awsAccessKeyId, *awsSecretAccessKey, "")
+			*awsAccessKeyID, *awsSecretAccessKey, "")
 		var options = session.Options{
 			SharedConfigState: session.SharedConfigEnable,
 		}
@@ -110,34 +110,34 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		loaderSess = sess
 		storageSess = sess
 		resultStorageSess = sess
-		if *awsLoaderRegion != "" && *awsLoaderAccessKeyId != "" && *awsLoaderSecretAccessKey != "" {
+		if *awsLoaderRegion != "" && *awsLoaderAccessKeyID != "" && *awsLoaderSecretAccessKey != "" {
 			cfg := &aws.Config{
 				Endpoint: s3LoaderEndpoint,
 				Region:   awsLoaderRegion,
 				Credentials: credentials.NewStaticCredentials(
-					*awsLoaderAccessKeyId, *awsLoaderSecretAccessKey, ""),
+					*awsLoaderAccessKeyID, *awsLoaderSecretAccessKey, ""),
 				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present
 			loaderSess = session.Must(session.NewSession(cfg))
 		}
-		if *awsStorageRegion != "" && *awsStorageAccessKeyId != "" && *awsStorageSecretAccessKey != "" {
+		if *awsStorageRegion != "" && *awsStorageAccessKeyID != "" && *awsStorageSecretAccessKey != "" {
 			cfg := &aws.Config{
 				Endpoint: s3StorageEndpoint,
 				Region:   awsStorageRegion,
 				Credentials: credentials.NewStaticCredentials(
-					*awsStorageAccessKeyId, *awsStorageSecretAccessKey, ""),
+					*awsStorageAccessKeyID, *awsStorageSecretAccessKey, ""),
 				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present
 			storageSess = session.Must(session.NewSession(cfg))
 		}
-		if *awsResultStorageRegion != "" && *awsResultStorageAccessKeyId != "" && *awsResultStorageSecretAccessKey != "" {
+		if *awsResultStorageRegion != "" && *awsResultStorageAccessKeyID != "" && *awsResultStorageSecretAccessKey != "" {
 			cfg := &aws.Config{
 				Endpoint: s3ResultStorageEndpoint,
 				Region:   awsResultStorageRegion,
 				Credentials: credentials.NewStaticCredentials(
-					*awsResultStorageAccessKeyId, *awsResultStorageSecretAccessKey, ""),
+					*awsResultStorageAccessKeyID, *awsResultStorageSecretAccessKey, ""),
 				S3ForcePathStyle: s3ForcePathStyle,
 			}
 			// activate AWS Session only if credentials present

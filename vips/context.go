@@ -1,4 +1,4 @@
-package vipscontext
+package vips
 
 import (
 	"context"
@@ -22,28 +22,28 @@ func (r *contextRef) Done() {
 	r.cbs = nil
 }
 
-// WithContext with callback tracking
-func WithContext(ctx context.Context) context.Context {
+// withContext with callback tracking
+func withContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, contextRefKey{}, &contextRef{})
 }
 
-// Defer context add func for callback tracking for callback gc
-func Defer(ctx context.Context, cb func()) {
+// contextDefer context add func for callback tracking for callback gc
+func contextDefer(ctx context.Context, cb func()) {
 	ctx.Value(contextRefKey{}).(*contextRef).Defer(cb)
 }
 
-// Done closes all image refs that are being tracked through the context
-func Done(ctx context.Context) {
+// contextDone closes all image refs that are being tracked through the context
+func contextDone(ctx context.Context) {
 	ctx.Value(contextRefKey{}).(*contextRef).Done()
 }
 
-func SetRotate90(ctx context.Context) {
+func setRotate90(ctx context.Context) {
 	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
 		r.Rotate90 = !r.Rotate90
 	}
 }
 
-func IsRotate90(ctx context.Context) bool {
+func isRotate90(ctx context.Context) bool {
 	if r, ok := ctx.Value(contextRefKey{}).(*contextRef); ok {
 		return r.Rotate90
 	}

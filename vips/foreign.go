@@ -104,6 +104,7 @@ func NewTiffExportParams() *TiffExportParams {
 	}
 }
 
+// GifExportParams  are options when exporting an GIF to file or buffer.
 type GifExportParams struct {
 	StripMetadata bool
 	Quality       int

@@ -3,7 +3,6 @@ package vips
 import (
 	"context"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/vips/vipscontext"
 	"go.uber.org/zap"
 	"math"
 	"runtime"
@@ -11,13 +10,16 @@ import (
 	"sync"
 )
 
+// FilterFunc filter handler function
 type FilterFunc func(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error)
 
+// FilterMap filter handler map
 type FilterMap map[string]FilterFunc
 
 var processorLock sync.RWMutex
 var processorCount int
 
+// Processor implements imagor.Processor interface
 type Processor struct {
 	Filters            FilterMap
 	DisableBlur        bool
@@ -38,6 +40,7 @@ type Processor struct {
 	disableFilters map[string]bool
 }
 
+// NewProcessor create Processor
 func NewProcessor(options ...Option) *Processor {
 	v := &Processor{
 		MaxWidth:           9999,
@@ -86,6 +89,7 @@ func NewProcessor(options ...Option) *Processor {
 	return v
 }
 
+// Startup implements imagor.Processor interface
 func (v *Processor) Startup(_ context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
@@ -118,6 +122,7 @@ func (v *Processor) Startup(_ context.Context) error {
 	return nil
 }
 
+// Shutdown implements imagor.Processor interface
 func (v *Processor) Shutdown(_ context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
@@ -140,15 +145,14 @@ func newImageFromBlob(
 	if blob.BlobType() == imagor.BlobTypeMemory {
 		buf, width, height, bands, _ := blob.Memory()
 		return LoadImageFromMemory(buf, width, height, bands)
-	} else {
-		reader, _, err := blob.NewReader()
-		if err != nil {
-			return nil, err
-		}
-		src := NewSource(reader)
-		vipscontext.Defer(ctx, src.Close)
-		return src.LoadImage(params)
 	}
+	reader, _, err := blob.NewReader()
+	if err != nil {
+		return nil, err
+	}
+	src := NewSource(reader)
+	contextDefer(ctx, src.Close)
+	return src.LoadImage(params)
 }
 
 func newThumbnailFromBlob(
@@ -163,10 +167,11 @@ func newThumbnailFromBlob(
 		return nil, err
 	}
 	src := NewSource(reader)
-	vipscontext.Defer(ctx, src.Close)
+	contextDefer(ctx, src.Close)
 	return src.LoadThumbnail(width, height, crop, size, params)
 }
 
+// NewThumbnail creates new thumbnail with resize and crop from imagor.Blob
 func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size, n int,
 ) (*Image, error) {
@@ -235,6 +240,7 @@ func (v *Processor) newThumbnailFallback(
 	return img, WrapErr(err)
 }
 
+// NewImage creates new Image from imagor.Blob
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Image, error) {
 	var params *ImportParams
 	if isBlobAnimated(blob, n) {
@@ -252,18 +258,17 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Im
 		if n > 1 && img.Pages() > n {
 			img.Close()
 			return v.NewImage(ctx, blob, -n)
-		} else {
-			return img, nil
-		}
-	} else {
-		img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
-		if err != nil {
-			return nil, WrapErr(err)
 		}
 		return img, nil
 	}
+	img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
+	if err != nil {
+		return nil, WrapErr(err)
+	}
+	return img, nil
 }
 
+// Thumbnail handles thumbnail operation
 func (v *Processor) Thumbnail(
 	img *Image, width, height int, crop Interesting, size Size,
 ) error {
@@ -273,6 +278,7 @@ func (v *Processor) Thumbnail(
 	return v.animatedThumbnailWithCrop(img, width, height, crop, size)
 }
 
+// FocalThumbnail handles thumbnail with custom focal point
 func (v *Processor) FocalThumbnail(img *Image, w, h int, fx, fy float64) (err error) {
 	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 		if err = img.Thumbnail(w, v.MaxHeight, InterestingNone); err != nil {
@@ -317,6 +323,7 @@ func (v *Processor) animatedThumbnailWithCrop(
 	return img.ExtractArea(left, top, w, h)
 }
 
+// CheckResolution check image resolution for image bomb prevention
 func (v *Processor) CheckResolution(img *Image, err error) (*Image, error) {
 	if err != nil || img == nil {
 		return img, err
@@ -333,6 +340,7 @@ func isBlobAnimated(blob *imagor.Blob, n int) bool {
 	return blob != nil && blob.SupportsAnimation() && n != 1 && n != 0
 }
 
+// WrapErr wraps error to become imagor.Error
 func WrapErr(err error) error {
 	if err == nil {
 		return nil

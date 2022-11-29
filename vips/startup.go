@@ -144,7 +144,7 @@ func Startup(config *config) {
 		if supportedLoadImageTypes[k] || supportedSaveImageTypes[k] {
 			log("vips", LogLevelInfo, fmt.Sprintf(
 				"registered image type=%s load=%t save=%t",
-				v, supportedLoadImageTypes[k], supportedSaveImageTypes[k]))
+				v, IsLoadSupported(k), IsSaveSupported(k)))
 		}
 	}
 	isStarted = true
@@ -156,6 +156,7 @@ func startupIfNeeded() {
 	})
 }
 
+// Shutdown libvips
 func Shutdown() {
 	lock.Lock()
 	defer lock.Unlock()
