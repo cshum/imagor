@@ -6,13 +6,13 @@
 [![GitHub Container Registry](https://ghcr-badge.deta.dev/cshum/imagor/latest_tag?trim=major&label=ghcr.io&ignore=next,master&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cshum/imagor.svg)](https://pkg.go.dev/github.com/cshum/imagor)
 
-imagor is a fast, Docker-ready image processing server written in Go.
+imagor is a fast, secure image processing server and Go library.
 
 imagor uses one of the most efficient image processing library
 [libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings. 
 imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that enables parallel processing pipelines, achieving high network throughput. 
 
-imagor is a Go library built with security, speed and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
+imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
 imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
 
