@@ -59,7 +59,6 @@ func NewImagor(
 			"Check modified time of result image against the source image. This eliminates stale result but require more lookups")
 		imagorDisableErrorBody       = fs.Bool("imagor-disable-error-body", false, "imagor disable response body on error")
 		imagorDisableParamsEndpoint  = fs.Bool("imagor-disable-params-endpoint", false, "imagor disable /params endpoint")
-		imagorRetryQueryUnescape     = fs.Bool("imagor-retry-query-unescape", false, "imagor retry with query unescape on invalid path error")
 		imagorSignerType             = fs.String("imagor-signer-type", "sha1", "imagor URL signature hasher type: sha1, sha256, sha512")
 		imagorSignerTruncate         = fs.Int("imagor-signer-truncate", 0, "imagor URL signature truncate at length")
 		imagorStoragePathStyle       = fs.String("imagor-storage-path-style", "original", "imagor storage path style: original, digest")
@@ -109,7 +108,6 @@ func NewImagor(
 		imagor.WithModifiedTimeCheck(*imagorModifiedTimeCheck),
 		imagor.WithDisableErrorBody(*imagorDisableErrorBody),
 		imagor.WithDisableParamsEndpoint(*imagorDisableParamsEndpoint),
-		imagor.WithRetryQueryUnescape(*imagorRetryQueryUnescape),
 		imagor.WithStoragePathStyle(hasher),
 		imagor.WithResultStoragePathStyle(resultHasher),
 		imagor.WithUnsafe(*imagorUnsafe),

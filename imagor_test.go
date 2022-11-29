@@ -285,22 +285,10 @@ func TestWithRetryQueryUnescape(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/filters%3Afill%28red%29/gopher.png", nil))
-	assert.Equal(t, 400, w.Code)
-
-	app = New(opts, WithUnsafe(true), WithRetryQueryUnescape(true))
-	w = httptest.NewRecorder()
-	app.ServeHTTP(w, httptest.NewRequest(
-		http.MethodGet, "https://example.com/unsafe/filters%3Afill%28red%29/gopher.png", nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
 
 	app = New(opts, WithSigner(imagorpath.NewDefaultSigner("1234")))
-	w = httptest.NewRecorder()
-	app.ServeHTTP(w, httptest.NewRequest(
-		http.MethodGet, "https://example.com/GSqGN9NrCj-DlGT38BaycScxM9g=/filters%3Afill%28red%29/gopher.png", nil))
-	assert.Equal(t, 403, w.Code)
-
-	app = New(opts, WithRetryQueryUnescape(true), WithSigner(imagorpath.NewDefaultSigner("1234")))
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/GSqGN9NrCj-DlGT38BaycScxM9g=/filters%3Afill%28red%29/gopher.png", nil))

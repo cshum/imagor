@@ -69,7 +69,6 @@ type Imagor struct {
 	ModifiedTimeCheck      bool
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
-	RetryQueryUnescape     bool
 	BaseParams             string
 	Logger                 *zap.Logger
 	Debug                  bool
@@ -158,7 +157,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	blob, err := checkBlob(app.Do(r, p))
-	if app.RetryQueryUnescape && (err == ErrInvalid || err == ErrSignatureMismatch) {
+	if err == ErrInvalid || err == ErrSignatureMismatch {
 		if path2, e := url.QueryUnescape(path); e == nil {
 			path = path2
 			p = imagorpath.Parse(path)
