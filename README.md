@@ -91,8 +91,9 @@ imagor supports the following filters:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image.
     - If color is "auto" - the top left image pixel will be chosen as the filling color
-- `focal(AxB:CxD)` adds a focal region for custom transformations, coordinated by left-top point `AxB` and right-bottom point `CxD`.
-  Also accepts float values between 0 and 1 that represents percentage of image dimensions.
+- `focal(AxB:CxD)` or `focal(X,Y)` adds a focal region or focal point for custom transformations: 
+  - Coordinated by a region of left-top point `AxB` and right-bottom point `CxD`, or a point `X,Y`.
+  - Also accepts float values between 0 and 1 that represents percentage of image dimensions.
 - `format(format)` specifies the output format of the image
   - `format` accepts jpeg, png, gif, webp, tiff, avif
 - `grayscale()` changes the image to grayscale
