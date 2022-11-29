@@ -156,6 +156,7 @@ func startupIfNeeded() {
 	})
 }
 
+// Shutdown libvips
 func Shutdown() {
 	lock.Lock()
 	defer lock.Unlock()
