@@ -20,6 +20,7 @@ import (
 	"time"
 )
 
+// Version imagor version
 const Version = "1.3.2"
 
 // Loader image loader interface
@@ -781,9 +782,9 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 }
 
 func getType(v interface{}) string {
-	if t := reflect.TypeOf(v); t.Kind() == reflect.Ptr {
+	t := reflect.TypeOf(v)
+	if t.Kind() == reflect.Ptr {
 		return t.Elem().Name()
-	} else {
-		return t.Name()
 	}
+	return t.Name()
 }
