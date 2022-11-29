@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/vips/vipscontext"
 	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
@@ -60,7 +59,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 		}
 	}
 	var overlayN = overlay.Height() / overlay.PageHeight()
-	vipscontext.Defer(ctx, overlay.Close)
+	contextDefer(ctx, overlay.Close)
 	if overlay.Bands() < 3 {
 		if err = overlay.ToColorSpace(InterpretationSRGB); err != nil {
 			return
@@ -190,7 +189,7 @@ func setFrames(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string)
 }
 
 func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
-	if vipscontext.IsRotate90(ctx) {
+	if isRotate90(ctx) {
 		tmpW := w
 		w = h
 		h = tmpW
@@ -232,7 +231,7 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
-		vipscontext.Defer(ctx, cp.Close)
+		contextDefer(ctx, cp.Close)
 		if err = img.ThumbnailWithSize(
 			width, height, InterestingNone, SizeForce,
 		); err != nil {
@@ -281,7 +280,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	`, w, h, rx, ry, w, h)), nil); err != nil {
 		return
 	}
-	vipscontext.Defer(ctx, rounded.Close)
+	contextDefer(ctx, rounded.Close)
 	if n := img.Height() / img.PageHeight(); n > 1 {
 		if err = rounded.Replicate(1, n); err != nil {
 			return
@@ -419,7 +418,7 @@ func rotate(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 	if angle, _ := strconv.Atoi(args[0]); angle > 0 {
 		switch angle {
 		case 90, 270:
-			vipscontext.SetRotate90(ctx)
+			setRotate90(ctx)
 		}
 		if err = img.Rotate(getAngle(angle)); err != nil {
 			return err

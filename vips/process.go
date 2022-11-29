@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/vips/vipscontext"
 	"go.uber.org/zap"
 	"math"
 	"strconv"
@@ -32,8 +31,8 @@ var imageTypeMap = map[string]ImageType{
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
-	ctx = vipscontext.WithContext(ctx)
-	defer vipscontext.Done(ctx)
+	ctx = withContext(ctx)
+	defer contextDone(ctx)
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
@@ -204,7 +203,7 @@ func (v *Processor) Process(
 			}
 		}
 	}
-	// this should be called BEFORE vipscontext.Done
+	// this should be called BEFORE vipscontext.contextDone
 	defer img.Close()
 
 	if orient > 0 {
