@@ -62,6 +62,7 @@ func WithMaxAnimationFrames(num int) Option {
 	}
 }
 
+// WithConcurrency with libvips concurrency option
 func WithConcurrency(num int) Option {
 	return func(v *Processor) {
 		if num != 0 {
@@ -70,6 +71,7 @@ func WithConcurrency(num int) Option {
 	}
 }
 
+// WithMaxCacheFiles with libvips max cache files option
 func WithMaxCacheFiles(num int) Option {
 	return func(v *Processor) {
 		if num > 0 {
@@ -78,6 +80,7 @@ func WithMaxCacheFiles(num int) Option {
 	}
 }
 
+// WithMaxCacheSize with libvips max cache size option
 func WithMaxCacheSize(num int) Option {
 	return func(v *Processor) {
 		if num > 0 {
@@ -86,6 +89,7 @@ func WithMaxCacheSize(num int) Option {
 	}
 }
 
+// WithMaxCacheMem with libvips max cache mem option
 func WithMaxCacheMem(num int) Option {
 	return func(v *Processor) {
 		if num > 0 {

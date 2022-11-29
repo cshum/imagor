@@ -63,7 +63,7 @@ func Apply(p Params, path string) Params {
 	if match[index] != "" {
 		p.Params = true
 	}
-	index += 1
+	index++
 	if match[index+1] == "unsafe/" {
 		p.Unsafe = true
 	} else if len(match[index+2]) > 8 {
@@ -80,7 +80,7 @@ func Apply(p Params, path string) Params {
 	if match[index] != "" {
 		p.Meta = true
 	}
-	index += 1
+	index++
 	if match[index] != "" {
 		p.Trim = true
 		p.TrimBy = TrimByTopLeft
@@ -100,11 +100,11 @@ func Apply(p Params, path string) Params {
 	if match[index] != "" {
 		p.FitIn = true
 	}
-	index += 1
+	index++
 	if match[index] != "" {
 		p.Stretch = true
 	}
-	index += 1
+	index++
 	if match[index] != "" {
 		p.HFlip = match[index+1] != ""
 		p.Width, _ = strconv.Atoi(match[index+2])
@@ -135,7 +135,7 @@ func Apply(p Params, path string) Params {
 	if match[index] != "" {
 		p.Smart = true
 	}
-	index += 1
+	index++
 	if match[index] != "" {
 		p.Filters = append(p.Filters, parseFilters(match[index+1])...)
 	}

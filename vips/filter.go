@@ -138,7 +138,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	if n := img.Height() / img.PageHeight(); n > overlayN {
 		cnt := n / overlayN
 		if n%overlayN > 0 {
-			cnt += 1
+			cnt++
 		}
 		if err = overlay.Replicate(1, cnt); err != nil {
 			return
