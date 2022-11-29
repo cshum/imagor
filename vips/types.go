@@ -24,10 +24,17 @@ const (
 	ImageTypeJP2K
 )
 
+// IsSaveSupported indicates if image type supports save
 func IsSaveSupported(imageType ImageType) bool {
 	return supportedSaveImageTypes[imageType]
 }
 
+// IsLoadSupported indicates if image type supports load
+func IsLoadSupported(imageType ImageType) bool {
+	return supportedLoadImageTypes[imageType]
+}
+
+// IsAnimationSupported indicates if image type supports animation
 func IsAnimationSupported(imageType ImageType) bool {
 	return imageType == ImageTypeGIF || imageType == ImageTypeWEBP
 }
@@ -87,6 +94,7 @@ var ImageTypes = map[ImageType]string{
 	ImageTypeJP2K:   "jp2k",
 }
 
+// ImageMimeTypes map the various image types to its mime type representation
 var ImageMimeTypes = map[ImageType]string{
 	ImageTypeGIF:  "image/gif",
 	ImageTypeJPEG: "image/jpeg",

@@ -28,6 +28,7 @@ var imageTypeMap = map[string]ImageType{
 	"jp2":    ImageTypeJP2K,
 }
 
+// Process implements imagor.Processor interface
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {

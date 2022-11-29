@@ -24,11 +24,13 @@ type Image struct {
 	pageHeight int // cached page height
 }
 
+// Param libvips options param
 type Param struct {
 	value interface{}
 	isSet bool
 }
 
+// IsSet is param set
 func (p *Param) IsSet() bool {
 	return p.isSet
 }
@@ -38,26 +40,32 @@ func (p *Param) set(v interface{}) {
 	p.isSet = true
 }
 
+// BoolParam bool param
 type BoolParam struct {
 	Param
 }
 
+// Set bool param
 func (p *BoolParam) Set(v bool) {
 	p.set(v)
 }
 
+// Get bool param
 func (p *BoolParam) Get() bool {
 	return p.value.(bool)
 }
 
+// IntParam int param
 type IntParam struct {
 	Param
 }
 
+// Set int param
 func (p *IntParam) Set(v int) {
 	p.set(v)
 }
 
+// Get int param
 func (p *IntParam) Get() int {
 	return p.value.(int)
 }
@@ -113,6 +121,7 @@ func (i *ImportParams) OptionString() string {
 	return strings.Join(values, ",")
 }
 
+// LoadImageFromSource loads a Source and creates a new Image
 func LoadImageFromSource(s *Source, params *ImportParams) (*Image, error) {
 	if params == nil {
 		params = NewImportParams()
@@ -128,6 +137,7 @@ func LoadImageFromSource(s *Source, params *ImportParams) (*Image, error) {
 	return ref, nil
 }
 
+// LoadThumbnailFromSource loads a Source and creates a new Image with thumbnail crop and resize
 func LoadThumbnailFromSource(s *Source, width, height int, crop Interesting, size Size, params *ImportParams) (*Image, error) {
 	if params == nil {
 		params = NewImportParams()
@@ -163,7 +173,7 @@ func LoadImageFromBuffer(buf []byte, params *ImportParams) (*Image, error) {
 	return ref, nil
 }
 
-// LoadImageFromMemory loads an formatted image buffer and creates a new Image
+// LoadImageFromMemory loads a raw RGB/RGBA image buffer and creates a new Image
 func LoadImageFromMemory(buf []byte, width, height, bands int) (*Image, error) {
 	startupIfNeeded()
 
@@ -294,6 +304,7 @@ func (r *Image) SetPageDelay(delay []int) error {
 	return vipsImageSetDelay(r.image, data)
 }
 
+// Exif extracts Exif key value data
 func (r *Image) Exif() map[string]any {
 	return vipsImageGetExif(r.image)
 }

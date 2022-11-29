@@ -144,7 +144,7 @@ func Startup(config *config) {
 		if supportedLoadImageTypes[k] || supportedSaveImageTypes[k] {
 			log("vips", LogLevelInfo, fmt.Sprintf(
 				"registered image type=%s load=%t save=%t",
-				v, supportedLoadImageTypes[k], supportedSaveImageTypes[k]))
+				v, IsLoadSupported(k), IsSaveSupported(k)))
 		}
 	}
 	isStarted = true

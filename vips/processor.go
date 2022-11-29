@@ -18,6 +18,7 @@ type FilterMap map[string]FilterFunc
 var processorLock sync.RWMutex
 var processorCount int
 
+// Processor implements imagor.Processor interface
 type Processor struct {
 	Filters            FilterMap
 	DisableBlur        bool
@@ -38,6 +39,7 @@ type Processor struct {
 	disableFilters map[string]bool
 }
 
+// NewProcessor create Processor
 func NewProcessor(options ...Option) *Processor {
 	v := &Processor{
 		MaxWidth:           9999,
