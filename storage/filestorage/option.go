@@ -8,8 +8,10 @@ import (
 	"time"
 )
 
+// Option FileStorage option
 type Option func(h *FileStorage)
 
+// WithPathPrefix with path prefix option
 func WithPathPrefix(prefix string) Option {
 	return func(s *FileStorage) {
 		if prefix != "" {
@@ -22,6 +24,7 @@ func WithPathPrefix(prefix string) Option {
 	}
 }
 
+// WithBlacklist with regexp path blacklist option
 func WithBlacklist(blacklist *regexp.Regexp) Option {
 	return func(s *FileStorage) {
 		if blacklist != nil {
@@ -30,6 +33,7 @@ func WithBlacklist(blacklist *regexp.Regexp) Option {
 	}
 }
 
+// WithMkdirPermission with mkdir permission option
 func WithMkdirPermission(perm string) Option {
 	return func(h *FileStorage) {
 		if perm != "" {
@@ -40,6 +44,7 @@ func WithMkdirPermission(perm string) Option {
 	}
 }
 
+// WithWritePermission with write permission option
 func WithWritePermission(perm string) Option {
 	return func(h *FileStorage) {
 		if perm != "" {
@@ -50,12 +55,14 @@ func WithWritePermission(perm string) Option {
 	}
 }
 
+// WithSaveErrIfExists with save error if exists option
 func WithSaveErrIfExists(saveErrIfExists bool) Option {
 	return func(h *FileStorage) {
 		h.SaveErrIfExists = saveErrIfExists
 	}
 }
 
+// WithSafeChars with safe chars option
 func WithSafeChars(chars string) Option {
 	return func(h *FileStorage) {
 		if chars != "" {
@@ -64,6 +71,7 @@ func WithSafeChars(chars string) Option {
 	}
 }
 
+// WithExpiration with last modified expiration option
 func WithExpiration(exp time.Duration) Option {
 	return func(h *FileStorage) {
 		if exp > 0 {

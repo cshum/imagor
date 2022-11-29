@@ -15,6 +15,7 @@ import (
 
 var dotFileRegex = regexp.MustCompile("/\\.")
 
+// FileStorage File Storage implements imagor.Storage interface
 type FileStorage struct {
 	BaseDir         string
 	PathPrefix      string
@@ -28,6 +29,7 @@ type FileStorage struct {
 	safeChars imagorpath.SafeChars
 }
 
+// New creates FileStorage
 func New(baseDir string, options ...Option) *FileStorage {
 	s := &FileStorage{
 		BaseDir:         baseDir,
@@ -43,6 +45,7 @@ func New(baseDir string, options ...Option) *FileStorage {
 	return s
 }
 
+// Path transforms image key to storage path
 func (s *FileStorage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.safeChars)
 	for _, blacklist := range s.Blacklists {
@@ -56,6 +59,7 @@ func (s *FileStorage) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
+// Get implements imagor.Storage interface
 func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	image, ok := s.Path(image)
 	if !ok {
@@ -69,6 +73,7 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	}), nil
 }
 
+// Put implements imagor.Storage interface
 func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
@@ -101,6 +106,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	return
 }
 
+// Delete implements imagor.Storage interface
 func (s *FileStorage) Delete(_ context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
@@ -109,6 +115,7 @@ func (s *FileStorage) Delete(_ context.Context, image string) error {
 	return os.Remove(image)
 }
 
+// Stat implements imagor.Storage interface
 func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {

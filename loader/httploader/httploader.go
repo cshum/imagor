@@ -204,6 +204,7 @@ func (h *HTTPLoader) checkRedirect(r *http.Request, via []*http.Request) error {
 	return nil
 }
 
+// ErrUnauthorizedRequest unauthorized request error
 var ErrUnauthorizedRequest = errors.New("unauthorized request")
 
 // DialControl implements a net.Dialer.Control function which is automatically used with the default http.Transport.
