@@ -18,6 +18,7 @@ type BlobType int
 
 const maxMemorySize = int64(100 << 20) // 100MB
 
+// BlobType enum
 const (
 	BlobTypeUnknown BlobType = iota
 	BlobTypeEmpty

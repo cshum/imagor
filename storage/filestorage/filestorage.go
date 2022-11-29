@@ -45,7 +45,7 @@ func New(baseDir string, options ...Option) *FileStorage {
 	return s
 }
 
-// Path transforms image key to storage path
+// Path transforms and validates image key for storage path
 func (s *FileStorage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.safeChars)
 	for _, blacklist := range s.Blacklists {

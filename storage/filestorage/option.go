@@ -71,7 +71,7 @@ func WithSafeChars(chars string) Option {
 	}
 }
 
-// WithExpiration with last modified expiration option
+// WithExpiration with modified time expiration option
 func WithExpiration(exp time.Duration) Option {
 	return func(h *FileStorage) {
 		if exp > 0 {

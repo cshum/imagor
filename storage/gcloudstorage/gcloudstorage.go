@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// GCloudStorage Google Cloud Storage implements imagor.Storage interface
 type GCloudStorage struct {
 	BaseDir    string
 	PathPrefix string
@@ -25,6 +26,7 @@ type GCloudStorage struct {
 	safeChars imagorpath.SafeChars
 }
 
+// New creates GCloudStorage
 func New(client *storage.Client, bucket string, options ...Option) *GCloudStorage {
 	s := &GCloudStorage{client: client, Bucket: bucket}
 	for _, option := range options {
@@ -34,6 +36,7 @@ func New(client *storage.Client, bucket string, options ...Option) *GCloudStorag
 	return s
 }
 
+// Get implements imagor.Storage interface
 func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Blob, err error) {
 	ctx := r.Context()
 	image, ok := s.Path(image)
@@ -70,6 +73,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 	return blob, err
 }
 
+// Put implements imagor.Storage interface
 func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {
 	image, ok := s.Path(image)
 	if !ok {
@@ -95,6 +99,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 	return
 }
 
+// Delete implements imagor.Storage interface
 func (s *GCloudStorage) Delete(ctx context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
@@ -103,6 +108,7 @@ func (s *GCloudStorage) Delete(ctx context.Context, image string) error {
 	return s.client.Bucket(s.Bucket).Object(image).Delete(ctx)
 }
 
+// Path transforms and validates image key for storage path
 func (s *GCloudStorage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.safeChars)
 
@@ -114,6 +120,7 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 	return strings.Trim(joinedPath, "/"), true
 }
 
+// Stat implements imagor.Storage interface
 func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {

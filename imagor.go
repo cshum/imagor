@@ -30,12 +30,15 @@ type Loader interface {
 
 // Storage image storage interface
 type Storage interface {
-	// Get get data Blob by key
+	// Get data Blob by key
 	Get(r *http.Request, key string) (*Blob, error)
+
 	// Stat get Blob Stat by key
 	Stat(ctx context.Context, key string) (*Stat, error)
-	// Put put data Blob by key
+
+	// Put data Blob by key
 	Put(ctx context.Context, key string, blob *Blob) error
+
 	// Delete delete data Blob by key
 	Delete(ctx context.Context, key string) error
 }
@@ -48,8 +51,10 @@ type Processor interface {
 	// Startup processor startup lifecycle,
 	// called only once for the application lifetime
 	Startup(ctx context.Context) error
+
 	// Process Blob with given params and loader function
 	Process(ctx context.Context, blob *Blob, params imagorpath.Params, load LoadFunc) (*Blob, error)
+
 	// Shutdown processor shutdown lifecycle,
 	// called only once for the application lifetime
 	Shutdown(ctx context.Context) error

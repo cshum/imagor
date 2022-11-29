@@ -64,6 +64,7 @@ func New(app Service, options ...Option) *Server {
 	return s
 }
 
+// Run server that terminates on SIGINT, SIGTERM signals
 func (s *Server) Run() {
 	ctx, cancel := signal.NotifyContext(
 		context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -71,6 +72,7 @@ func (s *Server) Run() {
 	s.RunContext(ctx)
 }
 
+// RunContext run server with context
 func (s *Server) RunContext(ctx context.Context) {
 	s.startup(ctx)
 

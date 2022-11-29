@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+// S3Storage AWS S3 Storage implements imagor.Storage interface
 type S3Storage struct {
 	S3         *s3.S3
 	Uploader   *s3manager.Uploader
@@ -32,6 +33,7 @@ type S3Storage struct {
 	safeChars imagorpath.SafeChars
 }
 
+// New creates S3Storage
 func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	baseDir := "/"
 	if idx := strings.Index(bucket, "/"); idx > -1 {
@@ -56,6 +58,7 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	return s
 }
 
+// Path transforms and validates image key for storage path
 func (s *S3Storage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.safeChars)
 	if !strings.HasPrefix(image, s.PathPrefix) {
@@ -64,6 +67,7 @@ func (s *S3Storage) Path(image string) (string, bool) {
 	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
 }
 
+// Get implements imagor.Storage interface
 func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	ctx := r.Context()
 	image, ok := s.Path(image)
@@ -104,6 +108,7 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	return blob, nil
 }
 
+// Put implements imagor.Storage interface
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {
 	image, ok := s.Path(image)
 	if !ok {
@@ -129,6 +134,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	return err
 }
 
+// Delete implements imagor.Storage interface
 func (s *S3Storage) Delete(ctx context.Context, image string) error {
 	image, ok := s.Path(image)
 	if !ok {
@@ -141,6 +147,7 @@ func (s *S3Storage) Delete(ctx context.Context, image string) error {
 	return err
 }
 
+// Stat implements imagor.Storage interface
 func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
 	image, ok := s.Path(image)
 	if !ok {
