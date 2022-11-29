@@ -4,8 +4,10 @@ package vips
 // #include "logging.h"
 import "C"
 
+// LogLevel log level
 type LogLevel int
 
+// LogLevel enum
 const (
 	LogLevelError    LogLevel = C.G_LOG_LEVEL_ERROR
 	LogLevelCritical LogLevel = C.G_LOG_LEVEL_CRITICAL
@@ -20,8 +22,10 @@ var (
 	currentLoggingVerbosity       LogLevel
 )
 
+// LoggingHandlerFunction logging handler function
 type LoggingHandlerFunction func(messageDomain string, messageLevel LogLevel, message string)
 
+// SetLogging set logging handler and verbosity
 func SetLogging(handler LoggingHandlerFunction, verbosity LogLevel) {
 	if handler != nil {
 		currentLoggingHandlerFunction = handler

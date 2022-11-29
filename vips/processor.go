@@ -11,8 +11,10 @@ import (
 	"sync"
 )
 
+// FilterFunc filter handler function
 type FilterFunc func(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error)
 
+// FilterMap filter handler map
 type FilterMap map[string]FilterFunc
 
 var processorLock sync.RWMutex

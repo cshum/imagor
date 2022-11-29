@@ -309,6 +309,7 @@ const (
 // Size represents VipsSize type
 type Size int
 
+// Size enum
 const (
 	SizeBoth  Size = C.VIPS_SIZE_BOTH
 	SizeUp    Size = C.VIPS_SIZE_UP
