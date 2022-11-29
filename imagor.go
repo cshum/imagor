@@ -673,14 +673,13 @@ func (app *Imagor) debugLog() {
 var landing = fmt.Sprintf(`
 <!doctype html>
 <html>
-	<head><title>Welcome to imagor!</title></head>
+	<head><title>imagor v%s</title></head>
 	<body>
-		<h1>Welcome to imagor!</h1>
+		<h1>imagor v%s</h1>
 		<p><a href="https://github.com/cshum/imagor" target="_blank">https://github.com/cshum/imagor</a></p>
-		<p>imagor v%s</p>
 	</body>
 </html>
-`, Version)
+`, Version, Version)
 
 func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
 	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
