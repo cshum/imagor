@@ -450,7 +450,7 @@ func TestVersion(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r)
 	assert.Equal(t, 200, w.Code)
-	assert.Equal(t, fmt.Sprintf(`{"imagor":{"version":"%s"}}`, Version), w.Body.String())
+	assert.Contains(t, w.Body.String(), Version)
 }
 
 func TestWithBasePathRedirect(t *testing.T) {
