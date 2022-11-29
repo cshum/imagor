@@ -141,9 +141,8 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		if app.BasePathRedirect == "" {
-			writeJSON(w, r, json.RawMessage(fmt.Sprintf(
-				`{"imagor":{"version":"%s"}}`, Version,
-			)))
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte(landing))
 		} else {
 			http.Redirect(w, r, app.BasePathRedirect, http.StatusTemporaryRedirect)
 		}
@@ -655,6 +654,18 @@ func (app *Imagor) debugLog() {
 		zap.Strings("processors", processors),
 	)
 }
+
+var landing = fmt.Sprintf(`
+<!doctype html>
+<html>
+	<head><title>Welcome to imagor!</title></head>
+	<body>
+		<h1>Welcome to imagor!</h1>
+		<p><a href="https://github.com/cshum/imagor" target="_blank">https://github.com/cshum/imagor</a></p>
+		<p>imagor v%s</p>
+	</body>
+</html>
+`, Version)
 
 func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
 	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
