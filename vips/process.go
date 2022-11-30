@@ -504,13 +504,14 @@ type Metadata struct {
 	Height      int            `json:"height"`
 	Orientation int            `json:"orientation"`
 	Pages       int            `json:"pages"`
+	Bands       int            `json:"bands"`
 	Exif        map[string]any `json:"exif"`
 }
 
 func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
-	pages := img.Height() / img.PageHeight()
-	if !IsAnimationSupported(format) {
-		pages = 1
+	pages := 1
+	if IsAnimationSupported(format) {
+		pages = img.Height() / img.PageHeight()
 	}
 	exif := map[string]any{}
 	if !stripExif {
@@ -522,6 +523,7 @@ func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
 		Width:       img.Width(),
 		Height:      img.PageHeight(),
 		Pages:       pages,
+		Bands:       img.Bands(),
 		Orientation: img.Orientation(),
 		Exif:        exif,
 	}
