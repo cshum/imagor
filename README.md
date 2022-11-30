@@ -414,6 +414,7 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
   "height": 34,
   "orientation": 1,
   "pages": 1,
+  "bands": 3,
   "exif": {
     "ApertureValue": "368640/65536",
     "ColorSpace": 1,
