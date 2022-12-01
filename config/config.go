@@ -45,7 +45,7 @@ func NewImagor(
 		imagorBasePathRedirect = fs.String("imagor-base-path-redirect", "",
 			"URL to redirect for imagor / base path e.g. https://www.google.com")
 		imagorBaseParams = fs.String("imagor-base-params", "",
-			"imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)")
+			"imagor endpoint base params that applies to all resulting images e.g. filters:watermark(example.jpg)")
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
 			-1, "Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit")
 		imagorProcessQueueSize = fs.Int64("imagor-process-queue-size",

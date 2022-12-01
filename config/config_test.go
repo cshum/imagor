@@ -52,7 +52,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-process-concurrency", "199",
 		"-imagor-process-queue-size", "1999",
 		"-imagor-base-path-redirect", "https://www.google.com",
-		"-imagor-base-params", "fitlers:watermark(example.jpg)",
+		"-imagor-base-params", "filters:watermark(example.jpg)",
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 		"-http-loader-insecure-skip-verify-transport",
@@ -72,7 +72,7 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, int64(199), app.ProcessConcurrency)
 	assert.Equal(t, int64(1999), app.ProcessQueueSize)
 	assert.Equal(t, "https://www.google.com", app.BasePathRedirect)
-	assert.Equal(t, "fitlers:watermark(example.jpg)/", app.BaseParams)
+	assert.Equal(t, "filters:watermark(example.jpg)/", app.BaseParams)
 	assert.Equal(t, time.Hour*169, app.CacheHeaderTTL)
 	assert.Equal(t, time.Hour*167, app.CacheHeaderSWR)
 

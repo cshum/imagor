@@ -12,9 +12,9 @@ imagor uses one of the most efficient image processing library
 [libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings. 
 imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that enables parallel processing pipelines, achieving high network throughput. 
 
-imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
+imagor features tons of image processing use cases, exposed as a HTTP service with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
 
-imagor adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax and supports tons of image processing use cases representing a lightweight, high-performance drop-in replacement.
+imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
 ### Quick Start
 
@@ -559,7 +559,7 @@ Usage of imagor:
   -imagor-auto-avif
         Output AVIF format automatically if browser supports (experimental)
   -imagor-base-params string
-        imagor endpoint base params that applies to all resulting images e.g. fitlers:watermark(example.jpg)
+        imagor endpoint base params that applies to all resulting images e.g. filters:watermark(example.jpg)
   -imagor-signer-type string
         imagor URL signature hasher type: sha1, sha256, sha512 (default "sha1")
   -imagor-signer-truncate int
