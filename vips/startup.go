@@ -25,8 +25,8 @@ const MicroVersion = int(C.VIPS_MICRO_VERSION)
 
 const (
 	defaultConcurrencyLevel = 1
-	defaultMaxCacheMem      = 50 * 1024 * 1024
-	defaultMaxCacheSize     = 100
+	defaultMaxCacheMem      = 0
+	defaultMaxCacheSize     = 0
 	defaultMaxCacheFiles    = 0
 )
 
