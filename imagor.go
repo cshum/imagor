@@ -248,12 +248,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		contextDefer(ctx, cancel)
 		r = r.WithContext(ctx)
 	}
-	if !(app.Unsafe && p.Unsafe) && app.Signer != nil && app.Signer.Sign(p.Path) != p.Hash {
-		err = ErrSignatureMismatch
-		if app.Debug {
-			app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", app.Signer.Sign(p.Path)))
+	if !(app.Unsafe && p.Unsafe) && app.Signer != nil && p.Path != "" {
+		if hash := app.Signer.Sign(p.Path); hash != p.Hash {
+			err = ErrSignatureMismatch
+			if app.Debug {
+				app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", hash))
+			}
+			return
 		}
-		return
 	}
 	var isPathChanged bool
 	if app.BaseParams != "" {

@@ -55,7 +55,6 @@ func TestWithInternal(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()
 	app := New(WithOptions(
-		WithUnsafe(true),
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			return NewBlobFromBytes([]byte("foo")), nil
 		})),
@@ -72,7 +71,7 @@ func TestWithInternal(t *testing.T) {
 	assert.Equal(t, logger, app.Logger)
 
 	blob, err := app.Serve(ctx, imagorpath.Params{
-		Unsafe: true, Image: "foo.jpg",
+		Image: "foo.jpg",
 		Width: 167, Height: 199,
 		Path: "ghjk",
 	})
@@ -82,7 +81,7 @@ func TestWithInternal(t *testing.T) {
 	require.NoError(t, err)
 
 	blob, err = app.Serve(ctx, imagorpath.Params{
-		Unsafe: true, Image: "foo.jpg",
+		Image: "foo.jpg",
 		Width: -167, Height: -199,
 		Path: "ghjk",
 	})
@@ -92,7 +91,7 @@ func TestWithInternal(t *testing.T) {
 	require.NoError(t, err)
 
 	blob, err = app.Serve(nil, imagorpath.Params{
-		Unsafe: true, Image: "foo.jpg",
+		Image: "foo.jpg",
 		Width: 167, Height: 199,
 		Path: "ghjk",
 	})
@@ -100,7 +99,7 @@ func TestWithInternal(t *testing.T) {
 	assert.Error(t, err)
 
 	blob, err = app.ServeBlob(nil, nil, imagorpath.Params{
-		Unsafe: true, Image: "foo.jpg",
+		Image: "foo.jpg",
 		Width: 167, Height: 199,
 		Path: "ghjk",
 	})
@@ -108,7 +107,7 @@ func TestWithInternal(t *testing.T) {
 	assert.Error(t, err)
 
 	blob, err = app.ServeBlob(ctx, NewBlobFromBytes([]byte("asdf")), imagorpath.Params{
-		Unsafe: true, Image: "foo.jpg",
+		Image: "foo.jpg",
 		Width: 167, Height: 199,
 		Path: "ghjk",
 	})
