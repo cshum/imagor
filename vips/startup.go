@@ -25,8 +25,8 @@ const MicroVersion = int(C.VIPS_MICRO_VERSION)
 
 const (
 	defaultConcurrencyLevel = 1
-	defaultMaxCacheMem      = 50 * 1024 * 1024
-	defaultMaxCacheSize     = 100
+	defaultMaxCacheMem      = 0
+	defaultMaxCacheSize     = 0
 	defaultMaxCacheFiles    = 0
 )
 
@@ -107,6 +107,8 @@ func Startup(config *config) {
 		} else {
 			C.vips_cache_set_max(defaultMaxCacheSize)
 		}
+		// Vector calculations cause SIGSEGV sometimes when working with JPEG.
+		C.vips_vector_set_enabled(0)
 
 		if config.CacheTrace {
 			C.vips_cache_set_trace(toGboolean(true))
