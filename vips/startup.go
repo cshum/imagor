@@ -107,7 +107,6 @@ func Startup(config *config) {
 		} else {
 			C.vips_cache_set_max(defaultMaxCacheSize)
 		}
-		// Vector calculations cause SIGSEGV sometimes when working with JPEG.
 		C.vips_vector_set_enabled(0)
 
 		if config.CacheTrace {
