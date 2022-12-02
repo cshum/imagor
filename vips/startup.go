@@ -107,7 +107,6 @@ func Startup(config *config) {
 		} else {
 			C.vips_cache_set_max(defaultMaxCacheSize)
 		}
-		C.vips_vector_set_enabled(0)
 
 		if config.CacheTrace {
 			C.vips_cache_set_trace(toGboolean(true))
