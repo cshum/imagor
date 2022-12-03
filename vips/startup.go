@@ -29,7 +29,7 @@ const (
 	defaultMaxCacheMem      = 0
 	defaultMaxCacheSize     = 0
 	defaultMaxCacheFiles    = 0
-	defaultVectorSetEnabled = 0
+	defaultVectorEnabled    = 0
 )
 
 var (
@@ -41,19 +41,19 @@ var (
 	supportedSaveImageTypes = make(map[ImageType]bool)
 )
 
-type config struct {
+type Config struct {
 	ConcurrencyLevel int
 	MaxCacheFiles    int
 	MaxCacheMem      int
 	MaxCacheSize     int
 	ReportLeaks      bool
 	CacheTrace       bool
-	VectorSetEnabled bool
+	VectorEnabled    bool
 }
 
 // Startup sets up the libvips support and ensures the versions are correct. Pass in nil for
 // default configuration.
-func Startup(config *config) {
+func Startup(config *Config) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -111,7 +111,7 @@ func Startup(config *config) {
 			C.vips_cache_set_max(defaultMaxCacheSize)
 		}
 
-		if config.VectorSetEnabled {
+		if config.VectorEnabled {
 			C.vips_vector_set_enabled(1)
 		} else {
 			C.vips_vector_set_enabled(0)
@@ -125,7 +125,7 @@ func Startup(config *config) {
 		C.vips_cache_set_max(defaultMaxCacheSize)
 		C.vips_cache_set_max_mem(defaultMaxCacheMem)
 		C.vips_cache_set_max_files(defaultMaxCacheFiles)
-		C.vips_vector_set_enabled(defaultVectorSetEnabled)
+		C.vips_vector_set_enabled(defaultVectorEnabled)
 	}
 
 	log("vips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",

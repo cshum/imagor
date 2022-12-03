@@ -113,7 +113,7 @@ func (v *Processor) Startup(_ context.Context) error {
 			v.Logger.Warn(domain, zap.String("log", msg))
 		}, LogLevelError)
 	}
-	Startup(&config{
+	Startup(&Config{
 		MaxCacheFiles:    v.MaxCacheFiles,
 		MaxCacheMem:      v.MaxCacheMem,
 		MaxCacheSize:     v.MaxCacheSize,
