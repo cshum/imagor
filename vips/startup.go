@@ -113,6 +113,8 @@ func Startup(config *config) {
 
 		if config.VectorSetEnabled {
 			C.vips_vector_set_enabled(1)
+		} else {
+			C.vips_vector_set_enabled(0)
 		}
 
 		if config.CacheTrace {
