@@ -2,6 +2,7 @@ package vips
 
 // #cgo pkg-config: vips
 // #include <vips/vips.h>
+// #include <vips/vector.h>
 // #include <stdlib.h>
 import "C"
 import (
@@ -28,6 +29,7 @@ const (
 	defaultMaxCacheMem      = 0
 	defaultMaxCacheSize     = 0
 	defaultMaxCacheFiles    = 0
+	defaultVectorSetEnabled = 0
 )
 
 var (
@@ -46,6 +48,7 @@ type config struct {
 	MaxCacheSize     int
 	ReportLeaks      bool
 	CacheTrace       bool
+	VectorSetEnabled bool
 }
 
 // Startup sets up the libvips support and ensures the versions are correct. Pass in nil for
@@ -108,6 +111,12 @@ func Startup(config *config) {
 			C.vips_cache_set_max(defaultMaxCacheSize)
 		}
 
+		if config.VectorSetEnabled {
+			C.vips_vector_set_enabled(1)
+		} else {
+			C.vips_vector_set_enabled(0)
+		}
+
 		if config.CacheTrace {
 			C.vips_cache_set_trace(toGboolean(true))
 		}
@@ -116,6 +125,7 @@ func Startup(config *config) {
 		C.vips_cache_set_max(defaultMaxCacheSize)
 		C.vips_cache_set_max_mem(defaultMaxCacheMem)
 		C.vips_cache_set_max_files(defaultMaxCacheFiles)
+		C.vips_vector_set_enabled(defaultVectorSetEnabled)
 	}
 
 	log("vips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",

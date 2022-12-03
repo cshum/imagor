@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <vips/vips.h>
+#include <vips/vector.h>
 
 int image_new_from_source(VipsSourceCustom *source, VipsImage **out);
 
