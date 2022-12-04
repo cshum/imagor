@@ -10,19 +10,22 @@ func main() {
 	vips.Startup(nil)
 	defer vips.Shutdown()
 
+	// create source from io.ReadCloser
 	resp, err := http.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif")
 	if err != nil {
 		panic(err)
 	}
 	source := vips.NewSource(resp.Body)
-	defer source.Close()
+	defer source.Close() // source should be closed after image
 
+	// create image from source
 	params := vips.NewImportParams()
 	params.NumPages.Set(-1) // enable animation
 	image, err := source.LoadImage(params)
 	if err != nil {
 		panic(err)
 	}
+	defer image.Close()
 	if err = image.ExtractArea(30, 40, 50, 70); err != nil {
 		panic(err)
 	}
