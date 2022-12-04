@@ -207,9 +207,7 @@ func newImageRef(vipsImage *C.VipsImage, format ImageType, buf []byte) *Image {
 	return imageRef
 }
 
-// Close manually closes the image and frees the memory. Calling Close() is optional.
-// Images are automatically closed by GC. However, in high volume applications the GC
-// can't keep up with the amount of memory, so you might want to manually close the images.
+// Close closes the image and frees the memory
 func (r *Image) Close() {
 	r.lock.Lock()
 	if r.image != nil {
@@ -463,7 +461,7 @@ func (r *Image) Linear(a, b []float64) error {
 // ExtractArea crops the image to a specified area
 func (r *Image) ExtractArea(left, top, width, height int) error {
 	if r.Height() > r.PageHeight() {
-		// use animated extract area if more than 1 pages loaded
+		// use animated extract area if more than 1 page loaded
 		out, err := vipsExtractAreaMultiPage(r.image, left, top, width, height)
 		if err != nil {
 			return err
