@@ -13,7 +13,6 @@ import (
 
 func main() {
 	app := imagor.New(
-		imagor.WithUnsafe(true),
 		imagor.WithLoaders(httploader.New()),
 		imagor.WithProcessors(vips.NewProcessor()),
 	)
@@ -25,11 +24,10 @@ func main() {
 
 	buf := downloadBytes("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 
+	// serve via image buffer
 	in := imagor.NewBlobFromBytes(buf)
 
-	// serve via image path
 	out, err := app.ServeBlob(ctx, in, imagorpath.Params{
-		Unsafe: true,
 		Width:  500,
 		Height: 500,
 		FitIn:  true,

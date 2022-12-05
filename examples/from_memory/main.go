@@ -16,7 +16,6 @@ import (
 
 func main() {
 	app := imagor.New(
-		imagor.WithUnsafe(true),
 		imagor.WithLoaders(httploader.New()),
 		imagor.WithProcessors(vips.NewProcessor()),
 	)
@@ -42,7 +41,6 @@ func main() {
 
 	// serve via image path
 	out, err := app.ServeBlob(ctx, in, imagorpath.Params{
-		Unsafe: true,
 		Width:  500,
 		Height: 500,
 		HFlip:  true,

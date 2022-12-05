@@ -471,7 +471,6 @@ import (
 
 func main() {
 	app := imagor.New(
-		imagor.WithUnsafe(true),
 		imagor.WithLoaders(httploader.New()),
 		imagor.WithProcessors(vips.NewProcessor()),
 	)
@@ -481,7 +480,6 @@ func main() {
 	}
 	defer app.Shutdown(ctx)
 	blob, err := app.Serve(ctx, imagorpath.Params{
-		Unsafe: true,
 		Image:  "https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
 		Width:  500,
 		Height: 500,
