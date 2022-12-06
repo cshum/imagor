@@ -327,14 +327,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	load := func(image string) (*Blob, error) {
-		blob, shouldSave, err := app.loadStorage(r, image)
-		if shouldSave {
-			var storageKey = image
-			if app.StoragePathStyle != nil {
-				storageKey = app.StoragePathStyle.Hash(image)
-			}
-			go app.save(ctx, app.Storages, storageKey, blob)
-		}
+		blob, _, err := app.loadStorage(r, image)
 		return blob, err
 	}
 	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
