@@ -6,7 +6,6 @@ import (
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
 	"math"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -32,9 +31,6 @@ var imageTypeMap = map[string]ImageType{
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
 	var (
