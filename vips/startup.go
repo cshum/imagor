@@ -56,12 +56,8 @@ func Startup(config *Config) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if C.VIPS_MAJOR_VERSION < 8 {
-		panic("vips requires libvips version 8.10+")
-	}
-
-	if C.VIPS_MAJOR_VERSION == 8 && C.VIPS_MINOR_VERSION < 10 {
-		panic("vips requires libvips version 8.10+")
+	if MajorVersion < 8 || (MajorVersion == 8 && MinorVersion < 10) {
+		panic("requires libvips version 8.10+")
 	}
 
 	cName := C.CString("vips")
