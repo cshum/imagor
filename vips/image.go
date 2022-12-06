@@ -519,7 +519,7 @@ func (r *Image) Flatten(backgroundColor *Color) error {
 	return nil
 }
 
-// Label adds text label
+// Label adds text label with font, dimensions, alignment, color and opacity
 func (r *Image) Label(
 	text, font string,
 	x, y, size int, align Align,
@@ -613,12 +613,7 @@ func (r *Image) GetPoint(x int, y int) ([]float64, error) {
 // Thumbnail resizes the image to the given width and height.
 // crop decides algorithm vips uses to shrink and crop to fill target,
 func (r *Image) Thumbnail(width, height int, crop Interesting) error {
-	out, err := vipsThumbnail(r.image, width, height, crop, SizeBoth)
-	if err != nil {
-		return err
-	}
-	r.setImage(out)
-	return nil
+	return r.ThumbnailWithSize(width, height, crop, SizeBoth)
 }
 
 // ThumbnailWithSize resizes the image to the given width and height.
@@ -653,26 +648,12 @@ func (r *Image) Embed(left, top, width, height int, extend ExtendStrategy) error
 
 // EmbedBackground embeds the given picture with a background color
 func (r *Image) EmbedBackground(left, top, width, height int, backgroundColor *Color) error {
-	c := &ColorRGBA{
+	return r.EmbedBackgroundRGBA(left, top, width, height, &ColorRGBA{
 		R: backgroundColor.R,
 		G: backgroundColor.G,
 		B: backgroundColor.B,
 		A: 255,
-	}
-	if r.Height() > r.PageHeight() {
-		out, err := vipsEmbedMultiPageBackground(r.image, left, top, width, height, c)
-		if err != nil {
-			return err
-		}
-		r.setImage(out)
-	} else {
-		out, err := vipsEmbedBackground(r.image, left, top, width, height, c)
-		if err != nil {
-			return err
-		}
-		r.setImage(out)
-	}
-	return nil
+	})
 }
 
 // EmbedBackgroundRGBA embeds the given picture with a background rgba color
