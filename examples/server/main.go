@@ -13,6 +13,7 @@ import (
 func main() {
 	logger := zap.Must(zap.NewProduction())
 
+	// create and run imagor server programmatically
 	server.New(
 		imagor.New(
 			imagor.WithLogger(logger),

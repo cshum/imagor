@@ -10,7 +10,7 @@ imagor is a fast, secure image processing server and Go library.
 
 imagor uses one of the most efficient image processing library
 [libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings. 
-imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that enables parallel processing pipelines, achieving high network throughput. 
+imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput. 
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
 
@@ -43,8 +43,6 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 ```
 
 <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif" height="100" />  
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 ### Image Endpoint
 
@@ -438,7 +436,7 @@ curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0
 ### Go Library
 
 imagor is a Go library built with speed, security and extensibility in mind. 
-It enables high-level image processing in a modular architecture made up of a series of Go packages:
+It facilitates high-level image processing in a modular architecture made up of a series of Go packages:
 
 - [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
 - [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint
@@ -447,8 +445,6 @@ It enables high-level image processing in a modular architecture made up of a se
 - [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
 - [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
 - [gcloudstorage](https://pkg.go.dev/github.com/cshum/imagor/storage/gcloudstorage) - Google Cloud Storage, an `imagor.Storage` implementation
-- [fanoutreader](https://pkg.go.dev/github.com/cshum/imagor/fanoutreader) - fan-out arbitrary number of reader streams concurrently from one reader source
-- [seekstream](https://pkg.go.dev/github.com/cshum/imagor/seekstream) - enable seeking on non-seekable reader source by using memory or temp file buffer
 
 Install [libvips](https://www.libvips.org/) and enable CGO:
 - `brew install vips` for Mac

@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
+	// manipulate images using libvips C bindings
 	vips.Startup(nil)
 	defer vips.Shutdown()
 
@@ -16,12 +17,11 @@ func main() {
 		panic(err)
 	}
 	source := vips.NewSource(resp.Body)
-	defer source.Close() // source should be closed after image
+	defer source.Close() // source needs to remain available during the lifetime of image
 
-	// create image from source
 	params := vips.NewImportParams()
-	params.NumPages.Set(-1) // enable animation
-	image, err := source.LoadImage(params)
+	params.NumPages.Set(-1)                // enable animation
+	image, err := source.LoadImage(params) // load image from source
 	if err != nil {
 		panic(err)
 	}
