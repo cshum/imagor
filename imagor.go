@@ -60,7 +60,7 @@ type Processor interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Imagor image resize HTTP handler
+// Imagor the imagor application
 type Imagor struct {
 	Unsafe                 bool
 	Signer                 imagorpath.Signer
