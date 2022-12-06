@@ -60,7 +60,7 @@ type Processor interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Imagor the imagor application
+// Imagor main application
 type Imagor struct {
 	Unsafe                 bool
 	Signer                 imagorpath.Signer

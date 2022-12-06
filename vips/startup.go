@@ -24,14 +24,6 @@ const MinorVersion = int(C.VIPS_MINOR_VERSION)
 // Also known as patch version
 const MicroVersion = int(C.VIPS_MICRO_VERSION)
 
-const (
-	defaultConcurrencyLevel = 1
-	defaultMaxCacheMem      = 0
-	defaultMaxCacheSize     = 0
-	defaultMaxCacheFiles    = 0
-	defaultVectorEnabled    = 0
-)
-
 var (
 	lock                    sync.Mutex
 	once                    sync.Once
@@ -84,48 +76,41 @@ func Startup(config *Config) {
 	}
 
 	if config != nil {
-
 		C.vips_leak_set(toGboolean(config.ReportLeaks))
+	}
 
-		if config.ConcurrencyLevel >= 0 {
-			C.vips_concurrency_set(C.int(config.ConcurrencyLevel))
-		} else {
-			C.vips_concurrency_set(defaultConcurrencyLevel)
-		}
-
-		if config.MaxCacheFiles >= 0 {
-			C.vips_cache_set_max_files(C.int(config.MaxCacheFiles))
-		} else {
-			C.vips_cache_set_max_files(defaultMaxCacheFiles)
-		}
-
-		if config.MaxCacheMem >= 0 {
-			C.vips_cache_set_max_mem(C.size_t(config.MaxCacheMem))
-		} else {
-			C.vips_cache_set_max_mem(defaultMaxCacheMem)
-		}
-
-		if config.MaxCacheSize >= 0 {
-			C.vips_cache_set_max(C.int(config.MaxCacheSize))
-		} else {
-			C.vips_cache_set_max(defaultMaxCacheSize)
-		}
-
-		if config.VectorEnabled {
-			C.vips_vector_set_enabled(1)
-		} else {
-			C.vips_vector_set_enabled(0)
-		}
-
-		if config.CacheTrace {
-			C.vips_cache_set_trace(toGboolean(true))
-		}
+	if config != nil && config.ConcurrencyLevel >= 0 {
+		C.vips_concurrency_set(C.int(config.ConcurrencyLevel))
 	} else {
-		C.vips_concurrency_set(defaultConcurrencyLevel)
-		C.vips_cache_set_max(defaultMaxCacheSize)
-		C.vips_cache_set_max_mem(defaultMaxCacheMem)
-		C.vips_cache_set_max_files(defaultMaxCacheFiles)
-		C.vips_vector_set_enabled(defaultVectorEnabled)
+		C.vips_concurrency_set(1)
+	}
+
+	if config != nil && config.MaxCacheFiles >= 0 {
+		C.vips_cache_set_max_files(C.int(config.MaxCacheFiles))
+	} else {
+		C.vips_cache_set_max_files(0)
+	}
+
+	if config != nil && config.MaxCacheMem >= 0 {
+		C.vips_cache_set_max_mem(C.size_t(config.MaxCacheMem))
+	} else {
+		C.vips_cache_set_max_mem(0)
+	}
+
+	if config != nil && config.MaxCacheSize >= 0 {
+		C.vips_cache_set_max(C.int(config.MaxCacheSize))
+	} else {
+		C.vips_cache_set_max(0)
+	}
+
+	if config != nil && config.VectorEnabled {
+		C.vips_vector_set_enabled(1)
+	} else {
+		C.vips_vector_set_enabled(0)
+	}
+
+	if config != nil && config.CacheTrace {
+		C.vips_cache_set_trace(toGboolean(true))
 	}
 
 	log("vips", LogLevelInfo, fmt.Sprintf("vips %s started with concurrency=%d cache_max_files=%d cache_max_mem=%d cache_max=%d",
