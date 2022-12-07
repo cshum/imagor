@@ -6,14 +6,16 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/server"
-	"github.com/peterbourgon/ff/v3"
-	"go.uber.org/zap"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/metrics"
+	"github.com/cshum/imagor/server"
+	"github.com/peterbourgon/ff/v3"
+	"go.uber.org/zap"
 )
 
 var baseConfig = []Option{
@@ -130,6 +132,11 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		port         = fs.Int("port", 8000, "Server port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
+		enableMetrics = fs.Bool("metrics", false, "Expose Prometheus metrics (Uses :9000/metrics by default)")
+		metricsHost   = fs.String("metrics-host", "", "Metrics host")
+		metricsPort   = fs.Int("metrics-port", 9000, "Metrics port")
+		metricsPath   = fs.String("metrics-path", "/metrics", "Metrics path")
+
 		_ = fs.String("config", ".env", "Retrieve configuration from the given file")
 
 		serverAddress = fs.String("server-address", "",
@@ -170,6 +177,15 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 	if *goMaxProcess > 0 {
 		logger.Debug("GOMAXPROCS", zap.Int("count", *goMaxProcess))
 		runtime.GOMAXPROCS(*goMaxProcess)
+	}
+
+	if *enableMetrics {
+		metrics.New(
+			metrics.WithHost(*metricsHost),
+			metrics.WithPort(*metricsPort),
+			metrics.WithPath(*metricsPath),
+			metrics.WithLogger(logger),
+		).Run()
 	}
 
 	return server.New(app,
