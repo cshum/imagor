@@ -75,7 +75,7 @@ func TestProcessor(t *testing.T) {
 		doGoldenTests(t, resultDir, []test{
 			{name: "no-ops", path: "filters:background_color():set_frames():set_frames(0):round_corner():padding():rotate():proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
 			{name: "no-ops 2", path: "trim/filters:watermark():blur(2):sharpen(2):brightness():contrast():hue():saturation():rgb():modulate()/dancing-banana.gif"},
-			{name: "no-ops 3", path: "filters:proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
+			{name: "no-ops 3", path: "filters:proportion():proportion(9999):proportion(0.0000000001):proportion(-10):sharpen(-1)/gopher-front.png"},
 			{name: "resize center", path: "100x100/filters:quality(70):format(jpeg)/gopher.png"},
 			{name: "resize smart", path: "100x100/smart/filters:autojpg()/gopher.png"},
 			{name: "resize focal", path: "300x100/filters:fill(white):format(jpeg):focal(589x401:1000x814)/gopher.png"},

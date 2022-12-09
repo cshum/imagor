@@ -565,7 +565,10 @@ func sharpen(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string)
 		break
 	}
 	sigma = 1 + sigma*2
-	return img.Sharpen(sigma, 1, 2)
+	if sigma > 0 {
+		return img.Sharpen(sigma, 1, 2)
+	}
+	return
 }
 
 func stripIcc(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
