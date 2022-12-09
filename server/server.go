@@ -54,18 +54,32 @@ func New(app Service, options ...Option) *Server {
 	s.StartupTimeout = time.Second * 10
 	s.ShutdownTimeout = time.Second * 10
 	s.Logger = zap.NewNop()
+
+	// build up middleware handlers in reverse order
+	// Handler: application
+	s.Handler = s.App
+
+	// Handler: observe metrics (does not include utilities below)
+	s.Handler = s.durationHandler(s.Handler)
+
+	// Handler: utility routes
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
 		"/favicon.ico": handleOk,
 		"/healthcheck": handleOk,
-	})(s.App)
+	})(s.Handler)
 
 	for _, option := range options {
 		option(s)
 	}
+
+	// Handler: prefixes
 	if s.PathPrefix != "" {
 		s.Handler = http.StripPrefix(s.PathPrefix, s.Handler)
 	}
+
+	// Handler: recover from panics
 	s.Handler = s.panicHandler(s.Handler)
+
 	if s.Addr == "" {
 		s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
 	}
