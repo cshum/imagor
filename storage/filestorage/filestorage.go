@@ -2,8 +2,6 @@ package filestorage
 
 import (
 	"context"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
 	"io"
 	"net/http"
 	"os"
@@ -11,6 +9,11 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/storage"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var dotFileRegex = regexp.MustCompile("/\\.")
@@ -61,6 +64,7 @@ func (s *FileStorage) Path(image string) (string, bool) {
 
 // Get implements imagor.Storage interface
 func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("file", "get")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
@@ -75,6 +79,7 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 
 // Put implements imagor.Storage interface
 func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (err error) {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("file", "put")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
@@ -108,6 +113,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 
 // Delete implements imagor.Storage interface
 func (s *FileStorage) Delete(_ context.Context, image string) error {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("file", "delete")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
@@ -117,6 +123,7 @@ func (s *FileStorage) Delete(_ context.Context, image string) error {
 
 // Stat implements imagor.Storage interface
 func (s *FileStorage) Stat(_ context.Context, image string) (stat *imagor.Stat, err error) {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("file", "stat")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid

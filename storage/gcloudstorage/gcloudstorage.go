@@ -1,16 +1,19 @@
 package gcloudstorage
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"errors"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
 	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"cloud.google.com/go/storage"
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	metrics "github.com/cshum/imagor/storage"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // GCloudStorage Google Cloud Storage implements imagor.Storage interface
@@ -38,6 +41,7 @@ func New(client *storage.Client, bucket string, options ...Option) *GCloudStorag
 
 // Get implements imagor.Storage interface
 func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Blob, err error) {
+	defer prometheus.NewTimer(metrics.OperationHistorgram.WithLabelValues("gcloud", "get")).ObserveDuration()
 	ctx := r.Context()
 	image, ok := s.Path(image)
 	if !ok {
@@ -75,6 +79,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 
 // Put implements imagor.Storage interface
 func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {
+	defer prometheus.NewTimer(metrics.OperationHistorgram.WithLabelValues("gcloud", "put")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
@@ -101,6 +106,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 
 // Delete implements imagor.Storage interface
 func (s *GCloudStorage) Delete(ctx context.Context, image string) error {
+	defer prometheus.NewTimer(metrics.OperationHistorgram.WithLabelValues("gcloud", "delete")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
@@ -122,6 +128,7 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 
 // Stat implements imagor.Storage interface
 func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	defer prometheus.NewTimer(metrics.OperationHistorgram.WithLabelValues("gcloud", "stat")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid

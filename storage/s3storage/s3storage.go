@@ -2,6 +2,13 @@ package s3storage
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -9,12 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"io"
-	"net/http"
-	"path/filepath"
-	"strings"
-	"sync"
-	"time"
+	"github.com/cshum/imagor/storage"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // S3Storage AWS S3 Storage implements imagor.Storage interface
@@ -69,6 +72,8 @@ func (s *S3Storage) Path(image string) (string, bool) {
 
 // Get implements imagor.Storage interface
 func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("s3", "get")).ObserveDuration()
+
 	ctx := r.Context()
 	image, ok := s.Path(image)
 	if !ok {
@@ -110,6 +115,7 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 
 // Put implements imagor.Storage interface
 func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) error {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("s3", "put")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
@@ -136,6 +142,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 
 // Delete implements imagor.Storage interface
 func (s *S3Storage) Delete(ctx context.Context, image string) error {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("s3", "delete")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return imagor.ErrInvalid
@@ -149,6 +156,7 @@ func (s *S3Storage) Delete(ctx context.Context, image string) error {
 
 // Stat implements imagor.Storage interface
 func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
+	defer prometheus.NewTimer(storage.OperationHistorgram.WithLabelValues("s3", "stat")).ObserveDuration()
 	image, ok := s.Path(image)
 	if !ok {
 		return nil, imagor.ErrInvalid
