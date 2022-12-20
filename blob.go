@@ -31,6 +31,7 @@ const (
 	BlobTypeAVIF
 	BlobTypeHEIF
 	BlobTypeTIFF
+	BlobTypeBMP
 )
 
 // Blob imagor data blob abstraction
@@ -147,6 +148,7 @@ var jpegHeader = []byte("\xFF\xD8\xFF")
 var gifHeader = []byte("\x47\x49\x46")
 var webpHeader = []byte("\x57\x45\x42\x50")
 var pngHeader = []byte("\x89\x50\x4E\x47")
+var bmpHeader = []byte("BM")
 
 // https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
 var ftyp = []byte("ftyp")
@@ -296,6 +298,8 @@ func (b *Blob) doInit() {
 			b.blobType = BlobTypeHEIF
 		} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 			b.blobType = BlobTypeTIFF
+		} else if bytes.Equal(b.sniffBuf[:2], bmpHeader) {
+			b.blobType = BlobTypeBMP
 		}
 	}
 	if b.contentType == "" {
@@ -316,6 +320,8 @@ func (b *Blob) doInit() {
 			b.contentType = "image/heif"
 		case BlobTypeTIFF:
 			b.contentType = "image/tiff"
+		case BlobTypeBMP:
+			b.contentType = "image/bmp"
 		default:
 			b.contentType = http.DetectContentType(b.sniffBuf)
 		}
@@ -484,6 +490,8 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".heif"
 	case BlobTypeTIFF:
 		ext = ".tiff"
+	case BlobTypeBMP:
+		ext = ".bmp"
 	case BlobTypeJSON:
 		ext = ".json"
 	}
