@@ -14,7 +14,10 @@ func loadImageFromBMP(r io.Reader) (*Image, error) {
 	}
 	rect := img.Bounds()
 	size := rect.Size()
-	rgba := image.NewRGBA(rect)
-	draw.Draw(rgba, rect, img, rect.Min, draw.Src)
+	rgba, ok := img.(*image.RGBA)
+	if !ok {
+		rgba = image.NewRGBA(rect)
+		draw.Draw(rgba, rect, img, rect.Min, draw.Src)
+	}
 	return LoadImageFromMemory(rgba.Pix, size.X, size.Y, 4)
 }
