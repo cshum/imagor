@@ -172,7 +172,8 @@ func TestProcessor(t *testing.T) {
 			{name: "label animated", path: "fit-in/150x200/10x00:10x50/filters:fill(yellow):label(IMAGOR,center,-30,25,black)/dancing-banana.gif"},
 			{name: "label animated with font", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):label(IMAGOR,center,-30,25,white,0,monospace)/dancing-banana.gif"},
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
-			{name: "bmp", path: "100x100/bmp_24.bmp"},
+			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
+			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
 			{name: "svg", path: "test.svg"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
