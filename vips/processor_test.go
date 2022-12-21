@@ -330,6 +330,17 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("invalid BMP", func(t *testing.T) {
+		ctx := context.Background()
+		blob := imagor.NewBlobFromBytes([]byte("BMabcdasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"))
+		assert.Equal(t, imagor.BlobTypeBMP, blob.BlobType())
+		p := NewProcessor(
+			WithDebug(true),
+		)
+		img, err := p.Process(ctx, blob, imagorpath.Params{}, nil)
+		assert.Empty(t, img)
+		assert.Error(t, err)
+	})
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
