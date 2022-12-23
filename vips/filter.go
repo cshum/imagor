@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
+func (v *Processor) overlay(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (overlay *Image, err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -29,7 +29,6 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	var x, y, w, h int
 	var across = 1
 	var down = 1
-	var overlay *Image
 	var n = 1
 	if isAnimated(img) {
 		n = -1
@@ -143,6 +142,14 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 		if err = overlay.Replicate(1, cnt); err != nil {
 			return
 		}
+	}
+	return
+}
+
+func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
+	var overlay *Image
+	if overlay, err = v.overlay(ctx, img, load, args...); err != nil {
+		return
 	}
 	if err = img.Composite(overlay, BlendModeOver, 0, 0); err != nil {
 		return
