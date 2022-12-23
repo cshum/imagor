@@ -148,7 +148,7 @@ func (v *Processor) overlay(ctx context.Context, img *Image, load imagor.LoadFun
 
 func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
 	var overlay *Image
-	if overlay, err = v.overlay(ctx, img, load, args...); err != nil {
+	if overlay, err = v.overlay(ctx, img, load, args...); overlay == nil || err != nil {
 		return
 	}
 	if err = img.Composite(overlay, BlendModeOver, 0, 0); err != nil {
@@ -618,6 +618,19 @@ func isBlack(c *Color) bool {
 
 func isWhite(c *Color) bool {
 	return c.R == 0xff && c.G == 0xff && c.B == 0xff
+}
+
+func isColor(color string) bool {
+	if color == "auto" {
+		return true
+	}
+	if _, ok := colornames.Map[color]; ok {
+		return true
+	}
+	if _, ok := parseHexColor(color); ok {
+		return true
+	}
+	return false
 }
 
 func getColor(img *Image, color string) *Color {
