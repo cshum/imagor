@@ -621,6 +621,7 @@ func isWhite(c *Color) bool {
 }
 
 func isColor(color string) bool {
+	color = strings.Split(strings.ToLower(color), ",")[0]
 	if color == "auto" {
 		return true
 	}
