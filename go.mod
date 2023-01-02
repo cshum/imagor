@@ -8,7 +8,7 @@ require (
 	github.com/fsouza/fake-gcs-server v1.42.2
 	github.com/johannesboyne/gofakes3 v0.0.0-20221110173912-32fb85c5aed6
 	github.com/peterbourgon/ff/v3 v3.3.0
-	github.com/rs/cors v1.8.2
+	github.com/rs/cors v1.8.3
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.24.0
 	golang.org/x/image v0.2.0
