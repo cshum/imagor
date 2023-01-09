@@ -539,7 +539,7 @@ Usage of imagor:
   -debug
         Debug mode
   -port int
-        Sever port (default 8000)
+        Server port (default 8000)
   -version
         imagor version
   -config string

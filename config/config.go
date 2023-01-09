@@ -127,7 +127,7 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 
 		debug        = fs.Bool("debug", false, "Debug mode")
 		version      = fs.Bool("version", false, "imagor version")
-		port         = fs.Int("port", 8000, "Sever port")
+		port         = fs.Int("port", 8000, "Server port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
 		_ = fs.String("config", ".env", "Retrieve configuration from the given file")
