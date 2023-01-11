@@ -43,8 +43,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
     ninja -C _build && \
     ninja -C _build install && \
   cd /tmp && \
-    curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz && \
-    tar zvxf vips-${VIPS_VERSION}.tar.gz && \
+    curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
+    tar zvxf vips-${VIPS_VERSION}.tar.xz && \
     cd /tmp/vips-${VIPS_VERSION} && \
     meson setup _build \
     --buildtype=release \

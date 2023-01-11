@@ -48,8 +48,8 @@ jobs:
         run: |
           if [ ! -d "vips-${{ env.VIPS_VERSION }}" ]
           then
-            wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
-            tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+            wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.xz
+            tar xf vips-${{ env.VIPS_VERSION }}.tar.xz
           fi
           cd vips-${{ env.VIPS_VERSION }}
           meson setup _build \
