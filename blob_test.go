@@ -105,6 +105,13 @@ func TestBlobTypes(t *testing.T) {
 			bytesType:   BlobTypeHEIF,
 		},
 		{
+			name:        "jp2",
+			path:        "gopher.jp2",
+			contentType: "image/jp2",
+			extension:   ".jp2",
+			bytesType:   BlobTypeJP2,
+		},
+		{
 			name:        "bmp",
 			path:        "bmp_24.bmp",
 			contentType: "image/bmp",
