@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
-      VIPS_VERSION: 8.13.3
-      V: 2
+      VIPS_VERSION: 8.14.1
+      V: 3
 
     steps:
       - name: Set up Go 1.x
@@ -48,8 +48,8 @@ jobs:
         run: |
           if [ ! -d "vips-${{ env.VIPS_VERSION }}" ]
           then
-            wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.gz
-            tar xf vips-${{ env.VIPS_VERSION }}.tar.gz
+            wget https://github.com/libvips/libvips/releases/download/v${{ env.VIPS_VERSION }}/vips-${{ env.VIPS_VERSION }}.tar.xz
+            tar xf vips-${{ env.VIPS_VERSION }}.tar.xz
           fi
           cd vips-${{ env.VIPS_VERSION }}
           meson setup _build \

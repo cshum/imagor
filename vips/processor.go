@@ -152,7 +152,20 @@ func newImageFromBlob(
 	}
 	src := NewSource(reader)
 	contextDefer(ctx, src.Close)
-	return src.LoadImage(params)
+	img, err := src.LoadImage(params)
+	if err != nil && blob.BlobType() == imagor.BlobTypeBMP {
+		// fallback with Go BMP decoder if vips error on BMP
+		src.Close()
+		r, _, err := blob.NewReader()
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			_ = r.Close()
+		}()
+		return loadImageFromBMP(r)
+	}
+	return img, err
 }
 
 func newThumbnailFromBlob(

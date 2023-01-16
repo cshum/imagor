@@ -1,9 +1,9 @@
 ARG GOLANG_VERSION=1.19.4
 FROM golang:${GOLANG_VERSION}-bullseye as builder
 
-ARG VIPS_VERSION=8.13.3
+ARG VIPS_VERSION=8.14.1
 ARG CGIF_VERSION=0.3.0
-ARG LIBSPNG_VERSION=0.7.2
+ARG LIBSPNG_VERSION=0.7.3
 ARG TARGETARCH
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
@@ -43,9 +43,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
     ninja -C _build && \
     ninja -C _build install && \
   cd /tmp && \
-    curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz && \
-    tar zvxf vips-${VIPS_VERSION}.tar.gz && \
-    cd /tmp/vips-${VIPS_VERSION} && \
+    curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
+    tar xf vips-${VIPS_VERSION}.tar.xz && \
+    cd vips-${VIPS_VERSION} && \
     meson setup _build \
     --buildtype=release \
     --strip \

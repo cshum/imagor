@@ -93,7 +93,7 @@ imagor supports the following filters:
   - Coordinated by a region of left-top point `AxB` and right-bottom point `CxD`, or a point `X,Y`.
   - Also accepts float values between 0 and 1 that represents percentage of image dimensions.
 - `format(format)` specifies the output format of the image
-  - `format` accepts jpeg, png, gif, webp, tiff, avif
+  - `format` accepts jpeg, png, gif, webp, tiff, avif, jp2
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
@@ -539,7 +539,7 @@ Usage of imagor:
   -debug
         Debug mode
   -port int
-        Sever port (default 8000)
+        Server port (default 8000)
   -version
         imagor version
   -config string

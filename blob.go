@@ -31,6 +31,8 @@ const (
 	BlobTypeAVIF
 	BlobTypeHEIF
 	BlobTypeTIFF
+	BlobTypeJP2
+	BlobTypeBMP
 )
 
 // Blob imagor data blob abstraction
@@ -147,6 +149,7 @@ var jpegHeader = []byte("\xFF\xD8\xFF")
 var gifHeader = []byte("\x47\x49\x46")
 var webpHeader = []byte("\x57\x45\x42\x50")
 var pngHeader = []byte("\x89\x50\x4E\x47")
+var bmpHeader = []byte("BM")
 
 // https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
 var ftyp = []byte("ftyp")
@@ -154,6 +157,15 @@ var heic = []byte("heic")
 var mif1 = []byte("mif1")
 var msf1 = []byte("msf1")
 var avif = []byte("avif")
+
+// Jp2 matches a JPEG 2000 Image file (ISO 15444-1).
+var jp2 = []byte{0x6a, 0x70, 0x32, 0x20}
+
+// Jpx matches a JPEG 2000 Image file (ISO 15444-2).
+var jpx = []byte{0x6a, 0x70, 0x78, 0x20}
+
+// Jpm matches a JPEG 2000 Image file (ISO 15444-6).
+var jpm = []byte{0x6a, 0x70, 0x6D, 0x20}
 
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
@@ -296,6 +308,13 @@ func (b *Blob) doInit() {
 			b.blobType = BlobTypeHEIF
 		} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 			b.blobType = BlobTypeTIFF
+		} else if (bytes.Equal(b.sniffBuf[4:8], []byte{0x6A, 0x50, 0x20, 0x20}) ||
+			bytes.Equal(b.sniffBuf[4:8], []byte{0x6A, 0x50, 0x32, 0x20})) && (bytes.Equal(b.sniffBuf[20:24], jp2) ||
+			bytes.Equal(b.sniffBuf[20:24], jpm) ||
+			bytes.Equal(b.sniffBuf[20:24], jpx)) {
+			b.blobType = BlobTypeJP2
+		} else if bytes.Equal(b.sniffBuf[:2], bmpHeader) {
+			b.blobType = BlobTypeBMP
 		}
 	}
 	if b.contentType == "" {
@@ -316,6 +335,10 @@ func (b *Blob) doInit() {
 			b.contentType = "image/heif"
 		case BlobTypeTIFF:
 			b.contentType = "image/tiff"
+		case BlobTypeJP2:
+			b.contentType = "image/jp2"
+		case BlobTypeBMP:
+			b.contentType = "image/bmp"
 		default:
 			b.contentType = http.DetectContentType(b.sniffBuf)
 		}
@@ -484,6 +507,10 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".heif"
 	case BlobTypeTIFF:
 		ext = ".tiff"
+	case BlobTypeJP2:
+		ext = ".jp2"
+	case BlobTypeBMP:
+		ext = ".bmp"
 	case BlobTypeJSON:
 		ext = ".json"
 	}

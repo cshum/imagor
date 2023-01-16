@@ -172,6 +172,8 @@ func TestProcessor(t *testing.T) {
 			{name: "label animated", path: "fit-in/150x200/10x00:10x50/filters:fill(yellow):label(IMAGOR,center,-30,25,black)/dancing-banana.gif"},
 			{name: "label animated with font", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):label(IMAGOR,center,-30,25,white,0,monospace)/dancing-banana.gif"},
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
+			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
+			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
 			{name: "svg", path: "test.svg"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
@@ -327,6 +329,17 @@ func TestProcessor(t *testing.T) {
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
 		assert.Equal(t, 422, w.Code)
+	})
+	t.Run("invalid BMP", func(t *testing.T) {
+		ctx := context.Background()
+		blob := imagor.NewBlobFromBytes([]byte("BMabcdasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"))
+		assert.Equal(t, imagor.BlobTypeBMP, blob.BlobType())
+		p := NewProcessor(
+			WithDebug(true),
+		)
+		img, err := p.Process(ctx, blob, imagorpath.Params{}, nil)
+		assert.Empty(t, img)
+		assert.Error(t, err)
 	})
 }
 
