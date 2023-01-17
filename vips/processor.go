@@ -188,11 +188,11 @@ func newThumbnailFromBlob(
 func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size, n int,
 ) (*Image, error) {
-	var params *ImportParams
+	var params = NewImportParams()
 	var err error
 	var img *Image
+	params.FailOnError.Set(false)
 	if isBlobAnimated(blob, n) {
-		params = NewImportParams()
 		if n < -1 {
 			params.NumPages.Set(-n)
 		} else {
@@ -232,9 +232,9 @@ func (v *Processor) NewThumbnail(
 		switch blob.BlobType() {
 		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP:
 			// only allow real thumbnail for jpeg gif webp
-			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, nil)
+			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, params)
 		default:
-			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, nil)
+			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, params)
 		}
 	}
 	return v.CheckResolution(img, WrapErr(err))
@@ -255,9 +255,9 @@ func (v *Processor) newThumbnailFallback(
 
 // NewImage creates new Image from imagor.Blob
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Image, error) {
-	var params *ImportParams
+	var params = NewImportParams()
+	params.FailOnError.Set(false)
 	if isBlobAnimated(blob, n) {
-		params = NewImportParams()
 		if n < -1 {
 			params.NumPages.Set(-n)
 		} else {
