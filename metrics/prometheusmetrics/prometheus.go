@@ -35,7 +35,7 @@ func (s *PrometheusMetrics) Run() {
 			s.Logger.Fatal("prometheus listen", zap.Error(err))
 		}
 	}()
-	s.Logger.Info("prometheus listen", zap.String("addr", s.Addr), zap.String("path", s.Namespace))
+	s.Logger.Info("prometheus listen", zap.String("addr", s.Addr), zap.String("namespace", s.Namespace))
 }
 
 // Option PrometheusMetrics option
