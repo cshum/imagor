@@ -190,8 +190,8 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 
 	return server.New(app,
 		server.WithAddr(*bind),
-		server.WithAddress(*serverAddress),
 		server.WithPort(*port),
+		server.WithAddress(*serverAddress),
 		server.WithPathPrefix(*serverPathPrefix),
 		server.WithCORS(*serverCORS),
 		server.WithStripQueryString(*serverStripQueryString),

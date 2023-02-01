@@ -174,3 +174,13 @@ func TestPathStyle(t *testing.T) {
 	app = srv.App.(*imagor.Imagor)
 	assert.Equal(t, "abc.30fdbe2aa5086e0f0c50", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
 }
+
+func TestPrometheusBind(t *testing.T) {
+	srv := CreateServer([]string{
+		"-bind", ":2345",
+		"-prometheus-bind", ":6789",
+		"-prometheus-namespace", "myprom",
+	})
+	assert.Equal(t, ":2345", srv.Addr)
+	// todo assert prometheus config
+}
