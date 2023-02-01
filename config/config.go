@@ -6,13 +6,13 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/metrics"
 	"github.com/cshum/imagor/server"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
@@ -132,10 +132,10 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		port         = fs.Int("port", 8000, "Server port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
-		enableMetrics = fs.Bool("metrics", false, "Expose Prometheus metrics (Uses :9000/metrics by default)")
-		metricsHost   = fs.String("metrics-host", "", "Metrics host")
-		metricsPort   = fs.Int("metrics-port", 9000, "Metrics port")
-		metricsPath   = fs.String("metrics-path", "/metrics", "Metrics path")
+		enablePrometheus = fs.Bool("prometheus", false, "Expose Prometheus metrics (Uses :9000/metrics by default)")
+		prometheusHost   = fs.String("prometheus-host", "", "Prometheus Metrics host")
+		prometheusPort   = fs.Int("prometheus-port", 9000, "Prometheus Metrics port")
+		prometheusPath   = fs.String("prometheus-path", "/metrics", "Metrics path")
 
 		_ = fs.String("config", ".env", "Retrieve configuration from the given file")
 
@@ -179,12 +179,12 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
-	if *enableMetrics {
-		metrics.New(
-			metrics.WithHost(*metricsHost),
-			metrics.WithPort(*metricsPort),
-			metrics.WithPath(*metricsPath),
-			metrics.WithLogger(logger),
+	if *enablePrometheus {
+		prometheusmetrics.New(
+			prometheusmetrics.WithHost(*prometheusHost),
+			prometheusmetrics.WithPort(*prometheusPort),
+			prometheusmetrics.WithPath(*prometheusPath),
+			prometheusmetrics.WithLogger(logger),
 		).Run()
 	}
 

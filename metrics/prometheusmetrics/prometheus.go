@@ -1,5 +1,4 @@
-// package metrics implements a Prometheus HTTP metrics server
-package metrics
+package prometheusmetrics
 
 import (
 	"net/http"
@@ -46,16 +45,16 @@ func New(options ...Option) *Server {
 func (s *Server) Run() {
 	go func() {
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.Logger.Fatal("metrics listen", zap.Error(err))
+			s.Logger.Fatal("prometheus listen", zap.Error(err))
 		}
 	}()
-	s.Logger.Info("metrics listen", zap.String("addr", s.Addr), zap.String("path", s.Path))
+	s.Logger.Info("prometheus listen", zap.String("addr", s.Addr), zap.String("path", s.Path))
 }
 
 // Option Server option
 type Option func(s *Server)
 
-// WithAddress with server address option
+// WithHost with server address option
 func WithHost(address string) Option {
 	return func(s *Server) {
 		s.Host = address
@@ -69,7 +68,7 @@ func WithPort(port int) Option {
 	}
 }
 
-// WithPathPrefix with path prefix option
+// WithPath with path option
 func WithPath(path string) Option {
 	return func(s *Server) {
 		s.Path = path
