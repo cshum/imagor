@@ -10,24 +10,19 @@ import (
 func TestWithOption(t *testing.T) {
 	t.Run("default options", func(t *testing.T) {
 		v := New()
-		assert.Equal(t, "", v.Host)
-		assert.Equal(t, 9000, v.Port)
-		assert.Equal(t, "/metrics", v.Namespace)
-		assert.Equal(t, ":9000", v.Addr)
+		assert.Empty(t, v.Addr)
+		assert.Empty(t, v.Namespace)
 		assert.NotNil(t, v.Logger)
 	})
 
 	t.Run("options", func(t *testing.T) {
 		l := &zap.Logger{}
 		v := New(
-			WithHost("domain.example.com"),
-			WithPort(1111),
-			WithNamespace("/path"),
+			WithAddr("domain.example.com:1111"),
+			WithNamespace("myprom"),
 			WithLogger(l),
 		)
-		assert.Equal(t, "domain.example.com", v.Host)
-		assert.Equal(t, 1111, v.Port)
-		assert.Equal(t, "/path", v.Namespace)
+		assert.Equal(t, "myprom", v.Namespace)
 		assert.Equal(t, "domain.example.com:1111", v.Addr)
 		assert.Equal(t, &l, &v.Logger)
 	})
