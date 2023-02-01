@@ -132,10 +132,8 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		port         = fs.Int("port", 8000, "Server port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
-		enablePrometheus = fs.Bool("prometheus", false, "Expose Prometheus metrics (Uses :9000/metrics by default)")
-		prometheusHost   = fs.String("prometheus-host", "", "Prometheus Metrics host")
-		prometheusPort   = fs.Int("prometheus-port", 9000, "Prometheus Metrics port")
-		prometheusPath   = fs.String("prometheus-path", "/metrics", "Metrics path")
+		bind = fs.String("bind", "",
+			"Server address and port to bind .e.g. myhost:8888. This overrides server address and port config")
 
 		_ = fs.String("config", ".env", "Retrieve configuration from the given file")
 
@@ -149,6 +147,9 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 			"Enable strip query string redirection")
 		serverAccessLog = fs.Bool("server-access-log", false,
 			"Enable server access log")
+
+		prometheusBind      = fs.String("prometheus-bind", "", "Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000")
+		prometheusNamespace = fs.String("prometheus-namespace", "", "Prometheus metrics namespace")
 	)
 
 	app = NewImagor(fs, func() (*zap.Logger, bool) {
@@ -179,16 +180,16 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
-	if *enablePrometheus {
+	if *prometheusBind != "" {
 		prometheusmetrics.New(
-			prometheusmetrics.WithHost(*prometheusHost),
-			prometheusmetrics.WithPort(*prometheusPort),
-			prometheusmetrics.WithPath(*prometheusPath),
+			prometheusmetrics.WithAddr(*prometheusBind),
+			prometheusmetrics.WithNamespace(*prometheusNamespace),
 			prometheusmetrics.WithLogger(logger),
 		).Run()
 	}
 
 	return server.New(app,
+		server.WithAddr(*bind),
 		server.WithAddress(*serverAddress),
 		server.WithPort(*port),
 		server.WithPathPrefix(*serverPathPrefix),

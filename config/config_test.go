@@ -13,6 +13,7 @@ import (
 
 func TestDefault(t *testing.T) {
 	srv := CreateServer(nil)
+	assert.Equal(t, ":8000", srv.Addr)
 	app := srv.App.(*imagor.Imagor)
 
 	assert.False(t, app.Debug)
@@ -60,6 +61,7 @@ func TestBasic(t *testing.T) {
 	app := srv.App.(*imagor.Imagor)
 
 	assert.Equal(t, 2345, srv.Port)
+	assert.Equal(t, ":2345", srv.Addr)
 	assert.True(t, app.Debug)
 	assert.True(t, app.Unsafe)
 	assert.True(t, app.AutoWebP)
@@ -82,6 +84,15 @@ func TestBasic(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	assert.Empty(t, CreateServer([]string{"-version"}))
+}
+
+func TestBind(t *testing.T) {
+	srv := CreateServer([]string{
+		"-debug",
+		"-port", "2345",
+		"-bind", ":4567",
+	})
+	assert.Equal(t, ":4567", srv.Addr)
 }
 
 func TestSignerAlgorithm(t *testing.T) {
