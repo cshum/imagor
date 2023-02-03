@@ -86,6 +86,8 @@ func NewImagor(
 		resultHasher = imagorpath.DigestResultStorageHasher
 	} else if strings.ToLower(*imagorResultStoragePathStyle) == "suffix" {
 		resultHasher = imagorpath.SuffixResultStorageHasher
+	} else if strings.ToLower(*imagorResultStoragePathStyle) == "size" {
+		resultHasher = imagorpath.SizeSuffixResultStorageHasher
 	}
 
 	return imagor.New(append(
