@@ -3,6 +3,7 @@ package imagorpath
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"strconv"
 	"strings"
 )
 
@@ -72,4 +73,29 @@ var SuffixResultStorageHasher = ResultStorageHasherFunc(func(p Params) string {
 		return p.Image[:dotIdx] + hash + ext // /abc/def.{digest}.jpg
 	}
 	return p.Image + hash // /abc/def.{digest}
+})
+
+// SizeSuffixResultStorageHasher  ResultStorageHasher using storage path with digest and size suffix
+var SizeSuffixResultStorageHasher = ResultStorageHasherFunc(func(p Params) string {
+	if p.Path == "" {
+		p.Path = GeneratePath(p)
+	}
+	var digest = sha1.Sum([]byte(p.Path))
+	var hash = "." + hex.EncodeToString(digest[:])[:20] + "_" + strconv.Itoa(p.Width) + "x" + strconv.Itoa(p.Height)
+	var dotIdx = strings.LastIndex(p.Image, ".")
+	var slashIdx = strings.LastIndex(p.Image, "/")
+	if dotIdx > -1 && slashIdx < dotIdx {
+		ext := p.Image[dotIdx:]
+		if p.Meta {
+			ext = ".json"
+		} else {
+			for _, filter := range p.Filters {
+				if filter.Name == "format" {
+					ext = "." + filter.Args
+				}
+			}
+		}
+		return p.Image[:dotIdx] + hash + ext // /abc/def.{digest}_{width}x{height}.jpg
+	}
+	return p.Image + hash // /abc/def.{digest}_{width}x{height}
 })
