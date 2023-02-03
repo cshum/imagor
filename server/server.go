@@ -113,6 +113,11 @@ func (s *Server) shutdown(ctx context.Context) {
 	if err := s.App.Shutdown(ctx); err != nil {
 		s.Logger.Error("app-shutdown", zap.Error(err))
 	}
+	if s.PrometheusMetrics != nil {
+		if err := s.PrometheusMetrics.Shutdown(ctx); err != nil {
+			s.Logger.Error("prometheus-shutdown", zap.Error(err))
+		}
+	}
 }
 
 func (s *Server) listenAndServe() error {
