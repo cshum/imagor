@@ -11,7 +11,7 @@ func TestWithOption(t *testing.T) {
 	t.Run("default options", func(t *testing.T) {
 		v := New()
 		assert.Empty(t, v.Addr)
-		assert.Empty(t, v.Namespace)
+		assert.Empty(t, v.Path)
 		assert.NotNil(t, v.Logger)
 	})
 
@@ -19,10 +19,10 @@ func TestWithOption(t *testing.T) {
 		l := &zap.Logger{}
 		v := New(
 			WithAddr("domain.example.com:1111"),
-			WithNamespace("myprom"),
+			WithPath("/myprom"),
 			WithLogger(l),
 		)
-		assert.Equal(t, "myprom", v.Namespace)
+		assert.Equal(t, "/myprom", v.Path)
 		assert.Equal(t, "domain.example.com:1111", v.Addr)
 		assert.Equal(t, &l, &v.Logger)
 	})

@@ -148,8 +148,8 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		serverAccessLog = fs.Bool("server-access-log", false,
 			"Enable server access log")
 
-		prometheusBind      = fs.String("prometheus-bind", "", "Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000")
-		prometheusNamespace = fs.String("prometheus-namespace", "", "Prometheus metrics namespace")
+		prometheusBind = fs.String("prometheus-bind", "", "Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000")
+		prometheusPath = fs.String("prometheus-path", "", "Prometheus metrics path")
 	)
 
 	app = NewImagor(fs, func() (*zap.Logger, bool) {
@@ -183,7 +183,7 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 	if *prometheusBind != "" {
 		prometheusmetrics.New(
 			prometheusmetrics.WithAddr(*prometheusBind),
-			prometheusmetrics.WithNamespace(*prometheusNamespace),
+			prometheusmetrics.WithPath(*prometheusPath),
 			prometheusmetrics.WithLogger(logger),
 		).Run()
 	}

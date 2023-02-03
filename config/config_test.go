@@ -179,7 +179,7 @@ func TestPrometheusBind(t *testing.T) {
 	srv := CreateServer([]string{
 		"-bind", ":2345",
 		"-prometheus-bind", ":6789",
-		"-prometheus-namespace", "myprom",
+		"-prometheus-path", "/myprom",
 	})
 	assert.Equal(t, ":2345", srv.Addr)
 	// todo assert prometheus config

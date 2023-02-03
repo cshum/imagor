@@ -10,8 +10,8 @@ import (
 type PrometheusMetrics struct {
 	http.Server
 
-	Namespace string
-	Logger    *zap.Logger
+	Path   string
+	Logger *zap.Logger
 }
 
 // New create new metrics PrometheusMetrics
@@ -22,9 +22,16 @@ func New(options ...Option) *PrometheusMetrics {
 	for _, option := range options {
 		option(s)
 	}
-
-	s.Handler = promhttp.Handler()
-
+	if s.Path != "" {
+		mux := http.NewServeMux()
+		mux.Handle(s.Path, promhttp.Handler())
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, s.Path, http.StatusPermanentRedirect)
+		})
+		s.Handler = mux
+	} else {
+		s.Handler = promhttp.Handler()
+	}
 	return s
 }
 
@@ -35,7 +42,7 @@ func (s *PrometheusMetrics) Run() {
 			s.Logger.Fatal("prometheus listen", zap.Error(err))
 		}
 	}()
-	s.Logger.Info("prometheus listen", zap.String("addr", s.Addr), zap.String("namespace", s.Namespace))
+	s.Logger.Info("prometheus listen", zap.String("addr", s.Addr), zap.String("path", s.Path))
 }
 
 // Option PrometheusMetrics option
@@ -48,10 +55,10 @@ func WithAddr(addr string) Option {
 	}
 }
 
-// WithNamespace with path option
-func WithNamespace(path string) Option {
+// WithPath with path option
+func WithPath(path string) Option {
 	return func(s *PrometheusMetrics) {
-		s.Namespace = path
+		s.Path = path
 	}
 }
 
