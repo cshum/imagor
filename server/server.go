@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
-	"go.uber.org/zap"
 	"net/http"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
+	"go.uber.org/zap"
 )
 
 // Service is a http.Handler with Startup and Shutdown lifecycle
@@ -24,16 +26,17 @@ type Service interface {
 // Server wraps the Service with additional http and app lifecycle handling
 type Server struct {
 	http.Server
-	App             Service
-	Address         string
-	Port            int
-	CertFile        string
-	KeyFile         string
-	PathPrefix      string
-	StartupTimeout  time.Duration
-	ShutdownTimeout time.Duration
-	Logger          *zap.Logger
-	Debug           bool
+	App               Service
+	Address           string
+	Port              int
+	CertFile          string
+	KeyFile           string
+	PathPrefix        string
+	StartupTimeout    time.Duration
+	ShutdownTimeout   time.Duration
+	Logger            *zap.Logger
+	Debug             bool
+	PrometheusMetrics *prometheusmetrics.PrometheusMetrics
 }
 
 // New create new Server
@@ -82,6 +85,11 @@ func (s *Server) RunContext(ctx context.Context) {
 		}
 	}()
 	s.Logger.Info("listen", zap.String("addr", s.Addr))
+
+	if s.PrometheusMetrics != nil {
+		s.PrometheusMetrics.Run()
+	}
+
 	<-ctx.Done()
 
 	s.shutdown(context.Background())

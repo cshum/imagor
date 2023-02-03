@@ -1,10 +1,12 @@
 package server
 
 import (
-	"github.com/rs/cors"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
+	"github.com/rs/cors"
+	"go.uber.org/zap"
 )
 
 // Option Server option
@@ -105,5 +107,12 @@ func WithAccessLog(enabled bool) Option {
 		if enabled {
 			s.Handler = s.accessLogHandler(s.Handler)
 		}
+	}
+}
+
+// WithAccessLog with server access log option
+func WithPrometheusMetrics(pm *prometheusmetrics.PrometheusMetrics) Option {
+	return func(s *Server) {
+		s.PrometheusMetrics = pm
 	}
 }

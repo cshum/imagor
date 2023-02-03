@@ -6,10 +6,11 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
-	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -180,12 +181,13 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
+	var pm *prometheusmetrics.PrometheusMetrics
 	if *prometheusBind != "" {
-		prometheusmetrics.New(
+		pm = prometheusmetrics.New(
 			prometheusmetrics.WithAddr(*prometheusBind),
 			prometheusmetrics.WithPath(*prometheusPath),
 			prometheusmetrics.WithLogger(logger),
-		).Run()
+		)
 	}
 
 	return server.New(app,
@@ -198,5 +200,6 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		server.WithAccessLog(*serverAccessLog),
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
+		server.WithPrometheusMetrics(pm),
 	)
 }

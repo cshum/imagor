@@ -1,9 +1,10 @@
 package prometheusmetrics
 
 import (
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 // PrometheusMetrics wraps the Service with additional http and app lifecycle handling
