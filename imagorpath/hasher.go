@@ -81,7 +81,10 @@ var SizeSuffixResultStorageHasher = ResultStorageHasherFunc(func(p Params) strin
 		p.Path = GeneratePath(p)
 	}
 	var digest = sha1.Sum([]byte(p.Path))
-	var hash = "." + hex.EncodeToString(digest[:])[:20] + "_" + strconv.Itoa(p.Width) + "x" + strconv.Itoa(p.Height)
+	var hash = "." + hex.EncodeToString(digest[:])[:20]
+	if p.Width != 0 || p.Height != 0 {
+		hash += "_" + strconv.Itoa(p.Width) + "x" + strconv.Itoa(p.Height)
+	}
 	var dotIdx = strings.LastIndex(p.Image, ".")
 	var slashIdx = strings.LastIndex(p.Image, "/")
 	if dotIdx > -1 && slashIdx < dotIdx {
