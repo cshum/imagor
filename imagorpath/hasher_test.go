@@ -35,6 +35,7 @@ func TestSuffixResultStorageHasher(t *testing.T) {
 	}
 	fmt.Println(GeneratePath(p))
 	assert.Equal(t, "example.com/foobar.8aade9060badfcb289f9.webp", SuffixResultStorageHasher.HashResult(p))
+	assert.Equal(t, "example.com/foobar.8aade9060badfcb289f9_17x19.webp", SizeSuffixResultStorageHasher.HashResult(p))
 
 	p = Params{
 		Meta:  true,
