@@ -162,4 +162,10 @@ func TestPathStyle(t *testing.T) {
 	})
 	app = srv.App.(*imagor.Imagor)
 	assert.Equal(t, "abc.30fdbe2aa5086e0f0c50", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
+
+	srv = CreateServer([]string{
+		"-imagor-result-storage-path-style", "size",
+	})
+	app = srv.App.(*imagor.Imagor)
+	assert.Equal(t, "abc.30fdbe2aa5086e0f0c50_200x200", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
 }
