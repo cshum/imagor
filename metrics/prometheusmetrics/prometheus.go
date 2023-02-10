@@ -1,6 +1,7 @@
 package prometheusmetrics
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -36,14 +37,15 @@ func New(options ...Option) *PrometheusMetrics {
 	return s
 }
 
-// Run http metrics server
-func (s *PrometheusMetrics) Run() {
+// Startup prometheus metrics server
+func (s *PrometheusMetrics) Startup(_ context.Context) error {
 	go func() {
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.Logger.Fatal("prometheus listen", zap.Error(err))
 		}
 	}()
 	s.Logger.Info("prometheus listen", zap.String("addr", s.Addr), zap.String("path", s.Path))
+	return nil
 }
 
 // Option PrometheusMetrics option

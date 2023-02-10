@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"go.uber.org/zap"
 )
 
@@ -23,20 +22,26 @@ type Service interface {
 	Shutdown(ctx context.Context) error
 }
 
+// Metrics represents metrics server Startup an d Shutdown lifecycle
+type Metrics interface {
+	Startup(ctx context.Context) error
+	Shutdown(ctx context.Context) error
+}
+
 // Server wraps the Service with additional http and app lifecycle handling
 type Server struct {
 	http.Server
-	App               Service
-	Address           string
-	Port              int
-	CertFile          string
-	KeyFile           string
-	PathPrefix        string
-	StartupTimeout    time.Duration
-	ShutdownTimeout   time.Duration
-	Logger            *zap.Logger
-	Debug             bool
-	PrometheusMetrics *prometheusmetrics.PrometheusMetrics
+	App             Service
+	Address         string
+	Port            int
+	CertFile        string
+	KeyFile         string
+	PathPrefix      string
+	StartupTimeout  time.Duration
+	ShutdownTimeout time.Duration
+	Logger          *zap.Logger
+	Debug           bool
+	Metrics         Metrics
 }
 
 // New create new Server
@@ -86,8 +91,10 @@ func (s *Server) RunContext(ctx context.Context) {
 	}()
 	s.Logger.Info("listen", zap.String("addr", s.Addr))
 
-	if s.PrometheusMetrics != nil {
-		s.PrometheusMetrics.Run()
+	if s.Metrics != nil {
+		if err := s.Metrics.Startup(ctx); err != nil {
+			s.Logger.Fatal("metrics-startup", zap.Error(err))
+		}
 	}
 
 	<-ctx.Done()
@@ -107,16 +114,16 @@ func (s *Server) shutdown(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, s.ShutdownTimeout)
 	defer cancel()
 	s.Logger.Info("shutdown")
+	if s.Metrics != nil {
+		if err := s.Metrics.Shutdown(ctx); err != nil {
+			s.Logger.Error("metrics-shutdown", zap.Error(err))
+		}
+	}
 	if err := s.Shutdown(ctx); err != nil {
 		s.Logger.Error("server-shutdown", zap.Error(err))
 	}
 	if err := s.App.Shutdown(ctx); err != nil {
 		s.Logger.Error("app-shutdown", zap.Error(err))
-	}
-	if s.PrometheusMetrics != nil {
-		if err := s.PrometheusMetrics.Shutdown(ctx); err != nil {
-			s.Logger.Error("prometheus-shutdown", zap.Error(err))
-		}
 	}
 }
 

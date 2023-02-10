@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/rs/cors"
 	"go.uber.org/zap"
 )
@@ -110,9 +109,9 @@ func WithAccessLog(enabled bool) Option {
 	}
 }
 
-// WithAccessLog with server access log option
-func WithPrometheusMetrics(pm *prometheusmetrics.PrometheusMetrics) Option {
+// WithMetrics with server metrics option
+func WithMetrics(metrics Metrics) Option {
 	return func(s *Server) {
-		s.PrometheusMetrics = pm
+		s.Metrics = metrics
 	}
 }

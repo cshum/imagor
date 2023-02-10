@@ -200,6 +200,6 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		server.WithAccessLog(*serverAccessLog),
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
-		server.WithPrometheusMetrics(pm),
+		server.WithMetrics(pm),
 	)
 }
