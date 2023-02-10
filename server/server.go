@@ -46,9 +46,9 @@ type Server struct {
 }
 
 // New create new Server
-func New(service Service, options ...Option) *Server {
+func New(app Service, options ...Option) *Server {
 	s := &Server{}
-	s.App = service
+	s.App = app
 	s.Port = 8000
 	s.MaxHeaderBytes = 1 << 20
 	s.StartupTimeout = time.Second * 10
