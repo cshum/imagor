@@ -11,7 +11,7 @@ func TestWithOption(t *testing.T) {
 	t.Run("default options", func(t *testing.T) {
 		v := New()
 		assert.Empty(t, v.Addr)
-		assert.Empty(t, v.Path)
+		assert.Equal(t, v.Path, "/")
 		assert.NotNil(t, v.Logger)
 	})
 

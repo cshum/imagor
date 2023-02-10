@@ -4,6 +4,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -182,5 +183,7 @@ func TestPrometheusBind(t *testing.T) {
 		"-prometheus-path", "/myprom",
 	})
 	assert.Equal(t, ":2345", srv.Addr)
-	// todo assert prometheus config
+	pm := srv.Metrics.(*prometheusmetrics.PrometheusMetrics)
+	assert.Equal(t, pm.Path, "/myprom")
+	assert.Equal(t, pm.Addr, ":6789")
 }
