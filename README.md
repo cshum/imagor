@@ -9,8 +9,8 @@
 imagor is a fast, secure image processing server and Go library.
 
 imagor uses one of the most efficient image processing library
-[libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings. 
-imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput. 
+[libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings.
+imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput.
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
 
@@ -89,7 +89,7 @@ imagor supports the following filters:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image.
     - If color is "auto" - the top left image pixel will be chosen as the filling color
-- `focal(AxB:CxD)` or `focal(X,Y)` adds a focal region or focal point for custom transformations: 
+- `focal(AxB:CxD)` or `focal(X,Y)` adds a focal region or focal point for custom transformations:
   - Coordinated by a region of left-top point `AxB` and right-bottom point `CxD`, or a point `X,Y`.
   - Also accepts float values between 0 and 1 that represents percentage of image dimensions.
 - `format(format)` specifies the output format of the image
@@ -435,7 +435,7 @@ curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0
 
 ### Go Library
 
-imagor is a Go library built with speed, security and extensibility in mind. 
+imagor is a Go library built with speed, security and extensibility in mind.
 It facilitates high-level image processing in a modular architecture made up of a series of Go packages:
 
 - [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library

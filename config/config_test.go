@@ -4,6 +4,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 func TestDefault(t *testing.T) {
 	srv := CreateServer(nil)
+	assert.Equal(t, ":8000", srv.Addr)
 	app := srv.App.(*imagor.Imagor)
 
 	assert.False(t, app.Debug)
@@ -60,6 +62,7 @@ func TestBasic(t *testing.T) {
 	app := srv.App.(*imagor.Imagor)
 
 	assert.Equal(t, 2345, srv.Port)
+	assert.Equal(t, ":2345", srv.Addr)
 	assert.True(t, app.Debug)
 	assert.True(t, app.Unsafe)
 	assert.True(t, app.AutoWebP)
@@ -82,6 +85,15 @@ func TestBasic(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	assert.Empty(t, CreateServer([]string{"-version"}))
+}
+
+func TestBind(t *testing.T) {
+	srv := CreateServer([]string{
+		"-debug",
+		"-port", "2345",
+		"-bind", ":4567",
+	})
+	assert.Equal(t, ":4567", srv.Addr)
 }
 
 func TestSignerAlgorithm(t *testing.T) {
@@ -168,4 +180,16 @@ func TestPathStyle(t *testing.T) {
 	})
 	app = srv.App.(*imagor.Imagor)
 	assert.Equal(t, "abc.30fdbe2aa5086e0f0c50_200x200", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
+}
+
+func TestPrometheusBind(t *testing.T) {
+	srv := CreateServer([]string{
+		"-bind", ":2345",
+		"-prometheus-bind", ":6789",
+		"-prometheus-path", "/myprom",
+	})
+	assert.Equal(t, ":2345", srv.Addr)
+	pm := srv.Metrics.(*prometheusmetrics.PrometheusMetrics)
+	assert.Equal(t, pm.Path, "/myprom")
+	assert.Equal(t, pm.Addr, ":6789")
 }

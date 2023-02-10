@@ -1,10 +1,11 @@
 package server
 
 import (
-	"github.com/rs/cors"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/rs/cors"
+	"go.uber.org/zap"
 )
 
 // Option Server option
@@ -105,5 +106,12 @@ func WithAccessLog(enabled bool) Option {
 		if enabled {
 			s.Handler = s.accessLogHandler(s.Handler)
 		}
+	}
+}
+
+// WithMetrics with server metrics option
+func WithMetrics(metrics Metrics) Option {
+	return func(s *Server) {
+		s.Metrics = metrics
 	}
 }

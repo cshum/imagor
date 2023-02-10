@@ -6,14 +6,17 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
+	"runtime"
+	"strings"
+	"time"
+
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/server"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
-	"runtime"
-	"strings"
-	"time"
 )
 
 var baseConfig = []Option{
@@ -132,6 +135,9 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		port         = fs.Int("port", 8000, "Server port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
 
+		bind = fs.String("bind", "",
+			"Server address and port to bind .e.g. myhost:8888. This overrides server address and port config")
+
 		_ = fs.String("config", ".env", "Retrieve configuration from the given file")
 
 		serverAddress = fs.String("server-address", "",
@@ -144,6 +150,9 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 			"Enable strip query string redirection")
 		serverAccessLog = fs.Bool("server-access-log", false,
 			"Enable server access log")
+
+		prometheusBind = fs.String("prometheus-bind", "", "Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000")
+		prometheusPath = fs.String("prometheus-path", "/", "Prometheus metrics path")
 	)
 
 	app = NewImagor(fs, func() (*zap.Logger, bool) {
@@ -174,14 +183,25 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		runtime.GOMAXPROCS(*goMaxProcess)
 	}
 
+	var pm *prometheusmetrics.PrometheusMetrics
+	if *prometheusBind != "" {
+		pm = prometheusmetrics.New(
+			prometheusmetrics.WithAddr(*prometheusBind),
+			prometheusmetrics.WithPath(*prometheusPath),
+			prometheusmetrics.WithLogger(logger),
+		)
+	}
+
 	return server.New(app,
-		server.WithAddress(*serverAddress),
+		server.WithAddr(*bind),
 		server.WithPort(*port),
+		server.WithAddress(*serverAddress),
 		server.WithPathPrefix(*serverPathPrefix),
 		server.WithCORS(*serverCORS),
 		server.WithStripQueryString(*serverStripQueryString),
 		server.WithAccessLog(*serverAccessLog),
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
+		server.WithMetrics(pm),
 	)
 }
