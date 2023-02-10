@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os/signal"
+	"reflect"
 	"strconv"
 	"syscall"
 	"time"
@@ -22,7 +23,7 @@ type Service interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Metrics represents metrics server Startup an d Shutdown lifecycle
+// Metrics represents metrics Startup and Shutdown lifecycle
 type Metrics interface {
 	Startup(ctx context.Context) error
 	Shutdown(ctx context.Context) error
@@ -45,9 +46,9 @@ type Server struct {
 }
 
 // New create new Server
-func New(app Service, options ...Option) *Server {
+func New(service Service, options ...Option) *Server {
 	s := &Server{}
-	s.App = app
+	s.App = service
 	s.Port = 8000
 	s.MaxHeaderBytes = 1 << 20
 	s.StartupTimeout = time.Second * 10
@@ -91,7 +92,7 @@ func (s *Server) RunContext(ctx context.Context) {
 	}()
 	s.Logger.Info("listen", zap.String("addr", s.Addr))
 
-	if s.Metrics != nil {
+	if !isNil(s.Metrics) {
 		if err := s.Metrics.Startup(ctx); err != nil {
 			s.Logger.Fatal("metrics-startup", zap.Error(err))
 		}
@@ -100,6 +101,10 @@ func (s *Server) RunContext(ctx context.Context) {
 	<-ctx.Done()
 
 	s.shutdown(context.Background())
+}
+
+func isNil(c any) bool {
+	return c == nil || (reflect.ValueOf(c).Kind() == reflect.Ptr && reflect.ValueOf(c).IsNil())
 }
 
 func (s *Server) startup(ctx context.Context) {
@@ -114,7 +119,7 @@ func (s *Server) shutdown(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, s.ShutdownTimeout)
 	defer cancel()
 	s.Logger.Info("shutdown")
-	if s.Metrics != nil {
+	if !isNil(s.Metrics) {
 		if err := s.Metrics.Shutdown(ctx); err != nil {
 			s.Logger.Error("metrics-shutdown", zap.Error(err))
 		}

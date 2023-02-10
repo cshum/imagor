@@ -19,12 +19,13 @@ type PrometheusMetrics struct {
 // New create new metrics PrometheusMetrics
 func New(options ...Option) *PrometheusMetrics {
 	s := &PrometheusMetrics{
+		Path:   "/",
 		Logger: zap.NewNop(),
 	}
 	for _, option := range options {
 		option(s)
 	}
-	if s.Path != "" {
+	if s.Path != "" && s.Path != "/" {
 		mux := http.NewServeMux()
 		mux.Handle(s.Path, promhttp.Handler())
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
