@@ -102,6 +102,8 @@ func TestProcessor(t *testing.T) {
 			{name: "stretch", path: "stretch/100x100/filters:modulate(-10,30,20)/gopher.png"},
 			{name: "fit-in flip hue", path: "fit-in/-200x0/filters:hue(290):saturation(100):fill(FFO):upscale()/gopher.png"},
 			{name: "fit-in padding", path: "fit-in/100x100/10x5/filters:fill(white)/gopher.png"},
+			{name: "fit-in padding transparent", path: "fit-in/100x100/10x5/filters:fill(none)/gopher.png"},
+			{name: "fit-in padding transparent non-alpha", path: "fit-in/100x120/10x5/filters:fill(none):format(png)/demo1.jpg"},
 			{name: "resize padding", path: "100x100/10x5/top/filters:fill(white)/gopher.png"},
 			{name: "stretch padding", path: "stretch/100x100/10x5/filters:fill(white)/gopher.png"},
 			{name: "padding", path: "0x0/40x50/filters:fill(white)/gopher-front.png"},
