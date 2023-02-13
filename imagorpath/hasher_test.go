@@ -18,6 +18,7 @@ func TestHasher(t *testing.T) {
 	assert.Equal(t, "foobar.d5c2804e5d81c475bee5", SuffixResultStorageHasher.HashResult(p))
 	p = Parse("17x19/smart/example.com/foobar")
 	assert.Equal(t, "example.com/foobar.ddd349e092cda6d9c729", SuffixResultStorageHasher.HashResult(p))
+	assert.Equal(t, "example.com/foobar.ddd349e092cda6d9c729_17x19", SizeSuffixResultStorageHasher.HashResult(p))
 	p = Parse("smart/example.com/foobar")
 	assert.Equal(t, "example.com/foobar.afa3503c0d76bc49eccd", SizeSuffixResultStorageHasher.HashResult(p))
 	assert.Equal(t, "example.com/foobar.afa3503c0d76bc49eccd", SuffixResultStorageHasher.HashResult(p))

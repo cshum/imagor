@@ -87,8 +87,9 @@ imagor supports the following filters:
   - `amount` -100 to 100, the amount in % to increase or decrease the image contrast
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
-    - If color is "blur" - missing parts are filled with blurred original image.
+    - If color is "blur" - missing parts are filled with blurred original image
     - If color is "auto" - the top left image pixel will be chosen as the filling color
+    - If color is "none" - the filling would become fully transparent
 - `focal(AxB:CxD)` or `focal(X,Y)` adds a focal region or focal point for custom transformations:
   - Coordinated by a region of left-top point `AxB` and right-bottom point `CxD`, or a point `X,Y`.
   - Also accepts float values between 0 and 1 that represents percentage of image dimensions.
@@ -312,6 +313,11 @@ services:
 
 * `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e.jpg`
 * `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729`
+
+`IMAGOR_RESULT_STORAGE_PATH_STYLE=size`
+
+* `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e_166x169.jpg`
+* `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729_17x19`
 
 ### Security
 
@@ -601,6 +607,11 @@ Usage of imagor:
   -server-access-log
         Enable server access log
 
+  -prometheus-bind string
+        Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000
+  -prometheus-path string
+        Prometheus metrics path (default "/")
+        
   -http-loader-allowed-sources string
         HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-forward-headers string
