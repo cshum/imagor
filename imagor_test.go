@@ -1218,7 +1218,8 @@ func TestAutoWebP(t *testing.T) {
 		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(webp)/abc.png", w.Body.String())
 	})
 	t.Run("supported not image tag auto", func(t *testing.T) {
 		app := factory(true)
@@ -1228,6 +1229,7 @@ func TestAutoWebP(t *testing.T) {
 		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
 		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
 	})
 	t.Run("no supported no auto", func(t *testing.T) {
@@ -1285,6 +1287,7 @@ func TestAutoAVIF(t *testing.T) {
 		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
 		assert.Equal(t, w.Body.String(), "filters:format(avif)/abc.png")
 	})
 	t.Run("supported not image tag auto", func(t *testing.T) {
@@ -1295,6 +1298,7 @@ func TestAutoAVIF(t *testing.T) {
 		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
 		assert.Equal(t, w.Body.String(), "filters:format(avif)/abc.png")
 	})
 	t.Run("no supported no auto", func(t *testing.T) {
