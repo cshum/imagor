@@ -207,8 +207,8 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, r, app.CacheHeaderTTL, app.CacheHeaderSWR)
-	if vary := r.Header.Get("Imagor-Vary"); vary != "" {
-		w.Header().Add("Vary", vary)
+	if r.Header.Get("Imagor-Auto-Format") != "" {
+		w.Header().Add("Vary", "Accept")
 	}
 	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
@@ -301,14 +301,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				Name: "format",
 				Args: "avif",
 			})
-			r.Header.Set("Imagor-Vary", "Accept") // set response Vary header
+			r.Header.Set("Imagor-Auto-Format", "1") // response Vary: Accept header
 			isPathChanged = true
 		} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
 				Args: "webp",
 			})
-			r.Header.Set("Imagor-Vary", "Accept") // set response Vary header
+			r.Header.Set("Imagor-Auto-Format", "1") // response Vary: Accept header
 			isPathChanged = true
 		}
 	}
