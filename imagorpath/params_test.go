@@ -3,6 +3,7 @@ package imagorpath
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strings"
@@ -416,4 +417,11 @@ func TestNormalize(t *testing.T) {
 func TestHMACSigner(t *testing.T) {
 	signer := NewHMACSigner(sha256.New, 28, "abcd")
 	assert.Equal(t, signer.Sign("assfasf"), "zb6uWXQxwJDOe_zOgxkuj96Etrsz")
+}
+
+func TestParseFilters(t *testing.T) {
+	fmt.Println(parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/some/example/img"))
+	fmt.Println(parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()"))
+	fmt.Println(parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/"))
+	fmt.Println(parseFilters("some/example/img"))
 }

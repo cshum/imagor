@@ -39,9 +39,7 @@ var paramsRegex = regexp.MustCompile(
 		"((top|bottom|middle)/)?" +
 		// smart
 		"(smart/)?" +
-		// filters
-		"(filters:(.+?\\))/)?" +
-		// image
+		// filters and image
 		"(.+)?",
 )
 
@@ -135,56 +133,69 @@ func Apply(p Params, path string) Params {
 	}
 	index++
 	if match[index] != "" {
-		p.Filters = append(p.Filters, parseFilters(match[index+1])...)
-	}
-	index += 2
-	if str := match[index]; str != "" {
-		p.Image = str
-		if u, err := url.QueryUnescape(str); err == nil {
+		p.Filters, p.Image = parseFilters(match[index])
+		//p.Filters = append(p.Filters, parseFilters(match[index+1])...)
+		if u, err := url.QueryUnescape(p.Image); err == nil {
 			p.Image = u
 		}
 	}
 	return p
 }
 
-func parseFilters(str string) (filters []Filter) {
-	var depth int
-	var s strings.Builder
-	var name, args string
-	for _, ch := range str {
-		switch ch {
-		case '(':
-			if depth == 0 {
-				name = s.String()
-				s.Reset()
-			} else {
+func parseFilters(str string) (filters []Filter, path string) {
+	if strings.HasPrefix(str, "filters:") {
+		str = str[8:]
+		var s strings.Builder
+		var depth int
+		var name, args string
+		for idx, ch := range str {
+			switch ch {
+			case '(':
+				if depth == 0 {
+					name = s.String()
+					s.Reset()
+				} else {
+					s.WriteRune(ch)
+				}
+				depth++
+			case ')':
+				depth--
+				if depth == 0 {
+					args = s.String()
+					s.Reset()
+				} else {
+					s.WriteRune(ch)
+				}
+			case '/':
+				if depth == 0 {
+					path = str[idx+1:]
+				} else {
+					s.WriteRune(ch)
+				}
+			case ':':
+				if depth == 0 {
+					filters = append(filters, Filter{
+						Name: name, Args: args,
+					})
+					name = ""
+					args = ""
+				} else {
+					s.WriteRune(ch)
+				}
+			default:
 				s.WriteRune(ch)
 			}
-			depth++
-		case ')':
-			depth--
-			if depth == 0 {
-				args = s.String()
-				s.Reset()
-			} else {
-				s.WriteRune(ch)
-			}
-		default:
-			if ch == ':' && depth == 0 {
-				filters = append(filters, Filter{
-					Name: name, Args: args,
-				})
-				name = ""
-				args = ""
-			} else {
-				s.WriteRune(ch)
+			if path != "" {
+				break
 			}
 		}
-	}
-	if name != "" {
-		filters = append(filters, Filter{
-			Name: name, Args: args,
-		})
+		if name != "" {
+			filters = append(filters, Filter{
+				Name: name, Args: args,
+			})
+		}
+	} else {
+		path = str
 	}
 	return
 }
