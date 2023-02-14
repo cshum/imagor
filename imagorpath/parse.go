@@ -133,8 +133,9 @@ func Apply(p Params, path string) Params {
 	}
 	index++
 	if match[index] != "" {
-		p.Filters, p.Image = parseFilters(match[index])
-		//p.Filters = append(p.Filters, parseFilters(match[index+1])...)
+		filters, img := parseFilters(match[index])
+		p.Filters = append(p.Filters, filters...)
+		p.Image = img
 		if u, err := url.QueryUnescape(p.Image); err == nil {
 			p.Image = u
 		}
