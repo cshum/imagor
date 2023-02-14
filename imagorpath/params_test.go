@@ -3,7 +3,6 @@ package imagorpath
 import (
 	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strings"
@@ -420,8 +419,31 @@ func TestHMACSigner(t *testing.T) {
 }
 
 func TestParseFilters(t *testing.T) {
-	fmt.Println(parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/some/example/img"))
-	fmt.Println(parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()"))
-	fmt.Println(parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/"))
-	fmt.Println(parseFilters("some/example/img"))
+	filters, img := parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/some/example/img")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Equal(t, "some/example/img", img)
+
+	filters, img = parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Empty(t, img)
+
+	filters, img = parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Empty(t, img)
+
+	filters, img = parseFilters("some/example/img")
+	assert.Empty(t, filters)
+	assert.Equal(t, "some/example/img", img)
 }
