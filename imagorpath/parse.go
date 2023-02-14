@@ -45,8 +45,6 @@ var paramsRegex = regexp.MustCompile(
 		"(.+)?",
 )
 
-var filterRegex = regexp.MustCompile("(.+)\\((.*)\\)")
-
 // Parse Params struct from imagor endpoint URI
 func Parse(path string) Params {
 	var p Params
@@ -149,11 +147,11 @@ func Apply(p Params, path string) Params {
 	return p
 }
 
-func parseFilters(filters string) (results []Filter) {
+func parseFilters(str string) (filters []Filter) {
 	var depth int
 	var s strings.Builder
 	var name, args string
-	for _, ch := range filters {
+	for _, ch := range str {
 		switch ch {
 		case '(':
 			if depth == 0 {
@@ -173,7 +171,7 @@ func parseFilters(filters string) (results []Filter) {
 			}
 		default:
 			if ch == ':' && depth == 0 {
-				results = append(results, Filter{
+				filters = append(filters, Filter{
 					Name: name, Args: args,
 				})
 				name = ""
@@ -184,7 +182,7 @@ func parseFilters(filters string) (results []Filter) {
 		}
 	}
 	if name != "" {
-		results = append(results, Filter{
+		filters = append(filters, Filter{
 			Name: name, Args: args,
 		})
 	}
