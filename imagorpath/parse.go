@@ -150,15 +150,43 @@ func Apply(p Params, path string) Params {
 }
 
 func parseFilters(filters string) (results []Filter) {
-	splits := strings.Split(filters, "):")
-	for _, seg := range splits {
-		seg = strings.TrimSuffix(seg, ")") + ")"
-		if match := filterRegex.FindStringSubmatch(seg); len(match) >= 3 {
-			results = append(results, Filter{
-				Name: strings.ToLower(match[1]),
-				Args: match[2],
-			})
+	var depth int
+	var s strings.Builder
+	var name, args string
+	for _, ch := range filters {
+		switch ch {
+		case '(':
+			if depth == 0 {
+				name = s.String()
+				s.Reset()
+			} else {
+				s.WriteRune(ch)
+			}
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				args = s.String()
+				s.Reset()
+			} else {
+				s.WriteRune(ch)
+			}
+		default:
+			if ch == ':' && depth == 0 {
+				results = append(results, Filter{
+					Name: name, Args: args,
+				})
+				name = ""
+				args = ""
+			} else {
+				s.WriteRune(ch)
+			}
 		}
+	}
+	if name != "" {
+		results = append(results, Filter{
+			Name: name, Args: args,
+		})
 	}
 	return
 }

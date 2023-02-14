@@ -301,14 +301,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				Name: "format",
 				Args: "avif",
 			})
-			r.Header.Set("Imagor-Auto-Format", "1") // response Vary: Accept header
+			r.Header.Set("Imagor-Auto-Format", "avif") // response Vary: Accept header
 			isPathChanged = true
 		} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
 				Args: "webp",
 			})
-			r.Header.Set("Imagor-Auto-Format", "1") // response Vary: Accept header
+			r.Header.Set("Imagor-Auto-Format", "webp") // response Vary: Accept header
 			isPathChanged = true
 		}
 	}
