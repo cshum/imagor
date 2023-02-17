@@ -35,7 +35,9 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, time.Hour*24, app.CacheHeaderSWR)
 	assert.Empty(t, app.ResultStorages)
 	assert.Empty(t, app.Storages)
-	assert.IsType(t, &httploader.HTTPLoader{}, app.Loaders[0])
+	loader := app.Loaders[0].(*httploader.HTTPLoader)
+	assert.Empty(t, loader.BaseURL)
+	assert.Equal(t, "https", loader.DefaultScheme)
 }
 
 func TestBasic(t *testing.T) {
@@ -58,6 +60,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 		"-http-loader-insecure-skip-verify-transport",
+		"-http-loader-base-url", "https://www.example.com/foo.org",
 	})
 	app := srv.App.(*imagor.Imagor)
 
@@ -81,6 +84,7 @@ func TestBasic(t *testing.T) {
 
 	httpLoader := app.Loaders[0].(*httploader.HTTPLoader)
 	assert.True(t, httpLoader.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify)
+	assert.Equal(t, "https://www.example.com/foo.org", httpLoader.BaseURL.String())
 }
 
 func TestVersion(t *testing.T) {

@@ -55,6 +55,9 @@ type HTTPLoader struct {
 	// BlockNetworks rejects HTTP connections to a configurable list of networks.
 	BlockNetworks []*net.IPNet
 
+	// BaseURL base URL for HTTP loader
+	BaseURL *url.URL
+
 	accepts []string
 }
 
@@ -92,9 +95,16 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if image == "" {
 		return nil, imagor.ErrInvalid
 	}
-	u, err := url.Parse(image)
-	if err != nil {
-		return nil, imagor.ErrInvalid
+	var u *url.URL
+	var err error
+	if h.BaseURL != nil {
+		u = h.BaseURL.JoinPath(image)
+		image = u.String()
+	} else {
+		u, err = url.Parse(image)
+		if err != nil {
+			return nil, imagor.ErrInvalid
+		}
 	}
 	if u.Host == "" || u.Scheme == "" {
 		if h.DefaultScheme != "" {
