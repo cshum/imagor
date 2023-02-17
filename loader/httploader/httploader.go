@@ -99,6 +99,7 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	var err error
 	if h.BaseURL != nil {
 		u = h.BaseURL.JoinPath(image)
+		image = u.String()
 	} else {
 		u, err = url.Parse(image)
 		if err != nil {
