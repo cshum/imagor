@@ -95,16 +95,15 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if image == "" {
 		return nil, imagor.ErrInvalid
 	}
-	var u *url.URL
-	var err error
+	u, err := url.Parse(image)
+	if err != nil {
+		return nil, imagor.ErrInvalid
+	}
 	if h.BaseURL != nil {
-		u = h.BaseURL.JoinPath(image)
-		image = u.String()
-	} else {
-		u, err = url.Parse(image)
-		if err != nil {
-			return nil, imagor.ErrInvalid
-		}
+		newU := h.BaseURL.JoinPath(u.Path)
+		newU.RawQuery = u.RawQuery
+		image = newU.String()
+		u = newU
 	}
 	if u.Host == "" || u.Scheme == "" {
 		if h.DefaultScheme != "" {

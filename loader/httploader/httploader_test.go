@@ -347,7 +347,8 @@ func TestWithDefaultScheme(t *testing.T) {
 
 func TestWithBaseURL(t *testing.T) {
 	trans := testTransport{
-		"https://foo.com/bar.org/some/path/ping.jpg": "pong",
+		"https://foo.com/bar.org/some/path/ping.jpg":         "pong",
+		"https://foo.com/bar.org/some/path/ping.jpg?abc=123": "boom",
 	}
 	doTests(t, New(
 		WithBaseURL("https://foo.com/bar.org"),
@@ -357,6 +358,11 @@ func TestWithBaseURL(t *testing.T) {
 			name:   "base URL matched",
 			target: "some/path/ping.jpg",
 			result: "pong",
+		},
+		{
+			name:   "base URL with query matched",
+			target: "some/path/ping.jpg?abc=123",
+			result: "boom",
 		},
 		{
 			name:   "not found",
