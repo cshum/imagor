@@ -446,4 +446,13 @@ func TestParseFilters(t *testing.T) {
 	filters, img = parseFilters("some/example/img")
 	assert.Empty(t, filters)
 	assert.Equal(t, "some/example/img", img)
+
+	filters, img = parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):format()jpg:brightness(-50):grayscale()")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"format", ""},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Empty(t, img)
 }

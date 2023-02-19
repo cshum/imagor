@@ -182,6 +182,7 @@ func parseFilters(str string) (filters []Filter, path string) {
 					})
 					name = ""
 					args = ""
+					s.Reset()
 				} else {
 					s.WriteRune(ch)
 				}
