@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.29.0
 	github.com/aws/aws-sdk-go v1.44.204
 	github.com/fsouza/fake-gcs-server v1.44.0
-	github.com/johannesboyne/gofakes3 v0.0.0-20221110173912-32fb85c5aed6
+	github.com/johannesboyne/gofakes3 v0.0.0-20230129080941-f6a8a9ae6fd3
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/rs/cors v1.8.3
@@ -53,7 +53,7 @@ require (
 	golang.org/x/oauth2 v0.5.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
-	golang.org/x/tools v0.3.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.110.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
