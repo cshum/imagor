@@ -25,7 +25,7 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 		httpLoaderInsecureSkipVerifyTransport = fs.Bool("http-loader-insecure-skip-verify-transport", false,
 			"HTTP Loader to use HTTP transport with InsecureSkipVerify true")
 		httpLoaderBaseURL = fs.String("http-loader-base-url", "",
-			"HTTP Loader base URL that prepends onto existing image path. This overrides the default scheme")
+			"HTTP Loader base URL that prepends onto existing image path. This overrides the default scheme option.")
 		httpLoaderDefaultScheme = fs.String("http-loader-default-scheme", "https",
 			"HTTP Loader default scheme if not specified by image path. Set \"nil\" to disable default scheme.")
 		httpLoaderAccept = fs.String("http-loader-accept", "*/*",
