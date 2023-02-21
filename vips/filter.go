@@ -474,6 +474,36 @@ func grayscale(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (e
 	return img.ToColorSpace(InterpretationBW)
 }
 
+var colorspaceMapper = map[string]Interpretation{
+	"bw":        InterpretationBW,
+	"b-w":       InterpretationBW,
+	"srgb":      InterpretationSRGB,
+	"rgb":       InterpretationRGB,
+	"rgb16":     InterpretationRGB16,
+	"error":     InterpretationError,
+	"multiband": InterpretationMultiband,
+	"xyz":       InterpretationXYZ,
+	"histogram": InterpretationHistogram,
+	"lab":       InterpretationLAB,
+	"cmyk":      InterpretationCMYK,
+	"labq":      InterpretationLABQ,
+	"cmc":       InterpretationCMC,
+	"labs":      InterpretationLABS,
+	"yxy":       InterpretationYXY,
+	"fourier":   InterpretationFourier,
+	"grey16":    InterpretationGrey16,
+	"matrix":    InterpretationMatrix,
+	"scrgb":     InterpretationScRGB,
+	"hsv":       InterpretationHSV,
+}
+
+func colorspace(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+	if c, ok := colorspaceMapper[args[0]]; ok {
+		return img.ToColorSpace(c)
+	}
+	return nil
+}
+
 func brightness(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
