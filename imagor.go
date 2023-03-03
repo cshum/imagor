@@ -265,7 +265,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p = imagorpath.Apply(p, app.BaseParams)
 		isPathChanged = true
 	}
-	var hasFormat, hasPreview bool
+	var hasFormat, hasPreview, isRaw bool
 	var filters = p.Filters
 	p.Filters = nil
 	for _, f := range filters {
@@ -281,6 +281,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 		case "format":
 			hasFormat = true
+		case "raw":
+			isRaw = true
 		case "preview":
 			r.Header.Set("Cache-Control", "no-cache")
 			hasPreview = true // disable result storage on preview() filter
@@ -336,7 +338,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		return blob, err
 	}
 	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
-		if resultKey != "" {
+		if resultKey != "" && !isRaw {
 			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 				return blob, nil
 			}
@@ -382,38 +384,40 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isBlobEmpty(blob) {
 			return blob, err
 		}
-		var cancel func()
-		if app.ProcessTimeout > 0 {
-			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
-			contextDefer(ctx, cancel)
-		}
-		var forwardP = p
-		for _, processor := range app.Processors {
-			b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
-			if !isBlobEmpty(b) {
-				blob = b // forward Blob to next processor if exists
+		if !isRaw {
+			var cancel func()
+			if app.ProcessTimeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
+				contextDefer(ctx, cancel)
 			}
-			if e == nil {
-				blob = b
-				err = nil
-				if app.Debug {
-					app.Logger.Debug("processed", zap.Any("params", forwardP))
+			var forwardP = p
+			for _, processor := range app.Processors {
+				b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
+				if !isBlobEmpty(b) {
+					blob = b // forward Blob to next processor if exists
 				}
-				break
-			} else if forward, ok := e.(ErrForward); ok {
-				err = e
-				forwardP = forward.Params
-				if app.Debug {
-					app.Logger.Debug("forward", zap.Any("params", forwardP))
-				}
-			} else {
-				if ctx.Err() == nil {
+				if e == nil {
+					blob = b
+					err = nil
+					if app.Debug {
+						app.Logger.Debug("processed", zap.Any("params", forwardP))
+					}
+					break
+				} else if forward, ok := e.(ErrForward); ok {
 					err = e
-					app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
+					forwardP = forward.Params
+					if app.Debug {
+						app.Logger.Debug("forward", zap.Any("params", forwardP))
+					}
 				} else {
-					err = ctx.Err()
+					if ctx.Err() == nil {
+						err = e
+						app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
+					} else {
+						err = ctx.Err()
+					}
+					break
 				}
-				break
 			}
 		}
 		if shouldSave {
@@ -422,7 +426,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		cb(blob, err)
 		ctx = detachContext(ctx)
-		if err == nil && !isBlobEmpty(blob) && resultKey != "" &&
+		if err == nil && !isBlobEmpty(blob) && resultKey != "" && !isRaw &&
 			len(app.ResultStorages) > 0 {
 			app.save(ctx, app.ResultStorages, resultKey, blob)
 		}
