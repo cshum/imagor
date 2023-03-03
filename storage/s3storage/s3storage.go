@@ -88,11 +88,13 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			return nil, 0, err
 		}
 		once.Do(func() {
-			blob.SetContentType(*out.ContentType)
-			blob.Stat = &imagor.Stat{
-				Size:         *out.ContentLength,
-				ETag:         *out.ETag,
-				ModifiedTime: *out.LastModified,
+			if blob != nil {
+				blob.SetContentType(*out.ContentType)
+				blob.Stat = &imagor.Stat{
+					Size:         *out.ContentLength,
+					ETag:         *out.ETag,
+					ModifiedTime: *out.LastModified,
+				}
 			}
 		})
 		if s.Expiration > 0 && out.LastModified != nil {
