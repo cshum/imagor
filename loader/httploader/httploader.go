@@ -162,9 +162,7 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			return nil, 0, err
 		}
 		once.Do(func() {
-			if blob != nil {
-				blob.SetContentType(resp.Header.Get("Content-Type"))
-			}
+			blob.SetContentType(resp.Header.Get("Content-Type"))
 		})
 		body := resp.Body
 		size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
