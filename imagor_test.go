@@ -295,6 +295,34 @@ func TestWithRetryQueryUnescape(t *testing.T) {
 	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
 }
 
+func TestWithRaw(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			if image != "gopher.png" {
+				return nil, ErrInvalid
+			}
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			return NewBlobFromBytes([]byte(p.Path)), nil
+		})),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:fill(red)/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:fill(red):raw()/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+}
+
 func TestNewBlobFromPathNotFound(t *testing.T) {
 	loader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		return NewBlobFromFile("./non-exists-path"), nil
