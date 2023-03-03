@@ -304,10 +304,14 @@ func TestWithRaw(t *testing.T) {
 			if image != "gopher.png" {
 				return nil, ErrInvalid
 			}
-			return NewBlobFromBytes([]byte("foo")), nil
+			blob := NewBlobFromBytes([]byte("foo"))
+			blob.SetContentType("bar")
+			return blob, nil
 		})),
 		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
-			return NewBlobFromBytes([]byte(p.Path)), nil
+			out := NewBlobFromBytes([]byte(p.Path))
+			out.SetContentType("boom")
+			return out, nil
 		})),
 	)
 	w := httptest.NewRecorder()
@@ -315,12 +319,14 @@ func TestWithRaw(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/filters:fill(red)/gopher.png", nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
+	assert.Equal(t, "boom", w.Header().Get("Content-Type"))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/filters:fill(red):raw()/gopher.png", nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
+	assert.Equal(t, "bar", w.Header().Get("Content-Type"))
 }
 
 func TestNewBlobFromPathNotFound(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/cshum/imagor"
@@ -144,7 +145,9 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+	var blob *imagor.Blob
+	var once sync.Once
+	blob = imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		resp, err := client.Do(req)
 		if err != nil {
 			if errors.Is(err, ErrUnauthorizedRequest) {
@@ -158,6 +161,9 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			}
 			return nil, 0, err
 		}
+		once.Do(func() {
+			blob.SetContentType(resp.Header.Get("Content-Type"))
+		})
 		body := resp.Body
 		size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
 		if resp.Header.Get("Content-Encoding") == "gzip" {
@@ -175,7 +181,8 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			return body, size, imagor.ErrUnsupportedFormat
 		}
 		return body, size, nil
-	}), nil
+	})
+	return blob, nil
 }
 
 func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Request, error) {
