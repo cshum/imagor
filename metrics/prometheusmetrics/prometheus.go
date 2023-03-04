@@ -2,10 +2,22 @@ package prometheusmetrics
 
 import (
 	"context"
+	"errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
+)
+
+var (
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "http_request_duration_seconds",
+			Help: "A histogram of latencies for requests",
+		},
+		[]string{"code", "method"},
+	)
 )
 
 // PrometheusMetrics wraps the Service with additional http and app lifecycle handling
@@ -40,6 +52,11 @@ func New(options ...Option) *PrometheusMetrics {
 
 // Startup prometheus metrics server
 func (s *PrometheusMetrics) Startup(_ context.Context) error {
+	err := prometheus.Register(httpRequestDuration)
+	if err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
+		return err
+	}
+
 	go func() {
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.Logger.Fatal("prometheus listen", zap.Error(err))
@@ -47,6 +64,11 @@ func (s *PrometheusMetrics) Startup(_ context.Context) error {
 	}()
 	s.Logger.Info("prometheus listen", zap.String("addr", s.Addr), zap.String("path", s.Path))
 	return nil
+}
+
+// Handle prometheus http middleware handler
+func (s *PrometheusMetrics) Handle(next http.Handler) http.Handler {
+	return promhttp.InstrumentHandlerDuration(httpRequestDuration, next)
 }
 
 // Option PrometheusMetrics option

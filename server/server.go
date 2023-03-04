@@ -23,10 +23,11 @@ type Service interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Metrics represents metrics Startup and Shutdown lifecycle
+// Metrics represents metrics Startup and Shutdown lifecycle and Handle middleware
 type Metrics interface {
 	Startup(ctx context.Context) error
 	Shutdown(ctx context.Context) error
+	Handle(next http.Handler) http.Handler
 }
 
 // Server wraps the Service with additional http and app lifecycle handling
@@ -59,9 +60,6 @@ func New(app Service, options ...Option) *Server {
 	// Handler: application
 	s.Handler = s.App
 
-	// Handler: observe metrics (does not include utilities below)
-	s.Handler = s.durationHandler(s.Handler)
-
 	// Handler: utility routes
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
 		"/favicon.ico": handleOk,
@@ -79,6 +77,11 @@ func New(app Service, options ...Option) *Server {
 
 	// Handler: recover from panics
 	s.Handler = s.panicHandler(s.Handler)
+
+	// Handler: observe metrics if enabled
+	if !isNil(s.Metrics) {
+		s.Handler = s.Metrics.Handle(s.Handler)
+	}
 
 	if s.Addr == "" {
 		s.Addr = s.Address + ":" + strconv.Itoa(s.Port)

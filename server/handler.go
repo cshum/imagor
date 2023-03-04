@@ -9,30 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
 type errResp struct {
 	Message string `json:"message,omitempty"`
 	Code    int    `json:"status,omitempty"`
-}
-
-var (
-	httpRequestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "http_request_duration_seconds",
-			Help: "A histogram of latencies for requests",
-		},
-		[]string{"code", "method"},
-	)
-)
-
-// init registers server metrics with the Prometheus registry
-// It is (generally) idempotent by ignoring AlreadyRegisteredError(s), but should probably only be called once
-func init() {
-	prometheus.MustRegister(httpRequestDuration)
 }
 
 func handleOk(w http.ResponseWriter, r *http.Request) {
@@ -58,10 +40,6 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 		}()
 		next.ServeHTTP(w, r)
 	})
-}
-
-func (s *Server) durationHandler(next http.Handler) http.Handler {
-	return promhttp.InstrumentHandlerDuration(httpRequestDuration, next)
 }
 
 func pathHandler(
