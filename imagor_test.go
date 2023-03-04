@@ -774,7 +774,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/dood", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 500, w.Code)
-			assert.Equal(t, "dood", w.Body.String())
+			assert.Equal(t, jsonStr(NewError("error with value", 500)), w.Body.String())
 			assert.Nil(t, store.Map["dood"])
 		})
 		t.Run(fmt.Sprintf("processor error return original %d", i), func(t *testing.T) {
@@ -783,7 +783,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/poop", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
-			assert.Equal(t, "poop", w.Body.String())
+			assert.Equal(t, jsonStr(ErrUnsupportedFormat), w.Body.String())
 			assert.Nil(t, store.Map["poop"])
 		})
 		t.Run(fmt.Sprintf("processor error return last error %d", i), func(t *testing.T) {
@@ -792,7 +792,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/bond", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, ErrInternal.Code, w.Code)
-			assert.Equal(t, "bond", w.Body.String())
+			assert.Equal(t, jsonStr(ErrInternal), w.Body.String())
 			assert.Nil(t, store.Map["bond"])
 		})
 	}

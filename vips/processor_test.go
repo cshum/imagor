@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -249,10 +248,6 @@ func TestProcessor(t *testing.T) {
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/README.md", nil))
 		assert.Equal(t, 406, w.Code)
-
-		buf, err := ioutil.ReadFile(testDataDir + "/../README.md")
-		require.NoError(t, err)
-		assert.Equal(t, buf, w.Body.Bytes(), "should return original file")
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(

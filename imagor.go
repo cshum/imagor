@@ -188,15 +188,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(e.Code)
 			return
 		}
-		if !isBlobEmpty(blob) && !p.Meta {
-			w.Header().Set("Content-Type", blob.ContentType())
-			reader, size, _ := blob.NewReader()
-			if reader != nil {
-				w.WriteHeader(e.Code)
-				writeBody(w, r, reader, size)
-				return
-			}
-		}
 		w.WriteHeader(e.Code)
 		writeJSON(w, r, e)
 		return
@@ -209,6 +200,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	setCacheHeaders(w, r, app.CacheHeaderTTL, app.CacheHeaderSWR)
 	if r.Header.Get("Imagor-Auto-Format") != "" {
 		w.Header().Add("Vary", "Accept")
+	}
+	if r.Header.Get("Imagor-Raw") != "" {
+		w.Header().Set("Content-Security-Policy", "script-src 'none'")
 	}
 	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
@@ -282,6 +276,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		case "format":
 			hasFormat = true
 		case "raw":
+			r.Header.Set("Imagor-Raw", "1")
 			isRaw = true
 		case "preview":
 			r.Header.Set("Cache-Control", "no-cache")
