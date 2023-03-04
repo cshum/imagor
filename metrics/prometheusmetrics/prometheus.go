@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"net/http"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 var (
