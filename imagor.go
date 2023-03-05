@@ -338,7 +338,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				return blob, nil
 			}
 		}
-		if app.queueSema != nil {
+		if app.queueSema != nil && !isRaw {
 			if !app.queueSema.TryAcquire(1) {
 				err = ErrTooManyRequests
 				if app.Debug {
@@ -348,7 +348,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			defer app.queueSema.Release(1)
 		}
-		if app.sema != nil {
+		if app.sema != nil && !isRaw {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
 				if app.Debug {
 					app.Logger.Debug("acquire", zap.Error(err))

@@ -154,6 +154,7 @@ These filters do not manipulate images but provide useful utilities to the imago
 - `attachment(filename)` returns attachment in the `Content-Disposition` header, and the browser will open a "Save as" dialog with `filename`. When `filename` not specified, imagor will get the filename from the image source
 - `expire(timestamp)` adds expiration time to the content. `timestamp` is the unix milliseconds timestamp, e.g. if content is valid for 30s then timestamp would be `Date.now() + 30*1000` in JavaScript.
 - `preview()` skips the result storage even if result storage is enabled. Useful for conditional caching
+- `raw()` response with a raw unprocessed and unchecked source image. Image still loads from loader and storage but skips the result storage
 
 
 ### Loader, Storage and Result Storage
@@ -386,17 +387,6 @@ Whitelist specific hosts to restrict loading images only from the allowed source
 
 ```dotenv
 HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
-```
-
-#### Error Response Body
-
-By default, when image processing failed, imagor returns error status code with the original source as response body.
-This is with assumption that the image source is trusted, so that the original image can be served as fallback in case of failure.
-
-However, if the source image involves user generated content, it is advised to disable the original source fallback using `IMAGOR_DISABLE_ERROR_BODY`, to prevent untrusted content being loaded:
-
-```dotenv
-IMAGOR_DISABLE_ERROR_BODY=1
 ```
 
 ### Metadata and Exif
