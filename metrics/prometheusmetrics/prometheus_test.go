@@ -1,6 +1,8 @@
 package prometheusmetrics
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,5 +27,9 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, "/myprom", v.Path)
 		assert.Equal(t, "domain.example.com:1111", v.Addr)
 		assert.Equal(t, &l, &v.Logger)
+		w := httptest.NewRecorder()
+		v.Handler.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/", nil))
+		assert.Equal(t, http.StatusPermanentRedirect, w.Code)
 	})
 }

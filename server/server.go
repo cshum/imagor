@@ -23,9 +23,16 @@ type Service interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Metrics represents metrics Startup and Shutdown lifecycle
+// Metrics represents metrics Startup and Shutdown lifecycle and Handle middleware
 type Metrics interface {
+
+	// Handle HTTP middleware metrics handler
+	Handle(next http.Handler) http.Handler
+
+	// Startup controls metrics startup
 	Startup(ctx context.Context) error
+
+	// Shutdown controls metrics shutdown
 	Shutdown(ctx context.Context) error
 }
 
@@ -54,18 +61,34 @@ func New(app Service, options ...Option) *Server {
 	s.StartupTimeout = time.Second * 10
 	s.ShutdownTimeout = time.Second * 10
 	s.Logger = zap.NewNop()
+
+	// build up middleware handlers in reverse order
+	// Handler: application
+	s.Handler = s.App
+
+	// Handler: utility routes
 	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
 		"/favicon.ico": handleOk,
 		"/healthcheck": handleOk,
-	})(s.App)
+	})(s.Handler)
 
 	for _, option := range options {
 		option(s)
 	}
+
+	// Handler: prefixes
 	if s.PathPrefix != "" {
 		s.Handler = http.StripPrefix(s.PathPrefix, s.Handler)
 	}
+
+	// Handler: recover from panics
 	s.Handler = s.panicHandler(s.Handler)
+
+	// Handler: observe metrics if enabled
+	if !isNil(s.Metrics) {
+		s.Handler = s.Metrics.Handle(s.Handler)
+	}
+
 	if s.Addr == "" {
 		s.Addr = s.Address + ":" + strconv.Itoa(s.Port)
 	}
