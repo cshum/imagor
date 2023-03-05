@@ -2,7 +2,6 @@ package prometheusmetrics
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -52,8 +51,7 @@ func New(options ...Option) *PrometheusMetrics {
 
 // Startup prometheus metrics server
 func (s *PrometheusMetrics) Startup(_ context.Context) error {
-	err := prometheus.Register(httpRequestDuration)
-	if err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
+	if err := prometheus.Register(httpRequestDuration); err != nil {
 		return err
 	}
 

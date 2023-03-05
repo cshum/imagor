@@ -25,9 +25,15 @@ type Service interface {
 
 // Metrics represents metrics Startup and Shutdown lifecycle and Handle middleware
 type Metrics interface {
-	Startup(ctx context.Context) error
-	Shutdown(ctx context.Context) error
+
+	// Handle HTTP middleware metrics handler
 	Handle(next http.Handler) http.Handler
+
+	// Startup controls metrics startup
+	Startup(ctx context.Context) error
+
+	// Shutdown controls metrics shutdown
+	Shutdown(ctx context.Context) error
 }
 
 // Server wraps the Service with additional http and app lifecycle handling
