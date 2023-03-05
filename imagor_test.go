@@ -320,12 +320,14 @@ func TestWithRaw(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
 	assert.Equal(t, "boom", w.Header().Get("Content-Type"))
+	assert.Empty(t, w.Header().Get("Content-Security-Policy"))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/filters:fill(red):raw()/gopher.png", nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
+	assert.Equal(t, "script-src 'none'", w.Header().Get("Content-Security-Policy"))
 	assert.Equal(t, "bar", w.Header().Get("Content-Type"))
 }
 
