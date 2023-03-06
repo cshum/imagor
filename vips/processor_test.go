@@ -3,12 +3,6 @@ package vips
 import (
 	"context"
 	"fmt"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,6 +13,13 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/storage/filestorage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 var testDataDir string
@@ -391,11 +392,10 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			assert.Equal(t, 200, w.Code)
 			b := imagor.NewBlobFromBytes(w.Body.Bytes())
 			_ = resStorage.Put(context.Background(), tt.path, b)
-			resultDirPath := resultDir
+			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
 			if tt.arm64Golden && runtime.GOARCH == "arm64" {
-				resultDirPath = filepath.Join(resultDir, "arm64")
+				path = strings.Replace(path, "golden", "golden_arm64", 1)
 			}
-			path := filepath.Join(resultDirPath, imagorpath.Normalize(tt.path, nil))
 
 			bc := imagor.NewBlobFromFile(path)
 			buf, err := bc.ReadAll()
