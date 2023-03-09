@@ -3,6 +3,9 @@ package vips
 // #include <vips/vips.h>
 import "C"
 import (
+	"errors"
+	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -87,4 +90,48 @@ func vipsImageGetExif(img *C.VipsImage) map[string]any {
 		}
 	}
 	return exif
+}
+
+func convertDecimalToDMS(degree float64) string {
+	degree = math.Abs(degree)
+	seconds := degree * 3600
+
+	degrees := math.Floor(degree)
+	seconds -= degrees * 3600
+
+	minutes := math.Floor(seconds / 60)
+	seconds -= minutes * 60
+
+	return fmt.Sprintf("%.2f° %.2f' %.4f\"", degrees, minutes, seconds)
+}
+
+func isValidDegree(degree float64) bool {
+	return degree >= -180 && degree <= 180
+}
+
+func vipsSetGeo(img *C.VipsImage, latitude, longitude float64) error {
+	if isValidDegree(longitude) == false || isValidDegree(latitude) == false {
+		return errors.New("invalid longitude or latitude")
+	}
+
+	lonRef := "E"
+	if longitude < 0 {
+		lonRef = "W"
+	}
+
+	latRef := "N"
+	if latitude < 0 {
+		latRef = "S"
+	}
+
+	geoMeta := map[string]string{
+		"exif-ifd3-GPSLatitude":     convertDecimalToDMS(latitude),
+		"exif-ifd3-GPSLatitudeRef":  latRef,
+		"exif-ifd3-GPSLongitude":    convertDecimalToDMS(longitude),
+		"exif-ifd3-GPSLongitudeRef": lonRef,
+	}
+
+	vipsSetMetaString(img, geoMeta)
+
+	return nil
 }

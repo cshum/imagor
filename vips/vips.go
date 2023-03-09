@@ -298,7 +298,7 @@ func vipsReplicate(in *C.VipsImage, across int, down int) (*C.VipsImage, error) 
 	return out, nil
 }
 
-//  https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
+// https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
 func vipsLinear(in *C.VipsImage, a, b []float64, n int) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
@@ -415,4 +415,10 @@ func vipsImageSetDelay(in *C.VipsImage, data []C.int) error {
 
 func vipsGetMetaString(image *C.VipsImage, name string) string {
 	return C.GoString(C.get_meta_string(image, cachedCString(name)))
+}
+
+func vipsSetMetaString(in *C.VipsImage, store map[string]string) {
+	for k, v := range store {
+		C.set_image_string(in, C.CString(k), C.CString(v))
+	}
 }

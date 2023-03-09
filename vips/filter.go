@@ -512,6 +512,15 @@ func saturation(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string
 	return img.Modulate(1, s, 0)
 }
 
+func geo(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+	if len(args) != 2 {
+		return
+	}
+	lat, _ := strconv.ParseFloat(args[0], 64)
+	lon, _ := strconv.ParseFloat(args[1], 64)
+	return img.setGeo(lat, lon)
+}
+
 func rgb(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) != 3 {
 		return

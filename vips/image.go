@@ -307,6 +307,10 @@ func (r *Image) Exif() map[string]any {
 	return vipsImageGetExif(r.image)
 }
 
+func (r *Image) setGeo(latitude, longitude float64) error {
+	return vipsSetGeo(r.image, latitude, longitude)
+}
+
 // ExportJpeg exports the image as JPEG to a buffer.
 func (r *Image) ExportJpeg(params *JpegExportParams) ([]byte, error) {
 	if params == nil {

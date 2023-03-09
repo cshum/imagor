@@ -69,6 +69,7 @@ func TestProcessor(t *testing.T) {
 			{name: "meta format no animate", path: "meta/fit-in/100x100/filters:format(jpg)/dancing-banana.gif"},
 			{name: "meta exif", path: "meta/Canon_40D.jpg"},
 			{name: "meta strip exif", path: "meta/filters:strip_exif()/Canon_40D.jpg"},
+			{name: "meta geo", path: "meta/filters:geo(55.75,25.925833)/Canon_40D.jpg"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips operations", func(t *testing.T) {

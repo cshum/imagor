@@ -73,6 +73,7 @@ func NewProcessor(options ...Option) *Processor {
 		"set_frames":       setFrames,
 		"padding":          v.padding,
 		"proportion":       proportion,
+		"geo":              geo,
 	}
 	for _, option := range options {
 		option(v)

@@ -478,6 +478,10 @@ void set_image_delay(VipsImage *in, const int *array, int n) {
   return vips_image_set_array_int(in, "delay", array, n);
 }
 
+void set_image_string(VipsImage *in, const char *key, const char *value) {
+    vips_image_set_string(in, key, value);
+}
+
 const char * get_meta_string(const VipsImage *image, const char *name) {
 	const char *val;
 	if (
