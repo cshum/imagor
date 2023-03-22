@@ -214,12 +214,20 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 	height := h + pTop + pBottom
 	if colour != "blur" || (colour == "blur" && v.DisableBlur) || isAnimated(img) {
 		// fill color
-		if img.HasAlpha() {
+		isTransparent := colour == "none" || colour == "transparent"
+		if img.HasAlpha() && !isTransparent {
 			if err = img.Flatten(getColor(img, colour)); err != nil {
 				return
 			}
 		}
-		if isBlack(c) {
+		if isTransparent {
+			if err = img.AddAlpha(); err != nil {
+				return
+			}
+			if err = img.EmbedBackgroundRGBA(left, top, width, height, &ColorRGBA{}); err != nil {
+				return
+			}
+		} else if isBlack(c) {
 			if err = img.Embed(left, top, width, height, ExtendBlack); err != nil {
 				return
 			}

@@ -21,7 +21,7 @@ import (
 )
 
 // Version imagor version
-const Version = "1.3.6"
+const Version = "1.4.2"
 
 // Loader image loader interface
 type Loader interface {
@@ -188,15 +188,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(e.Code)
 			return
 		}
-		if !isBlobEmpty(blob) && !p.Meta {
-			w.Header().Set("Content-Type", blob.ContentType())
-			reader, size, _ := blob.NewReader()
-			if reader != nil {
-				w.WriteHeader(e.Code)
-				writeBody(w, r, reader, size)
-				return
-			}
-		}
 		w.WriteHeader(e.Code)
 		writeJSON(w, r, e)
 		return
@@ -207,6 +198,12 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, r, app.CacheHeaderTTL, app.CacheHeaderSWR)
+	if r.Header.Get("Imagor-Auto-Format") != "" {
+		w.Header().Add("Vary", "Accept")
+	}
+	if r.Header.Get("Imagor-Raw") != "" {
+		w.Header().Set("Content-Security-Policy", "script-src 'none'")
+	}
 	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -262,7 +259,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p = imagorpath.Apply(p, app.BaseParams)
 		isPathChanged = true
 	}
-	var hasFormat, hasPreview bool
+	var hasFormat, hasPreview, isRaw bool
 	var filters = p.Filters
 	p.Filters = nil
 	for _, f := range filters {
@@ -278,6 +275,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 		case "format":
 			hasFormat = true
+		case "raw":
+			r.Header.Set("Imagor-Raw", "1")
+			isRaw = true
 		case "preview":
 			r.Header.Set("Cache-Control", "no-cache")
 			hasPreview = true // disable result storage on preview() filter
@@ -298,12 +298,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				Name: "format",
 				Args: "avif",
 			})
+			r.Header.Set("Imagor-Auto-Format", "avif") // response Vary: Accept header
 			isPathChanged = true
 		} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
 				Args: "webp",
 			})
+			r.Header.Set("Imagor-Auto-Format", "webp") // response Vary: Accept header
 			isPathChanged = true
 		}
 	}
@@ -331,12 +333,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		return blob, err
 	}
 	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
-		if resultKey != "" {
+		if resultKey != "" && !isRaw {
 			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 				return blob, nil
 			}
 		}
-		if app.queueSema != nil {
+		if app.queueSema != nil && !isRaw {
 			if !app.queueSema.TryAcquire(1) {
 				err = ErrTooManyRequests
 				if app.Debug {
@@ -346,7 +348,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			defer app.queueSema.Release(1)
 		}
-		if app.sema != nil {
+		if app.sema != nil && !isRaw {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
 				if app.Debug {
 					app.Logger.Debug("acquire", zap.Error(err))
@@ -377,38 +379,40 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isBlobEmpty(blob) {
 			return blob, err
 		}
-		var cancel func()
-		if app.ProcessTimeout > 0 {
-			ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
-			contextDefer(ctx, cancel)
-		}
-		var forwardP = p
-		for _, processor := range app.Processors {
-			b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
-			if !isBlobEmpty(b) {
-				blob = b // forward Blob to next processor if exists
+		if !isRaw {
+			var cancel func()
+			if app.ProcessTimeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
+				contextDefer(ctx, cancel)
 			}
-			if e == nil {
-				blob = b
-				err = nil
-				if app.Debug {
-					app.Logger.Debug("processed", zap.Any("params", forwardP))
+			var forwardP = p
+			for _, processor := range app.Processors {
+				b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
+				if !isBlobEmpty(b) {
+					blob = b // forward Blob to next processor if exists
 				}
-				break
-			} else if forward, ok := e.(ErrForward); ok {
-				err = e
-				forwardP = forward.Params
-				if app.Debug {
-					app.Logger.Debug("forward", zap.Any("params", forwardP))
-				}
-			} else {
-				if ctx.Err() == nil {
+				if e == nil {
+					blob = b
+					err = nil
+					if app.Debug {
+						app.Logger.Debug("processed", zap.Any("params", forwardP))
+					}
+					break
+				} else if forward, ok := e.(ErrForward); ok {
 					err = e
-					app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
+					forwardP = forward.Params
+					if app.Debug {
+						app.Logger.Debug("forward", zap.Any("params", forwardP))
+					}
 				} else {
-					err = ctx.Err()
+					if ctx.Err() == nil {
+						err = e
+						app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
+					} else {
+						err = ctx.Err()
+					}
+					break
 				}
-				break
 			}
 		}
 		if shouldSave {
@@ -417,7 +421,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		cb(blob, err)
 		ctx = detachContext(ctx)
-		if err == nil && !isBlobEmpty(blob) && resultKey != "" &&
+		if err == nil && !isBlobEmpty(blob) && resultKey != "" && !isRaw &&
 			len(app.ResultStorages) > 0 {
 			app.save(ctx, app.ResultStorages, resultKey, blob)
 		}

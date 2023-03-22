@@ -64,6 +64,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		return
 	})
 	if attrs != nil {
+		blob.SetContentType(attrs.ContentType)
 		blob.Stat = &imagor.Stat{
 			Size:         attrs.Size,
 			ETag:         attrs.Etag,

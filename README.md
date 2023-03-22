@@ -9,8 +9,8 @@
 imagor is a fast, secure image processing server and Go library.
 
 imagor uses one of the most efficient image processing library
-[libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings. 
-imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput. 
+[libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings.
+imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput.
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
 
@@ -87,9 +87,10 @@ imagor supports the following filters:
   - `amount` -100 to 100, the amount in % to increase or decrease the image contrast
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
-    - If color is "blur" - missing parts are filled with blurred original image.
+    - If color is "blur" - missing parts are filled with blurred original image
     - If color is "auto" - the top left image pixel will be chosen as the filling color
-- `focal(AxB:CxD)` or `focal(X,Y)` adds a focal region or focal point for custom transformations: 
+    - If color is "none" - the filling would become fully transparent
+- `focal(AxB:CxD)` or `focal(X,Y)` adds a focal region or focal point for custom transformations:
   - Coordinated by a region of left-top point `AxB` and right-bottom point `CxD`, or a point `X,Y`.
   - Also accepts float values between 0 and 1 that represents percentage of image dimensions.
 - `format(format)` specifies the output format of the image
@@ -153,6 +154,7 @@ These filters do not manipulate images but provide useful utilities to the imago
 - `attachment(filename)` returns attachment in the `Content-Disposition` header, and the browser will open a "Save as" dialog with `filename`. When `filename` not specified, imagor will get the filename from the image source
 - `expire(timestamp)` adds expiration time to the content. `timestamp` is the unix milliseconds timestamp, e.g. if content is valid for 30s then timestamp would be `Date.now() + 30*1000` in JavaScript.
 - `preview()` skips the result storage even if result storage is enabled. Useful for conditional caching
+- `raw()` response with a raw unprocessed and unchecked source image. Image still loads from loader and storage but skips the result storage
 
 
 ### Loader, Storage and Result Storage
@@ -313,6 +315,11 @@ services:
 * `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e.jpg`
 * `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729`
 
+`IMAGOR_RESULT_STORAGE_PATH_STYLE=size`
+
+* `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e_166x169.jpg`
+* `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729_17x19`
+
 ### Security
 
 #### URL Signature
@@ -374,7 +381,7 @@ VIPS_MAX_WIDTH=5000
 VIPS_MAX_HEIGHT=5000
 ```
 
-#### Allowed Sources
+#### Allowed Sources and Base URL
 
 Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES`. Accept csv wth glob pattern e.g.:
 
@@ -382,16 +389,23 @@ Whitelist specific hosts to restrict loading images only from the allowed source
 HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
 ```
 
-#### Error Response Body
+Alternatively, it is possible to set a base URL for loading images strictly from one HTTP source. This also trims down the base URL from image endpoint:
 
-By default, when image processing failed, imagor returns error status code with the original source as response body.
-This is with assumption that the image source is trusted, so that the original image can be served as fallback in case of failure.
-
-However, if the source image involves user generated content, it is advised to disable the original source fallback using `IMAGOR_DISABLE_ERROR_BODY`, to prevent untrusted content being loaded:
-
-```dotenv
-IMAGOR_DISABLE_ERROR_BODY=1
+Example URL:
 ```
+http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,0,40,40)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
+```
+
+With HTTP Loader Base URL config:
+```
+HTTP_LOADER_BASE_URL=https://raw.githubusercontent.com/cshum/imagor/master
+```
+
+The example URL then becomes:
+```
+http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(testdata/gopher-front.png,repeat,bottom,0,40,40)/testdata/dancing-banana.gif
+```
+
 
 ### Metadata and Exif
 
@@ -435,7 +449,7 @@ curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0
 
 ### Go Library
 
-imagor is a Go library built with speed, security and extensibility in mind. 
+imagor is a Go library built with speed, security and extensibility in mind.
 It facilitates high-level image processing in a modular architecture made up of a series of Go packages:
 
 - [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
@@ -601,8 +615,15 @@ Usage of imagor:
   -server-access-log
         Enable server access log
 
+  -prometheus-bind string
+        Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000
+  -prometheus-path string
+        Prometheus metrics path (default "/")
+        
   -http-loader-allowed-sources string
         HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
+  -http-loader-base-url string
+        HTTP Loader base URL that prepends onto existing image path. This overrides the default scheme option.
   -http-loader-forward-headers string
         Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
   -http-loader-forward-client-headers

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -122,6 +123,17 @@ func WithDefaultScheme(scheme string) Option {
 	return func(h *HTTPLoader) {
 		if scheme != "" {
 			h.DefaultScheme = scheme
+		}
+	}
+}
+
+// WithBaseURL with base URL option for valid URL string
+func WithBaseURL(baseURL string) Option {
+	return func(h *HTTPLoader) {
+		if baseURL != "" {
+			if u, err := url.Parse(baseURL); err == nil {
+				h.BaseURL = u
+			}
 		}
 	}
 }

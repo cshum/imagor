@@ -4,6 +4,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 func TestDefault(t *testing.T) {
 	srv := CreateServer(nil)
+	assert.Equal(t, ":8000", srv.Addr)
 	app := srv.App.(*imagor.Imagor)
 
 	assert.False(t, app.Debug)
@@ -33,7 +35,9 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, time.Hour*24, app.CacheHeaderSWR)
 	assert.Empty(t, app.ResultStorages)
 	assert.Empty(t, app.Storages)
-	assert.IsType(t, &httploader.HTTPLoader{}, app.Loaders[0])
+	loader := app.Loaders[0].(*httploader.HTTPLoader)
+	assert.Empty(t, loader.BaseURL)
+	assert.Equal(t, "https", loader.DefaultScheme)
 }
 
 func TestBasic(t *testing.T) {
@@ -56,10 +60,12 @@ func TestBasic(t *testing.T) {
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 		"-http-loader-insecure-skip-verify-transport",
+		"-http-loader-base-url", "https://www.example.com/foo.org",
 	})
 	app := srv.App.(*imagor.Imagor)
 
 	assert.Equal(t, 2345, srv.Port)
+	assert.Equal(t, ":2345", srv.Addr)
 	assert.True(t, app.Debug)
 	assert.True(t, app.Unsafe)
 	assert.True(t, app.AutoWebP)
@@ -78,10 +84,20 @@ func TestBasic(t *testing.T) {
 
 	httpLoader := app.Loaders[0].(*httploader.HTTPLoader)
 	assert.True(t, httpLoader.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify)
+	assert.Equal(t, "https://www.example.com/foo.org", httpLoader.BaseURL.String())
 }
 
 func TestVersion(t *testing.T) {
 	assert.Empty(t, CreateServer([]string{"-version"}))
+}
+
+func TestBind(t *testing.T) {
+	srv := CreateServer([]string{
+		"-debug",
+		"-port", "2345",
+		"-bind", ":4567",
+	})
+	assert.Equal(t, ":4567", srv.Addr)
 }
 
 func TestSignerAlgorithm(t *testing.T) {
@@ -162,4 +178,22 @@ func TestPathStyle(t *testing.T) {
 	})
 	app = srv.App.(*imagor.Imagor)
 	assert.Equal(t, "abc.30fdbe2aa5086e0f0c50", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
+
+	srv = CreateServer([]string{
+		"-imagor-result-storage-path-style", "size",
+	})
+	app = srv.App.(*imagor.Imagor)
+	assert.Equal(t, "abc.30fdbe2aa5086e0f0c50_200x200", app.ResultStoragePathStyle.HashResult(imagorpath.Parse("200x200/abc")))
+}
+
+func TestPrometheusBind(t *testing.T) {
+	srv := CreateServer([]string{
+		"-bind", ":2345",
+		"-prometheus-bind", ":6789",
+		"-prometheus-path", "/myprom",
+	})
+	assert.Equal(t, ":2345", srv.Addr)
+	pm := srv.Metrics.(*prometheusmetrics.PrometheusMetrics)
+	assert.Equal(t, pm.Path, "/myprom")
+	assert.Equal(t, pm.Addr, ":6789")
 }

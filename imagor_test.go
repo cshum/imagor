@@ -295,6 +295,42 @@ func TestWithRetryQueryUnescape(t *testing.T) {
 	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
 }
 
+func TestWithRaw(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			if image != "gopher.png" {
+				return nil, ErrInvalid
+			}
+			blob := NewBlobFromBytes([]byte("foo"))
+			blob.SetContentType("bar")
+			return blob, nil
+		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			out := NewBlobFromBytes([]byte(p.Path))
+			out.SetContentType("boom")
+			return out, nil
+		})),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:fill(red)/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "filters:fill(red)/gopher.png", w.Body.String())
+	assert.Equal(t, "boom", w.Header().Get("Content-Type"))
+	assert.Empty(t, w.Header().Get("Content-Security-Policy"))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:fill(red):raw()/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	assert.Equal(t, "script-src 'none'", w.Header().Get("Content-Security-Policy"))
+	assert.Equal(t, "bar", w.Header().Get("Content-Type"))
+}
+
 func TestNewBlobFromPathNotFound(t *testing.T) {
 	loader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		return NewBlobFromFile("./non-exists-path"), nil
@@ -740,7 +776,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/dood", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 500, w.Code)
-			assert.Equal(t, "dood", w.Body.String())
+			assert.Equal(t, jsonStr(NewError("error with value", 500)), w.Body.String())
 			assert.Nil(t, store.Map["dood"])
 		})
 		t.Run(fmt.Sprintf("processor error return original %d", i), func(t *testing.T) {
@@ -749,7 +785,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/poop", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
-			assert.Equal(t, "poop", w.Body.String())
+			assert.Equal(t, jsonStr(ErrUnsupportedFormat), w.Body.String())
 			assert.Nil(t, store.Map["poop"])
 		})
 		t.Run(fmt.Sprintf("processor error return last error %d", i), func(t *testing.T) {
@@ -758,7 +794,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 				http.MethodGet, "https://example.com/unsafe/bond", nil))
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, ErrInternal.Code, w.Code)
-			assert.Equal(t, "bond", w.Body.String())
+			assert.Equal(t, jsonStr(ErrInternal), w.Body.String())
 			assert.Nil(t, store.Map["bond"])
 		})
 	}
@@ -1218,7 +1254,8 @@ func TestAutoWebP(t *testing.T) {
 		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(webp)/abc.png", w.Body.String())
 	})
 	t.Run("supported not image tag auto", func(t *testing.T) {
 		app := factory(true)
@@ -1228,6 +1265,7 @@ func TestAutoWebP(t *testing.T) {
 		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
 		assert.Equal(t, w.Body.String(), "filters:format(webp)/abc.png")
 	})
 	t.Run("no supported no auto", func(t *testing.T) {
@@ -1285,6 +1323,7 @@ func TestAutoAVIF(t *testing.T) {
 		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
 		assert.Equal(t, w.Body.String(), "filters:format(avif)/abc.png")
 	})
 	t.Run("supported not image tag auto", func(t *testing.T) {
@@ -1295,6 +1334,7 @@ func TestAutoAVIF(t *testing.T) {
 		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
 		assert.Equal(t, w.Body.String(), "filters:format(avif)/abc.png")
 	})
 	t.Run("no supported no auto", func(t *testing.T) {

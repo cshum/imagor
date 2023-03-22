@@ -74,7 +74,6 @@ func TestParseGenerate(t *testing.T) {
 				Filters: []Filter{{Name: "watermark", Args: "s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0"}},
 			},
 		},
-
 		{
 			name: "multiple filters",
 			uri:  "filters:watermark(s.glbimg.com/es/ge/f/original/2011/03/29/orlandosilva_60.jpg,0,0,0):brightness(-50):grayscale()/img",
@@ -96,6 +95,49 @@ func TestParseGenerate(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "nested filters",
+			uri:  "filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/img",
+			params: Params{
+				Path:  "filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/img",
+				Image: "img",
+				Filters: []Filter{
+					{
+						Name: "watermark",
+						Args: "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0",
+					},
+					{
+						Name: "brightness",
+						Args: "-50",
+					},
+					{
+						Name: "grayscale",
+					},
+				},
+			},
+		},
+		{
+			name: "filters with unicode",
+			uri:  "filters:label(哈哈,1,2,3):brightness(-50):grayscale()/img",
+			params: Params{
+				Path:  "filters:label(哈哈,1,2,3):brightness(-50):grayscale()/img",
+				Image: "img",
+				Filters: []Filter{
+					{
+						Name: "label",
+						Args: "哈哈,1,2,3",
+					},
+					{
+						Name: "brightness",
+						Args: "-50",
+					},
+					{
+						Name: "grayscale",
+					},
+				},
+			},
+		},
+
 		{
 			name: "no params",
 			uri:  "unsafe/https://foobar/en/latest/_images/man_before_sharpen.png",
@@ -374,4 +416,43 @@ func TestNormalize(t *testing.T) {
 func TestHMACSigner(t *testing.T) {
 	signer := NewHMACSigner(sha256.New, 28, "abcd")
 	assert.Equal(t, signer.Sign("assfasf"), "zb6uWXQxwJDOe_zOgxkuj96Etrsz")
+}
+
+func TestParseFilters(t *testing.T) {
+	filters, img := parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/some/example/img")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Equal(t, "some/example/img", img)
+
+	filters, img = parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Empty(t, img)
+
+	filters, img = parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Empty(t, img)
+
+	filters, img = parseFilters("some/example/img")
+	assert.Empty(t, filters)
+	assert.Equal(t, "some/example/img", img)
+
+	filters, img = parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):format()jpg:brightness(-50):grayscale()")
+	assert.Equal(t, []Filter{
+		{"watermark", "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0"},
+		{"format", ""},
+		{"brightness", "-50"},
+		{"grayscale", ""},
+	}, filters)
+	assert.Empty(t, img)
 }

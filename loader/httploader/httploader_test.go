@@ -227,7 +227,7 @@ func TestBlockNetworks(t *testing.T) {
 
 		for _, v := range []string{"::1/128", "127.0.0.0/8"} {
 			_, network, err := net.ParseCIDR(v)
-			assert.NoError(t,err)
+			assert.NoError(t, err)
 			networks = append(networks, network)
 		}
 		loader := New(
@@ -341,6 +341,34 @@ func TestWithDefaultScheme(t *testing.T) {
 			name:   "default scheme set nil found",
 			target: "https://foo.bar/baz",
 			result: "baz",
+		},
+	})
+}
+
+func TestWithBaseURL(t *testing.T) {
+	trans := testTransport{
+		"https://foo.com/bar.org/some/path/ping.jpg":         "pong",
+		"https://foo.com/bar.org/some/path/ping.jpg?abc=123": "boom",
+	}
+	doTests(t, New(
+		WithBaseURL("https://foo.com/bar.org"),
+		WithTransport(trans),
+	), []test{
+		{
+			name:   "base URL matched",
+			target: "some/path/ping.jpg",
+			result: "pong",
+		},
+		{
+			name:   "base URL with query matched",
+			target: "some/path/ping.jpg?abc=123",
+			result: "boom",
+		},
+		{
+			name:   "not found",
+			target: "https://foo.com/bar.org/some/path/ping.jpg",
+			result: "not found",
+			err:    "imagor: 404 Not Found",
 		},
 	})
 }

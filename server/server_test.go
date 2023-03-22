@@ -50,6 +50,7 @@ func TestServer_Run(t *testing.T) {
 		WithAddr(":0"),
 		WithStartupTimeout(time.Millisecond),
 		WithShutdownTimeout(time.Millisecond),
+		WithMetrics(nil),
 		WithLogger(zap.NewExample()))
 	go func() {
 		time.Sleep(time.Millisecond)
