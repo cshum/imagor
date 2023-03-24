@@ -345,6 +345,8 @@ func TestProcessor(t *testing.T) {
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
 	resStorage := filestorage.New(resultDir,
 		filestorage.WithSaveErrIfExists(true))
+	resultDirArm64 := strings.ReplaceAll(resultDir, "/golden", "/golden_arm64")
+	resStorageArm64 := filestorage.New(resultDirArm64, filestorage.WithSaveErrIfExists(true))
 	fileLoader := filestorage.New(testDataDir)
 	processor := NewProcessor(opts...)
 
@@ -386,12 +388,14 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			cancel()
 			assert.Equal(t, 200, w.Code)
 			b := imagor.NewBlobFromBytes(w.Body.Bytes())
-			_ = resStorage.Put(context.Background(), tt.path, b)
-			path := filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
+			var path string
 			if tt.arm64Golden && runtime.GOARCH == "arm64" {
-				path = strings.Replace(path, "golden", "golden_arm64", 1)
+				_ = resStorageArm64.Put(context.Background(), tt.path, b)
+				path = filepath.Join(resultDirArm64, imagorpath.Normalize(tt.path, nil))
+			} else {
+				_ = resStorage.Put(context.Background(), tt.path, b)
+				path = filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
 			}
-
 			bc := imagor.NewBlobFromFile(path)
 			buf, err := bc.ReadAll()
 			require.NoError(t, err)
