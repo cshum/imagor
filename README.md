@@ -785,14 +785,6 @@ Usage of imagor:
         VIPS max image height
   -vips-max-resolution int
         VIPS max image resolution
-  -vips-concurrency int
-        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
-  -vips-max-cache-files int
-        VIPS max cache files
-  -vips-max-cache-mem int
-        VIPS max cache mem
-  -vips-max-cache-size int
-        VIPS max cache size
   -vips-mozjpeg
         VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
 ```
