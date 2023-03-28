@@ -110,8 +110,6 @@ func New(options ...Option) *Imagor {
 	}
 	if app.ProcessConcurrency > 0 {
 		app.sema = semaphore.NewWeighted(app.ProcessConcurrency)
-	}
-	if app.ProcessQueueSize > 0 {
 		app.queueSema = semaphore.NewWeighted(app.ProcessQueueSize + app.ProcessConcurrency)
 	}
 	if app.Debug {

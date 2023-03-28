@@ -594,7 +594,7 @@ Usage of imagor:
   -imagor-process-concurrency int
         Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit (default -1)
   -imagor-process-queue-size int
-        Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429. Set -1 for no limit (default -1)
+        Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429
   -imagor-base-path-redirect string
         URL to redirect for imagor / base path e.g. https://www.google.com
   -imagor-modified-time-check
@@ -785,14 +785,6 @@ Usage of imagor:
         VIPS max image height
   -vips-max-resolution int
         VIPS max image resolution
-  -vips-concurrency int
-        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
-  -vips-max-cache-files int
-        VIPS max cache files
-  -vips-max-cache-mem int
-        VIPS max cache mem
-  -vips-max-cache-size int
-        VIPS max cache size
   -vips-mozjpeg
         VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
 ```
