@@ -52,7 +52,7 @@ func NewImagor(
 		imagorProcessConcurrency = fs.Int64("imagor-process-concurrency",
 			-1, "Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit")
 		imagorProcessQueueSize = fs.Int64("imagor-process-queue-size",
-			-1, "Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429. Set -1 for no limit")
+			0, "Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429")
 		imagorCacheHeaderTTL = fs.Duration("imagor-cache-header-ttl",
 			time.Hour*24*7, "imagor HTTP Cache-Control header TTL for successful image response")
 		imagorCacheHeaderSWR = fs.Duration("imagor-cache-header-swr",

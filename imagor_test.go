@@ -1116,7 +1116,7 @@ func TestWithProcessConcurrency(t *testing.T) {
 		result[code]++
 	}
 	assert.Equal(t, 1, result[200])
-	assert.Equal(t, 4, result[408])
+	assert.Equal(t, 4, result[429])
 }
 
 func TestWithModifiedTimeCheck(t *testing.T) {

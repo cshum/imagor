@@ -594,7 +594,7 @@ Usage of imagor:
   -imagor-process-concurrency int
         Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit (default -1)
   -imagor-process-queue-size int
-        Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429. Set -1 for no limit (default -1)
+        Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429
   -imagor-base-path-redirect string
         URL to redirect for imagor / base path e.g. https://www.google.com
   -imagor-modified-time-check
