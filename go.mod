@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/storage v1.30.1
-	github.com/aws/aws-sdk-go v1.44.230
+	github.com/aws/aws-sdk-go v1.44.234
 	github.com/fsouza/fake-gcs-server v1.44.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20230129080941-f6a8a9ae6fd3
 	github.com/peterbourgon/ff/v3 v3.3.0
