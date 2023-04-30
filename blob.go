@@ -33,6 +33,7 @@ const (
 	BlobTypeTIFF
 	BlobTypeJP2
 	BlobTypeBMP
+	BlobTypePDF
 )
 
 // Blob imagor data blob abstraction
@@ -150,6 +151,7 @@ var gifHeader = []byte("\x47\x49\x46")
 var webpHeader = []byte("\x57\x45\x42\x50")
 var pngHeader = []byte("\x89\x50\x4E\x47")
 var bmpHeader = []byte("BM")
+var pdfHeader = []byte("\x25\x50\x44\x46")
 
 // https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
 var ftyp = []byte("ftyp")
@@ -313,6 +315,8 @@ func (b *Blob) doInit() {
 			bytes.Equal(b.sniffBuf[20:24], jpm) ||
 			bytes.Equal(b.sniffBuf[20:24], jpx)) {
 			b.blobType = BlobTypeJP2
+		} else if bytes.Equal(b.sniffBuf[:4], pdfHeader) {
+			b.blobType = BlobTypePDF
 		} else if bytes.Equal(b.sniffBuf[:2], bmpHeader) {
 			b.blobType = BlobTypeBMP
 		}
@@ -337,6 +341,8 @@ func (b *Blob) doInit() {
 			b.contentType = "image/tiff"
 		case BlobTypeJP2:
 			b.contentType = "image/jp2"
+		case BlobTypePDF:
+			b.contentType = "application/pdf"
 		case BlobTypeBMP:
 			b.contentType = "image/bmp"
 		default:
@@ -511,6 +517,8 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".jp2"
 	case BlobTypeBMP:
 		ext = ".bmp"
+	case BlobTypePDF:
+		ext = ".pdf"
 	case BlobTypeJSON:
 		ext = ".json"
 	}

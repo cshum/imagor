@@ -193,7 +193,7 @@ func (v *Processor) NewThumbnail(
 	var err error
 	var img *Image
 	params.FailOnError.Set(false)
-	if isBlobAnimated(blob, n) {
+	if isMultiPage(blob, n) {
 		if n < -1 || page < -1 {
 			params.NumPages.Set(-n)
 			if page < -1 && -page <= -n {
@@ -261,7 +261,7 @@ func (v *Processor) newThumbnailFallback(
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int) (*Image, error) {
 	var params = NewImportParams()
 	params.FailOnError.Set(false)
-	if isBlobAnimated(blob, n) {
+	if isMultiPage(blob, n) {
 		if n < -1 || page < -1 {
 			params.NumPages.Set(-n)
 			if page < -1 && -page <= -n {
@@ -356,8 +356,8 @@ func (v *Processor) CheckResolution(img *Image, err error) (*Image, error) {
 	return img, nil
 }
 
-func isBlobAnimated(blob *imagor.Blob, n int) bool {
-	return blob != nil && blob.SupportsAnimation() && n != 1 && n != 0
+func isMultiPage(blob *imagor.Blob, n int) bool {
+	return blob != nil && (blob.SupportsAnimation() || blob.BlobType() == imagor.BlobTypePDF) && n != 1 && n != 0
 }
 
 // WrapErr wraps error to become imagor.Error
