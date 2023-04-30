@@ -44,6 +44,7 @@ func (v *Processor) Process(
 		format                = ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
+		page                  int
 		focalRects            []focal
 		err                   error
 	)
@@ -89,6 +90,11 @@ func (v *Processor) Process(
 				thumbnailNotSupported = true
 			}
 			break
+		case "page":
+			if n, _ := strconv.Atoi(p.Args); n > 0 {
+				page = n
+			}
+			break
 		case "orient":
 			if n, _ := strconv.Atoi(p.Args); n > 0 {
 				orient = n
@@ -128,7 +134,7 @@ func (v *Processor) Process(
 					size = SizeBoth
 				}
 				if img, err = v.NewThumbnail(
-					ctx, blob, w, h, InterestingNone, size, maxN,
+					ctx, blob, w, h, InterestingNone, size, maxN, page,
 				); err != nil {
 					return nil, err
 				}
@@ -138,7 +144,7 @@ func (v *Processor) Process(
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, p.Height,
-					InterestingNone, SizeForce, maxN,
+					InterestingNone, SizeForce, maxN, page,
 				); err != nil {
 					return nil, err
 				}
@@ -166,7 +172,7 @@ func (v *Processor) Process(
 				if thumbnail {
 					if img, err = v.NewThumbnail(
 						ctx, blob, p.Width, p.Height,
-						interest, SizeBoth, maxN,
+						interest, SizeBoth, maxN, page,
 					); err != nil {
 						return nil, err
 					}
@@ -174,7 +180,7 @@ func (v *Processor) Process(
 			} else if p.Width > 0 && p.Height == 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, v.MaxHeight,
-					InterestingNone, SizeBoth, maxN,
+					InterestingNone, SizeBoth, maxN, page,
 				); err != nil {
 					return nil, err
 				}
@@ -182,7 +188,7 @@ func (v *Processor) Process(
 			} else if p.Height > 0 && p.Width == 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, v.MaxWidth, p.Height,
-					InterestingNone, SizeBoth, maxN,
+					InterestingNone, SizeBoth, maxN, page,
 				); err != nil {
 					return nil, err
 				}
@@ -192,13 +198,13 @@ func (v *Processor) Process(
 	}
 	if !thumbnail {
 		if thumbnailNotSupported {
-			if img, err = v.NewImage(ctx, blob, maxN); err != nil {
+			if img, err = v.NewImage(ctx, blob, maxN, page); err != nil {
 				return nil, err
 			}
 		} else {
 			if img, err = v.NewThumbnail(
 				ctx, blob, v.MaxWidth, v.MaxHeight,
-				InterestingNone, SizeDown, maxN,
+				InterestingNone, SizeDown, maxN, page,
 			); err != nil {
 				return nil, err
 			}
