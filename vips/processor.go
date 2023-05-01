@@ -186,26 +186,23 @@ func newThumbnailFromBlob(
 
 // NewThumbnail creates new thumbnail with resize and crop from imagor.Blob
 func (v *Processor) NewThumbnail(
-	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting, size Size, n int,
+	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting,
+	size Size, n, page int,
 ) (*Image, error) {
 	var params = NewImportParams()
 	var err error
 	var img *Image
 	params.FailOnError.Set(false)
-	if isBlobAnimated(blob, n) {
-		if n < -1 {
-			params.NumPages.Set(-n)
-		} else {
-			params.NumPages.Set(-1)
-		}
+	if isMultiPage(blob, n, page) {
+		applyMultiPageParams(params, n, page)
 		if crop == InterestingNone || size == SizeForce {
 			if img, err = newImageFromBlob(ctx, blob, params); err != nil {
 				return nil, WrapErr(err)
 			}
-			if n > 1 && img.Pages() > n {
+			if n > 1 || page > 1 {
 				// reload image to restrict frames loaded
-				img.Close()
-				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n)
+				n, page = recalculateImage(img, n, page)
+				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page)
 			}
 			if _, err = v.CheckResolution(img, nil); err != nil {
 				return nil, err
@@ -218,10 +215,10 @@ func (v *Processor) NewThumbnail(
 			if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, params)); err != nil {
 				return nil, WrapErr(err)
 			}
-			if n > 1 && img.Pages() > n {
+			if n > 1 || page > 1 {
 				// reload image to restrict frames loaded
-				img.Close()
-				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n)
+				n, page = recalculateImage(img, n, page)
+				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page)
 			}
 			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
 				img.Close()
@@ -254,23 +251,19 @@ func (v *Processor) newThumbnailFallback(
 }
 
 // NewImage creates new Image from imagor.Blob
-func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n int) (*Image, error) {
+func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int) (*Image, error) {
 	var params = NewImportParams()
 	params.FailOnError.Set(false)
-	if isBlobAnimated(blob, n) {
-		if n < -1 {
-			params.NumPages.Set(-n)
-		} else {
-			params.NumPages.Set(-1)
-		}
+	if isMultiPage(blob, n, page) {
+		applyMultiPageParams(params, n, page)
 		img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
 		if err != nil {
 			return nil, WrapErr(err)
 		}
 		// reload image to restrict frames loaded
-		if n > 1 && img.Pages() > n {
-			img.Close()
-			return v.NewImage(ctx, blob, -n)
+		if n > 1 || page > 1 {
+			n, page = recalculateImage(img, n, page)
+			return v.NewImage(ctx, blob, -n, -page)
 		}
 		return img, nil
 	}
@@ -349,8 +342,30 @@ func (v *Processor) CheckResolution(img *Image, err error) (*Image, error) {
 	return img, nil
 }
 
-func isBlobAnimated(blob *imagor.Blob, n int) bool {
-	return blob != nil && blob.SupportsAnimation() && n != 1 && n != 0
+func isMultiPage(blob *imagor.Blob, n, page int) bool {
+	return blob != nil && (blob.SupportsAnimation() || blob.BlobType() == imagor.BlobTypePDF) && ((n != 1 && n != 0) || (page != 1 && page != 0))
+}
+
+func applyMultiPageParams(params *ImportParams, n, page int) {
+	if page < -1 {
+		params.Page.Set(-page - 1)
+	} else if n < -1 {
+		params.NumPages.Set(-n)
+	} else {
+		params.NumPages.Set(-1)
+	}
+}
+
+func recalculateImage(img *Image, n, page int) (int, int) {
+	// reload image to restrict frames loaded
+	numPages := img.Pages()
+	img.Close()
+	if page > 1 && page > numPages {
+		page = numPages
+	} else if n > 1 && n > numPages {
+		n = numPages
+	}
+	return n, page
 }
 
 // WrapErr wraps error to become imagor.Error

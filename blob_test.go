@@ -112,6 +112,13 @@ func TestBlobTypes(t *testing.T) {
 			bytesType:   BlobTypeJP2,
 		},
 		{
+			name:        "pdf",
+			path:        "sample.pdf",
+			contentType: "application/pdf",
+			extension:   ".pdf",
+			bytesType:   BlobTypePDF,
+		},
+		{
 			name:        "bmp",
 			path:        "bmp_24.bmp",
 			contentType: "image/bmp",
