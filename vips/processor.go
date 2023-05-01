@@ -193,12 +193,11 @@ func (v *Processor) NewThumbnail(
 	var err error
 	var img *Image
 	params.FailOnError.Set(false)
-	if isMultiPage(blob, n) {
-		if n < -1 || page < -1 {
+	if isMultiPage(blob, n, page) {
+		if page < -1 {
+			params.Page.Set(-page - 1)
+		} else if n < -1 {
 			params.NumPages.Set(-n)
-			if page < -1 && -page <= -n {
-				params.Page.Set(-page)
-			}
 		} else {
 			params.NumPages.Set(-1)
 		}
@@ -206,7 +205,7 @@ func (v *Processor) NewThumbnail(
 			if img, err = newImageFromBlob(ctx, blob, params); err != nil {
 				return nil, WrapErr(err)
 			}
-			if n > 1 && img.Pages() > n {
+			if (n > 1 && img.Pages() > n) || (page > 1 && img.Pages() >= page) {
 				// reload image to restrict frames loaded
 				img.Close()
 				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page)
@@ -261,12 +260,11 @@ func (v *Processor) newThumbnailFallback(
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int) (*Image, error) {
 	var params = NewImportParams()
 	params.FailOnError.Set(false)
-	if isMultiPage(blob, n) {
-		if n < -1 || page < -1 {
+	if isMultiPage(blob, n, page) {
+		if page < -1 {
+			params.Page.Set(-page - 1)
+		} else if n < -1 {
 			params.NumPages.Set(-n)
-			if page < -1 && -page <= -n {
-				params.Page.Set(-page)
-			}
 		} else {
 			params.NumPages.Set(-1)
 		}
@@ -275,7 +273,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 			return nil, WrapErr(err)
 		}
 		// reload image to restrict frames loaded
-		if n > 1 && img.Pages() > n {
+		if (n > 1 && img.Pages() > n) || (page > 1 && img.Pages() >= page) {
 			img.Close()
 			return v.NewImage(ctx, blob, -n, -page)
 		}
@@ -356,8 +354,8 @@ func (v *Processor) CheckResolution(img *Image, err error) (*Image, error) {
 	return img, nil
 }
 
-func isMultiPage(blob *imagor.Blob, n int) bool {
-	return blob != nil && (blob.SupportsAnimation() || blob.BlobType() == imagor.BlobTypePDF) && n != 1 && n != 0
+func isMultiPage(blob *imagor.Blob, n, page int) bool {
+	return blob != nil && (blob.SupportsAnimation() || blob.BlobType() == imagor.BlobTypePDF) && ((n != 1 && n != 0) || (page != 1 && page != 0))
 }
 
 // WrapErr wraps error to become imagor.Error

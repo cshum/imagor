@@ -44,7 +44,7 @@ func (v *Processor) Process(
 		format                = ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
-		page                  int
+		page                  = 1
 		focalRects            []focal
 		err                   error
 	)
@@ -55,6 +55,9 @@ func (v *Processor) Process(
 		upscale = false
 	}
 	if maxN == 0 || maxN < -1 {
+		maxN = 1
+	}
+	if blob != nil && !blob.SupportsAnimation() {
 		maxN = 1
 	}
 	for _, p := range p.Filters {

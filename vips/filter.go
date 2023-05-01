@@ -53,7 +53,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 		}
 	} else {
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n, 0,
+			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n, 1,
 		); err != nil {
 			return
 		}
