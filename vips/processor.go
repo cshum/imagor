@@ -205,9 +205,15 @@ func (v *Processor) NewThumbnail(
 			if img, err = newImageFromBlob(ctx, blob, params); err != nil {
 				return nil, WrapErr(err)
 			}
-			if (n > 1 && img.Pages() > n) || (page > 1 && img.Pages() >= page) {
+			if n > 1 || page > 1 {
 				// reload image to restrict frames loaded
+				numPages := img.Pages()
 				img.Close()
+				if page > 1 && page > numPages {
+					page = numPages
+				} else if n > 1 && n > numPages {
+					n = numPages
+				}
 				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page)
 			}
 			if _, err = v.CheckResolution(img, nil); err != nil {
@@ -221,9 +227,15 @@ func (v *Processor) NewThumbnail(
 			if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, params)); err != nil {
 				return nil, WrapErr(err)
 			}
-			if n > 1 && img.Pages() > n {
+			if n > 1 || page > 1 {
 				// reload image to restrict frames loaded
+				numPages := img.Pages()
 				img.Close()
+				if page > 1 && page > numPages {
+					page = numPages
+				} else if n > 1 && n > numPages {
+					n = numPages
+				}
 				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page)
 			}
 			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
@@ -273,8 +285,14 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 			return nil, WrapErr(err)
 		}
 		// reload image to restrict frames loaded
-		if (n > 1 && img.Pages() > n) || (page > 1 && img.Pages() >= page) {
+		if n > 1 || page > 1 {
+			numPages := img.Pages()
 			img.Close()
+			if page > 1 && page > numPages {
+				page = numPages
+			} else if n > 1 && n > numPages {
+				n = numPages
+			}
 			return v.NewImage(ctx, blob, -n, -page)
 		}
 		return img, nil
