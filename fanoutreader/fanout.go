@@ -23,9 +23,9 @@ type Fanout struct {
 type reader struct {
 	fanout        *Fanout
 	channel       chan []byte
+	closeChannel  chan struct{}
 	buf           []byte
 	current       int
-	channelClosed bool
 	readerClosed  bool
 }
 
@@ -76,13 +76,33 @@ func (f *Fanout) readAll() {
 		}
 		readersCopy := f.readers
 		f.lock.Unlock()
-		f.lock.RLock()
+
+		var closedReaders []*reader
 		for _, r := range readersCopy {
-			if !r.channelClosed {
-				r.channel <- bn
+			select {
+			case <-r.closeChannel:
+				close(r.channel)
+				closedReaders = append(closedReaders, r)
+			case r.channel <- bn:
 			}
 		}
-		f.lock.RUnlock()
+
+		// Drop all the closed readers from readers list
+		if len(closedReaders) > 0 {
+			f.lock.Lock()
+			crIdx := 0
+			newPos := 0
+			for i, r := range f.readers {
+				if crIdx < len(closedReaders) && r == closedReaders[crIdx] {
+					crIdx++
+				} else {
+					f.readers[newPos] = f.readers[i]
+					newPos++
+				}
+			}
+			f.readers = f.readers[:newPos]
+			f.lock.Unlock()
+		}
 	}
 }
 
@@ -90,6 +110,7 @@ func (f *Fanout) readAll() {
 func (f *Fanout) NewReader() io.ReadCloser {
 	r := &reader{}
 	r.channel = make(chan []byte, f.size/4096+1)
+	r.closeChannel = make(chan struct{})
 	r.fanout = f
 
 	f.lock.Lock()
@@ -108,7 +129,6 @@ func (r *reader) Read(p []byte) (n int, err error) {
 	r.fanout.lock.RLock()
 	e := r.fanout.err
 	size := r.fanout.size
-	closed := r.channelClosed
 	r.fanout.lock.RUnlock()
 	for {
 		if r.current >= size {
@@ -117,11 +137,12 @@ func (r *reader) Read(p []byte) (n int, err error) {
 			}
 			return 0, io.EOF
 		}
-		if closed {
-			return 0, io.ErrClosedPipe
-		}
 		if len(r.buf) == 0 {
-			r.buf = <-r.channel
+			var ok bool
+			r.buf, ok = <-r.channel
+			if !ok {
+				return 0, io.ErrClosedPipe
+			}
 		}
 		nn := copy(p[n:], r.buf)
 		if nn == 0 {
@@ -139,16 +160,18 @@ func (r *reader) Read(p []byte) (n int, err error) {
 
 // close reader or just closing the underlying channel
 func (r *reader) close(closeReader bool) (e error) {
-	r.fanout.lock.Lock()
+	r.fanout.lock.RLock()
 	e = r.fanout.err
+	r.fanout.lock.RUnlock()
 	r.readerClosed = closeReader
-	if r.channelClosed {
-		r.fanout.lock.Unlock()
-	} else {
-		r.channelClosed = true
-		r.fanout.lock.Unlock()
-		close(r.channel)
+
+	// Close channel if it's not closed yet
+	select {
+	case <-r.closeChannel:
+	default:
+		close(r.closeChannel)
 	}
+
 	return
 }
 
