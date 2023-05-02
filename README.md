@@ -116,6 +116,7 @@ imagor supports the following filters:
 - `max_frames(n)` limit maximum number of animation frames `n` to be loaded
 - `orient(angle)` rotates the image before resizing and cropping, according to the angle value
   - `angle` accepts 0, 90, 180, 270
+- `page(num)` specify page number for PDF, or frame number for animated image, starts from 1
 - `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
