@@ -384,11 +384,19 @@ VIPS_MAX_HEIGHT=5000
 
 #### Allowed Sources and Base URL
 
-Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES`. Accept csv wth glob pattern e.g.:
+Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES` or `HTTP_LOADER_ALLOWED_SOURCE_REGEXP`.
 
-```dotenv
-HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
-```
+- `HTTP_LOADER_ALLOWED_SOURCES` accepts csv wth glob pattern e.g.:
+
+  ```dotenv
+  HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
+  ```
+
+- `HTTP_LOADER_ALLOWED_SOURCE_REGEXP` accepts a regular expression matching on the full URL e.g.:
+
+  ```dotenv
+  HTTP_LOADER_ALLOWED_SOURCE_REGEXP='^https://raw\.githubusercontent\.com/cshum/imagor/.*'
+  ```
 
 Alternatively, it is possible to set a base URL for loading images strictly from one HTTP source. This also trims down the base URL from image endpoint:
 
@@ -635,6 +643,8 @@ Usage of imagor:
         HTTP Loader maximum allowed size in bytes for loading images if set
   -http-loader-proxy-urls string
         HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port
+  -http-loader-allowed-source-regexp string
+        HTTP Loader allowed hosts regexp to load images from if set. Combines as OR with allowed host glob pattern sources.
   -http-loader-proxy-allowed-sources string
         HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
   -http-loader-default-scheme string
