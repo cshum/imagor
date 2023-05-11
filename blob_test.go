@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func doTestBlobReaders(t *testing.T, b *Blob, buf []byte) {
@@ -124,6 +125,13 @@ func TestBlobTypes(t *testing.T) {
 			contentType: "image/bmp",
 			extension:   ".bmp",
 			bytesType:   BlobTypeBMP,
+		},
+		{
+			name:        "svg",
+			path:        "test.svg",
+			contentType: "image/svg+xml",
+			extension:   ".svg",
+			bytesType:   BlobTypeSVG,
 		},
 	}
 	for _, tt := range tests {
