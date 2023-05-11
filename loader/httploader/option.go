@@ -84,8 +84,19 @@ func WithAllowedSources(hosts ...string) Option {
 			for _, host := range splits {
 				host = strings.TrimSpace(host)
 				if len(host) > 0 {
-					h.AllowedSources = append(h.AllowedSources, host)
+					h.AllowedSources = append(h.AllowedSources,
+						NewHostPatternAllowedSource(host))
 				}
+			}
+		}
+	}
+}
+
+func WithAllowedSourceRegexps(patterns ...string) Option {
+	return func(h *HTTPLoader) {
+		for _, pat := range patterns {
+			if as, err := NewRegexpAllowedSource(pat); pat != "" && err == nil {
+				h.AllowedSources = append(h.AllowedSources, as)
 			}
 		}
 	}

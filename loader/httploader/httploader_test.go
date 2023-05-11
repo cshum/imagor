@@ -133,6 +133,51 @@ func TestWithAllowedSources(t *testing.T) {
 	})
 }
 
+func TestWithAllowedSourceRegexp(t *testing.T) {
+	doTests(t, New(
+		WithTransport(testTransport{
+			"https://goo.org/image1.png":   "goo_image1",
+			"https://foo.com/dogs/dog.jpg": "dog",
+		}),
+		WithAllowedSourceRegexps(
+			`^https://(foo|bar)\.com/dogs/.*\.jpg$`,
+			`^https://goo\.org/.*`,
+		),
+	), []test{
+		{
+			name:   "allowed source",
+			target: "https://goo.org/image1.png",
+			result: "goo_image1",
+		},
+		{
+			name:   "allowed source",
+			target: "https://foo.com/dogs/dog.jpg",
+			result: "dog",
+		},
+		{
+			name:   "allowed not found",
+			target: "https://goo.org/image2.png",
+			result: "not found",
+			err:    "imagor: 404 Not Found",
+		},
+		{
+			name:   "not allowed source",
+			target: "https://goo2.org/https://goo.org/image.png",
+			err:    "imagor: 400 invalid",
+		},
+		{
+			name:   "not allowed source",
+			target: "https://foo.com/dogs/../cats/cat.jpg",
+			err:    "imagor: 400 invalid",
+		},
+		{
+			name:   "not allowed source",
+			target: "https://foo.com/dogs/dog.jpg?size=small",
+			err:    "imagor: 400 invalid",
+		},
+	})
+}
+
 func TestWithAllowedSourcesRedirect(t *testing.T) {
 
 	t.Run("Forbidden redirect", func(t *testing.T) {
