@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +35,7 @@ const (
 	BlobTypeJP2
 	BlobTypeBMP
 	BlobTypePDF
+	BlobTypeSVG
 )
 
 // Blob imagor data blob abstraction
@@ -173,6 +175,11 @@ var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
 var jsonPrefix = []byte(`{"`)
+var (
+	svgComment       = regexp.MustCompile(`(?s)<!--.*?-->`)
+	svgTagRegex      = regexp.MustCompile(`(?si)\A\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
+	svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg\b`)
+)
 
 type readSeekNopCloser struct {
 	io.ReadSeeker
@@ -292,7 +299,7 @@ func (b *Blob) doInit() {
 		}
 		return
 	}
-	if b.blobType != BlobTypeEmpty && b.blobType != BlobTypeJSON &&
+	if b.blobType != BlobTypeEmpty && b.blobType != BlobTypeJSON && b.blobType != BlobTypeSVG &&
 		len(b.sniffBuf) > 24 {
 		if bytes.Equal(b.sniffBuf[:3], jpegHeader) {
 			b.blobType = BlobTypeJPEG
@@ -345,15 +352,30 @@ func (b *Blob) doInit() {
 			b.contentType = "application/pdf"
 		case BlobTypeBMP:
 			b.contentType = "image/bmp"
+		case BlobTypeSVG:
+			b.contentType = "image/svg+xml"
 		default:
 			b.contentType = http.DetectContentType(b.sniffBuf)
 		}
 	}
-	if b.blobType == BlobTypeUnknown &&
-		strings.HasPrefix(b.contentType, "text/plain") {
-		if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
-			b.blobType = BlobTypeJSON
-			b.contentType = "application/json"
+	if b.blobType == BlobTypeUnknown {
+		if strings.HasPrefix(b.contentType, "text/plain") {
+			if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
+				b.blobType = BlobTypeJSON
+				b.contentType = "application/json"
+			}
+		}
+		// idea taken from https://github.com/go-gitea/gitea/blob/58dfaf3a75a097088376a9c221784b3675ac9c48/modules/typesniffer/typesniffer.go#L98-L107
+		detectByHTML := strings.HasPrefix(b.contentType, "text/plain") || strings.HasPrefix(b.contentType, "text/html")
+		detectByXML := strings.HasPrefix(b.contentType, "text/xml")
+		if detectByHTML || detectByXML {
+			dataProcessed := svgComment.ReplaceAll(b.sniffBuf, nil)
+			dataProcessed = bytes.TrimSpace(dataProcessed)
+			if (detectByHTML && svgTagRegex.Match(dataProcessed)) ||
+				(detectByXML && svgTagInXMLRegex.Match(dataProcessed)) {
+				b.blobType = BlobTypeSVG
+				b.contentType = "image/svg+xml"
+			}
 		}
 	}
 }
@@ -521,6 +543,8 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".pdf"
 	case BlobTypeJSON:
 		ext = ".json"
+	case BlobTypeSVG:
+		ext = ".svg"
 	}
 	return
 }
