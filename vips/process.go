@@ -523,6 +523,9 @@ func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
 	if IsAnimationSupported(format) {
 		pages = img.Height() / img.PageHeight()
 	}
+	if format == ImageTypePDF {
+		pages = img.Pages()
+	}
 	exif := map[string]any{}
 	if !stripExif {
 		exif = img.Exif()
