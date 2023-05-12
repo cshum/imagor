@@ -219,7 +219,9 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			return body, size, imagor.NewErrorFromStatusCode(resp.StatusCode)
 		}
 		if !validateContentType(resp.Header.Get("Content-Type"), h.accepts) {
-			return body, size, imagor.ErrUnsupportedFormat
+			// 如果 validate content-type 失敗只寫 LOG
+			fmt.Println("ErrUnsupportedFormat", resp.Header.Get("Content-Type"))
+			// return body, size, imagor.ErrUnsupportedFormat
 		}
 		return body, size, nil
 	})
