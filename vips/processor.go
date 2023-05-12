@@ -2,12 +2,13 @@ package vips
 
 import (
 	"context"
-	"github.com/cshum/imagor"
-	"go.uber.org/zap"
 	"math"
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/cshum/imagor"
+	"go.uber.org/zap"
 )
 
 // FilterFunc filter handler function
@@ -187,9 +188,12 @@ func newThumbnailFromBlob(
 // NewThumbnail creates new thumbnail with resize and crop from imagor.Blob
 func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting,
-	size Size, n, page int,
+	size Size, n, page int, dpi *int,
 ) (*Image, error) {
 	var params = NewImportParams()
+	if dpi != nil {
+		params.Density.Set(*dpi)
+	}
 	var err error
 	var img *Image
 	params.FailOnError.Set(false)
@@ -202,7 +206,7 @@ func (v *Processor) NewThumbnail(
 			if n > 1 || page > 1 {
 				// reload image to restrict frames loaded
 				n, page = recalculateImage(img, n, page)
-				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page)
+				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page, dpi)
 			}
 			if _, err = v.CheckResolution(img, nil); err != nil {
 				return nil, err
@@ -218,7 +222,7 @@ func (v *Processor) NewThumbnail(
 			if n > 1 || page > 1 {
 				// reload image to restrict frames loaded
 				n, page = recalculateImage(img, n, page)
-				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page)
+				return v.NewThumbnail(ctx, blob, width, height, crop, size, -n, -page, dpi)
 			}
 			if err = v.animatedThumbnailWithCrop(img, width, height, crop, size); err != nil {
 				img.Close()
@@ -251,8 +255,11 @@ func (v *Processor) newThumbnailFallback(
 }
 
 // NewImage creates new Image from imagor.Blob
-func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int) (*Image, error) {
+func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi *int) (*Image, error) {
 	var params = NewImportParams()
+	if dpi != nil {
+		params.Density.Set(*dpi)
+	}
 	params.FailOnError.Set(false)
 	if isMultiPage(blob, n, page) {
 		applyMultiPageParams(params, n, page)
@@ -263,7 +270,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 		// reload image to restrict frames loaded
 		if n > 1 || page > 1 {
 			n, page = recalculateImage(img, n, page)
-			return v.NewImage(ctx, blob, -n, -page)
+			return v.NewImage(ctx, blob, -n, -page, dpi)
 		}
 		return img, nil
 	}
