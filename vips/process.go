@@ -46,7 +46,7 @@ func (v *Processor) Process(
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
 		page                  = 1
-		dpi                   *int
+		dpi                   = 0
 		focalRects            []focal
 		err                   error
 	)
@@ -102,7 +102,7 @@ func (v *Processor) Process(
 			break
 		case "dpi":
 			if n, _ := strconv.Atoi(p.Args); n > 0 {
-				dpi = &n
+				dpi = n
 			}
 			break
 		case "orient":

@@ -48,13 +48,13 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 			h = img.PageHeight() * h / 100
 		}
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, InterestingNone, SizeDown, n, 1, nil,
+			ctx, blob, w, h, InterestingNone, SizeDown, n, 1, 0,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n, 1, nil,
+			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n, 1, 0,
 		); err != nil {
 			return
 		}

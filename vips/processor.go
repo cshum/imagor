@@ -188,11 +188,11 @@ func newThumbnailFromBlob(
 // NewThumbnail creates new thumbnail with resize and crop from imagor.Blob
 func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop Interesting,
-	size Size, n, page int, dpi *int,
+	size Size, n, page int, dpi int,
 ) (*Image, error) {
 	var params = NewImportParams()
-	if dpi != nil {
-		params.Density.Set(*dpi)
+	if dpi > 0 {
+		params.Density.Set(dpi)
 	}
 	var err error
 	var img *Image
@@ -255,10 +255,10 @@ func (v *Processor) newThumbnailFallback(
 }
 
 // NewImage creates new Image from imagor.Blob
-func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi *int) (*Image, error) {
+func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi int) (*Image, error) {
 	var params = NewImportParams()
-	if dpi != nil {
-		params.Density.Set(*dpi)
+	if dpi > 0 {
+		params.Density.Set(dpi)
 	}
 	params.FailOnError.Set(false)
 	if isMultiPage(blob, n, page) {
