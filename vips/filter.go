@@ -580,6 +580,9 @@ func sharpen(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string)
 }
 
 func stripIcc(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
+	if err = img.EnsureICCProfile(); err != nil {
+		return err
+	}
 	return img.RemoveICCProfile()
 }
 

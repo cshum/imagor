@@ -347,8 +347,8 @@ func vipsToColorSpace(in *C.VipsImage, interpretation Interpretation) (*C.VipsIm
 	return out, nil
 }
 
-func vipsICCTransform(in *C.VipsImage, outputProfile string, inputProfile string, intent Intent, depth int,
-	embedded bool) (*C.VipsImage, error) {
+func vipsICCTransform(in *C.VipsImage, outputProfile string, inputProfile string, intent Intent,
+	depth int, embedded bool) (*C.VipsImage, error) {
 	var out *C.VipsImage
 	var cInputProfile *C.char
 	var cEmbedded C.gboolean

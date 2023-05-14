@@ -499,6 +499,36 @@ func (r *Image) RemoveICCProfile() error {
 	return nil
 }
 
+// EnsureICCProfile ensure we're using a device-independent colour space
+func (r *Image) EnsureICCProfile() error {
+	var outputProfile = "srgb"
+	var interpretation = r.Interpretation()
+	if interpretation == InterpretationRGB16 {
+		outputProfile = "p3"
+	}
+	var depth = 8
+	if interpretation == InterpretationRGB16 {
+		depth = 16
+	}
+	if r.HasProfile() &&
+		interpretation != InterpretationLABS &&
+		interpretation != InterpretationGrey16 {
+		out, err := vipsICCTransform(
+			r.image, outputProfile, "", IntentPerceptual, depth, true)
+		if err != nil {
+			return nil
+		}
+		r.setImage(out)
+	} else if interpretation == InterpretationCMYK {
+		out, err := vipsICCTransform(r.image, outputProfile, "cmyk", IntentPerceptual, depth, false)
+		if err != nil {
+			return err
+		}
+		r.setImage(out)
+	}
+	return nil
+}
+
 // RemoveExif removes Exif metadata from the image.
 func (r *Image) RemoveExif() error {
 	out, err := vipsRemoveExif(r.image)
