@@ -430,6 +430,18 @@ int to_colorspace(VipsImage *in, VipsImage **out, VipsInterpretation space) {
   return vips_colourspace(in, out, space, NULL);
 }
 
+// https://libvips.github.io/libvips/API/8.6/libvips-colour.html#vips-icc-transform
+int icc_transform(VipsImage *in, VipsImage **out, const char *output_profile, const char *input_profile, VipsIntent intent,
+	int depth, gboolean embedded) {
+	return vips_icc_transform(
+    	in, out, output_profile,
+    	"input_profile", input_profile ? input_profile : "none",
+    	"intent", intent,
+    	"depth", depth ? depth : 8,
+    	"embedded", embedded,
+    	NULL);
+}
+
 int gaussian_blur_image(VipsImage *in, VipsImage **out, double sigma) {
   return vips_gaussblur(in, out, sigma, NULL);
 }
@@ -450,6 +462,10 @@ int get_meta_orientation(VipsImage *in) {
   }
 
   return orientation;
+}
+
+unsigned long has_icc_profile(VipsImage *in) {
+  return vips_image_get_typeof(in, VIPS_META_ICC_NAME);
 }
 
 // https://libvips.github.io/libvips/API/current/libvips-header.html#vips-image-get-n-pages

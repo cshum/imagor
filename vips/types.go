@@ -119,6 +119,24 @@ type ColorRGBA struct {
 	R, G, B, A uint8
 }
 
+// BandFormat represents VIPS_FORMAT type
+type BandFormat int
+
+// BandFormat enum
+const (
+	BandFormatNotSet    BandFormat = C.VIPS_FORMAT_NOTSET
+	BandFormatUchar     BandFormat = C.VIPS_FORMAT_UCHAR
+	BandFormatChar      BandFormat = C.VIPS_FORMAT_CHAR
+	BandFormatUshort    BandFormat = C.VIPS_FORMAT_USHORT
+	BandFormatShort     BandFormat = C.VIPS_FORMAT_SHORT
+	BandFormatUint      BandFormat = C.VIPS_FORMAT_UINT
+	BandFormatInt       BandFormat = C.VIPS_FORMAT_INT
+	BandFormatFloat     BandFormat = C.VIPS_FORMAT_FLOAT
+	BandFormatComplex   BandFormat = C.VIPS_FORMAT_COMPLEX
+	BandFormatDouble    BandFormat = C.VIPS_FORMAT_DOUBLE
+	BandFormatDpComplex BandFormat = C.VIPS_FORMAT_DPCOMPLEX
+)
+
 // Interpretation represents VIPS_INTERPRETATION type
 type Interpretation int
 
@@ -149,7 +167,7 @@ const (
 // Intent represents VIPS_INTENT type
 type Intent int
 
-//Intent enum
+// Intent enum
 const (
 	IntentPerceptual Intent = C.VIPS_INTENT_PERCEPTUAL
 	IntentRelative   Intent = C.VIPS_INTENT_RELATIVE

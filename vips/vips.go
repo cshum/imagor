@@ -298,7 +298,7 @@ func vipsReplicate(in *C.VipsImage, across int, down int) (*C.VipsImage, error) 
 	return out, nil
 }
 
-//  https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
+// https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
 func vipsLinear(in *C.VipsImage, a, b []float64, n int) (*C.VipsImage, error) {
 	var out *C.VipsImage
 
@@ -347,6 +347,31 @@ func vipsToColorSpace(in *C.VipsImage, interpretation Interpretation) (*C.VipsIm
 	return out, nil
 }
 
+func vipsICCTransform(in *C.VipsImage, outputProfile string, inputProfile string, intent Intent, depth int,
+	embedded bool) (*C.VipsImage, error) {
+	var out *C.VipsImage
+	var cInputProfile *C.char
+	var cEmbedded C.gboolean
+
+	cOutputProfile := C.CString(outputProfile)
+	defer freeCString(cOutputProfile)
+
+	if inputProfile != "" {
+		cInputProfile = C.CString(inputProfile)
+		defer freeCString(cInputProfile)
+	}
+
+	if embedded {
+		cEmbedded = C.TRUE
+	}
+
+	if res := C.icc_transform(in, &out, cOutputProfile, cInputProfile, C.VipsIntent(intent), C.int(depth), cEmbedded); res != 0 {
+		return nil, handleImageError(out)
+	}
+
+	return out, nil
+}
+
 // https://libvips.github.io/libvips/API/current/libvips-convolution.html#vips-gaussblur
 func vipsGaussianBlur(in *C.VipsImage, sigma float64) (*C.VipsImage, error) {
 	var out *C.VipsImage
@@ -367,6 +392,10 @@ func vipsSharpen(in *C.VipsImage, sigma float64, x1 float64, m2 float64) (*C.Vip
 	}
 
 	return out, nil
+}
+
+func vipsHasICCProfile(in *C.VipsImage) bool {
+	return int(C.has_icc_profile(in)) != 0
 }
 
 func vipsRemoveICCProfile(in *C.VipsImage) bool {

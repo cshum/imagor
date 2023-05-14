@@ -239,6 +239,11 @@ func (r *Image) Bands() int {
 	return int(r.image.Bands)
 }
 
+// HasProfile returns if the image has an ICC profile embedded.
+func (r *Image) HasProfile() bool {
+	return vipsHasICCProfile(r.image)
+}
+
 // HasAlpha returns if the image has an alpha layer.
 func (r *Image) HasAlpha() bool {
 	return vipsHasAlpha(r.image)
@@ -247,6 +252,11 @@ func (r *Image) HasAlpha() bool {
 // Orientation returns the orientation number as it appears in the Exif, if present
 func (r *Image) Orientation() int {
 	return vipsGetMetaOrientation(r.image)
+}
+
+// BandFormat returns the current band format
+func (r *Image) BandFormat() BandFormat {
+	return BandFormat(int(r.image.BandFmt))
 }
 
 // Interpretation returns the current interpretation of the color space of the image.

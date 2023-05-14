@@ -78,10 +78,14 @@ int getpoint(VipsImage *in, double **vector, int n, int x, int y);
 
 int to_colorspace(VipsImage *in, VipsImage **out, VipsInterpretation space);
 
+int icc_transform(VipsImage *in, VipsImage **out, const char *output_profile, const char *input_profile, VipsIntent intent,
+	int depth, gboolean embedded);
+
 int gaussian_blur_image(VipsImage *in, VipsImage **out, double sigma);
 int sharpen_image(VipsImage *in, VipsImage **out, double sigma, double x1,
                   double m2);
 
+unsigned long has_icc_profile(VipsImage *in);
 int remove_icc_profile(VipsImage *in);
 
 int get_meta_orientation(VipsImage *in);
