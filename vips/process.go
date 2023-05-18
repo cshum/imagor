@@ -2,13 +2,14 @@ package vips
 
 import (
 	"context"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"go.uber.org/zap"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"go.uber.org/zap"
 )
 
 var imageTypeMap = map[string]ImageType{
@@ -45,6 +46,7 @@ func (v *Processor) Process(
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
 		page                  = 1
+		dpi                   = 0
 		focalRects            []focal
 		err                   error
 	)
@@ -98,6 +100,11 @@ func (v *Processor) Process(
 				page = n
 			}
 			break
+		case "dpi":
+			if n, _ := strconv.Atoi(p.Args); n > 0 {
+				dpi = n
+			}
+			break
 		case "orient":
 			if n, _ := strconv.Atoi(p.Args); n > 0 {
 				orient = n
@@ -137,7 +144,7 @@ func (v *Processor) Process(
 					size = SizeBoth
 				}
 				if img, err = v.NewThumbnail(
-					ctx, blob, w, h, InterestingNone, size, maxN, page,
+					ctx, blob, w, h, InterestingNone, size, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -147,7 +154,7 @@ func (v *Processor) Process(
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, p.Height,
-					InterestingNone, SizeForce, maxN, page,
+					InterestingNone, SizeForce, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -175,7 +182,7 @@ func (v *Processor) Process(
 				if thumbnail {
 					if img, err = v.NewThumbnail(
 						ctx, blob, p.Width, p.Height,
-						interest, SizeBoth, maxN, page,
+						interest, SizeBoth, maxN, page, dpi,
 					); err != nil {
 						return nil, err
 					}
@@ -183,7 +190,7 @@ func (v *Processor) Process(
 			} else if p.Width > 0 && p.Height == 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, v.MaxHeight,
-					InterestingNone, SizeBoth, maxN, page,
+					InterestingNone, SizeBoth, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -191,7 +198,7 @@ func (v *Processor) Process(
 			} else if p.Height > 0 && p.Width == 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, v.MaxWidth, p.Height,
-					InterestingNone, SizeBoth, maxN, page,
+					InterestingNone, SizeBoth, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -201,13 +208,13 @@ func (v *Processor) Process(
 	}
 	if !thumbnail {
 		if thumbnailNotSupported {
-			if img, err = v.NewImage(ctx, blob, maxN, page); err != nil {
+			if img, err = v.NewImage(ctx, blob, maxN, page, dpi); err != nil {
 				return nil, err
 			}
 		} else {
 			if img, err = v.NewThumbnail(
 				ctx, blob, v.MaxWidth, v.MaxHeight,
-				InterestingNone, SizeDown, maxN, page,
+				InterestingNone, SizeDown, maxN, page, dpi,
 			); err != nil {
 				return nil, err
 			}

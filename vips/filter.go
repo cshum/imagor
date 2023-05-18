@@ -3,14 +3,15 @@ package vips
 import (
 	"context"
 	"fmt"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"golang.org/x/image/colornames"
 	"image/color"
 	"math"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"golang.org/x/image/colornames"
 )
 
 func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
@@ -47,13 +48,13 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 			h = img.PageHeight() * h / 100
 		}
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, InterestingNone, SizeDown, n, 1,
+			ctx, blob, w, h, InterestingNone, SizeDown, n, 1, 0,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n, 1,
+			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n, 1, 0,
 		); err != nil {
 			return
 		}

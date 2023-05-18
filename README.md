@@ -117,6 +117,7 @@ imagor supports the following filters:
 - `orient(angle)` rotates the image before resizing and cropping, according to the angle value
   - `angle` accepts 0, 90, 180, 270
 - `page(num)` specify page number for PDF, or frame number for animated image, starts from 1
+- `dpi(num)` specify the dpi to render at for PDF and SVG
 - `proportion(percentage)` scales image to the proportion percentage of the image dimension
 - `quality(amount)` changes the overall quality of the image, does nothing for png
   - `amount` 0 to 100, the quality level in %
