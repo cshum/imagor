@@ -195,7 +195,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, r, app.CacheHeaderTTL, app.CacheHeaderSWR)
+	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
 	if r.Header.Get("Imagor-Auto-Format") != "" {
 		w.Header().Add("Vary", "Accept")
 	}
@@ -265,11 +265,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		case "expire":
 			// expire(timestamp) filter
 			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
-				r.Header.Set("Cache-Control", "no-cache")
 				if exp := time.UnixMilli(ts); !exp.IsZero() && time.Now().After(exp) {
 					err = ErrExpired
 					return
 				}
+				r.Header.Set("Cache-Control", "private")
 			}
 		case "format":
 			hasFormat = true
@@ -712,21 +712,40 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 	return isETagMatch || isNotModified
 }
 
+func getTtl(p imagorpath.Params, defaultTtl time.Duration) time.Duration {
+	for _, f := range p.Filters {
+		if f.Name == "expire" {
+			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
+				ttl := (time.UnixMilli(ts).Sub(time.Now()) + time.Second - 1).Truncate(time.Second)
+				if ttl <= defaultTtl {
+					return ttl
+				}
+			}
+		}
+	}
+	return defaultTtl
+}
+
 func setCacheHeaders(w http.ResponseWriter, r *http.Request, ttl, swr time.Duration) {
 	if strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
 		ttl = 0
 	}
 	expires := time.Now().Add(ttl)
+	isPrivate := strings.Contains(r.Header.Get("Cache-Control"), "private")
 	w.Header().Add("Expires", strings.Replace(expires.Format(time.RFC1123), "UTC", "GMT", -1))
-	w.Header().Add("Cache-Control", getCacheControl(ttl, swr))
+	w.Header().Add("Cache-Control", getCacheControl(isPrivate, ttl, swr))
 }
 
-func getCacheControl(ttl, swr time.Duration) string {
+func getCacheControl(isPrivate bool, ttl, swr time.Duration) string {
 	if ttl == 0 {
 		return "private, no-cache, no-store, must-revalidate"
 	}
 	var ttlSec = int64(ttl.Seconds())
-	var val = fmt.Sprintf("public, s-maxage=%d, max-age=%d, no-transform", ttlSec, ttlSec)
+	var val = fmt.Sprintf("public, s-maxage=%d", ttlSec)
+	if isPrivate {
+		val = "private"
+	}
+	val += fmt.Sprintf(", max-age=%d, no-transform", ttlSec)
 	if swr > 0 && swr < ttl {
 		val += fmt.Sprintf(", stale-while-revalidate=%d", int64(swr.Seconds()))
 	}
