@@ -28,4 +28,9 @@ git-tag:
 	git tag "v$(VERSION)"
 	git push origin "refs/tags/v$(VERSION)"
 
+reset-golden:
+	git rm -rf testdata/golden
+	git commit -m  "test: reset golden"
+	git push
+
 release: build git-tag
