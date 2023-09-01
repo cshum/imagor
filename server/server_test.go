@@ -114,7 +114,7 @@ func TestServer(t *testing.T) {
 }
 
 func TestServerErrorLog(t *testing.T) {
-	expectLogged := []string{"panic", "server", "server", "server"}
+	expectLogged := []string{"panic", "server", "server"}
 	var logged []string
 	logger := zap.NewExample(zap.Hooks(func(entry zapcore.Entry) error {
 		logged = append(logged, entry.Message)
@@ -146,7 +146,7 @@ func TestServerErrorLog(t *testing.T) {
 	ts.Config = &s.Server
 	defer ts.Close()
 
-	w, err := http.Get(ts.URL + "/unsafe/bar.jpg?boom;asdf")
+	w, err := http.Get(ts.URL + "/unsafe/bar.jpg?boom")
 	assert.NoError(t, err)
 	assert.Equal(t, 500, w.StatusCode)
 	assert.NotEmpty(t, w.Header.Get("Vary"))
