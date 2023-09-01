@@ -295,7 +295,7 @@ func (v *Processor) Thumbnail(
 func (v *Processor) FocalThumbnail(img *Image, w, h int, fx, fy float64) (err error) {
 
 	var imageWidth, imageHeight float64
-	// exif orientation greater than 4 are 90 or 270 degrees, w and h swapped
+	// exif orientation greater 5-8 are 90 or 270 degrees, w and h swapped
 	if img.Orientation() > 4 {
 		imageWidth = float64(img.PageHeight())
 		imageHeight = float64(img.Width())
