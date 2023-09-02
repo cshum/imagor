@@ -293,7 +293,18 @@ func (v *Processor) Thumbnail(
 
 // FocalThumbnail handles thumbnail with custom focal point
 func (v *Processor) FocalThumbnail(img *Image, w, h int, fx, fy float64) (err error) {
-	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
+
+	var imageWidth, imageHeight float64
+	// exif orientation greater 5-8 are 90 or 270 degrees, w and h swapped
+	if img.Orientation() > 4 {
+		imageWidth = float64(img.PageHeight())
+		imageHeight = float64(img.Width())
+	} else {
+		imageWidth = float64(img.Width())
+		imageHeight = float64(img.PageHeight())
+	}
+
+    if float64(w)/float64(h) > float64(imageWidth)/float64(imageHeight) {
 		if err = img.Thumbnail(w, v.MaxHeight, InterestingNone); err != nil {
 			return
 		}

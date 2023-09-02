@@ -85,6 +85,7 @@ func TestProcessor(t *testing.T) {
 			{name: "resize focal float", path: "300x100/filters:fill(white):format(jpeg):focal(0.35x0.25:0.6x0.3)/gopher.png"},
 			{name: "resize focal point", path: "300x100/filters:fill(white):format(jpeg):focal(589x401):focal(1000x814)/gopher.png"},
 			{name: "resize focal point edge", path: "300x100/filters:fill(white):format(jpeg):focal(9999x9999)/gopher.png"},
+			{name: "resize focal point exif orientation cw90", path: "300x300/filters:format(jpeg):focal(150:150)/gopher-exif-orientation-cw90.png"},
 			{name: "resize top", path: "200x100/top/filters:quality(70):format(tiff)/gopher.png"},
 			{name: "resize top", path: "200x100/right/top/gopher.png"},
 			{name: "resize bottom", path: "200x100/bottom/gopher.png"},
