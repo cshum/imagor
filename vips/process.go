@@ -230,9 +230,12 @@ func (v *Processor) Process(
 		}
 	}
 	var (
-		quality    int
-		origWidth  = float64(img.Width())
-		origHeight = float64(img.PageHeight())
+		quality     int
+		bitdepth    int
+		compression int
+		palette     bool
+		origWidth   = float64(img.Width())
+		origHeight  = float64(img.PageHeight())
 	)
 	if format == ImageTypeUnknown {
 		if blob.BlobType() == imagor.BlobTypeAVIF {
@@ -290,6 +293,15 @@ func (v *Processor) Process(
 				focalRects = append(focalRects, f)
 			}
 			break
+		case "palette":
+			palette = true
+			break
+		case "bitdepth":
+			bitdepth, _ = strconv.Atoi(p.Args)
+			break
+		case "compression":
+			compression, _ = strconv.Atoi(p.Args)
+			break
 		}
 	}
 	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
@@ -301,7 +313,7 @@ func (v *Processor) Process(
 	}
 	format = supportedSaveFormat(format) // convert to supported export format
 	for {
-		buf, err := v.export(img, format, quality)
+		buf, err := v.export(img, format, compression, quality, palette, bitdepth)
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -562,10 +574,24 @@ func supportedSaveFormat(format ImageType) ImageType {
 	return ImageTypeJPEG
 }
 
-func (v *Processor) export(image *Image, format ImageType, quality int) ([]byte, error) {
+func (v *Processor) export(
+	image *Image, format ImageType, compression int, quality int, palette bool, bitdepth int,
+) ([]byte, error) {
 	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		if palette {
+			opts.Palette = palette
+		}
+		if bitdepth > 0 {
+			opts.Bitdepth = bitdepth
+		}
+		if compression > 0 {
+			opts.Compression = compression
+		}
 		return image.ExportPng(opts)
 	case ImageTypeWEBP:
 		opts := NewWebpExportParams()
