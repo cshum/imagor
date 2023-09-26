@@ -28,14 +28,6 @@ var imageTypeMap = map[string]ImageType{
 	"jp2":    ImageTypeJP2K,
 }
 
-type ExportParams struct {
-	format      ImageType
-	Compression int
-	Quality     int
-	Palette     bool
-	Bitdepth    int
-}
-
 // Process implements imagor.Processor interface
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
@@ -320,16 +312,8 @@ func (v *Processor) Process(
 		return imagor.NewBlobFromJsonMarshal(metadata(img, format, stripExif)), nil
 	}
 	format = supportedSaveFormat(format) // convert to supported export format
-	exportParams := &ExportParams{
-		format:      format,
-		Compression: compression,
-		Quality:     quality,
-		Palette:     palette,
-		Bitdepth:    bitdepth,
-	}
-
 	for {
-		buf, err := v.export(img, exportParams)
+		buf, err := v.export(img, format, compression, quality, palette, bitdepth)
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -590,49 +574,59 @@ func supportedSaveFormat(format ImageType) ImageType {
 	return ImageTypeJPEG
 }
 
-func (v *Processor) export(image *Image, params *ExportParams) ([]byte, error) {
-	switch params.format {
+func (v *Processor) export(
+	image *Image, format ImageType, compression int, quality int, palette bool, bitdepth int,
+) ([]byte, error) {
+	switch format {
 	case ImageTypePNG:
 		opts := NewPngExportParams()
-		opts.Quality = params.Quality
-		opts.Palette = params.Palette
-		opts.Bitdepth = params.Bitdepth
-		opts.Compression = params.Compression
+		if quality > 0 {
+			opts.Quality = quality
+		}
+		if palette {
+			opts.Palette = palette
+		}
+		if bitdepth > 0 {
+			opts.Bitdepth = bitdepth
+		}
+		if compression > 0 {
+			opts.Compression = compression
+		}
 		return image.ExportPng(opts)
 	case ImageTypeWEBP:
 		opts := NewWebpExportParams()
-		if params.Quality > 0 {
-			opts.Quality = params.Quality
+		if quality > 0 {
+			opts.Quality = quality
 		}
 		return image.ExportWebp(opts)
 	case ImageTypeTIFF:
 		opts := NewTiffExportParams()
-		if params.Quality > 0 {
-			opts.Quality = params.Quality
+		if quality > 0 {
+			opts.Quality = quality
 		}
 		return image.ExportTiff(opts)
 	case ImageTypeGIF:
 		opts := NewGifExportParams()
-		if params.Quality > 0 {
-			opts.Quality = params.Quality
+		if quality > 0 {
+			opts.Quality = quality
 		}
 		return image.ExportGIF(opts)
 	case ImageTypeAVIF:
 		opts := NewAvifExportParams()
-		if params.Quality > 0 {
-			opts.Quality = params.Quality
+		if quality > 0 {
+			opts.Quality = quality
 		}
 		return image.ExportAvif(opts)
 	case ImageTypeHEIF:
 		opts := NewHeifExportParams()
-		if params.Quality > 0 {
-			opts.Quality = params.Quality
+		if quality > 0 {
+			opts.Quality = quality
 		}
 		return image.ExportHeif(opts)
 	case ImageTypeJP2K:
 		opts := NewJp2kExportParams()
-		if params.Quality > 0 {
-			opts.Quality = params.Quality
+		if quality > 0 {
+			opts.Quality = quality
 		}
 		return image.ExportJp2k(opts)
 	default:
@@ -646,8 +640,8 @@ func (v *Processor) export(image *Image, params *ExportParams) ([]byte, error) {
 			opts.TrellisQuant = true
 			opts.QuantTable = 3
 		}
-		if params.Quality > 0 {
-			opts.Quality = params.Quality
+		if quality > 0 {
+			opts.Quality = quality
 		}
 		return image.ExportJpeg(opts)
 	}
