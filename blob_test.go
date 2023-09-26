@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -168,7 +167,7 @@ func TestBlobTypes(t *testing.T) {
 			doTestBlobReaders(t, b, buf)
 
 			b = NewBlob(func() (reader io.ReadCloser, size int64, err error) {
-				return ioutil.NopCloser(bytes.NewReader(buf)), int64(len(buf)), nil
+				return io.NopCloser(bytes.NewReader(buf)), int64(len(buf)), nil
 			})
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
@@ -182,7 +181,7 @@ func TestBlobTypes(t *testing.T) {
 
 			b = NewBlob(func() (reader io.ReadCloser, size int64, err error) {
 				// unknown size to force discard fanout
-				return ioutil.NopCloser(bytes.NewReader(buf)), 0, nil
+				return io.NopCloser(bytes.NewReader(buf)), 0, nil
 			})
 			assert.Equal(t, tt.supportsAnimation, b.SupportsAnimation())
 			assert.Equal(t, tt.contentType, b.ContentType())
