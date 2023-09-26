@@ -1,14 +1,14 @@
-ARG GOLANG_VERSION=1.20.6
+ARG GOLANG_VERSION=1.20.8
 FROM golang:${GOLANG_VERSION}-bullseye as builder
 
-ARG VIPS_VERSION=8.14.3
+ARG VIPS_VERSION=8.14.5
 ARG CGIF_VERSION=0.3.0
 ARG LIBSPNG_VERSION=0.7.3
 ARG TARGETARCH
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
-# libaom3 is in Debian bullseye-backports 
+# libaom3 is in Debian bullseye-backports
 RUN echo 'deb http://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list
 
 # Installs libvips + required libraries
