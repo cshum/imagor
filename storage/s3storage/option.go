@@ -1,9 +1,10 @@
 package s3storage
 
 import (
-	"github.com/aws/aws-sdk-go/service/s3"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // Option S3Storage option
@@ -67,6 +68,27 @@ func WithExpiration(exp time.Duration) Option {
 	return func(h *S3Storage) {
 		if exp > 0 {
 			h.Expiration = exp
+		}
+	}
+}
+
+func WithFileStorageClass(storageClass string) Option {
+	return func(h *S3Storage) {
+		switch storageClass {
+		case "reduced-redunancy":
+			h.StorageClass = "REDUCED_REDUNDANCY"
+		case "standard-ia":
+			h.StorageClass = "STANDARD_IA"
+		case "onezone-ia":
+			h.StorageClass = "ONEZONE_IA"
+		case "intelligent-tiering":
+			h.StorageClass = "INTELLIGENT_TIERING"
+		case "glacier":
+			h.StorageClass = "GLACIER"
+		case "deep-archive":
+			h.StorageClass = "DEEP_ARCHIVE"
+		default:
+			h.StorageClass = "STANDARD"
 		}
 	}
 }

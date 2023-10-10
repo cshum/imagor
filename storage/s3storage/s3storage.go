@@ -2,6 +2,13 @@ package s3storage
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -9,12 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"io"
-	"net/http"
-	"path/filepath"
-	"strings"
-	"sync"
-	"time"
 )
 
 // S3Storage AWS S3 Storage implements imagor.Storage interface
@@ -24,11 +25,12 @@ type S3Storage struct {
 	Downloader *s3manager.Downloader
 	Bucket     string
 
-	BaseDir    string
-	PathPrefix string
-	ACL        string
-	SafeChars  string
-	Expiration time.Duration
+	BaseDir      string
+	PathPrefix   string
+	ACL          string
+	SafeChars    string
+	StorageClass string
+	Expiration   time.Duration
 
 	safeChars imagorpath.SafeChars
 }
@@ -128,12 +130,13 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	}()
 	var metadata map[string]*string
 	input := &s3manager.UploadInput{
-		ACL:         aws.String(s.ACL),
-		Body:        reader,
-		Bucket:      aws.String(s.Bucket),
-		ContentType: aws.String(blob.ContentType()),
-		Metadata:    metadata,
-		Key:         aws.String(image),
+		ACL:          aws.String(s.ACL),
+		Body:         reader,
+		Bucket:       aws.String(s.Bucket),
+		ContentType:  aws.String(blob.ContentType()),
+		Metadata:     metadata,
+		Key:          aws.String(image),
+		StorageClass: aws.String(s.StorageClass),
 	}
 	_, err = s.Uploader.UploadWithContext(ctx, input)
 	return err
