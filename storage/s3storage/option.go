@@ -72,23 +72,17 @@ func WithExpiration(exp time.Duration) Option {
 	}
 }
 
+// WithFileStorageClass with storage storage class option
 func WithFileStorageClass(storageClass string) Option {
 	return func(h *S3Storage) {
-		switch storageClass {
-		case "reduced-redunancy":
-			h.StorageClass = "REDUCED_REDUNDANCY"
-		case "standard-ia":
-			h.StorageClass = "STANDARD_IA"
-		case "onezone-ia":
-			h.StorageClass = "ONEZONE_IA"
-		case "intelligent-tiering":
-			h.StorageClass = "INTELLIGENT_TIERING"
-		case "glacier":
-			h.StorageClass = "GLACIER"
-		case "deep-archive":
-			h.StorageClass = "DEEP_ARCHIVE"
-		default:
-			h.StorageClass = "STANDARD"
+		allowedStorageClasses := [6]string{"REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA",
+			"INTELLIGENT_TIERING", "GLACIER", "DEEP_ARCHIVE"}
+		h.StorageClass = "STANDARD"
+		for _, allowedStorageClass := range allowedStorageClasses {
+			if storageClass == allowedStorageClass {
+				h.StorageClass = storageClass
+				break
+			}
 		}
 	}
 }

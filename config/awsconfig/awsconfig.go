@@ -92,7 +92,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		s3ResultStorageExpiration = fs.Duration("s3-result-storage-expiration", 0,
 			"S3 Result Storage expiration duration e.g. 24h. Default no expiration")
 		s3FileStorageClass = fs.String("s3-file-storage-class", "STANDARD",
-			"S3 File Storage Class. Available values: reduced-redunancy, standard-ia, intelligent-tiering, glacier, deep_archive. Default: standard.")
+			"S3 File Storage Class. Available values: REDUCED_REDUNDANCY, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, GLACIER, DEEP_ARCHIVE. Default: STANDARD.")
 
 		_, _ = cb()
 	)
