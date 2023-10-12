@@ -1,11 +1,12 @@
 package awsconfig
 
 import (
+	"testing"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestS3Empty(t *testing.T) {
@@ -119,4 +120,45 @@ func TestS3SessionOverride(t *testing.T) {
 	assert.Equal(t, "/bar/", resultStorage.BaseDir)
 	assert.Equal(t, "/bcda/", resultStorage.PathPrefix)
 	assert.Equal(t, "!", resultStorage.SafeChars)
+}
+
+func TestS3StorageClassWithResultStorageBucket(t *testing.T) {
+	srv := config.CreateServer([]string{
+		"-s3-storage-class", "asdf",
+		"-s3-storage-bucket", "a",
+		"-s3-result-storage-bucket", "b",
+	}, WithAWS)
+	app := srv.App.(*imagor.Imagor)
+	storage := app.Storages[0].(*s3storage.S3Storage)
+	assert.Equal(t, "STANDARD", storage.StorageClass)
+
+}
+
+func TestS3StorageClassWithoutResultStorageBucket(t *testing.T) {
+	srv := config.CreateServer([]string{
+		"-s3-storage-class", "asdf",
+		"-s3-storage-bucket", "a",
+	}, WithAWS)
+	app := srv.App.(*imagor.Imagor)
+	storage := app.Storages[0].(*s3storage.S3Storage)
+	assert.Equal(t, "STANDARD", storage.StorageClass)
+
+}
+
+func TestS3StorageClass(t *testing.T) {
+	srv := config.CreateServer([]string{
+		"-s3-storage-class", "asdf",
+		"-s3-storage-bucket", "a",
+	}, WithAWS)
+	app := srv.App.(*imagor.Imagor)
+	storage := app.Storages[0].(*s3storage.S3Storage)
+	assert.Equal(t, "STANDARD", storage.StorageClass)
+
+	srv = config.CreateServer([]string{
+		"-s3-storage-class", "REDUCED_REDUNDANCY",
+		"-s3-storage-bucket", "a",
+	}, WithAWS)
+	app = srv.App.(*imagor.Imagor)
+	storage = app.Storages[0].(*s3storage.S3Storage)
+	assert.Equal(t, "REDUCED_REDUNDANCY", storage.StorageClass)
 }

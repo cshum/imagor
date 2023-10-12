@@ -2,6 +2,7 @@ package awsconfig
 
 import (
 	"flag"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -90,6 +91,8 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"Upload ACL for S3 Result Storage")
 		s3ResultStorageExpiration = fs.Duration("s3-result-storage-expiration", 0,
 			"S3 Result Storage expiration duration e.g. 24h. Default no expiration")
+		s3StorageClass = fs.String("s3-storage-class", "STANDARD",
+			"S3 File Storage Class. Available values: REDUCED_REDUNDANCY, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, GLACIER, DEEP_ARCHIVE. Default: STANDARD.")
 
 		_, _ = cb()
 	)
@@ -160,6 +163,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 					s3storage.WithACL(*s3StorageACL),
 					s3storage.WithSafeChars(*s3SafeChars),
 					s3storage.WithExpiration(*s3StorageExpiration),
+					s3storage.WithStorageClass(*s3StorageClass),
 				),
 			)
 		}
@@ -182,6 +186,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 					s3storage.WithACL(*s3ResultStorageACL),
 					s3storage.WithSafeChars(*s3SafeChars),
 					s3storage.WithExpiration(*s3ResultStorageExpiration),
+					s3storage.WithStorageClass(*s3StorageClass),
 				),
 			)
 		}
