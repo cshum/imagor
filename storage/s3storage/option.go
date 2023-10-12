@@ -73,7 +73,7 @@ func WithExpiration(exp time.Duration) Option {
 }
 
 // WithFileStorageClass with storage storage class option
-func WithFileStorageClass(storageClass string) Option {
+func WithStorageClass(storageClass string) Option {
 	return func(h *S3Storage) {
 		allowedStorageClasses := [6]string{"REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA",
 			"INTELLIGENT_TIERING", "GLACIER", "DEEP_ARCHIVE"}
