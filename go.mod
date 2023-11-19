@@ -5,8 +5,8 @@ go 1.19
 require (
 	cloud.google.com/go/storage v1.35.1
 	github.com/aws/aws-sdk-go v1.48.0
-	github.com/fsouza/fake-gcs-server v1.44.2
-	github.com/johannesboyne/gofakes3 v0.0.0-20230129080941-f6a8a9ae6fd3
+	github.com/fsouza/fake-gcs-server v1.47.6
+	github.com/johannesboyne/gofakes3 v0.0.0-20230914150226-f005f5cc03aa
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/rs/cors v1.10.1
@@ -44,7 +44,6 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.15.0 // indirect
@@ -53,7 +52,7 @@ require (
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.4.0 // indirect
-	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/tools v0.8.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/api v0.151.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
