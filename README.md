@@ -696,6 +696,8 @@ Usage of imagor:
         AWS Region. Required if using S3 Loader or S3 Storage
   -aws-secret-access-key string
         AWS Secret Access Key. Required if using S3 Loader or S3 Storage
+  -aws-session-token string
+        AWS Session Token. Optional temporary credentials token
   -s3-endpoint string
         Optional S3 Endpoint to override default
   -s3-safe-chars string
@@ -735,6 +737,8 @@ Usage of imagor:
         AWS Region for S3 Loader to override global config
   -aws-loader-secret-access-key string
         AWS Secret Access Key for S3 Loader to override global config
+  -aws-loader-session-token string
+        AWS Session Token for S3 Loader to override global config
   -s3-loader-endpoint string
         Optional S3 Loader Endpoint to override default
   -aws-storage-access-key-id string
@@ -743,6 +747,8 @@ Usage of imagor:
         AWS Region for S3 Storage to override global config
   -aws-storage-secret-access-key string
         AWS Secret Access Key for S3 Storage to override global config
+  -aws-storage-session-token string
+        AWS Session Token for S3 Storage to override global config
   -s3-storage-endpoint string
         Optional S3 Storage Endpoint to override default
   -aws-result-storage-access-key-id string
@@ -751,6 +757,8 @@ Usage of imagor:
         AWS Region for S3 Result Storage to override global config
   -aws-result-storage-secret-access-key string
         AWS Secret Access Key for S3 Result Storage to override global config
+  -aws-result-storage-session-token string
+        AWS Session Token for S3 Result Storage to override global config
   -s3-result-storage-endpoint string
         Optional S3 Storage Endpoint to override default
 
