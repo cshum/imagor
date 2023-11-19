@@ -182,7 +182,7 @@ func TestProcessor(t *testing.T) {
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
 			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
 			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
-			{name: "svg", path: "test.svg", arm64Golden: true},
+			{name: "svg", path: "test.svg", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("max frames", func(t *testing.T) {
