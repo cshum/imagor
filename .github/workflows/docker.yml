@@ -7,7 +7,7 @@ name: docker
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, bookworm ]
     tags: [ 'v*.*.*' ]
 
 jobs:
