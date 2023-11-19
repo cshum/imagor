@@ -5,36 +5,32 @@ on: [push, pull_request]
 jobs:
   build:
     name: Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
       VIPS_VERSION: 8.14.5
-      V: 5
+      V: 6
 
     steps:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.20
+          go-version: ^1.21
 
       - name: Check out code
         uses: actions/checkout@v2
 
       - name: Install linux dependencies
         run: |
-          sudo add-apt-repository -y ppa:lovell/cgif
-          sudo add-apt-repository -y ppa:strukturag/libde265
-          sudo add-apt-repository -y ppa:strukturag/libheif
           sudo apt-get update
           sudo apt-get install -y \
-          python3-pip ninja-build \
-          glib-2.0-dev libexpat-dev librsvg2-dev libpng-dev \
+          meson ninja-build \
+          libglib2.0-dev libexpat-dev librsvg2-dev libpng-dev \
           libjpeg-turbo8-dev libimagequant-dev libfftw3-dev \
           libpoppler-glib-dev libxml2-dev \
           libopenslide-dev libcfitsio-dev liborc-0.4-dev libpango1.0-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
           libopenjp2-7-dev libcgif-dev
-          sudo pip3 install meson
 
       - name: Cache libvips
         uses: actions/cache@v3
