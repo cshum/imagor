@@ -55,7 +55,7 @@ jobs:
           --libdir=lib \
           -Dgtk_doc=false \
           -Dmagick=disabled \
-          -Dintrospection=false
+          -Dintrospection=disabled
           ninja -C _build
           sudo ninja -C _build install
           sudo ldconfig
