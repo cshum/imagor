@@ -29,7 +29,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
     --libdir=lib \
     -Dgtk_doc=false \
     -Dmagick=disabled \
-    -Dintrospection=false && \
+    -Dintrospection=disabled && \
     ninja -C _build && \
     ninja -C _build install && \
   ldconfig && \

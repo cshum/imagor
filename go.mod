@@ -1,6 +1,8 @@
 module github.com/cshum/imagor
 
-go 1.19
+go 1.21
+
+toolchain go1.21.1
 
 require (
 	cloud.google.com/go/storage v1.39.0
