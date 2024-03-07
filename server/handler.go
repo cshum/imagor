@@ -42,23 +42,19 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 	})
 }
 
-func pathHandler(
-	method string, handleFuncs map[string]http.HandlerFunc,
-) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != method {
-				next.ServeHTTP(w, r)
-				return
-			}
-			if handle, ok := handleFuncs[r.URL.Path]; ok {
-				handle(w, r)
-				return
-			}
+func noopHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
 			next.ServeHTTP(w, r)
 			return
-		})
-	}
+		}
+		if r.URL.Path == "/healthcheck" || r.URL.Path == "/favicon.ico" {
+			handleOk(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+		return
+	})
 }
 
 func stripQueryStringHandler(next http.Handler) http.Handler {
@@ -100,6 +96,9 @@ func (s *Server) accessLogHandler(next http.Handler) http.Handler {
 			Status:         200,
 		}
 		next.ServeHTTP(wr, r)
+		if r.URL.Path == "/healthcheck" || r.URL.Path == "/favicon.ico" {
+			return // skip healthcheck routes
+		}
 		s.Logger.Info("access",
 			zap.Int("status", wr.Status),
 			zap.String("method", r.Method),

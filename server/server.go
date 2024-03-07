@@ -66,11 +66,8 @@ func New(app Service, options ...Option) *Server {
 	// Handler: application
 	s.Handler = s.App
 
-	// Handler: utility routes
-	s.Handler = pathHandler(http.MethodGet, map[string]http.HandlerFunc{
-		"/favicon.ico": handleOk,
-		"/healthcheck": handleOk,
-	})(s.Handler)
+	// handle no-op routes /healthcheck, /favicon.ico
+	s.Handler = noopHandler(s.Handler)
 
 	for _, option := range options {
 		option(s)
