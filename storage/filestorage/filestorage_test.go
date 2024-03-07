@@ -39,6 +39,14 @@ func TestFileStore_Path(t *testing.T) {
 			expectedOk: true,
 		},
 		{
+			name:       "no-op safe chars",
+			baseDir:    "/home/imagor",
+			image:      "/foo/b{:}ar",
+			expected:   "/home/imagor/foo/b{:}ar",
+			safeChars:  "--",
+			expectedOk: true,
+		},
+		{
 			name:       "path under with base uri",
 			baseDir:    "/home/imagor",
 			baseURI:    "/foo",

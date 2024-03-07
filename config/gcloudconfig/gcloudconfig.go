@@ -13,7 +13,7 @@ import (
 func WithGCloud(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		gcloudSafeChars = fs.String("gcloud-safe-chars", "",
-			"Google Cloud safe characters to be excluded from image key escape")
+			"Google Cloud safe characters to be excluded from image key escape. Set -- for no-op")
 
 		gcloudLoaderBucket = fs.String("gcloud-loader-bucket", "",
 			"Bucket name for Google Cloud Storage Loader. Enable Google Cloud Loader only if this value present")

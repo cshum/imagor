@@ -61,7 +61,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		s3ForcePathStyle = fs.Bool("s3-force-path-style", false,
 			"S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key")
 		s3SafeChars = fs.String("s3-safe-chars", "",
-			"S3 safe characters to be excluded from image key escape")
+			"S3 safe characters to be excluded from image key escape. Set -- for no-op")
 
 		s3LoaderBucket = fs.String("s3-loader-bucket", "",
 			"S3 Bucket for S3 Loader. Enable S3 Loader only if this value present")
