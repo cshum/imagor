@@ -44,6 +44,13 @@ func TestGCloudStorage_Path(t *testing.T) {
 			expectedOk:   true,
 		},
 		{
+			name:         "no-op safe chars",
+			image:        "/foo/b{:}ar",
+			expectedPath: "foo/b{:}ar",
+			safeChars:    "--",
+			expectedOk:   true,
+		},
+		{
 			name:         "path under with base uri",
 			baseDir:      "home/imagor",
 			baseURI:      "/foo",

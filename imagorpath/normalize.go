@@ -15,8 +15,11 @@ type SafeChars interface {
 
 var defaultSafeChars = NewSafeChars("")
 
-// NewSafeChars create SafeChars from predefined set of string
+// NewSafeChars create SafeChars from predefined set of string, or "--" for no-op
 func NewSafeChars(safechars string) SafeChars {
+	if safechars == "--" {
+		return NewNoopSafeChars()
+	}
 	s := &safeChars{safeChars: map[byte]bool{}}
 	for _, c := range safechars {
 		s.safeChars[byte(c)] = true
@@ -25,13 +28,22 @@ func NewSafeChars(safechars string) SafeChars {
 	return s
 }
 
+// NewNoopSafeChars create no-op SafeChars
+func NewNoopSafeChars() SafeChars {
+	return &safeChars{noop: true}
+}
+
 type safeChars struct {
 	hasCustom bool
+	noop      bool
 	safeChars map[byte]bool
 }
 
 // ShouldEscape implements SafeChars interface
-func (s *safeChars) ShouldEscape(c byte) bool {
+func (s safeChars) ShouldEscape(c byte) bool {
+	if s.noop {
+		return false
+	}
 	// alphanum
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
 		return false

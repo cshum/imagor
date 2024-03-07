@@ -664,7 +664,7 @@ Usage of imagor:
         Disable HTTP Loader
 
   -file-safe-chars string
-        File safe characters to be excluded from image key escape
+        File safe characters to be excluded from image key escape. Set -- for no-op
   -file-loader-base-dir string
         Base directory for File Loader. Enable File Loader only if this value present
   -file-loader-path-prefix string
@@ -701,7 +701,7 @@ Usage of imagor:
   -s3-endpoint string
         Optional S3 Endpoint to override default
   -s3-safe-chars string
-        S3 safe characters to be excluded from image key escape
+        S3 safe characters to be excluded from image key escape. Set -- for no-op
   -s3-force-path-style
         S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key
   -s3-loader-bucket string
@@ -763,7 +763,7 @@ Usage of imagor:
         Optional S3 Storage Endpoint to override default
 
   -gcloud-safe-chars string
-        Google Cloud safe characters to be excluded from image key escape
+        Google Cloud safe characters to be excluded from image key escape. Set -- for no-op
   -gcloud-loader-base-dir string
         Base directory for Google Cloud Loader
   -gcloud-loader-bucket string

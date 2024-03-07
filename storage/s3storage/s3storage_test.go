@@ -55,6 +55,15 @@ func TestS3Store_Path(t *testing.T) {
 			expectedOk:     true,
 		},
 		{
+			name:           "no-op safe chars",
+			bucket:         "mybucket",
+			image:          "/foo/b{:}\"ar",
+			expectedBucket: "mybucket",
+			expectedPath:   "/foo/b{:}\"ar",
+			safeChars:      "--",
+			expectedOk:     true,
+		},
+		{
 			name:           "path under with base uri",
 			bucket:         "mybucket",
 			baseDir:        "/home/imagor",

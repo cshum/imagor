@@ -11,7 +11,7 @@ import (
 func withFileSystem(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 	var (
 		fileSafeChars = fs.String("file-safe-chars", "",
-			"File safe characters to be excluded from image key escape")
+			"File safe characters to be excluded from image key escape. Set -- for no-op")
 		fileLoaderBaseDir = fs.String("file-loader-base-dir", "",
 			"Base directory for File Loader. Enable File Loader only if this value present")
 		fileLoaderPathPrefix = fs.String("file-loader-path-prefix", "",

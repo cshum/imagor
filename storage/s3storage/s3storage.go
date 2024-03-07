@@ -54,8 +54,12 @@ func New(sess *session.Session, bucket string, options ...Option) *S3Storage {
 	for _, option := range options {
 		option(s)
 	}
-	s.safeChars = imagorpath.NewSafeChars("!\"()*" + s.SafeChars)
-	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters
+	if s.SafeChars == "--" {
+		s.safeChars = imagorpath.NewNoopSafeChars()
+	} else {
+		s.safeChars = imagorpath.NewSafeChars("!\"()*" + s.SafeChars)
+		// https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters
+	}
 
 	return s
 }

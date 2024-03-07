@@ -411,6 +411,10 @@ func TestNormalize(t *testing.T) {
 	)
 
 	assert.Equal(t, "a+", Normalize("a ", nil))
+
+	assert.Equal(t, "a-%2B", Normalize("a-+", NewSafeChars("-")))
+	assert.Equal(t, "a-+", Normalize("a-+", NewNoopSafeChars()))
+	assert.Equal(t, "a-+", Normalize("a-+", NewSafeChars("--")))
 }
 
 func TestHMACSigner(t *testing.T) {
