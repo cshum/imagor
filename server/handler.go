@@ -22,6 +22,10 @@ func handleOk(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func isNoopRequest(r *http.Request) bool {
+	return r.Method == http.MethodGet && (r.URL.Path == "/healthcheck" || r.URL.Path == "/favicon.ico")
+}
+
 func (s *Server) panicHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -44,11 +48,7 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 
 func noopHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if r.URL.Path == "/healthcheck" || r.URL.Path == "/favicon.ico" {
+		if isNoopRequest(r) {
 			handleOk(w, r)
 			return
 		}
@@ -96,8 +96,8 @@ func (s *Server) accessLogHandler(next http.Handler) http.Handler {
 			Status:         200,
 		}
 		next.ServeHTTP(wr, r)
-		if r.URL.Path == "/healthcheck" || r.URL.Path == "/favicon.ico" {
-			return // skip healthcheck routes
+		if isNoopRequest(r) {
+			return // skip logging no-op requests
 		}
 		s.Logger.Info("access",
 			zap.Int("status", wr.Status),
