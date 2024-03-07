@@ -8,14 +8,14 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
-      VIPS_VERSION: 8.14.5
+      VIPS_VERSION: 8.15.1
       V: 6
 
     steps:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.21
+          go-version: ^1.22
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -55,7 +55,7 @@ jobs:
           --libdir=lib \
           -Dgtk_doc=false \
           -Dmagick=disabled \
-          -Dintrospection=false
+          -Dintrospection=disabled
           ninja -C _build
           sudo ninja -C _build install
           sudo ldconfig

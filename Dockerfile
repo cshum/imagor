@@ -1,7 +1,7 @@
-ARG GOLANG_VERSION=1.21.4
+ARG GOLANG_VERSION=1.22.1
 FROM golang:${GOLANG_VERSION}-bookworm as builder
 
-ARG VIPS_VERSION=8.14.5
+ARG VIPS_VERSION=8.15.1
 ARG TARGETARCH
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
@@ -29,7 +29,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
     --libdir=lib \
     -Dgtk_doc=false \
     -Dmagick=disabled \
-    -Dintrospection=false && \
+    -Dintrospection=disabled && \
     ninja -C _build && \
     ninja -C _build install && \
   ldconfig && \
