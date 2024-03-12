@@ -158,7 +158,7 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	u.Fragment = ""
 
 	if !isURLAllowed(u, h.AllowedSources) {
-		return nil, imagor.ErrInvalid
+		return nil, imagor.ErrSourceNotAllowed
 	}
 	client := &http.Client{
 		Transport:     h.Transport,
@@ -256,7 +256,7 @@ func (h *HTTPLoader) checkRedirect(r *http.Request, via []*http.Request) error {
 		return errors.New("stopped after 10 redirects")
 	}
 	if !isURLAllowed(r.URL, h.AllowedSources) {
-		return imagor.ErrInvalid
+		return imagor.ErrSourceNotAllowed
 	}
 	return nil
 }
