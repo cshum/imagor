@@ -5,10 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cshum/imagor/imagorpath"
-	"go.uber.org/zap"
-	"golang.org/x/sync/semaphore"
-	"golang.org/x/sync/singleflight"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,10 +14,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cshum/imagor/imagorpath"
+	"go.uber.org/zap"
+	"golang.org/x/sync/semaphore"
+	"golang.org/x/sync/singleflight"
 )
 
 // Version imagor version
-const Version = "1.4.9"
+const Version = "1.4.10"
 
 // Loader image loader interface
 type Loader interface {

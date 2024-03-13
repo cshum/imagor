@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/cshum/imagor/imagorpath"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/cshum/imagor/imagorpath"
 )
 
 var (
@@ -18,6 +19,8 @@ var (
 	ErrInvalid = NewError("invalid", http.StatusBadRequest)
 	// ErrMethodNotAllowed method not allowed error
 	ErrMethodNotAllowed = NewError("method not allowed", http.StatusMethodNotAllowed)
+	// ErrSourceNotAllowed http source not allowed error
+	ErrSourceNotAllowed = NewError("http source not allowed", http.StatusForbidden)
 	// ErrSignatureMismatch URL signature mismatch error
 	ErrSignatureMismatch = NewError("url signature mismatch", http.StatusForbidden)
 	// ErrTimeout timeout error

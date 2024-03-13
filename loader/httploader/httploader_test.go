@@ -108,17 +108,17 @@ func TestWithAllowedSources(t *testing.T) {
 		{
 			name:   "not allowed source",
 			target: "https://foo.boo/boooo",
-			err:    "imagor: 400 invalid",
+			err:    "imagor: 403 http source not allowed",
 		},
 		{
 			name:   "not allowed source",
 			target: "https://foo.barr/baz",
-			err:    "imagor: 400 invalid",
+			err:    "imagor: 403 http source not allowed",
 		},
 		{
 			name:   "not allowed source",
 			target: "https://boo.bar/baz",
-			err:    "imagor: 400 invalid",
+			err:    "imagor: 403 http source not allowed",
 		},
 		{
 			name:   "csv allowed source",
@@ -163,17 +163,17 @@ func TestWithAllowedSourceRegexp(t *testing.T) {
 		{
 			name:   "not allowed source",
 			target: "https://goo2.org/https://goo.org/image.png",
-			err:    "imagor: 400 invalid",
+			err:    "imagor: 403 http source not allowed",
 		},
 		{
 			name:   "not allowed source",
 			target: "https://foo.com/dogs/../cats/cat.jpg",
-			err:    "imagor: 400 invalid",
+			err:    "imagor: 403 http source not allowed",
 		},
 		{
 			name:   "not allowed source",
 			target: "https://foo.com/dogs/dog.jpg?size=small",
-			err:    "imagor: 400 invalid",
+			err:    "imagor: 403 http source not allowed",
 		},
 	})
 }
@@ -203,7 +203,7 @@ func TestWithAllowedSourcesRedirect(t *testing.T) {
 
 		b, err := blob.ReadAll()
 		assert.Empty(t, b)
-		assert.ErrorIs(t, err, imagor.ErrInvalid)
+		assert.ErrorIs(t, err, imagor.ErrSourceNotAllowed)
 	})
 
 	t.Run("Allowed redirect", func(t *testing.T) {
