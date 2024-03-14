@@ -60,6 +60,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-cache-header-ttl", "169h",
 		"-imagor-cache-header-swr", "167h",
 		"-http-loader-insecure-skip-verify-transport",
+		"-http-loader-override-response-headers", "cache-control,content-type",
 		"-http-loader-base-url", "https://www.example.com/foo.org",
 	})
 	app := srv.App.(*imagor.Imagor)
@@ -85,6 +86,7 @@ func TestBasic(t *testing.T) {
 	httpLoader := app.Loaders[0].(*httploader.HTTPLoader)
 	assert.True(t, httpLoader.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify)
 	assert.Equal(t, "https://www.example.com/foo.org", httpLoader.BaseURL.String())
+	assert.Equal(t, []string{"cache-control", "content-type"}, httpLoader.OverrideResponseHeaders)
 }
 
 func TestVersion(t *testing.T) {
