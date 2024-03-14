@@ -203,6 +203,11 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Imagor-Raw") != "" {
 		w.Header().Set("Content-Security-Policy", "script-src 'none'")
 	}
+	if h := blob.Header; h != nil {
+		for key := range h {
+			w.Header().Set(key, h.Get(key))
+		}
+	}
 	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
 		return
