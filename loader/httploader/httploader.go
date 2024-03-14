@@ -63,6 +63,9 @@ type HTTPLoader struct {
 	// OverrideHeaders override image request headers
 	OverrideHeaders map[string]string
 
+	// OverrideResponseHeaders override image response header from HTTP Loader response
+	OverrideResponseHeaders []string
+
 	// AllowedSources list of sources allowed to load from
 	AllowedSources []AllowedSource
 
@@ -204,6 +207,14 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		}
 		once.Do(func() {
 			blob.SetContentType(resp.Header.Get("Content-Type"))
+			if len(h.OverrideResponseHeaders) > 0 {
+				blob.Header = make(http.Header)
+				for _, key := range h.OverrideResponseHeaders {
+					if val := resp.Header.Get(key); val != "" {
+						blob.Header.Set(key, resp.Header.Get(key))
+					}
+				}
+			}
 		})
 		body := resp.Body
 		size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)

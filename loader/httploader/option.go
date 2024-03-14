@@ -59,6 +59,21 @@ func WithForwardHeaders(headers ...string) Option {
 	}
 }
 
+// WithOverrideResponseHeaders with override selected response headers option
+func WithOverrideResponseHeaders(headers ...string) Option {
+	return func(h *HTTPLoader) {
+		for _, raw := range headers {
+			splits := strings.Split(raw, ",")
+			for _, header := range splits {
+				header = strings.TrimSpace(header)
+				if len(header) > 0 {
+					h.OverrideResponseHeaders = append(h.OverrideResponseHeaders, header)
+				}
+			}
+		}
+	}
+}
+
 // WithForwardClientHeaders with forward browser request headers option
 func WithForwardClientHeaders(enabled bool) Option {
 	return func(h *HTTPLoader) {
