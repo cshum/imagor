@@ -14,6 +14,8 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 	var (
 		httpLoaderForwardHeaders = fs.String("http-loader-forward-headers", "",
 			"Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept")
+		httpLoaderOverrideResponseHeaders = fs.String("http-loader-override-response-headers", "",
+			"Override HTTP Loader response header to image response by csv e.g. Cache-Control,Expires")
 		httpLoaderForwardClientHeaders = fs.Bool("http-loader-forward-client-headers", false,
 			"Forward browser client request headers to HTTP Loader request")
 		httpLoaderForwardAllHeaders = fs.Bool("http-loader-forward-all-headers", false,
@@ -58,6 +60,7 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 						*httpLoaderForwardClientHeaders || *httpLoaderForwardAllHeaders),
 					httploader.WithAccept(*httpLoaderAccept),
 					httploader.WithForwardHeaders(*httpLoaderForwardHeaders),
+					httploader.WithOverrideResponseHeaders(*httpLoaderOverrideResponseHeaders),
 					httploader.WithAllowedSources(*httpLoaderAllowedSources),
 					httploader.WithAllowedSourceRegexps(*httpLoaderAllowedSourceRegexp),
 					httploader.WithMaxAllowedSize(*httpLoaderMaxAllowedSize),

@@ -52,7 +52,8 @@ type Blob struct {
 	contentType   string
 	memory        *memory
 
-	Stat *Stat
+	Header http.Header
+	Stat   *Stat
 }
 
 // Stat Blob stat attributes

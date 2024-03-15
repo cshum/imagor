@@ -23,7 +23,7 @@ func (t testTransport) RoundTrip(r *http.Request) (w *http.Response, err error) 
 		w = &http.Response{
 			StatusCode: http.StatusOK,
 			Body:       io.NopCloser(strings.NewReader(res)),
-			Header:     map[string][]string{},
+			Header:     make(http.Header),
 		}
 		w.Header.Set("Content-Type", "image/jpeg")
 		return
@@ -48,6 +48,7 @@ type test struct {
 	name   string
 	target string
 	result string
+	header map[string]string
 	err    string
 }
 
@@ -79,6 +80,11 @@ func doTests(t *testing.T, loader imagor.Loader, tests []test) {
 					msg = err2.Error()
 				}
 				assert.Equal(t, tt.err, msg)
+			}
+			if tt.header != nil {
+				for key, val := range tt.header {
+					assert.Equal(t, val, b.Header.Get(key))
+				}
 			}
 		})
 	}
@@ -488,6 +494,31 @@ func TestWithForwardHeadersOverrideUserAgent(t *testing.T) {
 			name:   "user agent",
 			target: "https://foo.bar/baz",
 			result: "ok",
+		},
+	})
+}
+
+func TestWithOverrideResponseHeader(t *testing.T) {
+	doTests(t, New(
+		WithTransport(roundTripFunc(func(r *http.Request) (w *http.Response, err error) {
+			res := &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     map[string][]string{},
+				Body:       io.NopCloser(strings.NewReader("ok")),
+			}
+			res.Header.Set("Content-Type", "image/jpeg")
+			res.Header.Set("Foo", "Bar")
+			return res, nil
+		})),
+		WithOverrideResponseHeaders("foo"),
+	), []test{
+		{
+			name:   "user agent",
+			target: "https://foo.bar/baz",
+			result: "ok",
+			header: map[string]string{
+				"Foo": "Bar",
+			},
 		},
 	})
 }

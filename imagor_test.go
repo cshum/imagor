@@ -331,6 +331,31 @@ func TestWithRaw(t *testing.T) {
 	assert.Equal(t, "bar", w.Header().Get("Content-Type"))
 }
 
+func TestWithOverrideHeader(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			blob := NewBlobFromBytes([]byte("foo"))
+			blob.SetContentType("bar")
+			blob.Header = make(http.Header)
+			blob.Header.Set("Content-Type", "tada")
+			blob.Header.Set("Foo", "bar")
+			blob.Header.Set("asdf", "fghj")
+			return blob, nil
+		})),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/filters:fill(red):raw()/gopher.png", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "foo", w.Body.String())
+	assert.Equal(t, "script-src 'none'", w.Header().Get("Content-Security-Policy"))
+	assert.Equal(t, "tada", w.Header().Get("Content-Type"))
+	assert.Equal(t, "fghj", w.Header().Get("ASDF"))
+}
+
 func TestNewBlobFromPathNotFound(t *testing.T) {
 	loader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		return NewBlobFromFile("./non-exists-path"), nil
