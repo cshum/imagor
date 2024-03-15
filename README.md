@@ -636,6 +636,8 @@ Usage of imagor:
         HTTP Loader base URL that prepends onto existing image path. This overrides the default scheme option.
   -http-loader-forward-headers string
         Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
+  -http-loader-override-response-headers string
+        Override HTTP Loader response header to image response by csv e.g. Cache-Control,Expires
   -http-loader-forward-client-headers
         Forward browser client request headers to HTTP Loader request
   -http-loader-insecure-skip-verify-transport
