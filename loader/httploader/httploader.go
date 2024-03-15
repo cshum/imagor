@@ -211,7 +211,7 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 				blob.Header = make(http.Header)
 				for _, key := range h.OverrideResponseHeaders {
 					if val := resp.Header.Get(key); val != "" {
-						blob.Header.Set(key, resp.Header.Get(key))
+						blob.Header.Set(key, val)
 					}
 				}
 			}
