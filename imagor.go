@@ -393,6 +393,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			for _, processor := range app.Processors {
 				b, e := checkBlob(processor.Process(ctx, blob, forwardP, load))
 				if !isBlobEmpty(b) {
+					if h := blob.Header; h != nil && b.Header == nil {
+						b.Header = h // forward blob Header
+					}
 					blob = b // forward Blob to next processor if exists
 				}
 				if e == nil {
