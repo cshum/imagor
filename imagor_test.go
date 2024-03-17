@@ -345,13 +345,17 @@ func TestWithOverrideHeader(t *testing.T) {
 			blob.Header.Set("asdf", "fghj")
 			return blob, nil
 		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			out := NewBlobFromBytes([]byte("processed"))
+			out.SetContentType("boom")
+			return out, nil
+		})),
 	)
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
-		http.MethodGet, "https://example.com/unsafe/filters:fill(red):raw()/gopher.png", nil))
+		http.MethodGet, "https://example.com/unsafe/filters:fill(red)/gopher.png", nil))
 	assert.Equal(t, 200, w.Code)
-	assert.Equal(t, "foo", w.Body.String())
-	assert.Equal(t, "script-src 'none'", w.Header().Get("Content-Security-Policy"))
+	assert.Equal(t, "processed", w.Body.String())
 	assert.Equal(t, "tada", w.Header().Get("Content-Type"))
 	assert.Equal(t, "fghj", w.Header().Get("ASDF"))
 }
