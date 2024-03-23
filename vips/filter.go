@@ -215,6 +215,11 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 			}
 		}
 		if isTransparent {
+			if img.Bands() < 3 {
+				if err = img.ToColorSpace(InterpretationSRGB); err != nil {
+					return
+				}
+			}
 			if err = img.AddAlpha(); err != nil {
 				return
 			}
