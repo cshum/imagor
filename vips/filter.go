@@ -385,7 +385,11 @@ func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (er
 			font = args[6]
 		}
 	}
-	// make sure band equals 4
+	if img.Bands() < 3 {
+		if err = img.ToColorSpace(InterpretationSRGB); err != nil {
+			return
+		}
+	}
 	if err = img.AddAlpha(); err != nil {
 		return
 	}
