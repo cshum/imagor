@@ -6,7 +6,7 @@ toolchain go1.21.1
 
 require (
 	cloud.google.com/go/storage v1.41.0
-	github.com/aws/aws-sdk-go v1.53.11
+	github.com/aws/aws-sdk-go v1.53.14
 	github.com/fsouza/fake-gcs-server v1.47.6
 	github.com/johannesboyne/gofakes3 v0.0.0-20230914150226-f005f5cc03aa
 	github.com/peterbourgon/ff/v3 v3.4.0
