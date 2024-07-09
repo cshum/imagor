@@ -99,8 +99,14 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	}
 	defer func() {
 		_ = w.Close()
+		if err != nil {
+			_ = os.Remove(w.Name())
+		}
 	}()
 	if _, err = io.Copy(w, reader); err != nil {
+		return
+	}
+	if err = w.Sync(); err != nil {
 		return
 	}
 	return
