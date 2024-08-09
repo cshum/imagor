@@ -36,6 +36,7 @@ type Processor struct {
 	MaxResolution      int
 	MaxAnimationFrames int
 	MozJPEG            bool
+	AvifSpeed          int
 	Debug              bool
 
 	disableFilters map[string]bool

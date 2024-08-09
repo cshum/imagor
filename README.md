@@ -809,4 +809,6 @@ Usage of imagor:
         VIPS max image resolution
   -vips-mozjpeg
         VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
+  -vips-avif-speed int
+        VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
 ```
