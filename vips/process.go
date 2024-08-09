@@ -616,6 +616,7 @@ func (v *Processor) export(
 		if quality > 0 {
 			opts.Quality = quality
 		}
+		opts.Speed = v.AvifSpeed
 		return image.ExportAvif(opts)
 	case ImageTypeHEIF:
 		opts := NewHeifExportParams()
