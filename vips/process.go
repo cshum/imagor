@@ -313,7 +313,7 @@ func (v *Processor) Process(
 	}
 	format = supportedSaveFormat(format) // convert to supported export format
 	for {
-		buf, err := v.export(img, format, compression, quality, palette, bitdepth)
+		buf, err := v.export(img, format, compression, quality, palette, bitdepth, stripExif)
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -575,7 +575,7 @@ func supportedSaveFormat(format ImageType) ImageType {
 }
 
 func (v *Processor) export(
-	image *Image, format ImageType, compression int, quality int, palette bool, bitdepth int,
+	image *Image, format ImageType, compression int, quality int, palette bool, bitdepth int, stripExif bool,
 ) ([]byte, error) {
 	switch format {
 	case ImageTypePNG:
@@ -598,6 +598,9 @@ func (v *Processor) export(
 		if quality > 0 {
 			opts.Quality = quality
 		}
+		if stripExif {
+			opts.StripMetadata = true
+		}
 		return image.ExportWebp(opts)
 	case ImageTypeTIFF:
 		opts := NewTiffExportParams()
@@ -615,6 +618,9 @@ func (v *Processor) export(
 		opts := NewAvifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
+		}
+		if stripExif {
+			opts.StripMetadata = true
 		}
 		opts.Speed = v.AvifSpeed
 		return image.ExportAvif(opts)

@@ -159,7 +159,11 @@ int set_gifsave_options(VipsOperation *operation, SaveParams *params) {
 int set_avifsave_options(VipsOperation *operation, SaveParams *params) {
   int ret = vips_object_set(
       VIPS_OBJECT(operation), "compression", VIPS_FOREIGN_HEIF_COMPRESSION_AV1,
-      "lossless", params->heifLossless, "speed", params->avifSpeed, NULL);
+      "lossless", params->heifLossless,
+      "effort", 9 - params->avifSpeed, // speed is deprecated
+      "strip", params->stripMetadata,
+      "subsample_mode", VIPS_FOREIGN_SUBSAMPLE_AUTO, // set to auto as we always set lossless
+      NULL);
 
   if (!ret && params->quality) {
     ret = vips_object_set(VIPS_OBJECT(operation), "Q", params->quality, NULL);

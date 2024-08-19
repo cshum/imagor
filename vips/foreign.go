@@ -231,6 +231,7 @@ func vipsSaveAVIFToBuffer(in *C.VipsImage, params AvifExportParams) ([]byte, err
 	p.inputImage = in
 	p.outputFormat = C.AVIF
 	p.quality = C.int(params.Quality)
+	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
 	p.heifLossless = C.int(boolToInt(params.Lossless))
 	p.avifSpeed = C.int(params.Speed)
 
@@ -254,6 +255,7 @@ func vipsSaveGIFToBuffer(in *C.VipsImage, params GifExportParams) ([]byte, error
 	p := C.create_save_params(C.GIF)
 	p.inputImage = in
 	p.quality = C.int(params.Quality)
+	p.stripMetadata = C.int(boolToInt(params.StripMetadata))
 	p.gifDither = C.double(params.Dither)
 	p.gifEffort = C.int(params.Effort)
 	p.gifBitdepth = C.int(params.Bitdepth)
