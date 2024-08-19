@@ -598,6 +598,7 @@ func (v *Processor) export(
 		if quality > 0 {
 			opts.Quality = quality
 		}
+		opts.StripMetadata = true
 		return image.ExportWebp(opts)
 	case ImageTypeTIFF:
 		opts := NewTiffExportParams()
