@@ -433,7 +433,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			app.save(ctx, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && shouldSave {
-			app.del(ctx, app.Storages, p.Image)
+			var storageKey = p.Image
+			if app.StoragePathStyle != nil {
+				storageKey = app.StoragePathStyle.Hash(p.Image)
+			}
+			app.del(ctx, app.Storages, storageKey)
 		}
 		return blob, err
 	})
