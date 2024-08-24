@@ -59,7 +59,6 @@ func TestWithInternal(t *testing.T) {
 			return NewBlobFromBytes([]byte("foo")), nil
 		})),
 		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
-			fmt.Println(p.Path, p.Image)
 			assert.Contains(t, p.Path, p.Image)
 			assert.Positive(t, p.Width)
 			assert.Positive(t, p.Height)
@@ -1040,6 +1039,12 @@ func TestWithStorageHasher(t *testing.T) {
 			}
 			return "storage:" + img
 		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			if p.Image == "err" {
+				return nil, ErrInternal
+			}
+			return blob, nil
+		})),
 		WithUnsafe(true),
 		WithModifiedTimeCheck(true),
 	)
@@ -1074,12 +1079,21 @@ func TestWithStorageHasher(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "bar", w.Body.String())
 
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/err", nil))
+	time.Sleep(time.Millisecond * 10) // make sure storage reached
+	assert.Equal(t, 500, w.Code)
+	assert.Equal(t, jsonStr(ErrInternal), w.Body.String())
+
 	assert.Equal(t, 0, store.LoadCnt["storage:bar"])
 	assert.Equal(t, 0, store.SaveCnt["storage:bar"])
 	assert.Equal(t, 1, len(store.LoadCnt))
-	assert.Equal(t, 1, len(store.SaveCnt))
+	assert.Equal(t, 2, len(store.SaveCnt))
+	assert.Equal(t, 1, len(store.DelCnt))
 	assert.Equal(t, 1, loadCnt["foo"], 1)
 	assert.Equal(t, 2, loadCnt["bar"], 2)
+	assert.Equal(t, 1, store.DelCnt["storage:err"])
 }
 
 func TestClientCancel(t *testing.T) {
