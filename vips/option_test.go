@@ -21,6 +21,7 @@ func TestWithOption(t *testing.T) {
 			WithMaxResolution(1666667),
 			WithMozJPEG(true),
 			WithAvifSpeed(9),
+			WithStripMetadata(true),
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
 			WithDisableFilters("rgb", "fill, watermark"),
@@ -38,6 +39,7 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, 1666667, v.MaxResolution)
 		assert.Equal(t, 3, v.MaxAnimationFrames)
 		assert.Equal(t, true, v.MozJPEG)
+		assert.Equal(t, true, v.StripMetadata)
 		assert.Equal(t, 9, v.AvifSpeed)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, v.DisableFilters)
 

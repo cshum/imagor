@@ -36,6 +36,7 @@ type Processor struct {
 	MaxResolution      int
 	MaxAnimationFrames int
 	MozJPEG            bool
+	StripMetadata      bool
 	AvifSpeed          int
 	Debug              bool
 
@@ -305,7 +306,7 @@ func (v *Processor) FocalThumbnail(img *Image, w, h int, fx, fy float64) (err er
 		imageHeight = float64(img.PageHeight())
 	}
 
-    if float64(w)/float64(h) > float64(imageWidth)/float64(imageHeight) {
+	if float64(w)/float64(h) > float64(imageWidth)/float64(imageHeight) {
 		if err = img.Thumbnail(w, v.MaxHeight, InterestingNone); err != nil {
 			return
 		}

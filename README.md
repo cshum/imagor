@@ -132,6 +132,7 @@ imagor supports the following filters:
 - `sharpen(sigma)` sharpens the image
 - `strip_exif()` removes Exif metadata from the resulting image
 - `strip_icc()` removes ICC profile information from the resulting image
+- `strip_metadata()` removes all metadata from the resulting image
 - `upscale()` upscale the image if `fit-in` is used
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for imagor
@@ -811,4 +812,6 @@ Usage of imagor:
         VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
   -vips-avif-speed int
         VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
+  -vips-strip-metadata
+        VIPS strips all metadata from the resulting image
 ```

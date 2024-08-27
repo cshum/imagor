@@ -36,6 +36,8 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed")
 		vipsAvifSpeed = fs.Int("vips-avif-speed", 5,
 			"VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).")
+		vipsStripMetadata = fs.Bool("vips-strip-metadata", false,
+			"VIPS strips all metadata from the resulting image")
 
 		logger, isDebug = cb()
 	)
@@ -54,6 +56,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vips.WithMaxResolution(*vipsMaxResolution),
 			vips.WithMozJPEG(*vipsMozJPEG),
 			vips.WithAvifSpeed(*vipsAvifSpeed),
+			vips.WithStripMetadata(*vipsStripMetadata),
 			vips.WithLogger(logger),
 			vips.WithDebug(isDebug),
 		),
