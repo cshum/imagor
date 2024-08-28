@@ -75,6 +75,28 @@ func TestProcessor(t *testing.T) {
 			{name: "meta strip exif", path: "meta/filters:strip_exif()/Canon_40D.jpg"},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
+	t.Run("vips strip metadata config", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden")
+		doGoldenTests(t, resultDir, []test{
+			{name: "png", path: "fit-in/67x67/gopher-front.png"},
+			{name: "jpeg", path: "fit-in/67x67/demo1.jpg"},
+			{name: "webp", path: "fit-in/67x67/demo3.webp", arm64Golden: true},
+			{name: "tiff", path: "fit-in/67x67/gopher.tiff"},
+			{name: "tiff", path: "fit-in/67x67/dancing-banana.gif"},
+			//{name: "avif", path: "fit-in/67x67/gopher-front.avif", checkTypeOnly: true},
+		}, WithDebug(true), WithStripMetadata(true), WithLogger(zap.NewExample()))
+	})
+	t.Run("vips strip_metadata filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden")
+		doGoldenTests(t, resultDir, []test{
+			{name: "png", path: "gopher-front.png"},
+			{name: "jpeg", path: "fit-in/67x67/filters:strip_metadata()/demo1.jpg"},
+			{name: "webp", path: "fit-in/67x67/filters:strip_metadata()/demo3.webp", arm64Golden: true},
+			{name: "tiff", path: "fit-in/67x67/filters:strip_metadata()/gopher.tiff"},
+			{name: "gif", path: "fit-in/67x67/filters:strip_metadata()/dancing-banana.gif"},
+			//{name: "avif", path: "fit-in/67x67/filters:strip_metadata()/gopher-front.avif", checkTypeOnly: true},
+		}, WithDebug(true), WithLogger(zap.NewExample()))
+	})
 	t.Run("vips operations", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{

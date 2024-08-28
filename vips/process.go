@@ -40,6 +40,7 @@ func (v *Processor) Process(
 		stretch               = p.Stretch
 		thumbnail             = false
 		stripExif             bool
+		stripMetadata         = v.StripMetadata
 		orient                int
 		img                   *Image
 		format                = ImageTypeUnknown
@@ -122,6 +123,8 @@ func (v *Processor) Process(
 			break
 		case "strip_exif":
 			stripExif = true
+		case "strip_metadata":
+			stripMetadata = true
 			break
 		}
 	}
@@ -313,7 +316,7 @@ func (v *Processor) Process(
 	}
 	format = supportedSaveFormat(format) // convert to supported export format
 	for {
-		buf, err := v.export(img, format, compression, quality, palette, bitdepth, stripExif)
+		buf, err := v.export(img, format, compression, quality, palette, bitdepth, stripMetadata)
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -575,7 +578,7 @@ func supportedSaveFormat(format ImageType) ImageType {
 }
 
 func (v *Processor) export(
-	image *Image, format ImageType, compression int, quality int, palette bool, bitdepth int, stripExif bool,
+	image *Image, format ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
 	switch format {
 	case ImageTypePNG:
@@ -592,13 +595,16 @@ func (v *Processor) export(
 		if compression > 0 {
 			opts.Compression = compression
 		}
+		if stripMetadata {
+			opts.StripMetadata = true
+		}
 		return image.ExportPng(opts)
 	case ImageTypeWEBP:
 		opts := NewWebpExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		if stripExif {
+		if stripMetadata {
 			opts.StripMetadata = true
 		}
 		return image.ExportWebp(opts)
@@ -607,11 +613,17 @@ func (v *Processor) export(
 		if quality > 0 {
 			opts.Quality = quality
 		}
+		if stripMetadata {
+			opts.StripMetadata = true
+		}
 		return image.ExportTiff(opts)
 	case ImageTypeGIF:
 		opts := NewGifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
+		}
+		if stripMetadata {
+			opts.StripMetadata = true
 		}
 		return image.ExportGIF(opts)
 	case ImageTypeAVIF:
@@ -619,7 +631,7 @@ func (v *Processor) export(
 		if quality > 0 {
 			opts.Quality = quality
 		}
-		if stripExif {
+		if stripMetadata {
 			opts.StripMetadata = true
 		}
 		opts.Speed = v.AvifSpeed
@@ -649,6 +661,9 @@ func (v *Processor) export(
 		}
 		if quality > 0 {
 			opts.Quality = quality
+		}
+		if stripMetadata {
+			opts.StripMetadata = true
 		}
 		return image.ExportJpeg(opts)
 	}
