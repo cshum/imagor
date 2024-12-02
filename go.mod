@@ -10,11 +10,11 @@ require (
 	github.com/fsouza/fake-gcs-server v1.49.3
 	github.com/johannesboyne/gofakes3 v0.0.0-20240701191259-edd0227ffc37
 	github.com/peterbourgon/ff/v3 v3.4.0
-	github.com/prometheus/client_golang v1.20.2
-	github.com/rs/cors v1.11.0
+	github.com/prometheus/client_golang v1.20.5
+	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/image v0.19.0
+	golang.org/x/image v0.22.0
 	golang.org/x/sync v0.9.0
 )
 
@@ -49,13 +49,13 @@ require (
 	github.com/gorilla/handlers v1.5.2 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/xattr v0.4.10 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.56.0 // indirect
+	github.com/prometheus/common v0.60.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20230507112040-c3350d9342df // indirect
