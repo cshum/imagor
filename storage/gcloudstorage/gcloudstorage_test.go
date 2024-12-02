@@ -178,3 +178,30 @@ func TestExpiration(t *testing.T) {
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 	require.ErrorIs(t, err, imagor.ErrExpired)
 }
+
+func TestContextCancel(t *testing.T) {
+	srv := fakestorage.NewServer([]fakestorage.Object{{
+		ObjectAttrs: fakestorage.ObjectAttrs{
+			BucketName: "test",
+			Name:       "placeholder",
+		},
+		Content: []byte(""),
+	}})
+	s := New(srv.Client(), "test")
+	ctx, cancel := context.WithCancel(context.Background())
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+	require.NoError(t, err)
+	blob := imagor.NewBlobFromBytes([]byte("bar"))
+	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
+	b, err := s.Get(r, "/foo/bar/asdf")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "bar", string(buf))
+	cancel()
+	b, err = s.Get(r, "/foo/bar/asdf")
+	require.NoError(t, err)
+	buf, err = b.ReadAll()
+	assert.Empty(t, buf)
+	require.ErrorIs(t, err, context.Canceled)
+}
