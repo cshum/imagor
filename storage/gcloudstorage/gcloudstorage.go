@@ -60,7 +60,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		if attrs != nil {
 			size = attrs.Size
 		}
-		reader, err = object.NewReader(ctx)
+		reader, err = object.NewReader(context.Background())
 		return
 	})
 	if attrs != nil {
