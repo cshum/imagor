@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/TheZeroSlave/zapsentry"
 	"github.com/getsentry/sentry-go"
+	"go.uber.org/zap/zapcore"
 	"runtime"
 	"strings"
 	"time"
@@ -186,7 +187,9 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 
 			// Add Sentry integration to zap logger
 			core, err := zapsentry.NewCore(zapsentry.Configuration{
-				Level: zap.ErrorLevel, // Only log errors or higher levels to Sentry
+				Level:             zapcore.ErrorLevel, // only log errors or higher levels to Sentry
+				EnableBreadcrumbs: true,               // enable sending breadcrumbs to Sentry
+				BreadcrumbLevel:   zapcore.InfoLevel,  // at what level should we sent breadcrumbs to sentry, this level can't be higher than `Level`
 			}, zapsentry.NewSentryClientFromClient(sentry.CurrentHub().Client()))
 			if err != nil {
 				panic(err)
