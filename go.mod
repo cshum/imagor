@@ -1,13 +1,13 @@
 module github.com/cshum/imagor
 
-go 1.22.7
-
-toolchain go1.23.1
+go 1.23.4
 
 require (
 	cloud.google.com/go/storage v1.47.0
+	github.com/TheZeroSlave/zapsentry v1.23.0
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/fsouza/fake-gcs-server v1.50.2
+	github.com/getsentry/sentry-go v0.30.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/prometheus/client_golang v1.20.5
