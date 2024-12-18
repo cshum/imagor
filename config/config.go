@@ -192,7 +192,7 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 				BreadcrumbLevel:   zapcore.InfoLevel,  // at what level should we sent breadcrumbs to sentry, this level can't be higher than `Level`
 			}, zapsentry.NewSentryClientFromClient(sentry.CurrentHub().Client()))
 			if err != nil {
-				panic(err)
+				fmt.Printf("zapsentry integration error: %s", err)
 			}
 			logger = zapsentry.AttachCoreToLogger(core, logger)
 		}
