@@ -6,6 +6,9 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
+	"github.com/TheZeroSlave/zapsentry"
+	"github.com/getsentry/sentry-go"
+	"go.uber.org/zap/zapcore"
 	"runtime"
 	"strings"
 	"time"
@@ -150,6 +153,8 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 			"Enable strip query string redirection")
 		serverAccessLog = fs.Bool("server-access-log", false,
 			"Enable server access log")
+		sentryDsn = fs.String("sentry-dsn", "",
+			"Sentry DSN config")
 
 		prometheusBind = fs.String("prometheus-bind", "", "Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000")
 		prometheusPath = fs.String("prometheus-path", "/", "Prometheus metrics path")
@@ -170,6 +175,28 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		} else {
 			logger = zap.Must(zap.NewProduction())
 		}
+
+		if len(*sentryDsn) > 0 {
+			err = sentry.Init(sentry.ClientOptions{
+				Dsn: *sentryDsn,
+			})
+			if err != nil {
+				fmt.Printf("sentry.Init: %s", err)
+			}
+			defer sentry.Flush(2 * time.Second)
+
+			// Add Sentry integration to zap logger
+			core, err := zapsentry.NewCore(zapsentry.Configuration{
+				Level:             zapcore.ErrorLevel, // only log errors or higher levels to Sentry
+				EnableBreadcrumbs: true,               // enable sending breadcrumbs to Sentry
+				BreadcrumbLevel:   zapcore.InfoLevel,  // at what level should we sent breadcrumbs to sentry, this level can't be higher than `Level`
+			}, zapsentry.NewSentryClientFromClient(sentry.CurrentHub().Client()))
+			if err != nil {
+				fmt.Printf("zapsentry integration error: %s", err)
+			}
+			logger = zapsentry.AttachCoreToLogger(core, logger)
+		}
+
 		return logger, *debug
 	}, funcs...)
 
@@ -203,5 +230,6 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
 		server.WithMetrics(pm),
+		server.WithSentry(*sentryDsn),
 	)
 }
