@@ -204,3 +204,8 @@ func TestWithPathPrefix(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	fmt.Println(w.Body.String())
 }
+
+func TestWithSentry(t *testing.T) {
+	s := New(imagor.New(), WithSentry("https://12345@sentry.com/123"))
+	assert.Equal(t, "https://12345@sentry.com/123", s.SentryDsn)
+}
