@@ -73,6 +73,13 @@ func WithDebug(debug bool) Option {
 	}
 }
 
+// WithSentry with sentry option
+func WithSentry(dsn string) Option {
+	return func(s *Server) {
+		s.SentryDsn = dsn
+	}
+}
+
 // WithStartupTimeout with server startup timeout option
 func WithStartupTimeout(timeout time.Duration) Option {
 	return func(s *Server) {

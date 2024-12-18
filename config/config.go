@@ -230,5 +230,6 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		server.WithLogger(logger),
 		server.WithDebug(*debug),
 		server.WithMetrics(pm),
+		server.WithSentry(*sentryDsn),
 	)
 }

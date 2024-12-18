@@ -102,6 +102,13 @@ func TestBind(t *testing.T) {
 	assert.Equal(t, ":4567", srv.Addr)
 }
 
+func TestSentry(t *testing.T) {
+	srv := CreateServer([]string{
+		"-sentry-dsn", "https://12345@sentry.com/123",
+	})
+	assert.Equal(t, "https://12345@sentry.com/123", srv.SentryDsn)
+}
+
 func TestSignerAlgorithm(t *testing.T) {
 	srv := CreateServer([]string{
 		"-imagor-signer-type", "sha256",
