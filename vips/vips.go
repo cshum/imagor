@@ -78,6 +78,21 @@ func vipsImageFromMemory(buf []byte, width, height, bands int) (*C.VipsImage, Im
 	return out, ImageTypeUnknown, nil
 }
 
+// https://www.libvips.org/API/current/VipsImage.html#vips-image-new-from-file
+func vipsImageFromFile(filePath string) (*C.VipsImage, ImageType, error) {
+	var out *C.VipsImage
+	cFilePath := C.CString(filePath)
+	defer freeCString(cFilePath)
+
+	code := C.image_new_from_file(cFilePath, &out)
+	if code != 0 {
+		return nil, ImageTypeUnknown, handleImageError(out)
+	}
+
+	imageType := vipsDetermineImageTypeFromMetaLoader(out)
+	return out, imageType, nil
+}
+
 // https://www.libvips.org/API/current/libvips-resample.html#vips-thumbnail-source
 func vipsThumbnailFromSource(
 	src *C.VipsSourceCustom, width, height int, crop Interesting, size Size, params *ImportParams) (*C.VipsImage, ImageType, error) {
@@ -298,7 +313,7 @@ func vipsReplicate(in *C.VipsImage, across int, down int) (*C.VipsImage, error) 
 	return out, nil
 }
 
-//  https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
+// https://libvips.github.io/libvips/API/current/libvips-arithmetic.html#vips-linear
 func vipsLinear(in *C.VipsImage, a, b []float64, n int) (*C.VipsImage, error) {
 	var out *C.VipsImage
 

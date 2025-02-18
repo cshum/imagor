@@ -6,6 +6,8 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -185,6 +187,45 @@ func LoadImageFromMemory(buf []byte, width, height, bands int) (*Image, error) {
 	ref := newImageRef(vipsImage, format, buf)
 
 	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef %p", ref))
+	return ref, nil
+}
+
+// LoadImageFromBufferedFile buffers the blob to a local file and reads from it
+func LoadImageFromBufferedFile(reader io.ReadCloser, params *ImportParams) (*Image, error) {
+	startupIfNeeded()
+
+	// Create a temporary file
+	tmpFile, err := os.CreateTemp("", "vips_source_*.tmp")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name()) // Ensure cleanup
+	}()
+
+	// Copy the reader content to the temp file
+	_, err = io.Copy(tmpFile, reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy reader content: %w", err)
+	}
+
+	return LoadImageFromFile(tmpFile.Name(), params)
+}
+
+// LoadImageFromFile reads from a local file
+func LoadImageFromFile(filePath string, params *ImportParams) (*Image, error) {
+	startupIfNeeded()
+
+	// Load the image from file using vips
+	vipsImage, format, err := vipsImageFromFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load image from file: %w", err)
+	}
+
+	// Create an Image reference
+	ref := newImageRef(vipsImage, format, nil)
+	log("vips", LogLevelDebug, fmt.Sprintf("created imageRef from file %p", ref))
 	return ref, nil
 }
 

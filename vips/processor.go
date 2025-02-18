@@ -168,6 +168,18 @@ func newImageFromBlob(
 		}()
 		return loadImageFromBMP(r)
 	}
+	if blob.BlobType() == imagor.BlobTypeUnknown {
+		// fallback with buffer to local file for possible imagemagick loader
+		src.Close()
+		r, _, err := blob.NewReader()
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			_ = r.Close()
+		}()
+		return LoadImageFromBufferedFile(r, params)
+	}
 	return img, err
 }
 
