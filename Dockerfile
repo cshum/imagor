@@ -1,41 +1,63 @@
 ARG GOLANG_VERSION=1.23.4
+
 FROM golang:${GOLANG_VERSION}-bookworm as builder
 
 ARG VIPS_VERSION=8.16.0
+ARG LIBRAW_VERSION=0.21.3
+ARG IMAGE_MAGICK_VERSION=7.1.1-43
+ARG IMAGE_MAGICK_ENABLED=0
 ARG TARGETARCH
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+ENV VIPS_VERSION=${VIPS_VERSION}
+ENV LIBRAW_VERSION=${LIBRAW_VERSION}
+ENV IMAGE_MAGICK_ENABLED=${IMAGE_MAGICK_ENABLED}
+ENV IMAGE_MAGICK_VERSION=${IMAGE_MAGICK_VERSION}
 
 # Installs libvips + required libraries
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
   apt-get install --no-install-recommends -y \
-  ca-certificates \
-  automake build-essential curl \
-  meson ninja-build pkg-config \
-  gobject-introspection gtk-doc-tools libglib2.0-dev libjpeg62-turbo-dev libpng-dev \
-  libwebp-dev libtiff-dev libexif-dev libxml2-dev libpoppler-glib-dev \
-  swig libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev libopenjp2-7-dev liblcms2-dev \
-  libgsf-1-dev libfftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev \
-  libheif-dev libspng-dev libcgif-dev && \
-  cd /tmp && \
-    curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
-    tar xf vips-${VIPS_VERSION}.tar.xz && \
-    cd vips-${VIPS_VERSION} && \
-    meson setup _build \
-    --buildtype=release \
-    --strip \
-    --prefix=/usr/local \
-    --libdir=lib \
-    -Dgtk_doc=false \
-    -Dmagick=disabled \
-    -Dintrospection=disabled && \
-    ninja -C _build && \
-    ninja -C _build install && \
-  ldconfig && \
-  rm -rf /usr/local/lib/libvips-cpp.* && \
-  rm -rf /usr/local/lib/*.a && \
-  rm -rf /usr/local/lib/*.la
+      ca-certificates \
+      automake \
+      autoconf \
+      build-essential \
+      curl \
+      meson \
+      ninja-build \
+      pkg-config \
+      gobject-introspection \
+      gtk-doc-tools \
+      libglib2.0-dev \
+      libjpeg62-turbo-dev \
+      libpng-dev \
+      libwebp-dev \
+      libtiff-dev \
+      libexif-dev \
+      libxml2-dev \
+      libpoppler-glib-dev \
+      swig \
+      libpango1.0-dev \
+      libmatio-dev \
+      libopenslide-dev \
+      libcfitsio-dev \
+      libopenjp2-7-dev \
+      liblcms2-dev \
+      libgsf-1-dev \
+      libfftw3-dev \
+      liborc-0.4-dev \
+      librsvg2-dev \
+      libimagequant-dev \
+      libaom-dev \
+      libheif-dev \
+      libspng-dev \
+      libcgif-dev
+
+# run the build scripts
+COPY docker/scripts/* ./
+RUN ./build-libraw.sh
+RUN ./build-imagemagick.sh
+RUN ./build-libvips.sh
 
 WORKDIR ${GOPATH}/src/github.com/cshum/imagor
 
@@ -63,7 +85,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
   libwebp7 libwebpmux3 libwebpdemux2 libtiff6 libexif12 libxml2 libpoppler-glib8 \
   libpango1.0-0 libmatio11 libopenslide0 libopenjp2-7 libjemalloc2 \
   libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10 libimagequant0 libaom3 libheif1 \
-  libspng0 libcgif0 && \
+  libspng0 libcgif0 \
+  libltdl7 && \
   ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
   apt-get autoclean && \
