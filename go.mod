@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.7
 	github.com/fsouza/fake-gcs-server v1.50.2
 	github.com/getsentry/sentry-go v0.32.0
-	github.com/johannesboyne/gofakes3 v0.0.0-20241026070602-0da3aa9c32ca
+	github.com/johannesboyne/gofakes3 v0.0.0-20250402064820-d479899d8cbe
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/rs/cors v1.11.1
