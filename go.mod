@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.24.2
 
 require (
-	cloud.google.com/go/storage v1.52.0
+	cloud.google.com/go/storage v1.53.0
 	github.com/TheZeroSlave/zapsentry v1.23.0
 	github.com/aws/aws-sdk-go v1.55.7
 	github.com/fsouza/fake-gcs-server v1.50.2
