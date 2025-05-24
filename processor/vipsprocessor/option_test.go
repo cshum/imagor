@@ -1,8 +1,9 @@
-package vips
+package vipsprocessor
 
 import (
 	"context"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/vips"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
@@ -25,7 +26,7 @@ func TestWithOption(t *testing.T) {
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
 			WithDisableFilters("rgb", "fill, watermark"),
-			WithFilter("noop", func(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
+			WithFilter("noop", func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 				return nil
 			}),
 		)
@@ -53,9 +54,9 @@ func TestWithOption(t *testing.T) {
 }
 
 func TestImportParamsOptionString(t *testing.T) {
-	p := NewImportParams()
+	p := vips.NewImportParams()
 	p.FailOnError.Set(true)
-	p.AutoRotate.set(false)
+	p.AutoRotate.Set(false)
 	p.Density.Set(13)
 	p.Page.Set(167)
 	p.HeifThumbnail.Set(true)

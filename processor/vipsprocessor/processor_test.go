@@ -1,8 +1,9 @@
-package vips
+package vipsprocessor
 
 import (
 	"context"
 	"fmt"
+	"github.com/cshum/imagor/vips"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -39,11 +40,10 @@ func TestProcessor(t *testing.T) {
 	v := NewProcessor(WithDebug(true))
 	require.NoError(t, v.Startup(context.Background()))
 	t.Cleanup(func() {
-		stats := &MemoryStats{}
-		ReadVipsMemStats(stats)
+		stats := &vips.MemoryStats{}
+		vips.ReadVipsMemStats(stats)
 		fmt.Println(stats)
 		require.NoError(t, v.Shutdown(context.Background()))
-		noopLoggingHandler("", LogLevelDebug, "")
 	})
 	t.Run("vips basic", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
@@ -441,9 +441,9 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			if reflect.DeepEqual(buf, w.Body.Bytes()) {
 				return
 			}
-			img1, err := LoadImageFromBuffer(buf, nil)
+			img1, err := vips.LoadImageFromBuffer(buf, nil)
 			require.NoError(t, err)
-			img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
+			img2, err := vips.LoadImageFromBuffer(w.Body.Bytes(), nil)
 			require.NoError(t, err)
 			require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
 			require.Equal(t, img1.Height(), img2.Height(), "height mismatch")

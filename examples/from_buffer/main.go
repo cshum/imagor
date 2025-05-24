@@ -5,7 +5,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/imagor/processor/vipsprocessor"
 	"io"
 	"net/http"
 	"os"
@@ -14,7 +14,7 @@ import (
 func main() {
 	app := imagor.New(
 		imagor.WithLoaders(httploader.New()),
-		imagor.WithProcessors(vips.NewProcessor()),
+		imagor.WithProcessors(vipsprocessor.NewProcessor()),
 	)
 	ctx := context.Background()
 	if err := app.Startup(ctx); err != nil {

@@ -24,6 +24,23 @@ type Image struct {
 	pageHeight int // cached page height
 }
 
+// setImage resets the image for this image and frees the previous one
+func (r *Image) setImage(image *C.VipsImage) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if r.image == image {
+		return
+	}
+
+	if r.image != nil {
+		clearImage(r.image)
+	}
+
+	r.image = image
+	r.pageHeight = 0
+}
+
 // Param libvips options param
 type Param struct {
 	value interface{}
@@ -710,21 +727,4 @@ func (r *Image) Replicate(across int, down int) error {
 	}
 	r.setImage(out)
 	return nil
-}
-
-// setImage resets the image for this image and frees the previous one
-func (r *Image) setImage(image *C.VipsImage) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	if r.image == image {
-		return
-	}
-
-	if r.image != nil {
-		clearImage(r.image)
-	}
-
-	r.image = image
-	r.pageHeight = 0
 }

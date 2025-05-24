@@ -1,8 +1,9 @@
-package vips
+package vipsprocessor
 
 import (
 	"context"
 	"fmt"
+	"github.com/cshum/imagor/vips"
 	"image/color"
 	"math"
 	"net/url"
@@ -14,7 +15,7 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadFunc, args ...string) (err error) {
+func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -30,7 +31,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	var x, y, w, h int
 	var across = 1
 	var down = 1
-	var overlay *Image
+	var overlay *vips.Image
 	var n = 1
 	if isAnimated(img) {
 		n = -1
@@ -48,13 +49,13 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 			h = img.PageHeight() * h / 100
 		}
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, InterestingNone, SizeBoth, n, 1, 0,
+			ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
 		); err != nil {
 			return
 		}
 	} else {
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, InterestingNone, SizeDown, n, 1, 0,
+			ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0,
 		); err != nil {
 			return
 		}
@@ -62,7 +63,7 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 	var overlayN = overlay.Height() / overlay.PageHeight()
 	contextDefer(ctx, overlay.Close)
 	if overlay.Bands() < 3 {
-		if err = overlay.ToColorSpace(InterpretationSRGB); err != nil {
+		if err = overlay.ToColorSpace(vips.InterpretationSRGB); err != nil {
 			return
 		}
 	}
@@ -127,12 +128,12 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 		}
 	}
 	if across*down > 1 {
-		if err = overlay.Embed(0, 0, across*w, down*h, ExtendRepeat); err != nil {
+		if err = overlay.Embed(0, 0, across*w, down*h, vips.ExtendRepeat); err != nil {
 			return
 		}
 	}
 	if err = overlay.EmbedBackgroundRGBA(
-		x, y, img.Width(), img.PageHeight(), &ColorRGBA{},
+		x, y, img.Width(), img.PageHeight(), &vips.ColorRGBA{},
 	); err != nil {
 		return
 	}
@@ -145,13 +146,13 @@ func (v *Processor) watermark(ctx context.Context, img *Image, load imagor.LoadF
 			return
 		}
 	}
-	if err = img.Composite(overlay, BlendModeOver, 0, 0); err != nil {
+	if err = img.Composite(overlay, vips.BlendModeOver, 0, 0); err != nil {
 		return
 	}
 	return
 }
 
-func setFrames(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func setFrames(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
@@ -165,7 +166,7 @@ func setFrames(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string)
 		if err = img.SetPageHeight(img.Height()); err != nil {
 			return
 		}
-		if err = img.Embed(0, 0, img.Width(), height*newN, ExtendRepeat); err != nil {
+		if err = img.Embed(0, 0, img.Width(), height*newN, vips.ExtendRepeat); err != nil {
 			return
 		}
 		if err = img.SetPageHeight(height); err != nil {
@@ -189,7 +190,7 @@ func setFrames(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string)
 	return
 }
 
-func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
+func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
 	if isRotate90(ctx) {
 		tmpW := w
 		w = h
@@ -216,22 +217,22 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 		}
 		if isTransparent {
 			if img.Bands() < 3 {
-				if err = img.ToColorSpace(InterpretationSRGB); err != nil {
+				if err = img.ToColorSpace(vips.InterpretationSRGB); err != nil {
 					return
 				}
 			}
 			if err = img.AddAlpha(); err != nil {
 				return
 			}
-			if err = img.EmbedBackgroundRGBA(left, top, width, height, &ColorRGBA{}); err != nil {
+			if err = img.EmbedBackgroundRGBA(left, top, width, height, &vips.ColorRGBA{}); err != nil {
 				return
 			}
 		} else if isBlack(c) {
-			if err = img.Embed(left, top, width, height, ExtendBlack); err != nil {
+			if err = img.Embed(left, top, width, height, vips.ExtendBlack); err != nil {
 				return
 			}
 		} else if isWhite(c) {
-			if err = img.Embed(left, top, width, height, ExtendWhite); err != nil {
+			if err = img.Embed(left, top, width, height, vips.ExtendWhite); err != nil {
 				return
 			}
 		} else {
@@ -241,13 +242,13 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 		}
 	} else {
 		// fill blur
-		var cp *Image
+		var cp *vips.Image
 		if cp, err = img.Copy(); err != nil {
 			return
 		}
 		contextDefer(ctx, cp.Close)
 		if err = img.ThumbnailWithSize(
-			width, height, InterestingNone, SizeForce,
+			width, height, vips.InterestingNone, vips.SizeForce,
 		); err != nil {
 			return
 		}
@@ -255,16 +256,16 @@ func (v *Processor) fill(ctx context.Context, img *Image, w, h int, pLeft, pTop,
 			return
 		}
 		if err = img.Composite(
-			cp, BlendModeOver, left, top); err != nil {
+			cp, vips.BlendModeOver, left, top); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	var rx, ry int
-	var c *Color
+	var c *vips.Color
 	if len(args) == 0 {
 		return
 	}
@@ -282,10 +283,10 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 		ry, _ = strconv.Atoi(args[1])
 	}
 
-	var rounded *Image
+	var rounded *vips.Image
 	var w = img.Width()
 	var h = img.PageHeight()
-	if rounded, err = LoadImageFromBuffer([]byte(fmt.Sprintf(`
+	if rounded, err = vips.LoadImageFromBuffer([]byte(fmt.Sprintf(`
 		<svg viewBox="0 0 %d %d">
 			<rect rx="%d" ry="%d" 
 			 x="0" y="0" width="%d" height="%d" 
@@ -300,7 +301,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 			return
 		}
 	}
-	if err = img.Composite(rounded, BlendModeDestIn, 0, 0); err != nil {
+	if err = img.Composite(rounded, vips.BlendModeDestIn, 0, 0); err != nil {
 		return
 	}
 	if c != nil {
@@ -311,7 +312,7 @@ func roundCorner(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...str
 	return nil
 }
 
-func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
@@ -322,9 +323,9 @@ func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (er
 	var text = args[0]
 	var font = "tahoma"
 	var x, y int
-	var c = &Color{}
+	var c = &vips.Color{}
 	var alpha float64
-	var align = AlignLow
+	var align = vips.AlignLow
 	var size = 20
 	var width = img.Width()
 	if ln > 3 {
@@ -332,10 +333,10 @@ func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (er
 	}
 	if ln > 1 {
 		if args[1] == "center" {
-			align = AlignCenter
+			align = vips.AlignCenter
 			x = width / 2
 		} else if args[1] == imagorpath.HAlignRight {
-			align = AlignHigh
+			align = vips.AlignHigh
 			x = width
 		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
 			pec, _ := strconv.ParseFloat(args[1], 64)
@@ -347,7 +348,7 @@ func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (er
 			x, _ = strconv.Atoi(args[1])
 		}
 		if x < 0 {
-			align = AlignHigh
+			align = vips.AlignHigh
 			x += width
 		}
 	}
@@ -386,7 +387,7 @@ func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (er
 		}
 	}
 	if img.Bands() < 3 {
-		if err = img.ToColorSpace(InterpretationSRGB); err != nil {
+		if err = img.ToColorSpace(vips.InterpretationSRGB); err != nil {
 			return
 		}
 	}
@@ -396,7 +397,7 @@ func label(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (er
 	return img.Label(text, font, x, y, size, align, c, 1-alpha)
 }
 
-func (v *Processor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
+func (v *Processor) padding(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
 	ln := len(args)
 	if ln < 2 {
 		return nil
@@ -419,7 +420,7 @@ func (v *Processor) padding(ctx context.Context, img *Image, _ imagor.LoadFunc, 
 	return v.fill(ctx, img, img.Width(), img.PageHeight(), left, top, right, bottom, c)
 }
 
-func backgroundColor(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func backgroundColor(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -429,7 +430,7 @@ func backgroundColor(_ context.Context, img *Image, _ imagor.LoadFunc, args ...s
 	return img.Flatten(getColor(img, args[0]))
 }
 
-func rotate(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func rotate(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -445,20 +446,20 @@ func rotate(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 	return
 }
 
-func getAngle(angle int) Angle {
+func getAngle(angle int) vips.Angle {
 	switch angle {
 	case 90:
-		return Angle270
+		return vips.Angle270
 	case 180:
-		return Angle180
+		return vips.Angle180
 	case 270:
-		return Angle90
+		return vips.Angle90
 	default:
-		return Angle0
+		return vips.Angle0
 	}
 }
 
-func proportion(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func proportion(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -477,14 +478,14 @@ func proportion(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string
 	if width <= 0 || height <= 0 {
 		return // op ops
 	}
-	return img.Thumbnail(width, height, InterestingNone)
+	return img.Thumbnail(width, height, vips.InterestingNone)
 }
 
-func grayscale(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
-	return img.ToColorSpace(InterpretationBW)
+func grayscale(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
+	return img.ToColorSpace(vips.InterpretationBW)
 }
 
-func brightness(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func brightness(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -493,7 +494,7 @@ func brightness(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string
 	return linearRGB(img, []float64{1, 1, 1}, []float64{b, b, b})
 }
 
-func contrast(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func contrast(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -505,7 +506,7 @@ func contrast(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 	return linearRGB(img, []float64{a, a, a}, []float64{b, b, b})
 }
 
-func hue(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func hue(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -513,7 +514,7 @@ func hue(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err 
 	return img.Modulate(1, 1, h)
 }
 
-func saturation(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func saturation(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
@@ -522,7 +523,7 @@ func saturation(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string
 	return img.Modulate(1, s, 0)
 }
 
-func rgb(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func rgb(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) != 3 {
 		return
 	}
@@ -535,7 +536,7 @@ func rgb(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err 
 	return linearRGB(img, []float64{1, 1, 1}, []float64{r, g, b})
 }
 
-func modulate(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func modulate(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) != 3 {
 		return
 	}
@@ -547,7 +548,7 @@ func modulate(_ context.Context, img *Image, _ imagor.LoadFunc, args ...string) 
 	return img.Modulate(b, s, h)
 }
 
-func blur(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func blur(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if isAnimated(img) {
 		// skip animation support
 		return
@@ -568,7 +569,7 @@ func blur(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (e
 	return
 }
 
-func sharpen(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) (err error) {
+func sharpen(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if isAnimated(img) {
 		// skip animation support
 		return
@@ -589,15 +590,15 @@ func sharpen(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string)
 	return
 }
 
-func stripIcc(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
+func stripIcc(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.RemoveICCProfile()
 }
 
-func stripExif(_ context.Context, img *Image, _ imagor.LoadFunc, _ ...string) (err error) {
+func stripExif(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
 	return img.RemoveExif()
 }
 
-func trim(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) error {
+func trim(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
 	var (
 		ln        = len(args)
 		pos       string
@@ -615,7 +616,7 @@ func trim(ctx context.Context, img *Image, _ imagor.LoadFunc, args ...string) er
 	return nil
 }
 
-func linearRGB(img *Image, a, b []float64) error {
+func linearRGB(img *vips.Image, a, b []float64) error {
 	if img.HasAlpha() {
 		a = append(a, 1)
 		b = append(b, 0)
@@ -623,16 +624,16 @@ func linearRGB(img *Image, a, b []float64) error {
 	return img.Linear(a, b)
 }
 
-func isBlack(c *Color) bool {
+func isBlack(c *vips.Color) bool {
 	return c.R == 0x00 && c.G == 0x00 && c.B == 0x00
 }
 
-func isWhite(c *Color) bool {
+func isWhite(c *vips.Color) bool {
 	return c.R == 0xff && c.G == 0xff && c.B == 0xff
 }
 
-func getColor(img *Image, color string) *Color {
-	vc := &Color{}
+func getColor(img *vips.Image, color string) *vips.Color {
+	vc := &vips.Color{}
 	args := strings.Split(strings.ToLower(color), ",")
 	mode := ""
 	name := strings.TrimPrefix(args[0], "#")
@@ -693,6 +694,6 @@ func hexToByte(b byte) byte {
 	return 0
 }
 
-func isAnimated(img *Image) bool {
+func isAnimated(img *vips.Image) bool {
 	return img.Height() > img.PageHeight()
 }

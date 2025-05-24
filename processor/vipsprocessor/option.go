@@ -1,4 +1,4 @@
-package vips
+package vipsprocessor
 
 import (
 	"go.uber.org/zap"
