@@ -546,14 +546,14 @@ func (v *Processor) process(
 
 // Metadata image attributes
 type Metadata struct {
-	Format      string            `json:"format"`
-	ContentType string            `json:"content_type"`
-	Width       int               `json:"width"`
-	Height      int               `json:"height"`
-	Orientation int               `json:"orientation"`
-	Pages       int               `json:"pages"`
-	Bands       int               `json:"bands"`
-	Exif        map[string]string `json:"exif"`
+	Format      string         `json:"format"`
+	ContentType string         `json:"content_type"`
+	Width       int            `json:"width"`
+	Height      int            `json:"height"`
+	Orientation int            `json:"orientation"`
+	Pages       int            `json:"pages"`
+	Bands       int            `json:"bands"`
+	Exif        map[string]any `json:"exif"`
 }
 
 func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
@@ -564,9 +564,9 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	if format == vips.ImageTypePdf {
 		pages = img.Pages()
 	}
-	exif := map[string]string{}
+	exif := map[string]any{}
 	if !stripExif {
-		exif = img.Exif()
+		exif = ExtractExif(img.Exif())
 	}
 	return &Metadata{
 		Format:      string(format),
