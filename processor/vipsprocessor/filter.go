@@ -464,7 +464,7 @@ func rotate(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...str
 		case 90, 270:
 			setRotate90(ctx)
 		}
-		if err = img.RotateMultiPage(getAngle(angle)); err != nil {
+		if err = img.RotMultiPage(getAngle(angle)); err != nil {
 			return err
 		}
 	}

@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.52.0
 	github.com/TheZeroSlave/zapsentry v1.23.0
 	github.com/aws/aws-sdk-go v1.55.7
-	github.com/cshum/vipsgen v0.6.0
+	github.com/cshum/vipsgen v0.7.0
 	github.com/fsouza/fake-gcs-server v1.50.2
 	github.com/getsentry/sentry-go v0.32.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20250402064820-d479899d8cbe

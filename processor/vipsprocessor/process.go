@@ -244,7 +244,7 @@ func (v *Processor) Process(
 
 	if orient > 0 {
 		// orient rotate before resize
-		if err = img.RotateMultiPage(getAngle(orient)); err != nil {
+		if err = img.RotMultiPage(getAngle(orient)); err != nil {
 			return nil, err
 		}
 	}
