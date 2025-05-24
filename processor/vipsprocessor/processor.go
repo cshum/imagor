@@ -141,14 +141,14 @@ func (v *Processor) Shutdown(_ context.Context) error {
 }
 
 func newImageFromBlob(
-	ctx context.Context, blob *imagor.Blob, params *vips.ImportParams,
+	ctx context.Context, blob *imagor.Blob, params *vips.LoadOptions,
 ) (*vips.Image, error) {
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
 	if blob.BlobType() == imagor.BlobTypeMemory {
 		buf, width, height, bands, _ := blob.Memory()
-		return vips.LoadImageFromMemory(buf, width, height, bands)
+		return vips.NewImageFromMemory(buf, width, height, bands)
 	}
 	reader, _, err := blob.NewReader()
 	if err != nil {
@@ -156,7 +156,7 @@ func newImageFromBlob(
 	}
 	src := vips.NewSource(reader)
 	contextDefer(ctx, src.Close)
-	img, err := src.LoadImage(params)
+	img, err := vips.NewImageFromSource(src, params)
 	if err != nil && blob.BlobType() == imagor.BlobTypeBMP {
 		// fallback with Go BMP decoder if vips error on BMP
 		src.Close()
@@ -174,7 +174,7 @@ func newImageFromBlob(
 
 func newThumbnailFromBlob(
 	ctx context.Context, blob *imagor.Blob,
-	width, height int, crop vips.Interesting, size vips.Size, params *vips.ImportParams,
+	width, height int, crop vips.Interesting, size vips.Size, params *vips.LoadOptions,
 ) (*vips.Image, error) {
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
@@ -185,7 +185,16 @@ func newThumbnailFromBlob(
 	}
 	src := vips.NewSource(reader)
 	contextDefer(ctx, src.Close)
-	return src.LoadThumbnail(width, height, crop, size, params)
+	var optionString string
+	if params != nil {
+		optionString = params.OptionString()
+	}
+	return vips.NewThumbnailSource(src, width, &vips.ThumbnailSourceOptions{
+		Height:       height,
+		Crop:         crop,
+		Size:         size,
+		OptionString: optionString,
+	})
 }
 
 // NewThumbnail creates new thumbnail with resize and crop from imagor.Blob
@@ -193,13 +202,13 @@ func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop vips.Interesting,
 	size vips.Size, n, page int, dpi int,
 ) (*vips.Image, error) {
-	var params = vips.NewImportParams()
+	var params = vips.DefaultLoadOptions()
 	if dpi > 0 {
-		params.Density.Set(dpi)
+		params.Dpi = dpi
 	}
 	var err error
 	var img *vips.Image
-	params.FailOnError.Set(false)
+	params.FailOnError = false
 	if isMultiPage(blob, n, page) {
 		applyMultiPageParams(params, n, page)
 		if crop == vips.InterestingNone || size == vips.SizeForce {
@@ -214,7 +223,9 @@ func (v *Processor) NewThumbnail(
 			if _, err = v.CheckResolution(img, nil); err != nil {
 				return nil, err
 			}
-			if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
+			if err = img.ThumbnailImage(width, &vips.ThumbnailImageOptions{
+				Height: height, Size: size, Crop: crop,
+			}); err != nil {
 				img.Close()
 				return nil, WrapErr(err)
 			}
@@ -245,12 +256,14 @@ func (v *Processor) NewThumbnail(
 }
 
 func (v *Processor) newThumbnailFallback(
-	ctx context.Context, blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size, params *vips.ImportParams,
+	ctx context.Context, blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size, params *vips.LoadOptions,
 ) (img *vips.Image, err error) {
 	if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, params)); err != nil {
 		return
 	}
-	if err = img.ThumbnailWithSize(width, height, crop, size); err != nil {
+	if err = img.ThumbnailImage(width, &vips.ThumbnailImageOptions{
+		Height: height, Size: size, Crop: crop,
+	}); err != nil {
 		img.Close()
 		return
 	}
@@ -259,11 +272,11 @@ func (v *Processor) newThumbnailFallback(
 
 // NewImage creates new Image from imagor.Blob
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi int) (*vips.Image, error) {
-	var params = vips.NewImportParams()
+	var params = vips.DefaultLoadOptions()
 	if dpi > 0 {
-		params.Density.Set(dpi)
+		params.Dpi = dpi
 	}
-	params.FailOnError.Set(false)
+	params.FailOnError = false
 	if isMultiPage(blob, n, page) {
 		applyMultiPageParams(params, n, page)
 		img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
@@ -289,7 +302,9 @@ func (v *Processor) Thumbnail(
 	img *vips.Image, width, height int, crop vips.Interesting, size vips.Size,
 ) error {
 	if crop == vips.InterestingNone || size == vips.SizeForce || img.Height() == img.PageHeight() {
-		return img.ThumbnailWithSize(width, height, crop, size)
+		return img.ThumbnailImage(width, &vips.ThumbnailImageOptions{
+			Height: height, Size: size, Crop: crop,
+		})
 	}
 	return v.animatedThumbnailWithCrop(img, width, height, crop, size)
 }
@@ -308,11 +323,15 @@ func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, fx, fy float64) (e
 	}
 
 	if float64(w)/float64(h) > float64(imageWidth)/float64(imageHeight) {
-		if err = img.Thumbnail(w, v.MaxHeight, vips.InterestingNone); err != nil {
+		if err = img.ThumbnailImage(w, &vips.ThumbnailImageOptions{
+			Height: v.MaxHeight, Crop: vips.InterestingNone,
+		}); err != nil {
 			return
 		}
 	} else {
-		if err = img.Thumbnail(v.MaxWidth, h, vips.InterestingNone); err != nil {
+		if err = img.ThumbnailImage(v.MaxWidth, &vips.ThumbnailImageOptions{
+			Height: h, Crop: vips.InterestingNone,
+		}); err != nil {
 			return
 		}
 	}
@@ -332,11 +351,15 @@ func (v *Processor) animatedThumbnailWithCrop(
 	}
 	var top, left int
 	if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
-		if err = img.ThumbnailWithSize(w, v.MaxHeight, vips.InterestingNone, size); err != nil {
+		if err = img.ThumbnailImage(w, &vips.ThumbnailImageOptions{
+			Height: v.MaxHeight, Crop: vips.InterestingNone, Size: size,
+		}); err != nil {
 			return
 		}
 	} else {
-		if err = img.ThumbnailWithSize(v.MaxWidth, h, vips.InterestingNone, size); err != nil {
+		if err = img.ThumbnailImage(v.MaxWidth, &vips.ThumbnailImageOptions{
+			Height: h, Crop: vips.InterestingNone, Size: size,
+		}); err != nil {
 			return
 		}
 	}
@@ -367,13 +390,13 @@ func isMultiPage(blob *imagor.Blob, n, page int) bool {
 	return blob != nil && (blob.SupportsAnimation() || blob.BlobType() == imagor.BlobTypePDF) && ((n != 1 && n != 0) || (page != 1 && page != 0))
 }
 
-func applyMultiPageParams(params *vips.ImportParams, n, page int) {
+func applyMultiPageParams(params *vips.LoadOptions, n, page int) {
 	if page < -1 {
-		params.Page.Set(-page - 1)
+		params.Page = -page - 1
 	} else if n < -1 {
-		params.NumPages.Set(-n)
+		params.N = -n
 	} else {
-		params.NumPages.Set(-1)
+		params.N = -1
 	}
 }
 

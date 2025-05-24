@@ -623,8 +623,7 @@ func sharpen(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...st
 }
 
 func stripIcc(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
-	_ = img.RemoveICCProfile()
-	return nil
+	return img.RemoveICCProfile()
 }
 
 func stripExif(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {

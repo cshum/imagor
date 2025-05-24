@@ -52,16 +52,3 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, runtime.NumCPU(), v.Concurrency)
 	})
 }
-
-func TestImportParamsOptionString(t *testing.T) {
-	p := vips.NewImportParams()
-	p.FailOnError.Set(true)
-	p.AutoRotate.Set(false)
-	p.Density.Set(13)
-	p.Page.Set(167)
-	p.HeifThumbnail.Set(true)
-	p.SvgUnlimited.Set(false)
-	p.JpegShrinkFactor.Set(12)
-	p.HeifThumbnail.Set(true)
-	assert.Equal(t, "page=167,dpi=13,fail=TRUE,shrink=12,autorotate=FALSE,unlimited=FALSE,thumbnail=TRUE", p.OptionString())
-}
