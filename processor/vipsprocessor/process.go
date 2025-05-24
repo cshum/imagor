@@ -546,14 +546,14 @@ func (v *Processor) process(
 
 // Metadata image attributes
 type Metadata struct {
-	Format      string         `json:"format"`
-	ContentType string         `json:"content_type"`
-	Width       int            `json:"width"`
-	Height      int            `json:"height"`
-	Orientation int            `json:"orientation"`
-	Pages       int            `json:"pages"`
-	Bands       int            `json:"bands"`
-	Exif        map[string]any `json:"exif"`
+	Format      string            `json:"format"`
+	ContentType string            `json:"content_type"`
+	Width       int               `json:"width"`
+	Height      int               `json:"height"`
+	Orientation int               `json:"orientation"`
+	Pages       int               `json:"pages"`
+	Bands       int               `json:"bands"`
+	Exif        map[string]string `json:"exif"`
 }
 
 func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
@@ -564,7 +564,7 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	if format == vips.ImageTypePdf {
 		pages = img.Pages()
 	}
-	exif := map[string]any{}
+	exif := map[string]string{}
 	if !stripExif {
 		exif = img.Exif()
 	}
@@ -593,9 +593,9 @@ func (v *Processor) export(
 ) ([]byte, error) {
 	switch format {
 	case vips.ImageTypePng:
-		opts := vips.NewPngExportParams()
+		opts := vips.DefaultPngsaveBufferOptions()
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
 		if palette {
 			opts.Palette = palette
@@ -607,63 +607,61 @@ func (v *Processor) export(
 			opts.Compression = compression
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportPng(opts)
+		return image.PngsaveBuffer(opts)
 	case vips.ImageTypeWebp:
-		opts := vips.NewWebpExportParams()
+		opts := vips.DefaultWebpsaveBufferOptions()
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportWebp(opts)
+		return image.WebpsaveBuffer(opts)
 	case vips.ImageTypeTiff:
-		opts := vips.NewTiffExportParams()
+		opts := vips.DefaultTiffsaveBufferOptions()
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportTiff(opts)
+		return image.TiffsaveBuffer(opts)
 	case vips.ImageTypeGif:
-		opts := vips.NewGifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
+		opts := vips.DefaultGifsaveBufferOptions()
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportGIF(opts)
+		return image.GifsaveBuffer(opts)
 	case vips.ImageTypeAvif:
-		opts := vips.NewAvifExportParams()
+		opts := vips.DefaultHeifsaveBufferOptions()
+		opts.Compression = vips.HeifCompressionAv1
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		opts.Speed = v.AvifSpeed
-		return image.ExportAvif(opts)
+		opts.Effort = 9 - v.AvifSpeed
+		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeHeif:
-		opts := vips.NewHeifExportParams()
+		opts := vips.DefaultHeifsaveBufferOptions()
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
-		return image.ExportHeif(opts)
+		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeJp2k:
-		opts := vips.NewJp2kExportParams()
+		opts := vips.DefaultJp2ksaveBufferOptions()
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
-		return image.ExportJp2k(opts)
+		return image.Jp2ksaveBuffer(opts)
 	default:
-		opts := vips.NewJpegExportParams()
+		opts := vips.DefaultJpegsaveBufferOptions()
 		if v.MozJPEG {
-			opts.Quality = 75
-			opts.StripMetadata = true
+			opts.Q = 75
+			opts.Keep = vips.KeepNone
 			opts.OptimizeCoding = true
 			opts.Interlace = true
 			opts.OptimizeScans = true
@@ -671,12 +669,12 @@ func (v *Processor) export(
 			opts.QuantTable = 3
 		}
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportJpeg(opts)
+		return image.JpegsaveBuffer(opts)
 	}
 }
 
@@ -719,6 +717,13 @@ func findTrim(
 	if tolerance == 0 {
 		tolerance = 1
 	}
-	l, t, w, h, err = img.FindTrim(float64(tolerance), x, y)
+	background, err := img.Getpoint(x, y, nil)
+	if err != nil {
+		return
+	}
+	l, t, w, h, err = img.FindTrim(&vips.FindTrimOptions{
+		Threshold:  float64(tolerance),
+		Background: background,
+	})
 	return
 }
