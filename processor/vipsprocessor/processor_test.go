@@ -26,7 +26,7 @@ var testDataDir string
 
 func init() {
 	_, b, _, _ := runtime.Caller(0)
-	testDataDir = filepath.Join(filepath.Dir(b), "../testdata")
+	testDataDir = filepath.Join(filepath.Dir(b), "../../testdata")
 }
 
 type test struct {
