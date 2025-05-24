@@ -10,18 +10,18 @@ type ImageType int
 // ImageType enum
 const (
 	ImageTypeUnknown ImageType = iota
-	ImageTypeGIF
-	ImageTypeJPEG
+	ImageTypeGif
+	ImageTypeJpeg
 	ImageTypeMagick
-	ImageTypePDF
-	ImageTypePNG
-	ImageTypeSVG
-	ImageTypeTIFF
-	ImageTypeWEBP
-	ImageTypeHEIF
-	ImageTypeBMP
-	ImageTypeAVIF
-	ImageTypeJP2K
+	ImageTypePdf
+	ImageTypePng
+	ImageTypeSvg
+	ImageTypeTiff
+	ImageTypeWebp
+	ImageTypeHeif
+	ImageTypeBmp
+	ImageTypeAvif
+	ImageTypeJp2k
 )
 
 // IsSaveSupported indicates if image type supports save
@@ -36,7 +36,7 @@ func IsLoadSupported(imageType ImageType) bool {
 
 // IsAnimationSupported indicates if image type supports animation
 func IsAnimationSupported(imageType ImageType) bool {
-	return imageType == ImageTypeGIF || imageType == ImageTypeWEBP
+	return imageType == ImageTypeGif || imageType == ImageTypeWebp
 }
 
 // vipsDetermineImageTypeFromMetaLoader determine the image type from vips-loader metadata
@@ -44,31 +44,31 @@ func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
 	if in != nil {
 		if vipsLoader, ok := vipsImageGetMetaLoader(in); ok {
 			if strings.HasPrefix(vipsLoader, "jpeg") {
-				return ImageTypeJPEG
+				return ImageTypeJpeg
 			}
 			if strings.HasPrefix(vipsLoader, "png") {
-				return ImageTypePNG
+				return ImageTypePng
 			}
 			if strings.HasPrefix(vipsLoader, "gif") {
-				return ImageTypeGIF
+				return ImageTypeGif
 			}
 			if strings.HasPrefix(vipsLoader, "svg") {
-				return ImageTypeSVG
+				return ImageTypeSvg
 			}
 			if strings.HasPrefix(vipsLoader, "webp") {
-				return ImageTypeWEBP
+				return ImageTypeWebp
 			}
 			if strings.HasPrefix(vipsLoader, "heif") {
-				return ImageTypeHEIF
+				return ImageTypeHeif
 			}
 			if strings.HasPrefix(vipsLoader, "tiff") {
-				return ImageTypeTIFF
+				return ImageTypeTiff
 			}
 			if strings.HasPrefix(vipsLoader, "pdf") {
-				return ImageTypePDF
+				return ImageTypePdf
 			}
 			if strings.HasPrefix(vipsLoader, "jp2k") {
-				return ImageTypeJP2K
+				return ImageTypeJp2k
 			}
 			if strings.HasPrefix(vipsLoader, "magick") {
 				return ImageTypeMagick
@@ -80,33 +80,33 @@ func vipsDetermineImageTypeFromMetaLoader(in *C.VipsImage) ImageType {
 
 // ImageTypes defines the various image types supported by vips
 var ImageTypes = map[ImageType]string{
-	ImageTypeGIF:    "gif",
-	ImageTypeJPEG:   "jpeg",
+	ImageTypeGif:    "gif",
+	ImageTypeJpeg:   "jpeg",
 	ImageTypeMagick: "magick",
-	ImageTypePDF:    "pdf",
-	ImageTypePNG:    "png",
-	ImageTypeSVG:    "svg",
-	ImageTypeTIFF:   "tiff",
-	ImageTypeWEBP:   "webp",
-	ImageTypeHEIF:   "heif",
-	ImageTypeBMP:    "bmp",
-	ImageTypeAVIF:   "avif",
-	ImageTypeJP2K:   "jp2k",
+	ImageTypePdf:    "pdf",
+	ImageTypePng:    "png",
+	ImageTypeSvg:    "svg",
+	ImageTypeTiff:   "tiff",
+	ImageTypeWebp:   "webp",
+	ImageTypeHeif:   "heif",
+	ImageTypeBmp:    "bmp",
+	ImageTypeAvif:   "avif",
+	ImageTypeJp2k:   "jp2k",
 }
 
 // ImageMimeTypes map the various image types to its mime type representation
 var ImageMimeTypes = map[ImageType]string{
-	ImageTypeGIF:  "image/gif",
-	ImageTypeJPEG: "image/jpeg",
-	ImageTypePDF:  "application/pdf",
-	ImageTypePNG:  "image/png",
-	ImageTypeSVG:  "image/svg+xml",
-	ImageTypeTIFF: "image/tiff",
-	ImageTypeWEBP: "image/webp",
-	ImageTypeHEIF: "image/heif",
-	ImageTypeBMP:  "image/bmp",
-	ImageTypeAVIF: "image/avif",
-	ImageTypeJP2K: "image/jp2",
+	ImageTypeGif:  "image/gif",
+	ImageTypeJpeg: "image/jpeg",
+	ImageTypePdf:  "application/pdf",
+	ImageTypePng:  "image/png",
+	ImageTypeSvg:  "image/svg+xml",
+	ImageTypeTiff: "image/tiff",
+	ImageTypeWebp: "image/webp",
+	ImageTypeHeif: "image/heif",
+	ImageTypeBmp:  "image/bmp",
+	ImageTypeAvif: "image/avif",
+	ImageTypeJp2k: "image/jp2",
 }
 
 // Color represents an RGB
@@ -149,7 +149,7 @@ const (
 // Intent represents VIPS_INTENT type
 type Intent int
 
-//Intent enum
+// Intent enum
 const (
 	IntentPerceptual Intent = C.VIPS_INTENT_PERCEPTUAL
 	IntentRelative   Intent = C.VIPS_INTENT_RELATIVE

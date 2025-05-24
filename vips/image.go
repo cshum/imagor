@@ -281,7 +281,7 @@ func (r *Image) ColorSpace() Interpretation {
 func (r *Image) Pages() int {
 	// libvips uses the same attribute (n_pages) to represent the number of pyramid layers in JP2K
 	// as we interpret the attribute as frames and JP2K does not support animation we override this with 1
-	if r.format == ImageTypeJP2K {
+	if r.format == ImageTypeJp2k {
 		return 1
 	}
 

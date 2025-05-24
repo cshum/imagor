@@ -2,7 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/vipsgen/vips"
 	"math"
 	"strconv"
 	"strings"
@@ -14,19 +14,34 @@ import (
 )
 
 var imageTypeMap = map[string]vips.ImageType{
-	"gif":    vips.ImageTypeGIF,
-	"jpeg":   vips.ImageTypeJPEG,
-	"jpg":    vips.ImageTypeJPEG,
+	"gif":    vips.ImageTypeGif,
+	"jpeg":   vips.ImageTypeJpeg,
+	"jpg":    vips.ImageTypeJpeg,
 	"magick": vips.ImageTypeMagick,
-	"pdf":    vips.ImageTypePDF,
-	"png":    vips.ImageTypePNG,
-	"svg":    vips.ImageTypeSVG,
-	"tiff":   vips.ImageTypeTIFF,
-	"webp":   vips.ImageTypeWEBP,
-	"heif":   vips.ImageTypeHEIF,
-	"bmp":    vips.ImageTypeBMP,
-	"avif":   vips.ImageTypeAVIF,
-	"jp2":    vips.ImageTypeJP2K,
+	"pdf":    vips.ImageTypePdf,
+	"png":    vips.ImageTypePng,
+	"svg":    vips.ImageTypeSvg,
+	"tiff":   vips.ImageTypeTiff,
+	"webp":   vips.ImageTypeWebp,
+	"heif":   vips.ImageTypeHeif,
+	"bmp":    vips.ImageTypeBmp,
+	"avif":   vips.ImageTypeAvif,
+	"jp2":    vips.ImageTypeJp2k,
+}
+
+// Color represents an RGB
+type Color struct {
+	R, G, B float64
+}
+
+// ColorRGBA represents an RGB with alpha channel (A)
+type ColorRGBA struct {
+	R, G, B, A float64
+}
+
+// IsAnimationSupported indicates if image type supports animation
+func IsAnimationSupported(imageType vips.ImageType) bool {
+	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp
 }
 
 // Process implements imagor.Processor interface
@@ -72,7 +87,7 @@ func (v *Processor) Process(
 		case "format":
 			if imageType, ok := imageTypeMap[p.Args]; ok {
 				format = supportedSaveFormat(imageType)
-				if !vips.IsAnimationSupported(format) {
+				if !IsAnimationSupported(format) {
 					// no frames if export format not support animation
 					maxN = 1
 				}
@@ -229,7 +244,7 @@ func (v *Processor) Process(
 
 	if orient > 0 {
 		// orient rotate before resize
-		if err = img.Rotate(getAngle(orient)); err != nil {
+		if err = img.Rot(getAngle(orient)); err != nil {
 			return nil, err
 		}
 	}
@@ -244,7 +259,7 @@ func (v *Processor) Process(
 	if format == vips.ImageTypeUnknown {
 		if blob.BlobType() == imagor.BlobTypeAVIF {
 			// meta loader determined as heif
-			format = vips.ImageTypeAVIF
+			format = vips.ImageTypeAvif
 		} else {
 			format = img.Format()
 		}
@@ -264,7 +279,7 @@ func (v *Processor) Process(
 			quality, _ = strconv.Atoi(p.Args)
 			break
 		case "autojpg":
-			format = vips.ImageTypeJPEG
+			format = vips.ImageTypeJpeg
 			break
 		case "focal":
 			args := strings.FieldsFunc(p.Args, argSplit)
@@ -321,7 +336,7 @@ func (v *Processor) Process(
 		if err != nil {
 			return nil, WrapErr(err)
 		}
-		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePNG {
+		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePng {
 			ln := len(buf)
 			if v.Debug {
 				v.Logger.Debug("max_bytes",
@@ -432,14 +447,14 @@ func (v *Processor) process(
 	if !thumbnail {
 		if p.FitIn {
 			if upscale || w < img.Width() || h < img.PageHeight() {
-				if err := img.Thumbnail(w, h, vips.InterestingNone); err != nil {
+				if err := img.ThumbnailImage(w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}); err != nil {
 					return err
 				}
 			}
 		} else if stretch {
 			if upscale || (w < img.Width() && h < img.PageHeight()) {
-				if err := img.ThumbnailWithSize(
-					w, h, vips.InterestingNone, vips.SizeForce,
+				if err := img.ThumbnailImage(
+					w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone, Size: vips.SizeForce},
 				); err != nil {
 					return err
 				}
@@ -543,10 +558,10 @@ type Metadata struct {
 
 func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
 	pages := 1
-	if vips.IsAnimationSupported(format) {
+	if IsAnimationSupported(format) {
 		pages = img.Height() / img.PageHeight()
 	}
-	if format == vips.ImageTypePDF {
+	if format == vips.ImageTypePdf {
 		pages = img.Pages()
 	}
 	exif := map[string]any{}
@@ -554,7 +569,7 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 		exif = img.Exif()
 	}
 	return &Metadata{
-		Format:      vips.ImageTypes[format],
+		Format:      string(format),
 		ContentType: vips.ImageMimeTypes[format],
 		Width:       img.Width(),
 		Height:      img.PageHeight(),
@@ -567,22 +582,17 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 
 func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 	switch format {
-	case vips.ImageTypePNG, vips.ImageTypeWEBP, vips.ImageTypeTIFF, vips.ImageTypeGIF, vips.ImageTypeAVIF, vips.ImageTypeHEIF, vips.ImageTypeJP2K:
-		if vips.IsSaveSupported(format) {
-			return format
-		}
-		if format == vips.ImageTypeAVIF && vips.IsSaveSupported(vips.ImageTypeHEIF) {
-			return vips.ImageTypeAVIF
-		}
+	case vips.ImageTypePng, vips.ImageTypeWebp, vips.ImageTypeTiff, vips.ImageTypeGif, vips.ImageTypeAvif, vips.ImageTypeHeif, vips.ImageTypeJp2k:
+		return format
 	}
-	return vips.ImageTypeJPEG
+	return vips.ImageTypeJpeg
 }
 
 func (v *Processor) export(
 	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
 	switch format {
-	case vips.ImageTypePNG:
+	case vips.ImageTypePng:
 		opts := vips.NewPngExportParams()
 		if quality > 0 {
 			opts.Quality = quality
@@ -600,7 +610,7 @@ func (v *Processor) export(
 			opts.StripMetadata = true
 		}
 		return image.ExportPng(opts)
-	case vips.ImageTypeWEBP:
+	case vips.ImageTypeWebp:
 		opts := vips.NewWebpExportParams()
 		if quality > 0 {
 			opts.Quality = quality
@@ -609,7 +619,7 @@ func (v *Processor) export(
 			opts.StripMetadata = true
 		}
 		return image.ExportWebp(opts)
-	case vips.ImageTypeTIFF:
+	case vips.ImageTypeTiff:
 		opts := vips.NewTiffExportParams()
 		if quality > 0 {
 			opts.Quality = quality
@@ -618,7 +628,7 @@ func (v *Processor) export(
 			opts.StripMetadata = true
 		}
 		return image.ExportTiff(opts)
-	case vips.ImageTypeGIF:
+	case vips.ImageTypeGif:
 		opts := vips.NewGifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
@@ -627,7 +637,7 @@ func (v *Processor) export(
 			opts.StripMetadata = true
 		}
 		return image.ExportGIF(opts)
-	case vips.ImageTypeAVIF:
+	case vips.ImageTypeAvif:
 		opts := vips.NewAvifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
@@ -637,13 +647,13 @@ func (v *Processor) export(
 		}
 		opts.Speed = v.AvifSpeed
 		return image.ExportAvif(opts)
-	case vips.ImageTypeHEIF:
+	case vips.ImageTypeHeif:
 		opts := vips.NewHeifExportParams()
 		if quality > 0 {
 			opts.Quality = quality
 		}
 		return image.ExportHeif(opts)
-	case vips.ImageTypeJP2K:
+	case vips.ImageTypeJp2k:
 		opts := vips.NewJp2kExportParams()
 		if quality > 0 {
 			opts.Quality = quality

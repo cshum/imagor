@@ -2,7 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/vipsgen/vips"
 	"math"
 	"runtime"
 	"strings"

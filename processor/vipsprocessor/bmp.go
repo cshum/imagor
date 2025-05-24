@@ -1,7 +1,7 @@
 package vipsprocessor
 
 import (
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/vipsgen/vips"
 	"golang.org/x/image/bmp"
 	"image"
 	"image/draw"
@@ -20,5 +20,5 @@ func loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 		rgba = image.NewRGBA(rect)
 		draw.Draw(rgba, rect, img, rect.Min, draw.Src)
 	}
-	return vips.LoadImageFromMemory(rgba.Pix, size.X, size.Y, 4)
+	return vips.NewImageFromMemory(rgba.Pix, size.X, size.Y, 4)
 }

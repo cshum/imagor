@@ -3,7 +3,7 @@ package vipsprocessor
 import (
 	"context"
 	"fmt"
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/vipsgen/vips"
 	"io"
 	"net/http"
 	"net/http/httptest"
