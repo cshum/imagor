@@ -643,7 +643,7 @@ func trim(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 		pos = args[1]
 	}
 	if l, t, w, h, err := findTrim(ctx, img, pos, tolerance); err == nil {
-		return img.ExtractArea(l, t, w, h)
+		return img.ExtractAreaMultiPage(l, t, w, h)
 	}
 	return nil
 }

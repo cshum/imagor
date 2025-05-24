@@ -420,7 +420,7 @@ func (v *Processor) process(
 		}
 	}
 	if cropRight > cropLeft && cropBottom > cropTop {
-		if err := img.ExtractArea(
+		if err := img.ExtractAreaMultiPage(
 			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
 		); err != nil {
 			return err

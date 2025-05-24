@@ -311,7 +311,6 @@ func (v *Processor) Thumbnail(
 
 // FocalThumbnail handles thumbnail with custom focal point
 func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, fx, fy float64) (err error) {
-
 	var imageWidth, imageHeight float64
 	// exif orientation greater 5-8 are 90 or 270 degrees, w and h swapped
 	if img.Orientation() > 4 {
@@ -340,7 +339,7 @@ func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, fx, fy float64) (e
 	top = float64(img.PageHeight())*fy - float64(h)/2
 	left = math.Max(0, math.Min(left, float64(img.Width()-w)))
 	top = math.Max(0, math.Min(top, float64(img.PageHeight()-h)))
-	return img.ExtractArea(int(left), int(top), w, h)
+	return img.ExtractAreaMultiPage(int(left), int(top), w, h)
 }
 
 func (v *Processor) animatedThumbnailWithCrop(
@@ -370,7 +369,7 @@ func (v *Processor) animatedThumbnailWithCrop(
 		left = (img.Width() - w) / 2
 		top = (img.PageHeight() - h) / 2
 	}
-	return img.ExtractArea(left, top, w, h)
+	return img.ExtractAreaMultiPage(left, top, w, h)
 }
 
 // CheckResolution check image resolution for image bomb prevention
