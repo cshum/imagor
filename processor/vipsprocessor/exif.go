@@ -42,6 +42,9 @@ func ExtractExif(rawExif map[string]string) map[string]any {
 		}
 		name := tag[10:]
 		value = strings.TrimSpace(exifStringShort(value))
+		if value == "" {
+			continue
+		}
 		if exifTags[tag] {
 			exif[name], _ = strconv.Atoi(value)
 		} else {
