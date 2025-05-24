@@ -539,7 +539,7 @@ func hue(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) 
 		return
 	}
 	h, _ := strconv.ParseFloat(args[0], 64)
-	return Modulate(img, 1, 1, h)
+	return img.Modulate(1, 1, h)
 }
 
 func saturation(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
@@ -548,7 +548,7 @@ func saturation(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...s
 	}
 	s, _ := strconv.ParseFloat(args[0], 64)
 	s = 1 + s/100
-	return Modulate(img, 1, s, 0)
+	return img.Modulate(1, s, 0)
 }
 
 func rgb(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
@@ -573,7 +573,7 @@ func modulate(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...str
 	h, _ := strconv.ParseFloat(args[2], 64)
 	b = 1 + b/100
 	s = 1 + s/100
-	return Modulate(img, b, s, h)
+	return img.Modulate(b, s, h)
 }
 
 func blur(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
