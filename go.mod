@@ -1,8 +1,6 @@
 module github.com/cshum/imagor
 
-go 1.24
-
-toolchain go1.24.2
+go 1.24.2
 
 require (
 	cloud.google.com/go/storage v1.52.0
@@ -35,6 +33,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
+	github.com/cshum/vipsgen v0.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
