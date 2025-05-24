@@ -37,6 +37,9 @@ func exifStringShort(s string) string {
 func ExtractExif(rawExif map[string]string) map[string]any {
 	var exif = map[string]any{}
 	for tag, value := range rawExif {
+		if len(tag) < 10 {
+			continue
+		}
 		name := tag[10:]
 		value = strings.TrimSpace(exifStringShort(value))
 		if exifTags[tag] {
