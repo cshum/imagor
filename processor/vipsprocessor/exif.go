@@ -34,7 +34,7 @@ func exifStringShort(s string) string {
 	return s
 }
 
-func ExtractExif(rawExif map[string]string) map[string]any {
+func extractExif(rawExif map[string]string) map[string]any {
 	var exif = map[string]any{}
 	for tag, value := range rawExif {
 		if len(tag) < 10 {

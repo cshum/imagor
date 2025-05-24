@@ -566,7 +566,7 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	}
 	exif := map[string]any{}
 	if !stripExif {
-		exif = ExtractExif(img.Exif())
+		exif = extractExif(img.Exif())
 	}
 	return &Metadata{
 		Format:      string(format),
