@@ -217,9 +217,7 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 		isTransparent := colour == "none" || colour == "transparent"
 		if img.HasAlpha() && !isTransparent {
 			c := getColor(img, colour)
-			if err = img.Flatten(&vips.FlattenOptions{Background: []float64{
-				c.R, c.G, c.B,
-			}}); err != nil {
+			if err = img.Flatten(&vips.FlattenOptions{Background: c}); err != nil {
 				return
 			}
 		}
@@ -248,7 +246,7 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 		} else {
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{
 				Extend:     vips.ExtendBackground,
-				Background: []float64{c.R, c.G, c.B},
+				Background: c,
 			}); err != nil {
 				return
 			}
@@ -283,7 +281,7 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 
 func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	var rx, ry int
-	var c *Color
+	var c []float64
 	if len(args) == 0 {
 		return
 	}
@@ -323,9 +321,7 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		return
 	}
 	if c != nil {
-		if err = img.Flatten(&vips.FlattenOptions{
-			Background: []float64{c.R, c.G, c.B},
-		}); err != nil {
+		if err = img.Flatten(&vips.FlattenOptions{Background: c}); err != nil {
 			return
 		}
 	}
@@ -343,7 +339,7 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 	var text = args[0]
 	var font = "tahoma"
 	var x, y int
-	var c = &Color{}
+	var c []float64
 	var alpha float64
 	var align = vips.AlignLow
 	var size = 20
@@ -421,7 +417,7 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		Size:    size,
 		Align:   align,
 		Opacity: 1 - alpha,
-		Color:   []float64{c.R, c.G, c.B},
+		Color:   c,
 	})
 }
 
@@ -457,7 +453,7 @@ func backgroundColor(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args
 	}
 	c := getColor(img, args[0])
 	return img.Flatten(&vips.FlattenOptions{
-		Background: []float64{c.R, c.G, c.B},
+		Background: c,
 	})
 }
 
@@ -662,16 +658,22 @@ func linearRGB(img *vips.Image, a, b []float64) error {
 	return img.Linear(a, b, nil)
 }
 
-func isBlack(c *Color) bool {
-	return c.R == 0x00 && c.G == 0x00 && c.B == 0x00
+func isBlack(c []float64) bool {
+	if len(c) < 3 {
+		return false
+	}
+	return c[0] == 0x00 && c[1] == 0x00 && c[2] == 0x00
 }
 
-func isWhite(c *Color) bool {
-	return c.R == 0xff && c.G == 0xff && c.B == 0xff
+func isWhite(c []float64) bool {
+	if len(c) < 3 {
+		return false
+	}
+	return c[0] == 0xff && c[1] == 0xff && c[2] == 0xff
 }
 
-func getColor(img *vips.Image, color string) *Color {
-	vc := &Color{}
+func getColor(img *vips.Image, color string) []float64 {
+	var vc = make([]float64, 3)
 	args := strings.Split(strings.ToLower(color), ",")
 	mode := ""
 	name := strings.TrimPrefix(args[0], "#")
@@ -688,19 +690,19 @@ func getColor(img *vips.Image, color string) *Color {
 			}
 			p, _ := img.Getpoint(x, y, nil)
 			if len(p) >= 3 {
-				vc.R = p[0]
-				vc.G = p[1]
-				vc.B = p[2]
+				vc[0] = p[0]
+				vc[1] = p[1]
+				vc[2] = p[2]
 			}
 		}
 	} else if c, ok := colornames.Map[name]; ok {
-		vc.R = float64(c.R)
-		vc.G = float64(c.G)
-		vc.B = float64(c.B)
+		vc[0] = float64(c.R)
+		vc[1] = float64(c.G)
+		vc[2] = float64(c.B)
 	} else if c, ok := parseHexColor(name); ok {
-		vc.R = float64(c.R)
-		vc.G = float64(c.G)
-		vc.B = float64(c.B)
+		vc[0] = float64(c.R)
+		vc[1] = float64(c.G)
+		vc[2] = float64(c.B)
 	}
 	return vc
 }

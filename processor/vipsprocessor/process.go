@@ -28,16 +28,6 @@ var imageTypeMap = map[string]vips.ImageType{
 	"jp2":  vips.ImageTypeJp2k,
 }
 
-// Color represents an RGB
-type Color struct {
-	R, G, B float64
-}
-
-// ColorRGBA represents an RGB with alpha channel (A)
-type ColorRGBA struct {
-	R, G, B, A float64
-}
-
 // IsAnimationSupported indicates if image type supports animation
 func IsAnimationSupported(imageType vips.ImageType) bool {
 	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp
