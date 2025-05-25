@@ -422,12 +422,16 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			assert.Equal(t, 200, w.Code)
 			b := imagor.NewBlobFromBytes(w.Body.Bytes())
 			var path string
+			path = tt.path
+			if strings.HasPrefix(path, "meta/") {
+				path += ".json"
+			}
 			if tt.arm64Golden && runtime.GOARCH == "arm64" {
-				_ = resStorageArm64.Put(context.Background(), tt.path, b)
-				path = filepath.Join(resultDirArm64, imagorpath.Normalize(tt.path, nil))
+				_ = resStorageArm64.Put(context.Background(), path, b)
+				path = filepath.Join(resultDirArm64, imagorpath.Normalize(path, nil))
 			} else {
-				_ = resStorage.Put(context.Background(), tt.path, b)
-				path = filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
+				_ = resStorage.Put(context.Background(), path, b)
+				path = filepath.Join(resultDir, imagorpath.Normalize(path, nil))
 			}
 			bc := imagor.NewBlobFromFile(path)
 			buf, err := bc.ReadAll()
