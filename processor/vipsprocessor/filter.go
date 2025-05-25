@@ -67,8 +67,10 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 			return
 		}
 	}
-	if err = overlay.Addalpha(); err != nil {
-		return
+	if !overlay.HasAlpha() {
+		if err = overlay.Addalpha(); err != nil {
+			return
+		}
 	}
 	w = overlay.Width()
 	h = overlay.PageHeight()
@@ -227,8 +229,10 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 					return
 				}
 			}
-			if err = img.Addalpha(); err != nil {
-				return
+			if !img.HasAlpha() {
+				if err = img.Addalpha(); err != nil {
+					return
+				}
 			}
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
 				return
@@ -407,8 +411,10 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			return
 		}
 	}
-	if err = img.Addalpha(); err != nil {
-		return
+	if img.HasAlpha() {
+		if err = img.Addalpha(); err != nil {
+			return
+		}
 	}
 	return img.Label(text, x, y, &vips.LabelOptions{
 		Font:    font,
