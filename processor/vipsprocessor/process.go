@@ -14,19 +14,18 @@ import (
 )
 
 var imageTypeMap = map[string]vips.ImageType{
-	"gif":    vips.ImageTypeGif,
-	"jpeg":   vips.ImageTypeJpeg,
-	"jpg":    vips.ImageTypeJpeg,
-	"magick": vips.ImageTypeMagick,
-	"pdf":    vips.ImageTypePdf,
-	"png":    vips.ImageTypePng,
-	"svg":    vips.ImageTypeSvg,
-	"tiff":   vips.ImageTypeTiff,
-	"webp":   vips.ImageTypeWebp,
-	"heif":   vips.ImageTypeHeif,
-	"bmp":    vips.ImageTypeBmp,
-	"avif":   vips.ImageTypeAvif,
-	"jp2":    vips.ImageTypeJp2k,
+	"gif":  vips.ImageTypeGif,
+	"jpeg": vips.ImageTypeJpeg,
+	"jpg":  vips.ImageTypeJpeg,
+	"pdf":  vips.ImageTypePdf,
+	"png":  vips.ImageTypePng,
+	"svg":  vips.ImageTypeSvg,
+	"tiff": vips.ImageTypeTiff,
+	"webp": vips.ImageTypeWebp,
+	"heif": vips.ImageTypeHeif,
+	"bmp":  vips.ImageTypeBmp,
+	"avif": vips.ImageTypeAvif,
+	"jp2":  vips.ImageTypeJp2k,
 }
 
 // Color represents an RGB
@@ -364,7 +363,7 @@ func (v *Processor) Process(
 			}
 		}
 		blob := imagor.NewBlobFromBytes(buf)
-		if typ, ok := vips.ImageMimeTypes[format]; ok {
+		if typ, ok := format.MimeType(); ok {
 			blob.SetContentType(typ)
 		}
 		return blob, nil
@@ -568,9 +567,10 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	if !stripExif {
 		exif = extractExif(img.Exif())
 	}
+	mimeType, _ := format.MimeType()
 	return &Metadata{
 		Format:      string(format),
-		ContentType: vips.ImageMimeTypes[format],
+		ContentType: mimeType,
 		Width:       img.Width(),
 		Height:      img.PageHeight(),
 		Pages:       pages,
