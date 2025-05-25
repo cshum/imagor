@@ -593,52 +593,42 @@ func (v *Processor) export(
 ) ([]byte, error) {
 	switch format {
 	case vips.ImageTypePng:
-		opts := vips.DefaultPngsaveBufferOptions()
-		if quality > 0 {
-			opts.Q = quality
-		}
-		if palette {
-			opts.Palette = palette
-		}
-		if bitdepth > 0 {
-			opts.Bitdepth = bitdepth
-		}
-		if compression > 0 {
-			opts.Compression = compression
+		opts := &vips.PngsaveBufferOptions{
+			Q:           quality,
+			Palette:     palette,
+			Bitdepth:    bitdepth,
+			Compression: compression,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
 		}
 		return image.PngsaveBuffer(opts)
 	case vips.ImageTypeWebp:
-		opts := vips.DefaultWebpsaveBufferOptions()
-		if quality > 0 {
-			opts.Q = quality
+		opts := &vips.WebpsaveBufferOptions{
+			Q: quality,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
 		}
 		return image.WebpsaveBuffer(opts)
 	case vips.ImageTypeTiff:
-		opts := vips.DefaultTiffsaveBufferOptions()
-		if quality > 0 {
-			opts.Q = quality
+		opts := &vips.TiffsaveBufferOptions{
+			Q: quality,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
 		}
 		return image.TiffsaveBuffer(opts)
 	case vips.ImageTypeGif:
-		opts := vips.DefaultGifsaveBufferOptions()
+		opts := &vips.GifsaveBufferOptions{}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
 		}
 		return image.GifsaveBuffer(opts)
 	case vips.ImageTypeAvif:
-		opts := vips.DefaultHeifsaveBufferOptions()
-		opts.Compression = vips.HeifCompressionAv1
-		if quality > 0 {
-			opts.Q = quality
+		opts := &vips.HeifsaveBufferOptions{
+			Q:           quality,
+			Compression: vips.HeifCompressionAv1,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
@@ -646,19 +636,23 @@ func (v *Processor) export(
 		opts.Effort = 9 - v.AvifSpeed
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeHeif:
-		opts := vips.DefaultHeifsaveBufferOptions()
-		if quality > 0 {
-			opts.Q = quality
+		opts := &vips.HeifsaveBufferOptions{
+			Q: quality,
+		}
+		if stripMetadata {
+			opts.Keep = vips.KeepNone
 		}
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeJp2k:
-		opts := vips.DefaultJp2ksaveBufferOptions()
-		if quality > 0 {
-			opts.Q = quality
+		opts := &vips.Jp2ksaveBufferOptions{
+			Q: quality,
+		}
+		if stripMetadata {
+			opts.Keep = vips.KeepNone
 		}
 		return image.Jp2ksaveBuffer(opts)
 	default:
-		opts := vips.DefaultJpegsaveBufferOptions()
+		opts := &vips.JpegsaveBufferOptions{}
 		if v.MozJPEG {
 			opts.Q = 75
 			opts.Keep = vips.KeepNone
