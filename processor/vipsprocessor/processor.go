@@ -209,7 +209,7 @@ func (v *Processor) NewThumbnail(
 	var err error
 	var img *vips.Image
 	if isMultiPage(blob, n, page) {
-		applyMultiPageParams(options, n, page)
+		applyMultiPageOptions(options, n, page)
 		if crop == vips.InterestingNone || size == vips.SizeForce {
 			if img, err = newImageFromBlob(ctx, blob, options); err != nil {
 				return nil, WrapErr(err)
@@ -277,7 +277,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 	}
 	params.FailOnError = false
 	if isMultiPage(blob, n, page) {
-		applyMultiPageParams(params, n, page)
+		applyMultiPageOptions(params, n, page)
 		img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
 		if err != nil {
 			return nil, WrapErr(err)
@@ -388,7 +388,7 @@ func isMultiPage(blob *imagor.Blob, n, page int) bool {
 	return blob != nil && (blob.SupportsAnimation() || blob.BlobType() == imagor.BlobTypePDF) && ((n != 1 && n != 0) || (page != 1 && page != 0))
 }
 
-func applyMultiPageParams(params *vips.LoadOptions, n, page int) {
+func applyMultiPageOptions(params *vips.LoadOptions, n, page int) {
 	if page < -1 {
 		params.Page = -page - 1
 	} else if n < -1 {
