@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/vipsgen/vips"
 	"net/http"
-	"os"
 )
 
 func main() {
@@ -19,26 +18,19 @@ func main() {
 	source := vips.NewSource(resp.Body)
 	defer source.Close() // source needs to remain available during the lifetime of image
 
-	params := vips.NewImportParams()
-	params.NumPages.Set(-1)                // enable animation
-	image, err := source.LoadImage(params) // load image from source
+	image, err := vips.NewImageFromSource(source, &vips.LoadOptions{N: -1})
 	if err != nil {
 		panic(err)
 	}
 	defer image.Close()
-	if err = image.ExtractArea(30, 40, 50, 70); err != nil {
+	if err = image.ExtractAreaMultiPage(30, 40, 50, 70); err != nil {
 		panic(err)
 	}
-	if err = image.Flatten(&vips.Color{
-		R: 0, G: 255, B: 255,
-	}); err != nil {
+	if err = image.Flatten(&vips.FlattenOptions{Background: []float64{0, 255, 255}}); err != nil {
 		panic(err)
 	}
-	buf, err := image.ExportGIF(nil)
+	err = image.Gifsave("dancing-banana.gif", nil)
 	if err != nil {
-		panic(err)
-	}
-	if err = os.WriteFile("dancing-banana.gif", buf, 0666); err != nil {
 		panic(err)
 	}
 }

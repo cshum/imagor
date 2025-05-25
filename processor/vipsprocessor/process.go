@@ -1,7 +1,8 @@
-package vips
+package vipsprocessor
 
 import (
 	"context"
+	"github.com/cshum/vipsgen/vips"
 	"math"
 	"strconv"
 	"strings"
@@ -12,20 +13,24 @@ import (
 	"go.uber.org/zap"
 )
 
-var imageTypeMap = map[string]ImageType{
-	"gif":    ImageTypeGIF,
-	"jpeg":   ImageTypeJPEG,
-	"jpg":    ImageTypeJPEG,
-	"magick": ImageTypeMagick,
-	"pdf":    ImageTypePDF,
-	"png":    ImageTypePNG,
-	"svg":    ImageTypeSVG,
-	"tiff":   ImageTypeTIFF,
-	"webp":   ImageTypeWEBP,
-	"heif":   ImageTypeHEIF,
-	"bmp":    ImageTypeBMP,
-	"avif":   ImageTypeAVIF,
-	"jp2":    ImageTypeJP2K,
+var imageTypeMap = map[string]vips.ImageType{
+	"gif":  vips.ImageTypeGif,
+	"jpeg": vips.ImageTypeJpeg,
+	"jpg":  vips.ImageTypeJpeg,
+	"pdf":  vips.ImageTypePdf,
+	"png":  vips.ImageTypePng,
+	"svg":  vips.ImageTypeSvg,
+	"tiff": vips.ImageTypeTiff,
+	"webp": vips.ImageTypeWebp,
+	"heif": vips.ImageTypeHeif,
+	"bmp":  vips.ImageTypeBmp,
+	"avif": vips.ImageTypeAvif,
+	"jp2":  vips.ImageTypeJp2k,
+}
+
+// IsAnimationSupported indicates if image type supports animation
+func IsAnimationSupported(imageType vips.ImageType) bool {
+	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp
 }
 
 // Process implements imagor.Processor interface
@@ -42,8 +47,8 @@ func (v *Processor) Process(
 		stripExif             bool
 		stripMetadata         = v.StripMetadata
 		orient                int
-		img                   *Image
-		format                = ImageTypeUnknown
+		img                   *vips.Image
+		format                = vips.ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
 		maxBytes              int
 		page                  = 1
@@ -142,12 +147,12 @@ func (v *Processor) Process(
 				if h == 0 {
 					h = v.MaxHeight
 				}
-				size := SizeDown
+				size := vips.SizeDown
 				if upscale {
-					size = SizeBoth
+					size = vips.SizeBoth
 				}
 				if img, err = v.NewThumbnail(
-					ctx, blob, w, h, InterestingNone, size, maxN, page, dpi,
+					ctx, blob, w, h, vips.InterestingNone, size, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -157,7 +162,7 @@ func (v *Processor) Process(
 			if p.Width > 0 && p.Height > 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, p.Height,
-					InterestingNone, SizeForce, maxN, page, dpi,
+					vips.InterestingNone, vips.SizeForce, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -165,27 +170,27 @@ func (v *Processor) Process(
 			}
 		} else {
 			if p.Width > 0 && p.Height > 0 {
-				interest := InterestingNone
+				interest := vips.InterestingNone
 				if p.Smart {
-					interest = InterestingAttention
+					interest = vips.InterestingAttention
 					thumbnail = true
 				} else if (p.VAlign == imagorpath.VAlignTop && p.HAlign == "") ||
 					(p.HAlign == imagorpath.HAlignLeft && p.VAlign == "") {
-					interest = InterestingLow
+					interest = vips.InterestingLow
 					thumbnail = true
 				} else if (p.VAlign == imagorpath.VAlignBottom && p.HAlign == "") ||
 					(p.HAlign == imagorpath.HAlignRight && p.VAlign == "") {
-					interest = InterestingHigh
+					interest = vips.InterestingHigh
 					thumbnail = true
 				} else if (p.VAlign == "" || p.VAlign == "middle") &&
 					(p.HAlign == "" || p.HAlign == "center") {
-					interest = InterestingCentre
+					interest = vips.InterestingCentre
 					thumbnail = true
 				}
 				if thumbnail {
 					if img, err = v.NewThumbnail(
 						ctx, blob, p.Width, p.Height,
-						interest, SizeBoth, maxN, page, dpi,
+						interest, vips.SizeBoth, maxN, page, dpi,
 					); err != nil {
 						return nil, err
 					}
@@ -193,7 +198,7 @@ func (v *Processor) Process(
 			} else if p.Width > 0 && p.Height == 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, v.MaxHeight,
-					InterestingNone, SizeBoth, maxN, page, dpi,
+					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -201,7 +206,7 @@ func (v *Processor) Process(
 			} else if p.Height > 0 && p.Width == 0 {
 				if img, err = v.NewThumbnail(
 					ctx, blob, v.MaxWidth, p.Height,
-					InterestingNone, SizeBoth, maxN, page, dpi,
+					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -217,7 +222,7 @@ func (v *Processor) Process(
 		} else {
 			if img, err = v.NewThumbnail(
 				ctx, blob, v.MaxWidth, v.MaxHeight,
-				InterestingNone, SizeDown, maxN, page, dpi,
+				vips.InterestingNone, vips.SizeDown, maxN, page, dpi,
 			); err != nil {
 				return nil, err
 			}
@@ -228,7 +233,7 @@ func (v *Processor) Process(
 
 	if orient > 0 {
 		// orient rotate before resize
-		if err = img.Rotate(getAngle(orient)); err != nil {
+		if err = img.RotMultiPage(getAngle(orient)); err != nil {
 			return nil, err
 		}
 	}
@@ -240,10 +245,10 @@ func (v *Processor) Process(
 		origWidth   = float64(img.Width())
 		origHeight  = float64(img.PageHeight())
 	)
-	if format == ImageTypeUnknown {
+	if format == vips.ImageTypeUnknown {
 		if blob.BlobType() == imagor.BlobTypeAVIF {
 			// meta loader determined as heif
-			format = ImageTypeAVIF
+			format = vips.ImageTypeAvif
 		} else {
 			format = img.Format()
 		}
@@ -263,7 +268,7 @@ func (v *Processor) Process(
 			quality, _ = strconv.Atoi(p.Args)
 			break
 		case "autojpg":
-			format = ImageTypeJPEG
+			format = vips.ImageTypeJpeg
 			break
 		case "focal":
 			args := strings.FieldsFunc(p.Args, argSplit)
@@ -320,7 +325,7 @@ func (v *Processor) Process(
 		if err != nil {
 			return nil, WrapErr(err)
 		}
-		if maxBytes > 0 && (quality > 10 || quality == 0) && format != ImageTypePNG {
+		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePng {
 			ln := len(buf)
 			if v.Debug {
 				v.Logger.Debug("max_bytes",
@@ -348,7 +353,7 @@ func (v *Processor) Process(
 			}
 		}
 		blob := imagor.NewBlobFromBytes(buf)
-		if typ, ok := ImageMimeTypes[format]; ok {
+		if typ, ok := format.MimeType(); ok {
 			blob.SetContentType(typ)
 		}
 		return blob, nil
@@ -356,7 +361,7 @@ func (v *Processor) Process(
 }
 
 func (v *Processor) process(
-	ctx context.Context, img *Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
+	ctx context.Context, img *vips.Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
 		origWidth  = float64(img.Width())
@@ -404,7 +409,7 @@ func (v *Processor) process(
 		}
 	}
 	if cropRight > cropLeft && cropBottom > cropTop {
-		if err := img.ExtractArea(
+		if err := img.ExtractAreaMultiPage(
 			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
 		); err != nil {
 			return err
@@ -431,33 +436,33 @@ func (v *Processor) process(
 	if !thumbnail {
 		if p.FitIn {
 			if upscale || w < img.Width() || h < img.PageHeight() {
-				if err := img.Thumbnail(w, h, InterestingNone); err != nil {
+				if err := img.ThumbnailImage(w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}); err != nil {
 					return err
 				}
 			}
 		} else if stretch {
 			if upscale || (w < img.Width() && h < img.PageHeight()) {
-				if err := img.ThumbnailWithSize(
-					w, h, InterestingNone, SizeForce,
+				if err := img.ThumbnailImage(
+					w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone, Size: vips.SizeForce},
 				); err != nil {
 					return err
 				}
 			}
 		} else if upscale || w < img.Width() || h < img.PageHeight() {
-			interest := InterestingCentre
+			interest := vips.InterestingCentre
 			if p.Smart {
-				interest = InterestingAttention
+				interest = vips.InterestingAttention
 			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
 				if p.VAlign == imagorpath.VAlignTop {
-					interest = InterestingLow
+					interest = vips.InterestingLow
 				} else if p.VAlign == imagorpath.VAlignBottom {
-					interest = InterestingHigh
+					interest = vips.InterestingHigh
 				}
 			} else {
 				if p.HAlign == imagorpath.HAlignLeft {
-					interest = InterestingLow
+					interest = vips.InterestingLow
 				} else if p.HAlign == imagorpath.HAlignRight {
-					interest = InterestingHigh
+					interest = vips.InterestingHigh
 				}
 			}
 			if len(focalRects) > 0 {
@@ -470,7 +475,7 @@ func (v *Processor) process(
 					return err
 				}
 			} else {
-				if err := v.Thumbnail(img, w, h, interest, SizeBoth); err != nil {
+				if err := v.Thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
 					return err
 				}
 			}
@@ -480,12 +485,12 @@ func (v *Processor) process(
 		}
 	}
 	if p.HFlip {
-		if err := img.Flip(DirectionHorizontal); err != nil {
+		if err := img.Flip(vips.DirectionHorizontal); err != nil {
 			return err
 		}
 	}
 	if p.VFlip {
-		if err := img.Flip(DirectionVertical); err != nil {
+		if err := img.Flip(vips.DirectionVertical); err != nil {
 			return err
 		}
 	}
@@ -540,21 +545,22 @@ type Metadata struct {
 	Exif        map[string]any `json:"exif"`
 }
 
-func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
+func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
 	pages := 1
 	if IsAnimationSupported(format) {
 		pages = img.Height() / img.PageHeight()
 	}
-	if format == ImageTypePDF {
+	if format == vips.ImageTypePdf {
 		pages = img.Pages()
 	}
 	exif := map[string]any{}
 	if !stripExif {
-		exif = img.Exif()
+		exif = extractExif(img.Exif())
 	}
+	mimeType, _ := format.MimeType()
 	return &Metadata{
-		Format:      ImageTypes[format],
-		ContentType: ImageMimeTypes[format],
+		Format:      string(format),
+		ContentType: mimeType,
 		Width:       img.Width(),
 		Height:      img.PageHeight(),
 		Pages:       pages,
@@ -564,95 +570,82 @@ func metadata(img *Image, format ImageType, stripExif bool) *Metadata {
 	}
 }
 
-func supportedSaveFormat(format ImageType) ImageType {
+func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 	switch format {
-	case ImageTypePNG, ImageTypeWEBP, ImageTypeTIFF, ImageTypeGIF, ImageTypeAVIF, ImageTypeHEIF, ImageTypeJP2K:
-		if IsSaveSupported(format) {
-			return format
-		}
-		if format == ImageTypeAVIF && IsSaveSupported(ImageTypeHEIF) {
-			return ImageTypeAVIF
-		}
+	case vips.ImageTypePng, vips.ImageTypeWebp, vips.ImageTypeTiff, vips.ImageTypeGif, vips.ImageTypeAvif, vips.ImageTypeHeif, vips.ImageTypeJp2k:
+		return format
 	}
-	return ImageTypeJPEG
+	return vips.ImageTypeJpeg
 }
 
 func (v *Processor) export(
-	image *Image, format ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
+	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
 	switch format {
-	case ImageTypePNG:
-		opts := NewPngExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		if palette {
-			opts.Palette = palette
-		}
-		if bitdepth > 0 {
-			opts.Bitdepth = bitdepth
-		}
-		if compression > 0 {
-			opts.Compression = compression
+	case vips.ImageTypePng:
+		opts := &vips.PngsaveBufferOptions{
+			Q:           quality,
+			Palette:     palette,
+			Bitdepth:    bitdepth,
+			Compression: compression,
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportPng(opts)
-	case ImageTypeWEBP:
-		opts := NewWebpExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		if stripMetadata {
-			opts.StripMetadata = true
-		}
-		return image.ExportWebp(opts)
-	case ImageTypeTIFF:
-		opts := NewTiffExportParams()
-		if quality > 0 {
-			opts.Quality = quality
+		return image.PngsaveBuffer(opts)
+	case vips.ImageTypeWebp:
+		opts := &vips.WebpsaveBufferOptions{
+			Q: quality,
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportTiff(opts)
-	case ImageTypeGIF:
-		opts := NewGifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
-		}
-		if stripMetadata {
-			opts.StripMetadata = true
-		}
-		return image.ExportGIF(opts)
-	case ImageTypeAVIF:
-		opts := NewAvifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
+		return image.WebpsaveBuffer(opts)
+	case vips.ImageTypeTiff:
+		opts := &vips.TiffsaveBufferOptions{
+			Q: quality,
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		opts.Speed = v.AvifSpeed
-		return image.ExportAvif(opts)
-	case ImageTypeHEIF:
-		opts := NewHeifExportParams()
-		if quality > 0 {
-			opts.Quality = quality
+		return image.TiffsaveBuffer(opts)
+	case vips.ImageTypeGif:
+		opts := &vips.GifsaveBufferOptions{}
+		if stripMetadata {
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportHeif(opts)
-	case ImageTypeJP2K:
-		opts := NewJp2kExportParams()
-		if quality > 0 {
-			opts.Quality = quality
+		return image.GifsaveBuffer(opts)
+	case vips.ImageTypeAvif:
+		opts := &vips.HeifsaveBufferOptions{
+			Q:           quality,
+			Compression: vips.HeifCompressionAv1,
 		}
-		return image.ExportJp2k(opts)
+		if stripMetadata {
+			opts.Keep = vips.KeepNone
+		}
+		opts.Effort = 9 - v.AvifSpeed
+		return image.HeifsaveBuffer(opts)
+	case vips.ImageTypeHeif:
+		opts := &vips.HeifsaveBufferOptions{
+			Q: quality,
+		}
+		if stripMetadata {
+			opts.Keep = vips.KeepNone
+		}
+		return image.HeifsaveBuffer(opts)
+	case vips.ImageTypeJp2k:
+		opts := &vips.Jp2ksaveBufferOptions{
+			Q: quality,
+		}
+		if stripMetadata {
+			opts.Keep = vips.KeepNone
+		}
+		return image.Jp2ksaveBuffer(opts)
 	default:
-		opts := NewJpegExportParams()
+		opts := &vips.JpegsaveBufferOptions{}
 		if v.MozJPEG {
-			opts.Quality = 75
-			opts.StripMetadata = true
+			opts.Q = 75
+			opts.Keep = vips.KeepNone
 			opts.OptimizeCoding = true
 			opts.Interlace = true
 			opts.OptimizeScans = true
@@ -660,12 +653,12 @@ func (v *Processor) export(
 			opts.QuantTable = 3
 		}
 		if quality > 0 {
-			opts.Quality = quality
+			opts.Q = quality
 		}
 		if stripMetadata {
-			opts.StripMetadata = true
+			opts.Keep = vips.KeepNone
 		}
-		return image.ExportJpeg(opts)
+		return image.JpegsaveBuffer(opts)
 	}
 }
 
@@ -694,7 +687,7 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 }
 
 func findTrim(
-	_ context.Context, img *Image, pos string, tolerance int,
+	_ context.Context, img *vips.Image, pos string, tolerance int,
 ) (l, t, w, h int, err error) {
 	if isAnimated(img) {
 		// skip animation support
@@ -708,6 +701,13 @@ func findTrim(
 	if tolerance == 0 {
 		tolerance = 1
 	}
-	l, t, w, h, err = img.FindTrim(float64(tolerance), x, y)
+	background, err := img.Getpoint(x, y, nil)
+	if err != nil {
+		return
+	}
+	l, t, w, h, err = img.FindTrim(&vips.FindTrimOptions{
+		Threshold:  float64(tolerance),
+		Background: background,
+	})
 	return
 }

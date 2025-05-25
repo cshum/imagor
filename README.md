@@ -465,7 +465,7 @@ It facilitates high-level image processing in a modular architecture made up of 
 
 - [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
 - [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint
-- [vips](https://pkg.go.dev/github.com/cshum/imagor/vips) - libvips C bindings with `imagor.Processor` implementation
+- [vipsprocessor](https://pkg.go.dev/github.com/cshum/imagor/processor/vipsprocessor) - [libvips](https://www.libvips.org/) binding of `imagor.Processor` implementation using [vipsgen](https://github.com/cshum/vipsgen)
 - [httploader](https://pkg.go.dev/github.com/cshum/imagor/loader/httploader) - HTTP Loader, an `imagor.Loader` implementation
 - [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
 - [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
@@ -485,7 +485,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/vipsgen/vips"
 	"io"
 	"os"
 )

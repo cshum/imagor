@@ -1,8 +1,9 @@
-package vips
+package vipsprocessor
 
 import (
 	"context"
 	"fmt"
+	"github.com/cshum/vipsgen/vips"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -25,7 +26,7 @@ var testDataDir string
 
 func init() {
 	_, b, _, _ := runtime.Caller(0)
-	testDataDir = filepath.Join(filepath.Dir(b), "../testdata")
+	testDataDir = filepath.Join(filepath.Dir(b), "../../testdata")
 }
 
 type test struct {
@@ -39,11 +40,10 @@ func TestProcessor(t *testing.T) {
 	v := NewProcessor(WithDebug(true))
 	require.NoError(t, v.Startup(context.Background()))
 	t.Cleanup(func() {
-		stats := &MemoryStats{}
-		ReadVipsMemStats(stats)
+		stats := &vips.MemoryStats{}
+		vips.ReadVipsMemStats(stats)
 		fmt.Println(stats)
 		require.NoError(t, v.Shutdown(context.Background()))
-		noopLoggingHandler("", LogLevelDebug, "")
 	})
 	t.Run("vips basic", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
@@ -422,12 +422,16 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			assert.Equal(t, 200, w.Code)
 			b := imagor.NewBlobFromBytes(w.Body.Bytes())
 			var path string
+			path = tt.path
+			if strings.HasPrefix(path, "meta/") {
+				path += ".json"
+			}
 			if tt.arm64Golden && runtime.GOARCH == "arm64" {
-				_ = resStorageArm64.Put(context.Background(), tt.path, b)
-				path = filepath.Join(resultDirArm64, imagorpath.Normalize(tt.path, nil))
+				_ = resStorageArm64.Put(context.Background(), path, b)
+				path = filepath.Join(resultDirArm64, imagorpath.Normalize(path, nil))
 			} else {
-				_ = resStorage.Put(context.Background(), tt.path, b)
-				path = filepath.Join(resultDir, imagorpath.Normalize(tt.path, nil))
+				_ = resStorage.Put(context.Background(), path, b)
+				path = filepath.Join(resultDir, imagorpath.Normalize(path, nil))
 			}
 			bc := imagor.NewBlobFromFile(path)
 			buf, err := bc.ReadAll()
@@ -441,15 +445,15 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			if reflect.DeepEqual(buf, w.Body.Bytes()) {
 				return
 			}
-			img1, err := LoadImageFromBuffer(buf, nil)
+			img1, err := vips.NewImageFromBuffer(buf, nil)
 			require.NoError(t, err)
-			img2, err := LoadImageFromBuffer(w.Body.Bytes(), nil)
+			img2, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
 			require.NoError(t, err)
 			require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
 			require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
-			buf1, err := img1.ExportWebp(nil)
+			buf1, err := img1.WebpsaveBuffer(nil)
 			require.NoError(t, err)
-			buf2, err := img2.ExportWebp(nil)
+			buf2, err := img2.WebpsaveBuffer(nil)
 			require.NoError(t, err)
 			require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
 		})
