@@ -81,8 +81,8 @@ func TestProcessor(t *testing.T) {
 			{name: "png", path: "fit-in/67x67/gopher-front.png"},
 			{name: "jpeg", path: "fit-in/67x67/demo1.jpg"},
 			{name: "webp", path: "fit-in/67x67/demo3.webp", arm64Golden: true},
-			{name: "tiff", path: "fit-in/67x67/gopher.tiff"},
-			{name: "tiff", path: "fit-in/67x67/dancing-banana.gif"},
+			{name: "tiff", path: "fit-in/67x67/gopher.tiff", arm64Golden: true},
+			{name: "tiff", path: "fit-in/67x67/dancing-banana.gif", arm64Golden: true},
 			//{name: "avif", path: "fit-in/67x67/gopher-front.avif", checkTypeOnly: true},
 		}, WithDebug(true), WithStripMetadata(true), WithLogger(zap.NewExample()))
 	})
@@ -93,7 +93,7 @@ func TestProcessor(t *testing.T) {
 			{name: "jpeg", path: "fit-in/67x67/filters:strip_metadata()/demo1.jpg"},
 			{name: "webp", path: "fit-in/67x67/filters:strip_metadata()/demo3.webp", arm64Golden: true},
 			{name: "tiff", path: "fit-in/67x67/filters:strip_metadata()/gopher.tiff"},
-			{name: "gif", path: "fit-in/67x67/filters:strip_metadata()/dancing-banana.gif"},
+			{name: "gif", path: "fit-in/67x67/filters:strip_metadata()/dancing-banana.gif", arm64Golden: true},
 			//{name: "avif", path: "fit-in/67x67/filters:strip_metadata()/gopher-front.avif", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
@@ -123,7 +123,7 @@ func TestProcessor(t *testing.T) {
 			{name: "proportion", path: "filters:proportion(10)/gopher.png"},
 			{name: "proportion float", path: "filters:proportion(0.1)/gopher.png"},
 			{name: "resize orient", path: "100x200/left/filters:orient(90)/gopher.png"},
-			{name: "png params", path: "200x200/filters:format(png):palette():bitdepth(4):compression(8)/gopher.png"},
+			{name: "png params", path: "200x200/filters:format(png):palette():bitdepth(4):compression(8)/gopher.png", arm64Golden: true},
 			{name: "fit-in unspecified height", path: "fit-in/50x0/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "resize unspecified height", path: "50x0/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "fit-in unspecified width", path: "fit-in/0x50/filters:fill(white):format(jpg)/Canon_40D.jpg"},
@@ -155,11 +155,11 @@ func TestProcessor(t *testing.T) {
 			{name: "trim tolerance", path: "trim:50/500x500/filters:stretch()/find_trim.png"},
 			{name: "trim position tolerance filter", path: "50x50:0x0/filters:trim(50,bottom-right)/find_trim.png"},
 			{name: "trim filter", path: "/fit-in/100x100/filters:fill(auto):trim(50)/find_trim.png"},
-			{name: "watermark", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png"},
-			{name: "watermark non alpha", path: "filters:watermark(demo1.jpg,repeat,repeat,40,25,50)/demo1.jpg"},
+			{name: "watermark", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png", arm64Golden: true},
+			{name: "watermark non alpha", path: "filters:watermark(demo1.jpg,repeat,repeat,40,25,50)/demo1.jpg", arm64Golden: true},
 			{name: "background color non alpha", path: "filters:background_color(yellow)/demo1.jpg"},
-			{name: "watermark 2 bands", path: "filters:watermark(2bands.png,repeat,bottom,40,25,50)/demo1.jpg"},
-			{name: "watermark float", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,0.1,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-0.1)/gopher.png"},
+			{name: "watermark 2 bands", path: "filters:watermark(2bands.png,repeat,bottom,40,25,50)/demo1.jpg", arm64Golden: true},
+			{name: "watermark float", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,0.1,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-0.1)/gopher.png", arm64Golden: true},
 			{name: "watermark align", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,left,top,30,20,20):watermark(gopher.png,right,center,30,30,30):watermark(gopher-front.png,-20,-10)/gopher.png"},
 
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
