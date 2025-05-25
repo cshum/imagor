@@ -411,7 +411,7 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			return
 		}
 	}
-	if img.HasAlpha() {
+	if !img.HasAlpha() {
 		if err = img.Addalpha(); err != nil {
 			return
 		}
