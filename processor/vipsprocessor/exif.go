@@ -6,24 +6,24 @@ import (
 	"strings"
 )
 
-// exifTags to extract, true to cast as int
-var exifTags = map[string]bool{
-	"exif-ifd0-Orientation":           true,
-	"exif-ifd0-ResolutionUnit":        true,
-	"exif-ifd0-YCbCrPositioning":      true,
-	"exif-ifd1-Compression":           true,
-	"exif-ifd2-ExposureProgram":       true,
-	"exif-ifd2-ISOSpeedRatings":       true,
-	"exif-ifd2-MeteringMode":          true,
-	"exif-ifd2-Flash":                 true,
-	"exif-ifd2-ColorSpace":            true,
-	"exif-ifd2-PixelXDimension":       true,
-	"exif-ifd2-PixelYDimension":       true,
-	"exif-ifd2-SensingMethod":         true,
-	"exif-ifd2-ExposureMode":          true,
-	"exif-ifd2-WhiteBalance":          true,
-	"exif-ifd2-FocalLengthIn35mmFilm": true,
-	"exif-ifd2-SceneCaptureType":      true,
+// exifNames to extract, true to cast as int
+var exifNames = map[string]bool{
+	"Orientation":           true,
+	"ResolutionUnit":        true,
+	"YCbCrPositioning":      true,
+	"Compression":           true,
+	"exifExposureProgram":   true,
+	"ISOSpeedRatings":       true,
+	"MeteringMode":          true,
+	"Flash":                 true,
+	"ColorSpace":            true,
+	"PixelXDimension":       true,
+	"PixelYDimension":       true,
+	"SensingMethod":         true,
+	"ExposureMode":          true,
+	"WhiteBalance":          true,
+	"FocalLengthIn35mmFilm": true,
+	"SceneCaptureType":      true,
 }
 
 func exifStringShort(s string) string {
@@ -45,7 +45,7 @@ func extractExif(rawExif map[string]string) map[string]any {
 		if value == "" {
 			continue
 		}
-		if exifTags[tag] {
+		if exifNames[name] {
 			val, err := strconv.Atoi(value)
 			if err == nil {
 				exif[name] = val
