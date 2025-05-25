@@ -46,7 +46,12 @@ func extractExif(rawExif map[string]string) map[string]any {
 			continue
 		}
 		if exifTags[tag] {
-			exif[name], _ = strconv.Atoi(value)
+			val, err := strconv.Atoi(value)
+			if err == nil {
+				exif[name] = val
+			} else {
+				exif[name] = value
+			}
 		} else {
 			exif[name] = value
 		}
