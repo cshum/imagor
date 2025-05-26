@@ -74,7 +74,6 @@ func NewProcessor(options ...Option) *Processor {
 		"strip_icc":        stripIcc,
 		"strip_exif":       stripExif,
 		"trim":             trim,
-		"set_frames":       setFrames,
 		"padding":          v.padding,
 		"proportion":       proportion,
 	}

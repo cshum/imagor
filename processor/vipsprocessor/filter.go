@@ -155,46 +155,6 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	return
 }
 
-func setFrames(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
-	ln := len(args)
-	if ln == 0 {
-		return
-	}
-	newN, _ := strconv.Atoi(args[0])
-	if newN < 1 {
-		return
-	}
-	if n := img.Height() / img.PageHeight(); n != newN {
-		height := img.PageHeight()
-		if err = img.SetPageHeight(img.Height()); err != nil {
-			return
-		}
-		if err = img.EmbedMultiPage(0, 0, img.Width(), height*newN, &vips.EmbedMultiPageOptions{
-			Extend: vips.ExtendRepeat,
-		}); err != nil {
-			return
-		}
-		if err = img.SetPageHeight(height); err != nil {
-			return
-		}
-	}
-	var delay int
-	if ln > 1 {
-		delay, _ = strconv.Atoi(args[1])
-	}
-	if delay == 0 {
-		delay = 100
-	}
-	delays := make([]int, newN)
-	for i := 0; i < newN; i++ {
-		delays[i] = delay
-	}
-	if err = img.SetPageDelay(delays); err != nil {
-		return
-	}
-	return
-}
-
 func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
 	if isRotate90(ctx) {
 		tmpW := w

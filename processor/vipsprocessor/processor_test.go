@@ -100,7 +100,7 @@ func TestProcessor(t *testing.T) {
 	t.Run("vips operations", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{
-			{name: "no-ops", path: "filters:background_color():set_frames():set_frames(0):round_corner():padding():rotate():proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
+			{name: "no-ops", path: "filters:background_color():round_corner():padding():rotate():proportion():proportion(9999):proportion(0.0000000001):proportion(-10)/gopher-front.png"},
 			{name: "no-ops 2", path: "trim/filters:watermark():blur(2):sharpen(2):brightness():contrast():hue():saturation():rgb():modulate()/dancing-banana.gif"},
 			{name: "no-ops 3", path: "filters:proportion():proportion(9999):proportion(0.0000000001):proportion(-10):sharpen(-1)/gopher-front.png"},
 			{name: "resize center", path: "100x100/filters:quality(70):format(jpeg)/gopher.png"},
@@ -174,7 +174,6 @@ func TestProcessor(t *testing.T) {
 			{name: "crop-percent animated", path: "0.1x0.2:0.89x0.72/dancing-banana.gif"},
 			{name: "focal region animated", path: "100x30/filters:focal(0.1x0:0.89x0.72)/dancing-banana.gif"},
 			{name: "focal point animated", path: "100x30/filters:focal(0.89x0.72)/dancing-banana.gif", arm64Golden: true},
-			{name: "watermark frames static", path: "fit-in/200x200/filters:fill(white):set_frames(3):watermark(dancing-banana.gif):format(jpeg)/gopher.png"},
 			{name: "padding", path: "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
 			{name: "rotate fill", path: "fit-in/100x210/10x20:15x3/filters:rotate(90):fill(yellow)/gopher-front.png"},
 			{name: "resize center animated", path: "100x100/dancing-banana.gif", arm64Golden: true},
@@ -193,8 +192,6 @@ func TestProcessor(t *testing.T) {
 			{name: "watermark double animated", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif", arm64Golden: true},
 			{name: "watermark double animated 2", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,30,-10,0,40,40):watermark(dancing-banana.gif,0,10,0,40,40)/nyan-cat.gif", arm64Golden: true},
 			{name: "padding with watermark double animated", path: "200x0/20x20:100x20/filters:fill(yellow):watermark(dancing-banana.gif,-10,-10,0,50,50):watermark(dancing-banana.gif,-30,10,0,50,50)/nyan-cat.gif", arm64Golden: true},
-			{name: "watermark frames animated", path: "fit-in/200x200/filters:fill(white):set_frames(3,200):watermark(dancing-banana.gif):format(gif)/gopher.png", arm64Golden: true},
-			{name: "watermark frames animated repeated", path: "fit-in/200x200/filters:fill(white):set_frames(3,200):watermark(dancing-banana.gif,repeat,repeat,0,33,33):format(gif)/gopher.png", arm64Golden: true},
 			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif", arm64Golden: true},
 			{name: "animated fill round_corner", path: "filters:fill(cyan):round_corner(60)/dancing-banana.gif"},
 			{name: "label", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,15,10,30,blue,30)/gopher-front.png", arm64Golden: true},
