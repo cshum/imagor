@@ -9,14 +9,15 @@ import (
 // from one data source with known total size,
 // using channel and memory buffer.
 type Fanout struct {
-	source  io.ReadCloser
-	size    int
-	current int
-	buf     []byte
-	err     error
-	lock    sync.RWMutex
-	once    sync.Once
-	readers []*reader
+	source   io.ReadCloser
+	size     int
+	current  int
+	buf      []byte
+	err      error
+	lock     sync.RWMutex
+	once     sync.Once
+	readers  []*reader
+	released bool
 }
 
 // reader io.ReadCloser spawned via Fanout
@@ -35,6 +36,24 @@ func New(source io.ReadCloser, size int) *Fanout {
 		source: source,
 		size:   size,
 		buf:    make([]byte, size),
+	}
+}
+
+// Release marks the fanout as released. Buffer is freed when all readers are also closed.
+func (f *Fanout) Release() {
+	f.lock.Lock()
+	f.released = true
+	f.tryCleanupBuffer()
+	f.lock.Unlock()
+}
+
+// tryCleanupBuffer frees the buffer if both conditions are met:
+// 1. Fanout is released
+// 2. All readers are closed
+// Must be called with write lock held
+func (f *Fanout) tryCleanupBuffer() {
+	if f.released && len(f.readers) == 0 && f.buf != nil {
+		f.buf = nil // Free the buffer
 	}
 }
 
@@ -114,6 +133,8 @@ func (f *Fanout) readAll() {
 				}
 			}
 			f.readers = f.readers[:newPos]
+			// Try to cleanup buffer after removing closed readers
+			f.tryCleanupBuffer()
 			f.lock.Unlock()
 		}
 	}
@@ -180,9 +201,10 @@ func (r *reader) Read(p []byte) (n int, err error) {
 
 // close reader or just closing the underlying channel
 func (r *reader) close(closeReader bool) (e error) {
-	r.fanout.lock.RLock()
+	r.fanout.lock.Lock()
+	defer r.fanout.lock.Unlock()
+
 	e = r.fanout.err
-	r.fanout.lock.RUnlock()
 	r.readerClosed = closeReader
 
 	// Clear reader buffer to free memory immediately
@@ -195,6 +217,20 @@ func (r *reader) close(closeReader bool) (e error) {
 	case <-r.closeChannel:
 	default:
 		close(r.closeChannel)
+	}
+
+	// If this reader is being closed, remove it from the readers slice
+	if closeReader {
+		for i, reader := range r.fanout.readers {
+			if reader == r {
+				// Remove this reader from the slice
+				copy(r.fanout.readers[i:], r.fanout.readers[i+1:])
+				r.fanout.readers = r.fanout.readers[:len(r.fanout.readers)-1]
+				break
+			}
+		}
+		// Try to cleanup buffer after removing this reader
+		r.fanout.tryCleanupBuffer()
 	}
 
 	return
