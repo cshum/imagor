@@ -18,8 +18,8 @@ type FilterFunc func(ctx context.Context, img *vips.Image, load imagor.LoadFunc,
 // FallbackFunc vips.Image fallback handler when vips.NewImageFromSource failed
 type FallbackFunc func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error)
 
-// BufferFallback load image from buffer FallbackFunc
-func BufferFallback(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
+// BufferFallbackFunc load image from buffer FallbackFunc
+func BufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
 	buf, err := blob.ReadAll()
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (v *Processor) Startup(_ context.Context) error {
 		})
 	}
 	if vips.HasOperation("magickload_buffer") {
-		v.FallbackFunc = BufferFallback
+		v.FallbackFunc = BufferFallbackFunc
 		v.Logger.Info("source fallback", zap.String("type", "magickload_buffer"))
 	} else {
 		v.FallbackFunc = BmpFallbackFunc
