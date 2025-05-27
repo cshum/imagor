@@ -59,7 +59,6 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
-			vipsprocessor.WithFallbackFunc(vipsprocessor.BmpFallbackFunc), // TODO make it configurable
 		),
 	)
 }

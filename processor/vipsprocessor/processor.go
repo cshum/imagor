@@ -18,6 +18,15 @@ type FilterFunc func(ctx context.Context, img *vips.Image, load imagor.LoadFunc,
 // FallbackFunc vips.Image fallback handler when vips.NewImageFromSource failed
 type FallbackFunc func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error)
 
+// BufferFallback load image from buffer FallbackFunc
+func BufferFallback(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
+	buf, err := blob.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	return vips.NewImageFromBuffer(buf, options)
+}
+
 // FilterMap filter handler map
 type FilterMap map[string]FilterFunc
 
@@ -101,31 +110,37 @@ func (v *Processor) Startup(_ context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	processorCount++
-	if processorCount > 1 {
-		return nil
-	}
-	if v.Debug {
-		vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
-			switch level {
-			case vips.LogLevelDebug:
-				v.Logger.Debug(domain, zap.String("log", msg))
-			case vips.LogLevelMessage, vips.LogLevelInfo:
-				v.Logger.Info(domain, zap.String("log", msg))
-			case vips.LogLevelWarning, vips.LogLevelCritical, vips.LogLevelError:
+	if processorCount <= 1 {
+		if v.Debug {
+			vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
+				switch level {
+				case vips.LogLevelDebug:
+					v.Logger.Debug(domain, zap.String("log", msg))
+				case vips.LogLevelMessage, vips.LogLevelInfo:
+					v.Logger.Info(domain, zap.String("log", msg))
+				case vips.LogLevelWarning, vips.LogLevelCritical, vips.LogLevelError:
+					v.Logger.Warn(domain, zap.String("log", msg))
+				}
+			}, vips.LogLevelDebug)
+		} else {
+			vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
 				v.Logger.Warn(domain, zap.String("log", msg))
-			}
-		}, vips.LogLevelDebug)
-	} else {
-		vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
-			v.Logger.Warn(domain, zap.String("log", msg))
-		}, vips.LogLevelError)
+			}, vips.LogLevelError)
+		}
+		vips.Startup(&vips.Config{
+			MaxCacheFiles:    v.MaxCacheFiles,
+			MaxCacheMem:      v.MaxCacheMem,
+			MaxCacheSize:     v.MaxCacheSize,
+			ConcurrencyLevel: v.Concurrency,
+		})
 	}
-	vips.Startup(&vips.Config{
-		MaxCacheFiles:    v.MaxCacheFiles,
-		MaxCacheMem:      v.MaxCacheMem,
-		MaxCacheSize:     v.MaxCacheSize,
-		ConcurrencyLevel: v.Concurrency,
-	})
+	if vips.HasOperation("magickload_buffer") {
+		v.FallbackFunc = BufferFallback
+		v.Logger.Info("source fallback", zap.String("type", "magickload_buffer"))
+	} else {
+		v.FallbackFunc = BmpFallbackFunc
+		v.Logger.Info("source fallback", zap.String("type", "bmp"))
+	}
 	return nil
 }
 
