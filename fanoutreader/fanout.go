@@ -48,6 +48,18 @@ func (f *Fanout) do() {
 func (f *Fanout) readAll() {
 	defer func() {
 		_ = f.source.Close()
+
+		f.lock.Lock()
+		for _, r := range f.readers {
+			if !r.readerClosed {
+				select {
+				case <-r.closeChannel:
+				default:
+					close(r.channel)
+				}
+			}
+		}
+		f.lock.Unlock()
 	}()
 	for f.current < f.size {
 		b := f.buf[f.current:]
