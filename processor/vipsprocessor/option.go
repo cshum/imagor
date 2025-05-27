@@ -156,3 +156,10 @@ func WithMaxResolution(res int) Option {
 		}
 	}
 }
+
+// WithFallbackFunc with vips.Image fallback handler when vips.NewImageFromSource failed
+func WithFallbackFunc(fallback FallbackFunc) Option {
+	return func(v *Processor) {
+		v.FallbackFunc = fallback
+	}
+}

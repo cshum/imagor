@@ -1,6 +1,7 @@
 package vipsprocessor
 
 import (
+	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
 	"golang.org/x/image/bmp"
 	"image"
@@ -21,4 +22,19 @@ func loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 		draw.Draw(rgba, rect, img, rect.Min, draw.Src)
 	}
 	return vips.NewImageFromMemory(rgba.Pix, size.X, size.Y, 4)
+}
+func BmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error) {
+	if blob.BlobType() == imagor.BlobTypeBMP {
+		// fallback with Go BMP decoder if vips error on BMP
+		r, _, err := blob.NewReader()
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			_ = r.Close()
+		}()
+		return loadImageFromBMP(r)
+	} else {
+		return nil, imagor.ErrUnsupportedFormat
+	}
 }
