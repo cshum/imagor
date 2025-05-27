@@ -30,6 +30,12 @@ type reader struct {
 	readerClosed bool
 }
 
+// eofReader always returns EOF - used for new readers after Release()
+type eofReader struct{}
+
+func (eofReader) Read([]byte) (int, error) { return 0, io.EOF }
+func (eofReader) Close() error             { return nil }
+
 // New Fanout factory via single io.ReadCloser source with known size
 func New(source io.ReadCloser, size int) *Fanout {
 	return &Fanout{
@@ -47,13 +53,10 @@ func (f *Fanout) Release() {
 	f.lock.Unlock()
 }
 
-// tryCleanupBuffer frees the buffer if both conditions are met:
-// 1. Fanout is released
-// 2. All readers are closed
-// Must be called with write lock held
+// tryCleanupBuffer frees the buffer when safe to do so
 func (f *Fanout) tryCleanupBuffer() {
 	if f.released && len(f.readers) == 0 && f.buf != nil {
-		f.buf = nil // Free the buffer
+		f.buf = nil // Free the buffer when released and no active readers
 	}
 }
 
@@ -141,23 +144,31 @@ func (f *Fanout) readAll() {
 }
 
 // NewReader spawns new io.ReadCloser
+// After Release() is called, returns a reader that immediately gives EOF
 func (f *Fanout) NewReader() io.ReadCloser {
-	r := &reader{}
-	// Calculate buffer size based on expected chunks, but cap it
+	r := &reader{fanout: f}
+
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	if f.released {
+		return eofReader{}
+	}
+
 	bufferSize := f.size/4096 + 1
 	if bufferSize > 32 {
 		bufferSize = 32
 	}
 	r.channel = make(chan []byte, bufferSize)
 	r.closeChannel = make(chan struct{})
-	r.fanout = f
 
-	f.lock.Lock()
-	if f.current > 0 {
+	// Set initial buffer if data already read
+	if f.current > 0 && f.buf != nil {
 		r.buf = f.buf[:f.current]
 	}
+
+	// Add to readers list
 	f.readers = append(f.readers, r)
-	f.lock.Unlock()
 	return r
 }
 

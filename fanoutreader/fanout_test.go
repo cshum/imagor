@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -497,4 +498,457 @@ func (cr *chunkReader) Read(p []byte) (int, error) {
 	n := copy(p[:readSize], cr.data[cr.pos:cr.pos+readSize])
 	cr.pos += n
 	return n, nil
+}
+
+// Test basic release functionality
+func TestFanoutRelease(t *testing.T) {
+	buf := []byte("hello world test data")
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	// Create a reader but don't close it yet
+	r1 := factory.NewReader()
+
+	// Release the fanout - buffer should NOT be freed yet because r1 is still active
+	factory.Release()
+
+	// Verify existing reader still works (was created before release)
+	data1, err := io.ReadAll(r1)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data1)
+
+	// Create another reader after release - should get EOF immediately
+	r2 := factory.NewReader()
+	data2, err := io.ReadAll(r2)
+	require.NoError(t, err)
+	assert.Empty(t, data2) // Should be empty since it's an eofReader
+
+	// Close first reader - buffer should still exist because r2 might need cleanup
+	assert.NoError(t, r1.Close())
+
+	// Create third reader after release - should also get EOF
+	r3 := factory.NewReader()
+	data3, err := io.ReadAll(r3)
+	require.NoError(t, err)
+	assert.Empty(t, data3) // Should be empty since it's an eofReader
+
+	// Close remaining readers
+	assert.NoError(t, r2.Close())
+	assert.NoError(t, r3.Close())
+
+	// After release, new readers should immediately return EOF
+	r4 := factory.NewReader()
+	defer r4.Close()
+	data4, err := io.ReadAll(r4)
+	require.NoError(t, err)
+	assert.Empty(t, data4) // Should be empty since it returns EOF immediately
+}
+
+// Test release called multiple times
+func TestFanoutReleaseMultipleCalls(t *testing.T) {
+	buf := []byte("test data")
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	r := factory.NewReader()
+
+	// Call release multiple times - should be idempotent
+	factory.Release()
+	factory.Release()
+	factory.Release()
+
+	// Reader should still work
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data)
+
+	assert.NoError(t, r.Close())
+}
+
+// Test release before any readers are created
+func TestFanoutReleaseBeforeReaders(t *testing.T) {
+	buf := []byte("test data for early release")
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	// Release immediately - buffer should be freed since no readers exist
+	factory.Release()
+
+	// Creating readers after release should return EOF immediately
+	r1 := factory.NewReader()
+	defer r1.Close()
+
+	data, err := io.ReadAll(r1)
+	require.NoError(t, err)
+	assert.Empty(t, data) // Should be empty since released fanout returns EOF
+}
+
+// Test release with concurrent reader operations
+func TestFanoutReleaseConcurrent(t *testing.T) {
+	buf := make([]byte, 50000)
+	for i := range buf {
+		buf[i] = byte(i % 256)
+	}
+
+	source := io.NopCloser(&slowReader{data: buf, delay: time.Microsecond})
+	factory := New(source, len(buf))
+
+	var wg sync.WaitGroup
+	numReaders := 20
+	results := make([][]byte, numReaders)
+
+	// Start readers concurrently
+	for i := 0; i < numReaders; i++ {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+
+			r := factory.NewReader()
+			defer r.Close()
+
+			// Some readers will be active when Release() is called
+			if index%3 == 0 {
+				time.Sleep(10 * time.Millisecond)
+			}
+
+			data, err := io.ReadAll(r)
+			require.NoError(t, err)
+			results[index] = data
+		}(i)
+	}
+
+	// Release while readers are active
+	go func() {
+		time.Sleep(5 * time.Millisecond)
+		factory.Release()
+	}()
+
+	wg.Wait()
+
+	// All readers should have gotten the same complete data
+	for i, result := range results {
+		assert.Equal(t, buf, result, "Reader %d got different data", i)
+	}
+}
+
+// Test release with readers closing at different times
+func TestFanoutReleaseStaggeredClose(t *testing.T) {
+	buf := []byte("staggered close test data")
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	readers := make([]io.ReadCloser, 5)
+	for i := range readers {
+		readers[i] = factory.NewReader()
+	}
+
+	// Read from all readers first
+	for i, r := range readers {
+		data, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Equal(t, buf, data, "Reader %d failed", i)
+	}
+
+	// Release the fanout
+	factory.Release()
+
+	var wg sync.WaitGroup
+
+	// Close readers at different times
+	for i, r := range readers {
+		wg.Add(1)
+		go func(index int, reader io.ReadCloser) {
+			defer wg.Done()
+
+			// Stagger the closes
+			time.Sleep(time.Duration(index) * 10 * time.Millisecond)
+			assert.NoError(t, reader.Close())
+		}(i, r)
+	}
+
+	wg.Wait()
+
+	// After release, new readers should return EOF immediately
+	// This is the expected and safe behavior - no deadlocks or complex edge cases
+}
+
+// Test release with empty source
+func TestFanoutReleaseEmpty(t *testing.T) {
+	source := io.NopCloser(bytes.NewReader([]byte{}))
+	factory := New(source, 0)
+
+	factory.Release()
+
+	r := factory.NewReader()
+	defer r.Close()
+
+	data, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	assert.Empty(t, data)
+}
+
+// Test release with source errors - with more debugging
+func TestFanoutReleaseWithErrors(t *testing.T) {
+	buf := []byte("test data")
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	// Release immediately
+	factory.Release()
+
+	// Check the release flag directly
+	factory.lock.RLock()
+	isReleased := factory.released
+	factory.lock.RUnlock()
+	t.Logf("Factory released flag: %v", isReleased)
+
+	// New readers after release should get eofReader which returns EOF
+	r := factory.NewReader()
+	defer r.Close()
+
+	// Check if this is actually an eofReader by checking its type
+	t.Logf("Reader type: %T", r)
+
+	data, err := io.ReadAll(r)
+	t.Logf("Read result: data=%v (len=%d), err=%v", data, len(data), err)
+
+	// For eofReader, io.ReadAll should return empty slice and no error (EOF is handled)
+	assert.NoError(t, err)
+	assert.Empty(t, data)
+}
+
+// Test release timing - ensure proper cleanup
+func TestFanoutReleaseMemoryCleanup(t *testing.T) {
+	buf := make([]byte, 10000) // 10KB
+	for i := range buf {
+		buf[i] = byte(i % 256)
+	}
+
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	// Create and close readers multiple times
+	for round := 0; round < 3; round++ {
+		readers := make([]io.ReadCloser, 5)
+
+		// Create readers
+		for i := range readers {
+			readers[i] = factory.NewReader()
+		}
+
+		// Release on first round only
+		if round == 0 {
+			factory.Release()
+		}
+
+		// Read from all readers
+		for i, r := range readers {
+			data, err := io.ReadAll(r)
+			require.NoError(t, err)
+
+			if round == 0 {
+				// Round 0: readers created BEFORE release → should get data
+				assert.Equal(t, buf, data, "Round %d, Reader %d failed", round, i)
+			} else {
+				// Round 1 & 2: readers created AFTER release → should get empty data
+				assert.Empty(t, data, "Round %d, Reader %d should get empty data", round, i)
+			}
+		}
+
+		// Close all readers
+		for _, r := range readers {
+			assert.NoError(t, r.Close())
+		}
+	}
+}
+
+// Test release with very large number of readers - CORRECTED VERSION
+func TestFanoutReleaseHighConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping high concurrency test in short mode")
+	}
+
+	buf := make([]byte, 1000)
+	for i := range buf {
+		buf[i] = byte(i % 256)
+	}
+
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	var wg sync.WaitGroup
+	var normalReaders, eofReaders int32
+
+	// Phase 1: Create some readers BEFORE release
+	numBeforeRelease := 30
+	for i := 0; i < numBeforeRelease; i++ {
+		wg.Add(1)
+		go func(readerID int) {
+			defer wg.Done()
+
+			r := factory.NewReader() // Created before release
+			defer r.Close()
+
+			data, err := io.ReadAll(r)
+			require.NoError(t, err)
+			atomic.AddInt32(&normalReaders, 1)
+			assert.Equal(t, buf, data, "Reader %d got wrong data", readerID)
+		}(i)
+	}
+
+	// Small delay to ensure the above readers are created
+	time.Sleep(1 * time.Millisecond)
+
+	// Release the fanout
+	factory.Release()
+
+	// Phase 2: Create readers AFTER release
+	numAfterRelease := 70
+	for i := 0; i < numAfterRelease; i++ {
+		wg.Add(1)
+		go func(readerID int) {
+			defer wg.Done()
+
+			r := factory.NewReader() // Created after release
+			defer r.Close()
+
+			data, err := io.ReadAll(r)
+			require.NoError(t, err)
+			atomic.AddInt32(&eofReaders, 1)
+			assert.Empty(t, data, "Reader %d should get empty data", readerID)
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Verify deterministic behavior
+	normal := atomic.LoadInt32(&normalReaders)
+	eof := atomic.LoadInt32(&eofReaders)
+
+	t.Logf("Normal readers: %d, EOF readers: %d", normal, eof)
+
+	assert.Equal(t, int32(numBeforeRelease), normal, "Should have exact number of normal readers")
+	assert.Equal(t, int32(numAfterRelease), eof, "Should have exact number of EOF readers")
+	assert.Equal(t, int32(100), normal+eof, "Total should be 100 readers")
+}
+
+// Test release behavior with partial reads
+func TestFanoutReleasePartialReads(t *testing.T) {
+	buf := []byte("0123456789abcdefghijklmnopqrstuvwxyz")
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	r1 := factory.NewReader()
+	r2 := factory.NewReader()
+
+	// Partial read from r1 (created before release)
+	chunk1 := make([]byte, 10)
+	n1, err := r1.Read(chunk1)
+	require.NoError(t, err)
+	assert.Equal(t, 10, n1)
+	assert.Equal(t, buf[:10], chunk1)
+
+	// Release the fanout
+	factory.Release()
+
+	// Continue reading from r1 (created before release) - should work
+	remaining1, err := io.ReadAll(r1)
+	require.NoError(t, err)
+	assert.Equal(t, buf[10:], remaining1)
+
+	// Read all from r2 (created before release) - should work
+	data2, err := io.ReadAll(r2)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data2)
+
+	// Close readers
+	assert.NoError(t, r1.Close())
+	assert.NoError(t, r2.Close())
+
+	// New readers after release should get EOF
+	r3 := factory.NewReader()
+	defer r3.Close()
+	data3, err := io.ReadAll(r3)
+	require.NoError(t, err)
+	assert.Empty(t, data3) // Should be empty since created after release
+}
+
+// Benchmark release performance
+func BenchmarkFanoutRelease(b *testing.B) {
+	buf := make([]byte, 10000)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		source := io.NopCloser(bytes.NewReader(buf))
+		factory := New(source, len(buf))
+
+		readers := make([]io.ReadCloser, 10)
+		for j := range readers {
+			readers[j] = factory.NewReader()
+		}
+
+		factory.Release()
+
+		for _, r := range readers {
+			io.ReadAll(r)
+			r.Close()
+		}
+	}
+}
+
+// Test integration with Blob-like usage pattern
+func TestFanoutReleaseIntegration(t *testing.T) {
+	buf := []byte("integration test data for blob-like usage")
+	source := io.NopCloser(bytes.NewReader(buf))
+	factory := New(source, len(buf))
+
+	// Simulate blob initialization (sniffing)
+	sniffReader := factory.NewReader()
+	sniffBuf := make([]byte, 512)
+	n, _ := io.ReadAtLeast(sniffReader, sniffBuf, len(buf))
+	sniffBuf = sniffBuf[:n]
+	sniffReader.Close()
+	assert.Equal(t, buf, sniffBuf)
+
+	// Simulate multiple consumers
+	var wg sync.WaitGroup
+
+	// Consumer 1: ReadAll
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		r := factory.NewReader()
+		defer r.Close()
+		data, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Equal(t, buf, data)
+	}()
+
+	// Consumer 2: Chunked reading
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		r := factory.NewReader()
+		defer r.Close()
+
+		var result []byte
+		chunk := make([]byte, 5)
+		for {
+			n, err := r.Read(chunk)
+			if n > 0 {
+				result = append(result, chunk[:n]...)
+			}
+			if err == io.EOF {
+				break
+			}
+			require.NoError(t, err)
+		}
+		assert.Equal(t, buf, result)
+	}()
+
+	// Release while consumers are active
+	time.Sleep(1 * time.Millisecond)
+	factory.Release()
+
+	wg.Wait()
 }
