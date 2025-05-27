@@ -133,8 +133,7 @@ func (f *Fanout) NewReader() io.ReadCloser {
 
 	f.lock.Lock()
 	if f.current > 0 {
-		r.buf = make([]byte, f.current)
-		copy(r.buf, f.buf[:f.current])
+		r.buf = f.buf[:f.current]
 	}
 	f.readers = append(f.readers, r)
 	f.lock.Unlock()
