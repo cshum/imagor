@@ -24,6 +24,7 @@ var processorCount int
 // Processor implements imagor.Processor interface
 type Processor struct {
 	Filters            FilterMap
+	FallbackFunc       FallbackFunc
 	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int
@@ -97,31 +98,39 @@ func (v *Processor) Startup(_ context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	processorCount++
-	if processorCount > 1 {
-		return nil
-	}
-	if v.Debug {
-		vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
-			switch level {
-			case vips.LogLevelDebug:
-				v.Logger.Debug(domain, zap.String("log", msg))
-			case vips.LogLevelMessage, vips.LogLevelInfo:
-				v.Logger.Info(domain, zap.String("log", msg))
-			case vips.LogLevelWarning, vips.LogLevelCritical, vips.LogLevelError:
+	if processorCount <= 1 {
+		if v.Debug {
+			vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
+				switch level {
+				case vips.LogLevelDebug:
+					v.Logger.Debug(domain, zap.String("log", msg))
+				case vips.LogLevelMessage, vips.LogLevelInfo:
+					v.Logger.Info(domain, zap.String("log", msg))
+				case vips.LogLevelWarning, vips.LogLevelCritical, vips.LogLevelError:
+					v.Logger.Warn(domain, zap.String("log", msg))
+				}
+			}, vips.LogLevelDebug)
+		} else {
+			vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
 				v.Logger.Warn(domain, zap.String("log", msg))
-			}
-		}, vips.LogLevelDebug)
-	} else {
-		vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
-			v.Logger.Warn(domain, zap.String("log", msg))
-		}, vips.LogLevelError)
+			}, vips.LogLevelError)
+		}
+		vips.Startup(&vips.Config{
+			MaxCacheFiles:    v.MaxCacheFiles,
+			MaxCacheMem:      v.MaxCacheMem,
+			MaxCacheSize:     v.MaxCacheSize,
+			ConcurrencyLevel: v.Concurrency,
+		})
 	}
-	vips.Startup(&vips.Config{
-		MaxCacheFiles:    v.MaxCacheFiles,
-		MaxCacheMem:      v.MaxCacheMem,
-		MaxCacheSize:     v.MaxCacheSize,
-		ConcurrencyLevel: v.Concurrency,
-	})
+	if v.FallbackFunc == nil {
+		if vips.HasOperation("magickload_buffer") {
+			v.FallbackFunc = BufferFallbackFunc
+			v.Logger.Debug("source fallback", zap.String("fallback", "magickload_buffer"))
+		} else {
+			v.FallbackFunc = BmpFallbackFunc
+			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
+		}
+	}
 	return nil
 }
 
@@ -139,7 +148,7 @@ func (v *Processor) Shutdown(_ context.Context) error {
 	return nil
 }
 
-func newImageFromBlob(
+func (v *Processor) newImageFromBlob(
 	ctx context.Context, blob *imagor.Blob, options *vips.LoadOptions,
 ) (*vips.Image, error) {
 	if blob == nil || blob.IsEmpty() {
@@ -156,17 +165,9 @@ func newImageFromBlob(
 	src := vips.NewSource(reader)
 	contextDefer(ctx, src.Close)
 	img, err := vips.NewImageFromSource(src, options)
-	if err != nil && blob.BlobType() == imagor.BlobTypeBMP {
-		// fallback with Go BMP decoder if vips error on BMP
+	if err != nil && v.FallbackFunc != nil {
 		src.Close()
-		r, _, err := blob.NewReader()
-		if err != nil {
-			return nil, err
-		}
-		defer func() {
-			_ = r.Close()
-		}()
-		return loadImageFromBMP(r)
+		return v.FallbackFunc(blob, options)
 	}
 	return img, err
 }
@@ -210,7 +211,7 @@ func (v *Processor) NewThumbnail(
 	if isMultiPage(blob, n, page) {
 		applyMultiPageOptions(options, n, page)
 		if crop == vips.InterestingNone || size == vips.SizeForce {
-			if img, err = newImageFromBlob(ctx, blob, options); err != nil {
+			if img, err = v.newImageFromBlob(ctx, blob, options); err != nil {
 				return nil, WrapErr(err)
 			}
 			if n > 1 || page > 1 {
@@ -228,7 +229,7 @@ func (v *Processor) NewThumbnail(
 				return nil, WrapErr(err)
 			}
 		} else {
-			if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, options)); err != nil {
+			if img, err = v.CheckResolution(v.newImageFromBlob(ctx, blob, options)); err != nil {
 				return nil, WrapErr(err)
 			}
 			if n > 1 || page > 1 {
@@ -256,7 +257,7 @@ func (v *Processor) NewThumbnail(
 func (v *Processor) newThumbnailFallback(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size, options *vips.LoadOptions,
 ) (img *vips.Image, err error) {
-	if img, err = v.CheckResolution(newImageFromBlob(ctx, blob, options)); err != nil {
+	if img, err = v.CheckResolution(v.newImageFromBlob(ctx, blob, options)); err != nil {
 		return
 	}
 	if err = img.ThumbnailImage(width, &vips.ThumbnailImageOptions{
@@ -277,7 +278,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 	params.FailOnError = false
 	if isMultiPage(blob, n, page) {
 		applyMultiPageOptions(params, n, page)
-		img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
+		img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, params))
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -288,7 +289,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 		}
 		return img, nil
 	}
-	img, err := v.CheckResolution(newImageFromBlob(ctx, blob, params))
+	img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, params))
 	if err != nil {
 		return nil, WrapErr(err)
 	}
