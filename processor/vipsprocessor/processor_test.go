@@ -309,6 +309,11 @@ func TestProcessor(t *testing.T) {
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/1000x1000/gopher-front.png", nil))
+		assert.Equal(t, 422, w.Code)
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/gopher.png", nil))
 		assert.Equal(t, 422, w.Code)
 
