@@ -9,6 +9,18 @@ import (
 	"io"
 )
 
+// FallbackFunc vips.Image fallback handler when vips.NewImageFromSource failed
+type FallbackFunc func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error)
+
+// BufferFallbackFunc load image from buffer FallbackFunc
+func BufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
+	buf, err := blob.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	return vips.NewImageFromBuffer(buf, options)
+}
+
 func loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 	img, err := bmp.Decode(r)
 	if err != nil {

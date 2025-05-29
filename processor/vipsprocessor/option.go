@@ -130,6 +130,13 @@ func WithDebug(debug bool) Option {
 	}
 }
 
+// WithBmpFallback with BMP fallback if failed
+func WithBmpFallback(fallback bool) Option {
+	return func(v *Processor) {
+		v.BmpFallback = fallback
+	}
+}
+
 // WithMaxWidth with maximum width option
 func WithMaxWidth(width int) Option {
 	return func(v *Processor) {

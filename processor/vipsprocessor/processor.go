@@ -15,18 +15,6 @@ import (
 // FilterFunc filter handler function
 type FilterFunc func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error)
 
-// FallbackFunc vips.Image fallback handler when vips.NewImageFromSource failed
-type FallbackFunc func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error)
-
-// BufferFallbackFunc load image from buffer FallbackFunc
-func BufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
-	buf, err := blob.ReadAll()
-	if err != nil {
-		return nil, err
-	}
-	return vips.NewImageFromBuffer(buf, options)
-}
-
 // FilterMap filter handler map
 type FilterMap map[string]FilterFunc
 
@@ -36,7 +24,7 @@ var processorCount int
 // Processor implements imagor.Processor interface
 type Processor struct {
 	Filters            FilterMap
-	FallbackFunc       FallbackFunc // TODO support slices of FallbackFunc
+	FallbackFuncs      []FallbackFunc
 	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int
@@ -54,6 +42,7 @@ type Processor struct {
 	AvifSpeed          int
 	Debug              bool
 
+	BmpFallback    bool
 	disableFilters map[string]bool
 }
 
@@ -102,6 +91,10 @@ func NewProcessor(options ...Option) *Processor {
 	if v.Concurrency == -1 {
 		v.Concurrency = runtime.NumCPU()
 	}
+	if v.BmpFallback {
+		v.FallbackFuncs = append(v.FallbackFuncs, BmpFallbackFunc)
+	}
+	v.FallbackFuncs = append(v.FallbackFuncs, BufferFallbackFunc)
 	return v
 }
 
@@ -133,13 +126,6 @@ func (v *Processor) Startup(_ context.Context) error {
 			MaxCacheSize:     v.MaxCacheSize,
 			ConcurrencyLevel: v.Concurrency,
 		})
-	}
-	if vips.HasOperation("magickload_buffer") {
-		v.FallbackFunc = BufferFallbackFunc
-		v.Logger.Debug("source fallback", zap.String("fallback", "magickload_buffer"))
-	} else {
-		v.FallbackFunc = BmpFallbackFunc
-		v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 	}
 	return nil
 }
@@ -175,9 +161,15 @@ func (v *Processor) newImageFromBlob(
 	src := vips.NewSource(reader)
 	contextDefer(ctx, src.Close)
 	img, err := vips.NewImageFromSource(src, options)
-	if err != nil && v.FallbackFunc != nil {
+	if err != nil {
 		src.Close()
-		return v.FallbackFunc(blob, options)
+		if len(v.FallbackFuncs) > 0 {
+			for _, fallbackFunc := range v.FallbackFuncs {
+				if img2, err2 := fallbackFunc(blob, options); err2 == nil {
+					return img2, nil
+				}
+			}
+		}
 	}
 	return img, err
 }

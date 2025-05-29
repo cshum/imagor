@@ -205,10 +205,10 @@ func TestProcessor(t *testing.T) {
 			{name: "label animated with font", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):label(IMAGOR,center,-30,25,white,0,monospace)/dancing-banana.gif", arm64Golden: true},
 			{name: "label grayscale", path: "fit-in/filters:label(imagor,-1,0,50)/2bands.png", checkTypeOnly: true},
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
-			//{name: "bmp 24bit", path: "100x100/bmp_24.bmp"}, TODO fix test
-			//{name: "bmp 8bit", path: "100x100/lena_gray.bmp"}, TODO tix test
+			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
+			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
 			{name: "svg", path: "test.svg", checkTypeOnly: true},
-		}, WithDebug(true), WithLogger(zap.NewExample()))
+		}, WithDebug(true), WithLogger(zap.NewExample()), WithBmpFallback(true))
 	})
 	t.Run("max frames", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden/max-frames")
