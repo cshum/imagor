@@ -130,10 +130,10 @@ func WithDebug(debug bool) Option {
 	}
 }
 
-// WithBmpFallback with BMP fallback if failed
-func WithBmpFallback(fallback bool) Option {
+// WithFallbackFunc with FallbackFunc option
+func WithFallbackFunc(fallbackFuncs ...FallbackFunc) Option {
 	return func(v *Processor) {
-		v.BmpFallback = fallback
+		v.FallbackFuncs = append(v.FallbackFuncs, fallbackFuncs...)
 	}
 }
 

@@ -24,7 +24,7 @@ func TestWithOption(t *testing.T) {
 			WithAvifSpeed(9),
 			WithStripMetadata(true),
 			WithDebug(true),
-			WithBmpFallback(true),
+			WithFallbackFunc(BmpFallbackFunc, BufferFallbackFunc),
 			WithMaxAnimationFrames(3),
 			WithDisableFilters("rgb", "fill, watermark"),
 			WithFilter("noop", func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
@@ -42,7 +42,7 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, 3, v.MaxAnimationFrames)
 		assert.Equal(t, true, v.MozJPEG)
 		assert.Equal(t, true, v.StripMetadata)
-		assert.Equal(t, true, v.BmpFallback)
+		assert.Equal(t, []FallbackFunc{BmpFallbackFunc, BufferFallbackFunc}, v.FallbackFuncs)
 		assert.Equal(t, 9, v.AvifSpeed)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, v.DisableFilters)
 

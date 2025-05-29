@@ -42,7 +42,6 @@ type Processor struct {
 	AvifSpeed          int
 	Debug              bool
 
-	BmpFallback    bool
 	disableFilters map[string]bool
 }
 
@@ -91,10 +90,6 @@ func NewProcessor(options ...Option) *Processor {
 	if v.Concurrency == -1 {
 		v.Concurrency = runtime.NumCPU()
 	}
-	if v.BmpFallback {
-		v.FallbackFuncs = append(v.FallbackFuncs, BmpFallbackFunc)
-	}
-	v.FallbackFuncs = append(v.FallbackFuncs, BufferFallbackFunc)
 	return v
 }
 
