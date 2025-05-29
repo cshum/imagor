@@ -15,18 +15,6 @@ import (
 // FilterFunc filter handler function
 type FilterFunc func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error)
 
-// FallbackFunc vips.Image fallback handler when vips.NewImageFromSource failed
-type FallbackFunc func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error)
-
-// BufferFallbackFunc load image from buffer FallbackFunc
-func BufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
-	buf, err := blob.ReadAll()
-	if err != nil {
-		return nil, err
-	}
-	return vips.NewImageFromBuffer(buf, options)
-}
-
 // FilterMap filter handler map
 type FilterMap map[string]FilterFunc
 
@@ -36,7 +24,7 @@ var processorCount int
 // Processor implements imagor.Processor interface
 type Processor struct {
 	Filters            FilterMap
-	FallbackFunc       FallbackFunc // TODO support slices of FallbackFunc
+	FallbackFunc       FallbackFunc
 	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int
