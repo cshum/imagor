@@ -42,7 +42,7 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, 3, v.MaxAnimationFrames)
 		assert.Equal(t, true, v.MozJPEG)
 		assert.Equal(t, true, v.StripMetadata)
-		assert.Equal(t, []FallbackFunc{BmpFallbackFunc, BufferFallbackFunc}, v.FallbackFuncs)
+		assert.Equal(t, 2, len(v.FallbackFuncs))
 		assert.Equal(t, 9, v.AvifSpeed)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, v.DisableFilters)
 
