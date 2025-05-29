@@ -125,10 +125,10 @@ func (v *Processor) Startup(_ context.Context) error {
 	}
 	if v.FallbackFunc == nil {
 		if vips.HasOperation("magickload_buffer") {
-			v.FallbackFunc = BufferFallbackFunc
+			v.FallbackFunc = bufferFallbackFunc
 			v.Logger.Debug("source fallback", zap.String("fallback", "magickload_buffer"))
 		} else {
-			v.FallbackFunc = BmpFallbackFunc
+			v.FallbackFunc = v.bmpFallbackFunc
 			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 		}
 	}

@@ -12,8 +12,8 @@ import (
 // FallbackFunc vips.Image fallback handler when vips.NewImageFromSource failed
 type FallbackFunc func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error)
 
-// BufferFallbackFunc load image from buffer FallbackFunc
-func BufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
+// bufferFallbackFunc load image from buffer FallbackFunc
+func bufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
 	buf, err := blob.ReadAll()
 	if err != nil {
 		return nil, err
@@ -21,13 +21,25 @@ func BufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Ima
 	return vips.NewImageFromBuffer(buf, options)
 }
 
-func loadImageFromBMP(r io.Reader) (*vips.Image, error) {
+func estimateMaxBMPFileSize(maxResolution int64) int64 {
+	const (
+		bmpHeaderSize = 54
+		bytesPerPixel = 4   // 32-bit RGBA (worst case)
+		safetyMargin  = 1.2 // 20% buffer
+	)
+	return int64(float64(bmpHeaderSize+maxResolution*bytesPerPixel) * safetyMargin)
+}
+
+func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 	img, err := bmp.Decode(r)
 	if err != nil {
 		return nil, err
 	}
 	rect := img.Bounds()
 	size := rect.Size()
+	if !v.Unlimited && (size.X > v.MaxWidth || size.Y > v.MaxHeight || size.X*size.Y > v.MaxResolution) {
+		return nil, imagor.ErrMaxResolutionExceeded
+	}
 	rgba, ok := img.(*image.RGBA)
 	if !ok {
 		rgba = image.NewRGBA(rect)
@@ -36,9 +48,11 @@ func loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 	return vips.NewImageFromMemory(rgba.Pix, size.X, size.Y, 4)
 }
 
-func BmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error) {
+func (v *Processor) bmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error) {
 	if blob.BlobType() == imagor.BlobTypeBMP {
-		// fallback with Go BMP decoder if vips error on BMP
+		if blob.Size() > estimateMaxBMPFileSize(int64(v.MaxResolution)) {
+			return nil, imagor.ErrMaxResolutionExceeded
+		}
 		r, _, err := blob.NewReader()
 		if err != nil {
 			return nil, err
@@ -46,7 +60,7 @@ func BmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error
 		defer func() {
 			_ = r.Close()
 		}()
-		return loadImageFromBMP(r)
+		return v.loadImageFromBMP(r)
 	} else {
 		return nil, imagor.ErrUnsupportedFormat
 	}
