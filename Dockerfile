@@ -1,7 +1,7 @@
-ARG GOLANG_VERSION=1.23.4
+ARG GOLANG_VERSION=1.24.3
 FROM golang:${GOLANG_VERSION}-bookworm as builder
 
-ARG VIPS_VERSION=8.16.0
+ARG VIPS_VERSION=8.16.1
 ARG TARGETARCH
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
@@ -56,14 +56,16 @@ COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 
 # Install runtime dependencies
-RUN DEBIAN_FRONTEND=noninteractive \
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list && \
+  DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
   apt-get install --no-install-recommends -y \
   procps curl libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr-3-1-30 \
   libwebp7 libwebpmux3 libwebpdemux2 libtiff6 libexif12 libxml2 libpoppler-glib8 \
   libpango1.0-0 libmatio11 libopenslide0 libopenjp2-7 libjemalloc2 \
-  libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10 libimagequant0 libaom3 libheif1 \
+  libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10 libimagequant0 libaom3 \
   libspng0 libcgif0 && \
+  apt-get install --no-install-recommends -y -t bookworm-backports libheif1 && \
   ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
   apt-get autoclean && \

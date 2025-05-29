@@ -3,13 +3,12 @@
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/github/cshum/imagor/badge.svg?branch=master)](https://coveralls.io/github/cshum/imagor?branch=master)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
-[![GitHub Container Registry](https://ghcr-badge.egpl.dev/cshum/imagor/latest_tag?trim=major&label=ghcr.io&ignore=master,develop&color=%23007ec6)](https://github.com/cshum/imagor/pkgs/container/imagor)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cshum/imagor.svg)](https://pkg.go.dev/github.com/cshum/imagor)
 
 imagor is a fast, secure image processing server and Go library.
 
 imagor uses one of the most efficient image processing library
-[libvips](https://www.libvips.org/). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick and GraphicsMagick settings.
+[libvips](https://www.libvips.org/) with Go binding generator [vipsgen](https://github.com/cshum/vipsgen). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick settings.
 imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput.
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
@@ -477,7 +476,7 @@ It facilitates high-level image processing in a modular architecture made up of 
 
 - [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
 - [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint
-- [vips](https://pkg.go.dev/github.com/cshum/imagor/vips) - libvips C bindings with `imagor.Processor` implementation
+- [vipsprocessor](https://pkg.go.dev/github.com/cshum/imagor/processor/vipsprocessor) - [libvips](https://www.libvips.org/) processor, an `imagor.Processor` implementation using Go binding generator [vipsgen](https://github.com/cshum/vipsgen)
 - [httploader](https://pkg.go.dev/github.com/cshum/imagor/loader/httploader) - HTTP Loader, an `imagor.Loader` implementation
 - [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
 - [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
@@ -497,7 +496,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/vipsgen/vips"
 	"io"
 	"os"
 )
