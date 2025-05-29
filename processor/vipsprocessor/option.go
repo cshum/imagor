@@ -156,3 +156,17 @@ func WithMaxResolution(res int) Option {
 		}
 	}
 }
+
+// WithForceBmpFallback force with BMP fallback
+func WithForceBmpFallback() Option {
+	return func(v *Processor) {
+		v.FallbackFunc = BmpFallbackFunc
+	}
+}
+
+// WithForceBufferFallback force with buffer fallback
+func WithForceBufferFallback() Option {
+	return func(v *Processor) {
+		v.FallbackFunc = BufferFallbackFunc
+	}
+}

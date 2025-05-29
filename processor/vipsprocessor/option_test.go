@@ -26,6 +26,7 @@ func TestWithOption(t *testing.T) {
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
 			WithDisableFilters("rgb", "fill, watermark"),
+			WithForceBmpFallback(),
 			WithFilter("noop", func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 				return nil
 			}),
@@ -43,6 +44,7 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, true, v.StripMetadata)
 		assert.Equal(t, 9, v.AvifSpeed)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, v.DisableFilters)
+		assert.NotNil(t, v.FallbackFunc)
 
 	})
 	t.Run("edge options", func(t *testing.T) {

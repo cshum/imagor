@@ -122,12 +122,14 @@ func (v *Processor) Startup(_ context.Context) error {
 			ConcurrencyLevel: v.Concurrency,
 		})
 	}
-	if vips.HasOperation("magickload_buffer") {
-		v.FallbackFunc = BufferFallbackFunc
-		v.Logger.Debug("source fallback", zap.String("fallback", "magickload_buffer"))
-	} else {
-		v.FallbackFunc = BmpFallbackFunc
-		v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
+	if v.FallbackFunc == nil {
+		if vips.HasOperation("magickload_buffer") {
+			v.FallbackFunc = BufferFallbackFunc
+			v.Logger.Debug("source fallback", zap.String("fallback", "magickload_buffer"))
+		} else {
+			v.FallbackFunc = BmpFallbackFunc
+			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
+		}
 	}
 	return nil
 }
