@@ -40,6 +40,7 @@ type Processor struct {
 	MozJPEG            bool
 	StripMetadata      bool
 	AvifSpeed          int
+	Unlimited          bool
 	Debug              bool
 
 	disableFilters map[string]bool
@@ -124,10 +125,10 @@ func (v *Processor) Startup(_ context.Context) error {
 	}
 	if v.FallbackFunc == nil {
 		if vips.HasOperation("magickload_buffer") {
-			v.FallbackFunc = BufferFallbackFunc
+			v.FallbackFunc = bufferFallbackFunc
 			v.Logger.Debug("source fallback", zap.String("fallback", "magickload_buffer"))
 		} else {
-			v.FallbackFunc = BmpFallbackFunc
+			v.FallbackFunc = v.bmpFallbackFunc
 			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 		}
 	}
@@ -206,6 +207,7 @@ func (v *Processor) NewThumbnail(
 	if dpi > 0 {
 		options.Dpi = dpi
 	}
+	options.Unlimited = v.Unlimited
 	var err error
 	var img *vips.Image
 	if isMultiPage(blob, n, page) {
@@ -271,14 +273,14 @@ func (v *Processor) newThumbnailFallback(
 
 // NewImage creates new Image from imagor.Blob
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi int) (*vips.Image, error) {
-	var params = &vips.LoadOptions{}
+	var options = &vips.LoadOptions{}
 	if dpi > 0 {
-		params.Dpi = dpi
+		options.Dpi = dpi
 	}
-	params.FailOnError = false
+	options.Unlimited = v.Unlimited
 	if isMultiPage(blob, n, page) {
-		applyMultiPageOptions(params, n, page)
-		img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, params))
+		applyMultiPageOptions(options, n, page)
+		img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, options))
 		if err != nil {
 			return nil, WrapErr(err)
 		}
@@ -289,7 +291,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 		}
 		return img, nil
 	}
-	img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, params))
+	img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, options))
 	if err != nil {
 		return nil, WrapErr(err)
 	}
@@ -376,8 +378,8 @@ func (v *Processor) CheckResolution(img *vips.Image, err error) (*vips.Image, er
 	if err != nil || img == nil {
 		return img, err
 	}
-	if img.Width() > v.MaxWidth || img.PageHeight() > v.MaxHeight ||
-		(img.Width()*img.Height()) > v.MaxResolution {
+	if !v.Unlimited && (img.Width() > v.MaxWidth || img.PageHeight() > v.MaxHeight ||
+		(img.Width()*img.Height()) > v.MaxResolution) {
 		img.Close()
 		return nil, imagor.ErrMaxResolutionExceeded
 	}

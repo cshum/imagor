@@ -813,6 +813,8 @@ Usage of imagor:
         VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
   -vips-strip-metadata
         VIPS strips all metadata from the resulting image
+  -vips-unlimited
+    	VIPS bypass image max resolution check and remove all denial of service limits
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
