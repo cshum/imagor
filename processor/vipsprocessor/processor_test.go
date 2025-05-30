@@ -208,7 +208,7 @@ func TestProcessor(t *testing.T) {
 			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
 			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
 			{name: "svg", path: "test.svg", checkTypeOnly: true},
-		}, WithDebug(true), WithLogger(zap.NewExample()))
+		}, WithDebug(true), WithLogger(zap.NewExample()), WithForceBmpFallback())
 	})
 	t.Run("max frames", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden/max-frames")
@@ -309,12 +309,58 @@ func TestProcessor(t *testing.T) {
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/1000x1000/gopher-front.png", nil))
+		assert.Equal(t, 422, w.Code)
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/gopher.png", nil))
 		assert.Equal(t, 422, w.Code)
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/trim/1000x0/gopher-front.png", nil))
+		assert.Equal(t, 422, w.Code)
+	})
+
+	t.Run("resolution exceeded bmp", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithMaxResolution(150*150),
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
+		assert.Equal(t, 422, w.Code)
+	})
+	t.Run("resolution exceeded bmp 2", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithMaxHeight(199),
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
 		assert.Equal(t, 422, w.Code)
 	})
 	t.Run("resolution exceeded max frames within", func(t *testing.T) {

@@ -581,6 +581,10 @@ func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 func (v *Processor) export(
 	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
+	// check resolution before export
+	if _, err := v.CheckResolution(image, nil); err != nil {
+		return nil, err
+	}
 	switch format {
 	case vips.ImageTypePng:
 		opts := &vips.PngsaveBufferOptions{
