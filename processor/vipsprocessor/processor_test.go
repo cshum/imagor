@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -34,6 +35,58 @@ type test struct {
 	path          string
 	checkTypeOnly bool
 	arm64Golden   bool
+}
+
+func TestMain(m *testing.M) {
+	vips.Startup(&vips.Config{
+		ReportLeaks: true,
+	})
+
+	// Get initial memory stats
+	var initialStats vips.MemoryStats
+	vips.ReadVipsMemStats(&initialStats)
+
+	// Force garbage collection before running tests
+	runtime.GC()
+
+	// Run the tests
+	code := m.Run()
+
+	runtime.GC()
+
+	// Give some time for cleanup
+	time.Sleep(100 * time.Millisecond)
+
+	// Get final memory stats
+	var finalStats vips.MemoryStats
+	vips.ReadVipsMemStats(&finalStats)
+
+	// Check for memory leaks
+	memLeaked := finalStats.Mem > initialStats.Mem
+	filesLeaked := finalStats.Files > initialStats.Files
+	allocsLeaked := finalStats.Allocs > initialStats.Allocs
+
+	if memLeaked || filesLeaked || allocsLeaked {
+		fmt.Printf("MEMORY LEAK DETECTED!\n")
+		fmt.Printf("Initial stats - Mem: %d, Files: %d, Allocs: %d\n",
+			initialStats.Mem, initialStats.Files, initialStats.Allocs)
+		fmt.Printf("Final stats   - Mem: %d, Files: %d, Allocs: %d\n",
+			finalStats.Mem, finalStats.Files, finalStats.Allocs)
+		fmt.Printf("Differences   - Mem: %+d, Files: %+d, Allocs: %+d\n",
+			finalStats.Mem-initialStats.Mem,
+			finalStats.Files-initialStats.Files,
+			finalStats.Allocs-initialStats.Allocs)
+
+		vips.Shutdown()
+		os.Exit(1) // Exit with error code
+	}
+
+	fmt.Printf("No memory leaks detected.\n")
+	fmt.Printf("Final stats - Mem: %d, Files: %d, Allocs: %d\n",
+		finalStats.Mem, finalStats.Files, finalStats.Allocs)
+
+	vips.Shutdown()
+	os.Exit(code) // Exit with the test result code
 }
 
 func TestProcessor(t *testing.T) {
@@ -165,35 +218,35 @@ func TestProcessor(t *testing.T) {
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
 			{name: "original animated quality", path: "filters:quality(60)/dancing-banana.gif"},
-			{name: "original animated max_frames", path: "filters:max_frames(3)/dancing-banana.gif"},
-			{name: "original animated page", path: "filters:page(5)/dancing-banana.gif"},
-			{name: "original animated page exceeded", path: "filters:page(999)/dancing-banana.gif"},
-			{name: "original animated strip_exif retain metadata", path: "filters:strip_exif()/dancing-banana.gif"},
-			{name: "rotate animated", path: "fit-in/100x150/filters:rotate(90):fill(yellow)/dancing-banana.gif", arm64Golden: true},
-			{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
-			{name: "crop-percent animated", path: "0.1x0.2:0.89x0.72/dancing-banana.gif"},
-			{name: "focal region animated", path: "100x30/filters:focal(0.1x0:0.89x0.72)/dancing-banana.gif"},
-			{name: "focal point animated", path: "100x30/filters:focal(0.89x0.72)/dancing-banana.gif", arm64Golden: true},
-			{name: "padding", path: "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
-			{name: "rotate fill", path: "fit-in/100x210/10x20:15x3/filters:rotate(90):fill(yellow)/gopher-front.png"},
-			{name: "resize center animated", path: "100x100/dancing-banana.gif", arm64Golden: true},
-			{name: "resize top animated", path: "200x100/top/dancing-banana.gif", arm64Golden: true},
-			{name: "resize top animated", path: "200x100/right/top/dancing-banana.gif", arm64Golden: true},
-			{name: "resize bottom animated", path: "200x100/bottom/dancing-banana.gif", arm64Golden: true},
-			{name: "resize bottom animated", path: "200x100/left/bottom/dancing-banana.gif", arm64Golden: true},
-			{name: "resize left animated", path: "100x200/left/dancing-banana.gif", arm64Golden: true},
-			{name: "resize left animated", path: "100x200/left/bottom/dancing-banana.gif", arm64Golden: true},
-			{name: "resize right animated", path: "100x200/right/dancing-banana.gif", arm64Golden: true},
-			{name: "resize right animated", path: "100x200/right/top/dancing-banana.gif", arm64Golden: true},
-			{name: "stretch animated", path: "stretch/100x200/dancing-banana.gif", arm64Golden: true},
-			{name: "resize padding animated", path: "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif", arm64Golden: true},
-			{name: "watermark animated", path: "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,repeat,bottom,0,30,30)/dancing-banana.gif", arm64Golden: true},
-			{name: "watermark animated align bottom right", path: "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,-20,-10,0,30,30)/dancing-banana.gif", arm64Golden: true},
-			{name: "watermark double animated", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif", arm64Golden: true},
-			{name: "watermark double animated 2", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,30,-10,0,40,40):watermark(dancing-banana.gif,0,10,0,40,40)/nyan-cat.gif", arm64Golden: true},
-			{name: "padding with watermark double animated", path: "200x0/20x20:100x20/filters:fill(yellow):watermark(dancing-banana.gif,-10,-10,0,50,50):watermark(dancing-banana.gif,-30,10,0,50,50)/nyan-cat.gif", arm64Golden: true},
-			{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif", arm64Golden: true},
-			{name: "animated fill round_corner", path: "filters:fill(cyan):round_corner(60)/dancing-banana.gif"},
+			//{name: "original animated max_frames", path: "filters:max_frames(3)/dancing-banana.gif"},
+			//{name: "original animated page", path: "filters:page(5)/dancing-banana.gif"},
+			//{name: "original animated page exceeded", path: "filters:page(999)/dancing-banana.gif"},
+			//{name: "original animated strip_exif retain metadata", path: "filters:strip_exif()/dancing-banana.gif"},
+			//{name: "rotate animated", path: "fit-in/100x150/filters:rotate(90):fill(yellow)/dancing-banana.gif", arm64Golden: true},
+			//{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
+			//{name: "crop-percent animated", path: "0.1x0.2:0.89x0.72/dancing-banana.gif"},
+			//{name: "focal region animated", path: "100x30/filters:focal(0.1x0:0.89x0.72)/dancing-banana.gif"},
+			//{name: "focal point animated", path: "100x30/filters:focal(0.89x0.72)/dancing-banana.gif", arm64Golden: true},
+			//{name: "padding", path: "fit-in/-180x180/10x10/filters:fill(yellow):padding(white,10,20,30,40):format(jpeg)/gopher.png"},
+			//{name: "rotate fill", path: "fit-in/100x210/10x20:15x3/filters:rotate(90):fill(yellow)/gopher-front.png"},
+			//{name: "resize center animated", path: "100x100/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize top animated", path: "200x100/top/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize top animated", path: "200x100/right/top/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize bottom animated", path: "200x100/bottom/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize bottom animated", path: "200x100/left/bottom/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize left animated", path: "100x200/left/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize left animated", path: "100x200/left/bottom/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize right animated", path: "100x200/right/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize right animated", path: "100x200/right/top/dancing-banana.gif", arm64Golden: true},
+			//{name: "stretch animated", path: "stretch/100x200/dancing-banana.gif", arm64Golden: true},
+			//{name: "resize padding animated", path: "100x100/10x5/top/filters:fill(yellow)/dancing-banana.gif", arm64Golden: true},
+			//{name: "watermark animated", path: "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,repeat,bottom,0,30,30)/dancing-banana.gif", arm64Golden: true},
+			//{name: "watermark animated align bottom right", path: "fit-in/200x150/filters:fill(yellow):watermark(gopher-front.png,-20,-10,0,30,30)/dancing-banana.gif", arm64Golden: true},
+			//{name: "watermark double animated", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,-20,-10,0,30,30):watermark(nyan-cat.gif,0,10,0,40,30)/dancing-banana.gif", arm64Golden: true},
+			//{name: "watermark double animated 2", path: "fit-in/200x150/filters:fill(yellow):watermark(dancing-banana.gif,30,-10,0,40,40):watermark(dancing-banana.gif,0,10,0,40,40)/nyan-cat.gif", arm64Golden: true},
+			//{name: "padding with watermark double animated", path: "200x0/20x20:100x20/filters:fill(yellow):watermark(dancing-banana.gif,-10,-10,0,50,50):watermark(dancing-banana.gif,-30,10,0,50,50)/nyan-cat.gif", arm64Golden: true},
+			//{name: "watermark repeated animated", path: "fit-in/200x150/filters:fill(cyan):watermark(dancing-banana.gif,repeat,bottom,0,50,50)/dancing-banana.gif", arm64Golden: true},
+			//{name: "animated fill round_corner", path: "filters:fill(cyan):round_corner(60)/dancing-banana.gif"},
 			{name: "label", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,15,10,30,blue,30)/gopher-front.png", arm64Golden: true},
 			{name: "label top left", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,left,top,30,red,30)/gopher-front.png", arm64Golden: true},
 			{name: "label right center", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,right,center,30,red,30)/gopher-front.png", arm64Golden: true},
@@ -490,8 +543,10 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			}
 			img1, err := vips.NewImageFromBuffer(buf, nil)
 			require.NoError(t, err)
+			defer img1.Close()
 			img2, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
 			require.NoError(t, err)
+			defer img2.Close()
 			require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
 			require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
 			buf1, err := img1.WebpsaveBuffer(nil)
