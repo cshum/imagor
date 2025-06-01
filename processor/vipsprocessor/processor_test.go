@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
@@ -34,6 +35,58 @@ type test struct {
 	path          string
 	checkTypeOnly bool
 	arm64Golden   bool
+}
+
+func TestMain(m *testing.M) {
+	vips.Startup(&vips.Config{
+		ReportLeaks: true,
+	})
+
+	// Get initial memory stats
+	var initialStats vips.MemoryStats
+	vips.ReadVipsMemStats(&initialStats)
+
+	// Force garbage collection before running tests
+	runtime.GC()
+
+	// Run the tests
+	code := m.Run()
+
+	runtime.GC()
+
+	// Give some time for cleanup
+	time.Sleep(100 * time.Millisecond)
+
+	// Get final memory stats
+	var finalStats vips.MemoryStats
+	vips.ReadVipsMemStats(&finalStats)
+
+	// Check for memory leaks
+	memLeaked := finalStats.Mem > initialStats.Mem
+	filesLeaked := finalStats.Files > initialStats.Files
+	allocsLeaked := finalStats.Allocs > initialStats.Allocs
+
+	if memLeaked || filesLeaked || allocsLeaked {
+		fmt.Printf("MEMORY LEAK DETECTED!\n")
+		fmt.Printf("Initial stats - Mem: %d, Files: %d, Allocs: %d\n",
+			initialStats.Mem, initialStats.Files, initialStats.Allocs)
+		fmt.Printf("Final stats   - Mem: %d, Files: %d, Allocs: %d\n",
+			finalStats.Mem, finalStats.Files, finalStats.Allocs)
+		fmt.Printf("Differences   - Mem: %+d, Files: %+d, Allocs: %+d\n",
+			finalStats.Mem-initialStats.Mem,
+			finalStats.Files-initialStats.Files,
+			finalStats.Allocs-initialStats.Allocs)
+
+		vips.Shutdown()
+		os.Exit(1) // Exit with error code
+	}
+
+	fmt.Printf("No memory leaks detected.\n")
+	fmt.Printf("Final stats - Mem: %d, Files: %d, Allocs: %d\n",
+		finalStats.Mem, finalStats.Files, finalStats.Allocs)
+
+	vips.Shutdown()
+	os.Exit(code) // Exit with the test result code
 }
 
 func TestProcessor(t *testing.T) {
@@ -490,8 +543,10 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			}
 			img1, err := vips.NewImageFromBuffer(buf, nil)
 			require.NoError(t, err)
+			defer img1.Close()
 			img2, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
 			require.NoError(t, err)
+			defer img2.Close()
 			require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
 			require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
 			buf1, err := img1.WebpsaveBuffer(nil)
