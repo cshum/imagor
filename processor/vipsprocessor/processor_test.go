@@ -222,7 +222,7 @@ func TestProcessor(t *testing.T) {
 			{name: "original animated page", path: "filters:page(5)/dancing-banana.gif"},
 			{name: "original animated page exceeded", path: "filters:page(999)/dancing-banana.gif"},
 			{name: "original animated strip_exif retain metadata", path: "filters:strip_exif()/dancing-banana.gif"},
-			//{name: "rotate animated", path: "fit-in/100x150/filters:rotate(90):fill(yellow)/dancing-banana.gif", arm64Golden: true},
+			{name: "rotate animated", path: "fit-in/100x150/filters:rotate(90):fill(yellow)/dancing-banana.gif", arm64Golden: true},
 			{name: "crop animated", path: "30x20:100x150/dancing-banana.gif"},
 			{name: "crop-percent animated", path: "0.1x0.2:0.89x0.72/dancing-banana.gif"},
 			{name: "focal region animated", path: "100x30/filters:focal(0.1x0:0.89x0.72)/dancing-banana.gif"},
