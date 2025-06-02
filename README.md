@@ -436,12 +436,6 @@ Usage:
 docker run -p 8000:8000 ghcr.io/cshum/imagor-magick:latest -imagor-unsafe -imagor-auto-webp
 ```
 
-Additional formats supported:
-- **PSD** - Adobe Photoshop files
-- **BMP** - Windows Bitmap
-- **XCF** - GIMP native format
-- Various legacy formats supported by ImageMagick
-
 We recommend using the standard imagor image for most use cases.
 
 ### Metadata and Exif
