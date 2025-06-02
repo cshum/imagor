@@ -7,7 +7,8 @@ name: docker
 
 on:
   push:
-    branches: [ "master", "develop" ]
+    branches:
+      - master
     tags: [ 'v*.*.*' ]
 
 jobs:
