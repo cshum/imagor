@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Docker Magick
+    name: Docker imagor-magick
     runs-on: ubuntu-latest
     if: github.repository == 'cshum/imagor'
     permissions:
