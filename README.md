@@ -8,7 +8,7 @@
 imagor is a fast, secure image processing server and Go library.
 
 imagor uses one of the most efficient image processing library
-[libvips](https://www.libvips.org/) with Go binding generator [vipsgen](https://github.com/cshum/vipsgen). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick settings.
+[libvips](https://github.com/libvips/libvips) with Go binding [vipsgen](https://github.com/cshum/vipsgen). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick settings.
 imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput.
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
@@ -416,6 +416,27 @@ The example URL then becomes:
 http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(testdata/gopher-front.png,repeat,bottom,0,40,40)/testdata/dancing-banana.gif
 ```
 
+### ImageMagick Support
+
+imagor uses [libvips](https://github.com/libvips/libvips) which is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than ImageMagick with better memory efficiency and security. However, there are image formats that libvips cannot handle natively, such as PSD, BMP, XCF and other legacy formats.
+
+imagor provides an ImageMagick-enabled variant that includes ImageMagick support through libvips `magickload` operation. This allows processing additional file formats but with performance and security tradeoffs.
+
+**ImageMagick is not recommended for speed, memory and security** but is capable of opening files that libvips won't support natively.
+
+#### Docker build `imagor-magick`
+
+```bash
+docker pull ghcr.io/cshum/imagor-magick:latest
+```
+
+Usage:
+
+```bash
+docker run -p 8000:8000 ghcr.io/cshum/imagor-magick:latest -imagor-unsafe -imagor-auto-webp
+```
+
+We recommend using the standard imagor image for most use cases.
 
 ### Metadata and Exif
 
