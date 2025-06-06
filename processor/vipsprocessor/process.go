@@ -697,22 +697,32 @@ func findTrim(
 		// skip animation support
 		return
 	}
+	tmp, err := img.Copy(&vips.CopyOptions{Interpretation: vips.InterpretationSrgb})
+	if err != nil {
+		return
+	}
+	defer tmp.Close()
+	if tmp.HasAlpha() {
+		if err = tmp.Flatten(&vips.FlattenOptions{Background: []float64{255, 0, 255}}); err != nil {
+			return
+		}
+	}
 	var x, y int
 	if pos == imagorpath.TrimByBottomRight {
-		x = img.Width() - 1
-		y = img.PageHeight() - 1
+		x = tmp.Width() - 1
+		y = tmp.PageHeight() - 1
 	}
 	if tolerance == 0 {
 		tolerance = 1
 	}
-	background, err := img.Getpoint(x, y, nil)
+	background, err := tmp.Getpoint(x, y, nil)
 	if err != nil {
 		return
 	}
 	if len(background) > 3 {
 		background = background[:3]
 	}
-	l, t, w, h, err = img.FindTrim(&vips.FindTrimOptions{
+	l, t, w, h, err = tmp.FindTrim(&vips.FindTrimOptions{
 		Threshold:  float64(tolerance),
 		Background: background,
 	})
