@@ -549,6 +549,10 @@ func main() {
 }
 ```
 
+### Golden Test Data
+
+imagor employs golden test data with reference images in `testdata/golden/` to validate image processing operations. Golden test data is automatically updated via CI when imagor or libvips library improves, ensuring regression testing while maintaining visual consistency.
+
 ### Configuration
 
 imagor supports command-line arguments and environment variables for the arguments equivalent in capitalized snake case, see available options `imagor -h`.
