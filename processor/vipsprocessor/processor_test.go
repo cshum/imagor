@@ -3,7 +3,13 @@ package vipsprocessor
 import (
 	"context"
 	"fmt"
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/cshum/vipsgen/vips"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,13 +20,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 var testDataDir string
@@ -372,7 +371,7 @@ func TestProcessor(t *testing.T) {
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "/unsafe/trim/1000x0/gopher-front.png", nil))
+			http.MethodGet, "/unsafe/1000x0/gopher-front.png", nil))
 		assert.Equal(t, 422, w.Code)
 	})
 
