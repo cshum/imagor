@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 var testDataDir string
@@ -35,57 +36,57 @@ type test struct {
 	arm64Golden   bool
 }
 
-//func TestMain(m *testing.M) {
-//	vips.Startup(&vips.Config{
-//		ReportLeaks: true,
-//	})
-//
-//	// Get initial memory stats
-//	var initialStats vips.MemoryStats
-//	vips.ReadVipsMemStats(&initialStats)
-//
-//	// Force garbage collection before running tests
-//	runtime.GC()
-//
-//	// Run the tests
-//	code := m.Run()
-//
-//	runtime.GC()
-//
-//	// Give some time for cleanup
-//	time.Sleep(100 * time.Millisecond)
-//
-//	// Get final memory stats
-//	var finalStats vips.MemoryStats
-//	vips.ReadVipsMemStats(&finalStats)
-//
-//	// Check for memory leaks
-//	memLeaked := finalStats.Mem > initialStats.Mem
-//	filesLeaked := finalStats.Files > initialStats.Files
-//	allocsLeaked := finalStats.Allocs > initialStats.Allocs
-//
-//	if memLeaked || filesLeaked || allocsLeaked {
-//		fmt.Printf("MEMORY LEAK DETECTED!\n")
-//		fmt.Printf("Initial stats - Mem: %d, Files: %d, Allocs: %d\n",
-//			initialStats.Mem, initialStats.Files, initialStats.Allocs)
-//		fmt.Printf("Final stats   - Mem: %d, Files: %d, Allocs: %d\n",
-//			finalStats.Mem, finalStats.Files, finalStats.Allocs)
-//		fmt.Printf("Differences   - Mem: %+d, Files: %+d, Allocs: %+d\n",
-//			finalStats.Mem-initialStats.Mem,
-//			finalStats.Files-initialStats.Files,
-//			finalStats.Allocs-initialStats.Allocs)
-//
-//		vips.Shutdown()
-//		os.Exit(1) // Exit with error code
-//	}
-//
-//	fmt.Printf("No memory leaks detected.\n")
-//	fmt.Printf("Final stats - Mem: %d, Files: %d, Allocs: %d\n",
-//		finalStats.Mem, finalStats.Files, finalStats.Allocs)
-//
-//	vips.Shutdown()
-//	os.Exit(code) // Exit with the test result code
-//}
+func TestMain(m *testing.M) {
+	vips.Startup(&vips.Config{
+		ReportLeaks: true,
+	})
+
+	// Get initial memory stats
+	var initialStats vips.MemoryStats
+	vips.ReadVipsMemStats(&initialStats)
+
+	// Force garbage collection before running tests
+	runtime.GC()
+
+	// Run the tests
+	code := m.Run()
+
+	runtime.GC()
+
+	// Give some time for cleanup
+	time.Sleep(100 * time.Millisecond)
+
+	// Get final memory stats
+	var finalStats vips.MemoryStats
+	vips.ReadVipsMemStats(&finalStats)
+
+	// Check for memory leaks
+	memLeaked := finalStats.Mem > initialStats.Mem
+	filesLeaked := finalStats.Files > initialStats.Files
+	allocsLeaked := finalStats.Allocs > initialStats.Allocs
+
+	if memLeaked || filesLeaked || allocsLeaked {
+		fmt.Printf("MEMORY LEAK DETECTED!\n")
+		fmt.Printf("Initial stats - Mem: %d, Files: %d, Allocs: %d\n",
+			initialStats.Mem, initialStats.Files, initialStats.Allocs)
+		fmt.Printf("Final stats   - Mem: %d, Files: %d, Allocs: %d\n",
+			finalStats.Mem, finalStats.Files, finalStats.Allocs)
+		fmt.Printf("Differences   - Mem: %+d, Files: %+d, Allocs: %+d\n",
+			finalStats.Mem-initialStats.Mem,
+			finalStats.Files-initialStats.Files,
+			finalStats.Allocs-initialStats.Allocs)
+
+		vips.Shutdown()
+		os.Exit(1) // Exit with error code
+	}
+
+	fmt.Printf("No memory leaks detected.\n")
+	fmt.Printf("Final stats - Mem: %d, Files: %d, Allocs: %d\n",
+		finalStats.Mem, finalStats.Files, finalStats.Allocs)
+
+	vips.Shutdown()
+	os.Exit(code) // Exit with the test result code
+}
 
 func TestProcessor(t *testing.T) {
 	v := NewProcessor(WithDebug(true))
