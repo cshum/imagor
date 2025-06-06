@@ -709,6 +709,9 @@ func findTrim(
 	if err != nil {
 		return
 	}
+	if len(background) > 3 {
+		background = background[:3]
+	}
 	l, t, w, h, err = img.FindTrim(&vips.FindTrimOptions{
 		Threshold:  float64(tolerance),
 		Background: background,
