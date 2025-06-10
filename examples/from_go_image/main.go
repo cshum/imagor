@@ -1,49 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"github.com/cshum/vipsgen/vips"
+	"image"
 	_ "image/png"
-	"io"
 	"log"
 	"net/http"
 )
 
-func getBytesFromURL(url string) ([]byte, error) {
-	// Make HTTP GET request
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP request failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Check response status
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Read entire response body into bytes
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %v", err)
-	}
-
-	return data, nil
-}
-
 func main() {
-	buf, err := getBytesFromURL("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
+	// Create a Go image
+	resp, err := http.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
 	if err != nil {
 		log.Fatalf("Failed to fetch image: %v", err)
 	}
+	defer resp.Body.Close()
+	img, _, err := image.Decode(resp.Body)
+	if err != nil {
+		log.Fatalf("Failed to create Go image: %v", err)
+	}
+	nrgba := img.(*image.NRGBA)
+	size := nrgba.Rect.Size()
 
 	// Create vips.Image from Go image
-	image, err := vips.NewImageFromBuffer(buf, nil)
+	image, err := vips.NewImageFromMemory(nrgba.Pix, size.X, size.Y, 4)
 	if err != nil {
 		log.Fatalf("Failed to load image: %v", err)
 	}
 	defer image.Close()
-	log.Printf("Loaded image: %s %dx%d\n", image.Format(), image.Width(), image.Height())
+	log.Printf("Loaded image: %dx%d\n", image.Width(), image.Height())
 	err = image.Resize(0.5, nil)
 	if err != nil {
 		log.Fatalf("Failed to resize image: %v", err)
