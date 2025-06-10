@@ -495,59 +495,70 @@ Install [libvips](https://www.libvips.org/) and enable CGO:
 - `brew install vips` for Mac
 - `CGO_CFLAGS_ALLOW=-Xpreprocessor` being set to compile Go
 
-See example below and also [examples](https://github.com/cshum/imagor/tree/master/examples) folder for various ways you can use imagor:
+See [examples](https://github.com/cshum/imagor/tree/master/examples) folder for common usage patterns. 
 
 ```go
 package main
 
 import (
-	"context"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/loader/httploader"
+	"log"
+	"net/http"
+
 	"github.com/cshum/vipsgen/vips"
-	"io"
-	"os"
 )
 
 func main() {
-	app := imagor.New(
-		imagor.WithLoaders(httploader.New()),
-		imagor.WithProcessors(vips.NewProcessor()),
-	)
-	ctx := context.Background()
-	if err := app.Startup(ctx); err != nil {
-		panic(err)
+	// Fetch an image from http.Get
+	resp, err := http.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
+	if err != nil {
+		log.Fatalf("Failed to fetch image: %v", err)
 	}
-	defer app.Shutdown(ctx)
-	blob, err := app.Serve(ctx, imagorpath.Params{
-		Image:  "https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png",
-		Width:  500,
-		Height: 500,
-		Smart:  true,
-		Filters: []imagorpath.Filter{
-			{"fill", "white"},
-			{"format", "jpg"},
-		},
+	defer resp.Body.Close()
+
+	// Create source from io.ReadCloser
+	source := vips.NewSource(resp.Body)
+	defer source.Close() // source needs to remain available during image lifetime
+
+	// Shrink-on-load via creating image from thumbnail source with options
+	image, err := vips.NewThumbnailSource(source, 800, &vips.ThumbnailSourceOptions{
+		Height: 1000,
+		FailOn: vips.FailOnError, // Fail on first error
 	})
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to load image: %v", err)
 	}
-	reader, _, err := blob.NewReader()
+	defer image.Close() // always close images to free memory
+
+	// Add a yellow border using vips_embed
+	border := 10
+	if err := image.Embed(
+		border, border,
+		image.Width()+border*2,
+		image.Height()+border*2,
+		&vips.EmbedOptions{
+			Extend:     vips.ExtendBackground,       // extend with colour from the background property
+			Background: []float64{255, 255, 0, 255}, // Yellow border
+		},
+	); err != nil {
+		log.Fatalf("Failed to add border: %v", err)
+	}
+
+	log.Printf("Processed image: %dx%d\n", image.Width(), image.Height())
+
+	// Save the result as WebP file with options
+	err = image.Webpsave("resized-gopher.webp", &vips.WebpsaveOptions{
+		Q:              85,   // Quality factor (0-100)
+		Effort:         4,    // Compression effort (0-6)
+		SmartSubsample: true, // Better chroma subsampling
+	})
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to save image as WebP: %v", err)
 	}
-	defer reader.Close()
-	file, err := os.Create("gopher.jpg")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	if _, err := io.Copy(file, reader); err != nil {
-		panic(err)
-	}
+	log.Println("Successfully saved processed images")
 }
 ```
+
+
 
 ### Golden Test Data
 
