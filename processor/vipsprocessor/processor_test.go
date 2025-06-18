@@ -3,7 +3,13 @@ package vipsprocessor
 import (
 	"context"
 	"fmt"
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/cshum/vipsgen/vips"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,13 +19,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"time"
 )
 
 var testDataDir string
@@ -34,6 +34,58 @@ type test struct {
 	path          string
 	checkTypeOnly bool
 	arm64Golden   bool
+}
+
+func TestMain(m *testing.M) {
+	vips.Startup(&vips.Config{
+		ReportLeaks: true,
+	})
+
+	// Get initial memory stats
+	var initialStats vips.MemoryStats
+	vips.ReadVipsMemStats(&initialStats)
+
+	// Force garbage collection before running tests
+	runtime.GC()
+
+	// Run the tests
+	code := m.Run()
+
+	runtime.GC()
+
+	// Give some time for cleanup
+	time.Sleep(100 * time.Millisecond)
+
+	// Get final memory stats
+	var finalStats vips.MemoryStats
+	vips.ReadVipsMemStats(&finalStats)
+
+	// Check for memory leaks
+	memLeaked := finalStats.Mem > initialStats.Mem
+	filesLeaked := finalStats.Files > initialStats.Files
+	allocsLeaked := finalStats.Allocs > initialStats.Allocs
+
+	if memLeaked || filesLeaked || allocsLeaked {
+		fmt.Printf("MEMORY LEAK DETECTED!\n")
+		fmt.Printf("Initial stats - Mem: %d, Files: %d, Allocs: %d\n",
+			initialStats.Mem, initialStats.Files, initialStats.Allocs)
+		fmt.Printf("Final stats   - Mem: %d, Files: %d, Allocs: %d\n",
+			finalStats.Mem, finalStats.Files, finalStats.Allocs)
+		fmt.Printf("Differences   - Mem: %+d, Files: %+d, Allocs: %+d\n",
+			finalStats.Mem-initialStats.Mem,
+			finalStats.Files-initialStats.Files,
+			finalStats.Allocs-initialStats.Allocs)
+
+		vips.Shutdown()
+		os.Exit(1) // Exit with error code
+	}
+
+	fmt.Printf("No memory leaks detected.\n")
+	fmt.Printf("Final stats - Mem: %d, Files: %d, Allocs: %d\n",
+		finalStats.Mem, finalStats.Files, finalStats.Allocs)
+
+	vips.Shutdown()
+	os.Exit(code) // Exit with the test result code
 }
 
 func TestProcessor(t *testing.T) {
@@ -208,7 +260,7 @@ func TestProcessor(t *testing.T) {
 			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
 			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
 			{name: "svg", path: "test.svg", checkTypeOnly: true},
-		}, WithDebug(true), WithLogger(zap.NewExample()))
+		}, WithDebug(true), WithLogger(zap.NewExample()), WithForceBmpFallback())
 	})
 	t.Run("max frames", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden/max-frames")
@@ -309,12 +361,58 @@ func TestProcessor(t *testing.T) {
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/1000x1000/gopher-front.png", nil))
+		assert.Equal(t, 422, w.Code)
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/gopher.png", nil))
 		assert.Equal(t, 422, w.Code)
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "/unsafe/trim/1000x0/gopher-front.png", nil))
+			http.MethodGet, "/unsafe/1000x0/gopher-front.png", nil))
+		assert.Equal(t, 422, w.Code)
+	})
+
+	t.Run("resolution exceeded bmp", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithMaxResolution(150*150),
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
+		assert.Equal(t, 422, w.Code)
+	})
+	t.Run("resolution exceeded bmp 2", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithMaxHeight(199),
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
 		assert.Equal(t, 422, w.Code)
 	})
 	t.Run("resolution exceeded max frames within", func(t *testing.T) {
@@ -444,8 +542,10 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			}
 			img1, err := vips.NewImageFromBuffer(buf, nil)
 			require.NoError(t, err)
+			defer img1.Close()
 			img2, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
 			require.NoError(t, err)
+			defer img2.Close()
 			require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
 			require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
 			buf1, err := img1.WebpsaveBuffer(nil)

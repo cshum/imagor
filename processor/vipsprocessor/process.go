@@ -535,14 +535,14 @@ func (v *Processor) process(
 
 // Metadata image attributes
 type Metadata struct {
-	Format      string         `json:"format"`
-	ContentType string         `json:"content_type"`
-	Width       int            `json:"width"`
-	Height      int            `json:"height"`
-	Orientation int            `json:"orientation"`
-	Pages       int            `json:"pages"`
-	Bands       int            `json:"bands"`
-	Exif        map[string]any `json:"exif"`
+	Format      string            `json:"format"`
+	ContentType string            `json:"content_type"`
+	Width       int               `json:"width"`
+	Height      int               `json:"height"`
+	Orientation int               `json:"orientation"`
+	Pages       int               `json:"pages"`
+	Bands       int               `json:"bands"`
+	Exif        map[string]string `json:"exif"`
 }
 
 func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
@@ -553,7 +553,7 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	if format == vips.ImageTypePdf {
 		pages = img.Pages()
 	}
-	exif := map[string]any{}
+	exif := map[string]string{}
 	if !stripExif {
 		exif = extractExif(img.Exif())
 	}
@@ -581,6 +581,10 @@ func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 func (v *Processor) export(
 	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
+	// check resolution before export
+	if _, err := v.CheckResolution(image, nil); err != nil {
+		return nil, err
+	}
 	switch format {
 	case vips.ImageTypePng:
 		opts := &vips.PngsaveBufferOptions{
@@ -693,19 +697,29 @@ func findTrim(
 		// skip animation support
 		return
 	}
+	tmp, err := img.Copy(&vips.CopyOptions{Interpretation: vips.InterpretationSrgb})
+	if err != nil {
+		return
+	}
+	defer tmp.Close()
+	if tmp.HasAlpha() {
+		if err = tmp.Flatten(&vips.FlattenOptions{Background: []float64{255, 0, 255}}); err != nil {
+			return
+		}
+	}
 	var x, y int
 	if pos == imagorpath.TrimByBottomRight {
-		x = img.Width() - 1
-		y = img.PageHeight() - 1
+		x = tmp.Width() - 1
+		y = tmp.PageHeight() - 1
 	}
 	if tolerance == 0 {
 		tolerance = 1
 	}
-	background, err := img.Getpoint(x, y, nil)
+	background, err := tmp.Getpoint(x, y, nil)
 	if err != nil {
 		return
 	}
-	l, t, w, h, err = img.FindTrim(&vips.FindTrimOptions{
+	l, t, w, h, err = tmp.FindTrim(&vips.FindTrimOptions{
 		Threshold:  float64(tolerance),
 		Background: background,
 	})

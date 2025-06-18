@@ -38,6 +38,8 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).")
 		vipsStripMetadata = fs.Bool("vips-strip-metadata", false,
 			"VIPS strips all metadata from the resulting image")
+		vipsUnlimited = fs.Bool("vips-unlimited", false,
+			"VIPS bypass image max resolution check and remove all denial of service limits")
 
 		logger, isDebug = cb()
 	)
@@ -57,6 +59,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithMozJPEG(*vipsMozJPEG),
 			vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
 			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
+			vipsprocessor.WithUnlimited(*vipsUnlimited),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
 		),

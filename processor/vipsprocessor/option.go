@@ -156,3 +156,17 @@ func WithMaxResolution(res int) Option {
 		}
 	}
 }
+
+// WithForceBmpFallback force with BMP fallback
+func WithForceBmpFallback() Option {
+	return func(v *Processor) {
+		v.FallbackFunc = v.bmpFallbackFunc
+	}
+}
+
+// WithUnlimited with unlimited option that remove all denial of service limits
+func WithUnlimited(unlimited bool) Option {
+	return func(v *Processor) {
+		v.Unlimited = unlimited
+	}
+}

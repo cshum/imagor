@@ -1,6 +1,10 @@
 name: test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   build:
@@ -8,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
-      VIPS_VERSION: 8.16.1
+      VIPS_VERSION: 8.17.0
       V: 6
 
     steps:
@@ -57,7 +61,6 @@ jobs:
           --strip \
           --prefix=/usr/local \
           --libdir=lib \
-          -Dgtk_doc=false \
           -Dmagick=disabled \
           -Dintrospection=disabled
           ninja -C _build
@@ -81,7 +84,7 @@ jobs:
         run: make test
 
       - name: Commit golden files
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "test: update golden files"
