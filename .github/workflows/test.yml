@@ -1,6 +1,10 @@
 name: test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   build:
@@ -8,20 +12,22 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
-      VIPS_VERSION: 8.15.3
+      VIPS_VERSION: 8.17.0
       V: 6
 
     steps:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.22
+          go-version: ^1.24
 
       - name: Check out code
         uses: actions/checkout@v2
 
       - name: Install linux dependencies
         run: |
+          # Add backports for updated libheif
+          echo "deb http://archive.ubuntu.com/ubuntu jammy-backports main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/backports.list
           sudo apt-get update
           sudo apt-get install -y \
           meson ninja-build \
@@ -29,8 +35,10 @@ jobs:
           libjpeg-turbo8-dev libimagequant-dev libfftw3-dev \
           libpoppler-glib-dev libxml2-dev \
           libopenslide-dev libcfitsio-dev liborc-0.4-dev libpango1.0-dev \
-          libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev libheif-dev \
+          libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev \
           libopenjp2-7-dev libcgif-dev
+          # Install newer libheif from backports
+          sudo apt-get install -y -t jammy-backports libheif-dev || sudo apt-get install -y libheif-dev
 
       - name: Cache libvips
         uses: actions/cache@v3
@@ -53,7 +61,6 @@ jobs:
           --strip \
           --prefix=/usr/local \
           --libdir=lib \
-          -Dgtk_doc=false \
           -Dmagick=disabled \
           -Dintrospection=disabled
           ninja -C _build
@@ -77,7 +84,7 @@ jobs:
         run: make test
 
       - name: Commit golden files
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "test: update golden files"

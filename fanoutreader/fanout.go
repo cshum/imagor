@@ -21,12 +21,12 @@ type Fanout struct {
 
 // reader io.ReadCloser spawned via Fanout
 type reader struct {
-	fanout        *Fanout
-	channel       chan []byte
-	closeChannel  chan struct{}
-	buf           []byte
-	current       int
-	readerClosed  bool
+	fanout       *Fanout
+	channel      chan []byte
+	closeChannel chan struct{}
+	buf          []byte
+	current      int
+	readerClosed bool
 }
 
 // New Fanout factory via single io.ReadCloser source with known size
@@ -48,6 +48,18 @@ func (f *Fanout) do() {
 func (f *Fanout) readAll() {
 	defer func() {
 		_ = f.source.Close()
+
+		f.lock.Lock()
+		for _, r := range f.readers {
+			if !r.readerClosed {
+				select {
+				case <-r.closeChannel:
+				default:
+					close(r.channel)
+				}
+			}
+		}
+		f.lock.Unlock()
 	}()
 	for f.current < f.size {
 		b := f.buf[f.current:]
@@ -74,7 +86,8 @@ func (f *Fanout) readAll() {
 				f.size = f.current
 			}
 		}
-		readersCopy := f.readers
+		readersCopy := make([]*reader, len(f.readers))
+		copy(readersCopy, f.readers)
 		f.lock.Unlock()
 
 		var closedReaders []*reader
@@ -109,12 +122,19 @@ func (f *Fanout) readAll() {
 // NewReader spawns new io.ReadCloser
 func (f *Fanout) NewReader() io.ReadCloser {
 	r := &reader{}
-	r.channel = make(chan []byte, f.size/4096+1)
+	// Calculate buffer size based on expected chunks, but cap it
+	bufferSize := f.size/4096 + 1
+	if bufferSize > 32 {
+		bufferSize = 32
+	}
+	r.channel = make(chan []byte, bufferSize)
 	r.closeChannel = make(chan struct{})
 	r.fanout = f
 
 	f.lock.Lock()
-	r.buf = f.buf[:f.current]
+	if f.current > 0 {
+		r.buf = f.buf[:f.current]
+	}
 	f.readers = append(f.readers, r)
 	f.lock.Unlock()
 	return r
@@ -164,6 +184,11 @@ func (r *reader) close(closeReader bool) (e error) {
 	e = r.fanout.err
 	r.fanout.lock.RUnlock()
 	r.readerClosed = closeReader
+
+	// Clear reader buffer to free memory immediately
+	if closeReader {
+		r.buf = nil
+	}
 
 	// Close channel if it's not closed yet
 	select {

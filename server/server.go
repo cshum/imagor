@@ -45,6 +45,7 @@ type Server struct {
 	CertFile        string
 	KeyFile         string
 	PathPrefix      string
+	SentryDsn       string
 	StartupTimeout  time.Duration
 	ShutdownTimeout time.Duration
 	Logger          *zap.Logger

@@ -3,7 +3,7 @@ package vipsconfig
 import (
 	"flag"
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/vips"
+	"github.com/cshum/imagor/processor/vipsprocessor"
 	"go.uber.org/zap"
 )
 
@@ -38,27 +38,30 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).")
 		vipsStripMetadata = fs.Bool("vips-strip-metadata", false,
 			"VIPS strips all metadata from the resulting image")
+		vipsUnlimited = fs.Bool("vips-unlimited", false,
+			"VIPS bypass image max resolution check and remove all denial of service limits")
 
 		logger, isDebug = cb()
 	)
 	return imagor.WithProcessors(
-		vips.NewProcessor(
-			vips.WithMaxAnimationFrames(*vipsMaxAnimationFrames),
-			vips.WithDisableBlur(*vipsDisableBlur),
-			vips.WithDisableFilters(*vipsDisableFilters),
-			vips.WithConcurrency(*vipsConcurrency),
-			vips.WithMaxCacheFiles(*vipsMaxCacheFiles),
-			vips.WithMaxCacheMem(*vipsMaxCacheMem),
-			vips.WithMaxCacheSize(*vipsMaxCacheSize),
-			vips.WithMaxFilterOps(*vipsMaxFilterOps),
-			vips.WithMaxWidth(*vipsMaxWidth),
-			vips.WithMaxHeight(*vipsMaxHeight),
-			vips.WithMaxResolution(*vipsMaxResolution),
-			vips.WithMozJPEG(*vipsMozJPEG),
-			vips.WithAvifSpeed(*vipsAvifSpeed),
-			vips.WithStripMetadata(*vipsStripMetadata),
-			vips.WithLogger(logger),
-			vips.WithDebug(isDebug),
+		vipsprocessor.NewProcessor(
+			vipsprocessor.WithMaxAnimationFrames(*vipsMaxAnimationFrames),
+			vipsprocessor.WithDisableBlur(*vipsDisableBlur),
+			vipsprocessor.WithDisableFilters(*vipsDisableFilters),
+			vipsprocessor.WithConcurrency(*vipsConcurrency),
+			vipsprocessor.WithMaxCacheFiles(*vipsMaxCacheFiles),
+			vipsprocessor.WithMaxCacheMem(*vipsMaxCacheMem),
+			vipsprocessor.WithMaxCacheSize(*vipsMaxCacheSize),
+			vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
+			vipsprocessor.WithMaxWidth(*vipsMaxWidth),
+			vipsprocessor.WithMaxHeight(*vipsMaxHeight),
+			vipsprocessor.WithMaxResolution(*vipsMaxResolution),
+			vipsprocessor.WithMozJPEG(*vipsMozJPEG),
+			vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
+			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
+			vipsprocessor.WithUnlimited(*vipsUnlimited),
+			vipsprocessor.WithLogger(logger),
+			vipsprocessor.WithDebug(isDebug),
 		),
 	)
 }

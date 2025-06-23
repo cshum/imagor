@@ -1,68 +1,63 @@
 package main
 
 import (
-	"context"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/loader/httploader"
-	"github.com/cshum/imagor/vips"
+	"fmt"
+	"github.com/cshum/vipsgen/vips"
+	_ "image/png"
 	"io"
+	"log"
 	"net/http"
-	"os"
 )
 
-func main() {
-	app := imagor.New(
-		imagor.WithLoaders(httploader.New()),
-		imagor.WithProcessors(vips.NewProcessor()),
-	)
-	ctx := context.Background()
-	if err := app.Startup(ctx); err != nil {
-		panic(err)
-	}
-	defer app.Shutdown(ctx)
-
-	buf := downloadBytes("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
-
-	// serve via image buffer
-	in := imagor.NewBlobFromBytes(buf)
-
-	out, err := app.ServeBlob(ctx, in, imagorpath.Params{
-		Width:  500,
-		Height: 500,
-		FitIn:  true,
-		Filters: []imagorpath.Filter{
-			{"fill", "yellow"},
-			{"format", "jpg"},
-		},
-	})
+func getBytesFromURL(url string) ([]byte, error) {
+	// Make HTTP GET request
+	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
-	}
-	reader, _, err := out.NewReader()
-	if err != nil {
-		panic(err)
-	}
-	defer reader.Close()
-	file, err := os.Create("gopher.jpg")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	if _, err := io.Copy(file, reader); err != nil {
-		panic(err)
-	}
-}
-
-func downloadBytes(urlpath string) []byte {
-	resp, err := http.Get(urlpath)
-	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("HTTP request failed: %v", err)
 	}
 	defer resp.Body.Close()
-	buf, err := io.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status: %s", resp.Status)
 	}
-	return buf
+
+	// Read entire response body into bytes
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %v", err)
+	}
+
+	return data, nil
+}
+
+func main() {
+	buf, err := getBytesFromURL("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
+	if err != nil {
+		log.Fatalf("Failed to fetch image: %v", err)
+	}
+
+	// Create vips.Image from Go image
+	image, err := vips.NewImageFromBuffer(buf, nil)
+	if err != nil {
+		log.Fatalf("Failed to load image: %v", err)
+	}
+	defer image.Close()
+	log.Printf("Loaded image: %s %dx%d\n", image.Format(), image.Width(), image.Height())
+	err = image.Resize(0.5, nil)
+	if err != nil {
+		log.Fatalf("Failed to resize image: %v", err)
+	}
+	err = image.Flatten(&vips.FlattenOptions{
+		Background: []float64{255, 255, 0}, // yellow background
+	})
+	if err != nil {
+		log.Fatalf("Failed to flatten image: %v", err)
+	}
+	log.Printf("Processed image: %dx%d\n", image.Width(), image.Height())
+	err = image.Jpegsave("gopher.jpg", nil)
+	if err != nil {
+		log.Fatalf("Failed to save image: %v", err)
+	}
+	log.Println("Successfully saved processed images")
 }
