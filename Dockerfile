@@ -11,16 +11,15 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/s
   DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
   apt-get install --no-install-recommends -y \
-  ca-certificates \
-  automake build-essential curl \
-  meson ninja-build pkg-config \
-  gobject-introspection gtk-doc-tools libglib2.0-dev libjpeg62-turbo-dev libpng-dev \
-  libwebp-dev libtiff-dev libexif-dev libxml2-dev libpoppler-glib-dev \
-  swig libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev libopenjp2-7-dev liblcms2-dev \
-  libgsf-1-dev libfftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev \
-  libspng-dev libcgif-dev && \
+  ca-certificates automake build-essential curl \
+  meson ninja-build pkg-config gobject-introspection gtk-doc-tools swig && \
   apt-get install --no-install-recommends -y -t bookworm-backports \
-  libheif-dev libheif-plugin-x265 libheif-plugin-aomenc libjxl-dev && \
+  libglib2.0-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libtiff-dev \
+  libexif-dev libxml2-dev libpoppler-glib-dev libpango1.0-dev libmatio-dev \
+  libopenslide-dev libcfitsio-dev libopenjp2-7-dev liblcms2-dev libgsf-1-dev \
+  libfftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev \
+  libspng-dev libcgif-dev libheif-dev libheif-plugin-x265 libheif-plugin-aomenc \
+  libjxl-dev && \
   cd /tmp && \
     curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
     tar xf vips-${VIPS_VERSION}.tar.xz && \
@@ -62,13 +61,14 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/s
   DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
   apt-get install --no-install-recommends -y \
-  procps curl libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr-3-1-30 \
-  libwebp7 libwebpmux3 libwebpdemux2 libtiff6 libexif12 libxml2 libpoppler-glib8 \
-  libpango1.0-0 libmatio11 libopenslide0 libopenjp2-7 libjemalloc2 \
-  libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10 libimagequant0 libaom3 \
-  libspng0 libcgif0 && \
+  procps curl libjemalloc2 && \
   apt-get install --no-install-recommends -y -t bookworm-backports \
-  libheif1 libheif-plugin-x265 libheif-plugin-aomenc libjxl0.7 && \
+  libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr-3-1-30 libwebp7 \
+  libwebpmux3 libwebpdemux2 libtiff6 libexif12 libxml2 libpoppler-glib8 \
+  libpango1.0-0 libmatio11 libopenslide0 libopenjp2-7 libgsf-1-114 \
+  libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10 libimagequant0 \
+  libaom3 libspng0 libcgif0 libheif1 libheif-plugin-x265 \
+  libheif-plugin-aomenc libjxl0.7 && \
   ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
   apt-get autoclean && \
