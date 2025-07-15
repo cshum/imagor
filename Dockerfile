@@ -19,7 +19,8 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/s
   swig libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev libopenjp2-7-dev liblcms2-dev \
   libgsf-1-dev libfftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev \
   libspng-dev libcgif-dev && \
-  apt-get install --no-install-recommends -y -t bookworm-backports libheif-dev libheif-plugin-x265 libheif-plugin-aomenc && \
+  apt-get install --no-install-recommends -y -t bookworm-backports \
+  libheif-dev libheif-plugin-x265 libheif-plugin-aomenc libjxl-dev && \
   cd /tmp && \
     curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
     tar xf vips-${VIPS_VERSION}.tar.xz && \
@@ -66,7 +67,8 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/s
   libpango1.0-0 libmatio11 libopenslide0 libopenjp2-7 libjemalloc2 \
   libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10 libimagequant0 libaom3 \
   libspng0 libcgif0 && \
-  apt-get install --no-install-recommends -y -t bookworm-backports libheif1 libheif-plugin-x265 libheif-plugin-aomenc && \
+  apt-get install --no-install-recommends -y -t bookworm-backports \
+  libheif1 libheif-plugin-x265 libheif-plugin-aomenc libjxl0.7 && \
   ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
   apt-get autoclean && \
