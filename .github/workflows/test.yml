@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
-      VIPS_VERSION: 8.17.0
-      V: 7
+      VIPS_VERSION: 8.17.1
+      V: 6
 
     steps:
       - name: Set up Go 1.x
