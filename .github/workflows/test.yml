@@ -42,64 +42,14 @@ jobs:
       - name: Install JPEG XL from official packages
         run: |
           # Download and install official JPEG XL packages for Ubuntu 22.04
-          # Use the correct filename format: ubuntu-22.04 (with hyphens and dots)
-          echo "Attempting to install JPEG XL packages..."
+          wget -q https://github.com/libjxl/libjxl/releases/download/v0.11.1/jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz || true
+          tar xf jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz || true
+          sudo dpkg -i libjxl_0.11.1_amd64.deb libjxl-dev_0.11.1_amd64.deb libjxl-gdk-pixbuf_0.11.1_amd64.deb libjxl-gimp-plugin_0.11.1_amd64.deb jxl_0.11.1_amd64.deb || true
+          sudo apt-get install -f -y || true
           
-          if wget -q https://github.com/libjxl/libjxl/releases/download/v0.11.1/jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz; then
-            echo "✅ Downloaded JPEG XL packages successfully"
-          
-            # Extract the package archive
-            tar xf jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz
-            echo "📦 Extracted packages"
-          
-            # Debug: Check what was actually extracted
-            echo "🔍 Checking extracted contents:"
-            ls -la
-            find . -name "*.deb" -type f
-          
-            # Find and install all .deb packages in the extracted content
-            DEB_FILES=$(find . -name "*.deb" -type f)
-            if [ -n "$DEB_FILES" ]; then
-              echo "📋 Found .deb files:"
-              echo "$DEB_FILES"
-          
-              # Install packages (allow failures for dependency resolution)
-              sudo dpkg -i $DEB_FILES || true
-              echo "🔧 Installed packages (resolving dependencies...)"
-          
-              # Fix any dependency issues
-              sudo apt-get install -f -y
-              echo "🔗 Fixed dependencies"
-          
-              # Verify installation
-              if pkg-config --exists libjxl; then
-                echo "✅ JPEG XL packages installed successfully!"
-                echo "📋 Installed version: $(pkg-config --modversion libjxl)"
-                echo "JXL_AVAILABLE=true" >> $GITHUB_ENV
-              else
-                # Check if libraries are installed even if pkg-config fails
-                if ldconfig -p | grep -q libjxl; then
-                  echo "✅ JPEG XL libraries found in system"
-                  echo "JXL_AVAILABLE=true" >> $GITHUB_ENV
-                else
-                  echo "❌ JPEG XL installation verification failed"
-                  echo "JXL_AVAILABLE=false" >> $GITHUB_ENV
-                fi
-              fi
-            else
-              echo "❌ No .deb files found in extracted archive"
-              echo "JXL_AVAILABLE=false" >> $GITHUB_ENV
-            fi
-          
-            # Clean up downloaded files
-            rm -f jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz
-            rm -rf jxl-debs-amd64-ubuntu-22.04-v0.11.1/ 2>/dev/null || true
-          
-          else
-            echo "❌ JPEG XL packages not available from official source"
-            echo "Will build libvips without JXL support"
-            echo "JXL_AVAILABLE=false" >> $GITHUB_ENV
-          fi
+          # Clean up
+          rm -f jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz
+          rm -rf jxl-debs-amd64-ubuntu-22.04-v0.11.1/ 2>/dev/null || true
 
       - name: Cache libvips
         uses: actions/cache@v3
