@@ -48,8 +48,9 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile.imagor-magick
           platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ENABLE_MAGICK=true
