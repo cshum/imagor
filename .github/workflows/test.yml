@@ -42,9 +42,9 @@ jobs:
       - name: Install JPEG XL from official packages
         run: |
           # Download and install official JPEG XL packages for Ubuntu 22.04
-          wget -q https://github.com/libjxl/libjxl/releases/download/v0.10.2/jxl-debs-amd64-ubuntu2204-v0.10.2.tar.gz
-          tar xf jxl-debs-amd64-ubuntu2204-v0.10.2.tar.gz
-          sudo dpkg -i jxl-debs-amd64-ubuntu2204-v0.10.2/*.deb || true
+          wget -q https://github.com/libjxl/libjxl/releases/download/v0.11.1/jxl-debs-amd64-ubuntu2204-v0.11.1.tar.gz
+          tar xf jxl-debs-amd64-ubuntu2204-v0.11.1.tar.gz
+          sudo dpkg -i jxl-debs-amd64-ubuntu2204-v0.11.1/*.deb || true
           sudo apt-get install -f -y
 
       - name: Cache libvips
