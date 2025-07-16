@@ -36,8 +36,16 @@ jobs:
           libpoppler-glib-dev libxml2-dev \
           libopenslide-dev libcfitsio-dev liborc-0.4-dev libpango1.0-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev \
-          libopenjp2-7-dev libcgif-dev
-          sudo apt-get install -y -t jammy-backports libheif-dev libjxl-dev
+          libopenjp2-7-dev libcgif-dev wget
+          sudo apt-get install -y -t jammy-backports libheif-dev
+
+      - name: Install JPEG XL from official packages
+        run: |
+          # Download and install official JPEG XL packages for Ubuntu 22.04
+          wget -q https://github.com/libjxl/libjxl/releases/download/v0.10.2/jxl-debs-amd64-ubuntu2204-v0.10.2.tar.gz
+          tar xf jxl-debs-amd64-ubuntu2204-v0.10.2.tar.gz
+          sudo dpkg -i jxl-debs-amd64-ubuntu2204-v0.10.2/*.deb || true
+          sudo apt-get install -f -y
 
       - name: Cache libvips
         uses: actions/cache@v3
@@ -61,6 +69,7 @@ jobs:
           --prefix=/usr/local \
           --libdir=lib \
           -Dmagick=disabled \
+          -Djpeg-xl=enabled \
           -Dintrospection=disabled
           ninja -C _build
           sudo ninja -C _build install
