@@ -13,7 +13,7 @@ jobs:
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
       VIPS_VERSION: 8.17.1
-      V: 6
+      V: 7
 
     steps:
       - name: Set up Go 1.x
