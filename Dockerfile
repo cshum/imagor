@@ -3,10 +3,11 @@ FROM golang:${GOLANG_VERSION}-bookworm as builder
 
 ARG VIPS_VERSION=8.17.1
 ARG TARGETARCH
+ARG ENABLE_MAGICK=false
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
-# Installs libvips + required libraries
+# Installs libvips + required libraries + conditionally ImageMagick
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list && \
   DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
@@ -20,6 +21,10 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/s
   libgsf-1-dev libfftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev \
   libspng-dev libcgif-dev && \
   apt-get install --no-install-recommends -y -t bookworm-backports libheif-dev libheif-plugin-x265 libheif-plugin-aomenc && \
+  # Conditionally install ImageMagick
+  if [ "$ENABLE_MAGICK" = "true" ]; then \
+    apt-get install --no-install-recommends -y libmagickwand-dev; \
+  fi && \
   cd /tmp && \
     curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
     tar xf vips-${VIPS_VERSION}.tar.xz && \
@@ -29,7 +34,7 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/s
     --strip \
     --prefix=/usr/local \
     --libdir=lib \
-    -Dmagick=disabled \
+    -Dmagick=$(if [ "$ENABLE_MAGICK" = "true" ]; then echo "enabled"; else echo "disabled"; fi) \
     -Dintrospection=disabled && \
     ninja -C _build && \
     ninja -C _build install && \
@@ -50,13 +55,15 @@ COPY . .
 RUN if [ "$TARGETARCH" = "amd64" ]; then go test ./...; fi
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim as runtime
 LABEL maintainer="adrian@cshum.com"
+
+ARG ENABLE_MAGICK=false
 
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 
-# Install runtime dependencies
+# Install runtime dependencies including conditionally ImageMagick
 RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list && \
   DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
@@ -67,6 +74,10 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/s
   libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10 libimagequant0 libaom3 \
   libspng0 libcgif0 && \
   apt-get install --no-install-recommends -y -t bookworm-backports libheif1 libheif-plugin-x265 libheif-plugin-aomenc && \
+  # Conditionally install ImageMagick runtime
+  if [ "$ENABLE_MAGICK" = "true" ]; then \
+    apt-get install --no-install-recommends -y libmagickwand-6.q16-6; \
+  fi && \
   ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
   apt-get autoclean && \
