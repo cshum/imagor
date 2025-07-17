@@ -42,14 +42,14 @@ jobs:
       - name: Install JPEG XL from official packages
         run: |
           # Download and install official JPEG XL packages for Ubuntu 22.04
-          wget -q https://github.com/libjxl/libjxl/releases/download/v0.11.1/jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz || true
-          tar xf jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz || true
-          sudo dpkg -i libjxl_0.11.1_amd64.deb libjxl-dev_0.11.1_amd64.deb libjxl-gdk-pixbuf_0.11.1_amd64.deb libjxl-gimp-plugin_0.11.1_amd64.deb jxl_0.11.1_amd64.deb || true
+          wget -q https://github.com/libjxl/libjxl/releases/download/v0.7.0/jxl-debs-amd64-ubuntu-22.04-v0.7.0.tar.gz || true
+          tar xf jxl-debs-amd64-ubuntu-22.04-v0.7.0.tar.gz || true
+          sudo dpkg -i libjxl_0.7.0_amd64.deb libjxl-dev_0.7.0_amd64.deb libjxl-gdk-pixbuf_0.7.0_amd64.deb libjxl-gimp-plugin_0.7.0_amd64.deb jxl_0.7.0_amd64.deb || true
           sudo apt-get install -f -y || true
           
           # Clean up
-          rm -f jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz
-          rm -rf jxl-debs-amd64-ubuntu-22.04-v0.11.1/ 2>/dev/null || true
+          rm -f jxl-debs-amd64-ubuntu-22.04-v0.7.0.tar.gz
+          rm -rf jxl-debs-amd64-ubuntu-22.04-v0.7.0/ 2>/dev/null || true
 
       - name: Cache libvips
         uses: actions/cache@v3
