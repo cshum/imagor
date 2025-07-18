@@ -26,11 +26,12 @@ var imageTypeMap = map[string]vips.ImageType{
 	"bmp":  vips.ImageTypeBmp,
 	"avif": vips.ImageTypeAvif,
 	"jp2":  vips.ImageTypeJp2k,
+	"jxl":  vips.ImageTypeJxl,
 }
 
 // IsAnimationSupported indicates if image type supports animation
 func IsAnimationSupported(imageType vips.ImageType) bool {
-	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp
+	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp || imageType == vips.ImageTypeJxl
 }
 
 // Process implements imagor.Processor interface
@@ -572,7 +573,7 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 
 func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 	switch format {
-	case vips.ImageTypePng, vips.ImageTypeWebp, vips.ImageTypeTiff, vips.ImageTypeGif, vips.ImageTypeAvif, vips.ImageTypeHeif, vips.ImageTypeJp2k:
+	case vips.ImageTypePng, vips.ImageTypeWebp, vips.ImageTypeTiff, vips.ImageTypeGif, vips.ImageTypeAvif, vips.ImageTypeHeif, vips.ImageTypeJp2k, vips.ImageTypeJxl:
 		return format
 	}
 	return vips.ImageTypeJpeg
@@ -605,6 +606,15 @@ func (v *Processor) export(
 			opts.Keep = vips.KeepNone
 		}
 		return image.WebpsaveBuffer(opts)
+
+	case vips.ImageTypeJxl:
+		opts := &vips.JxlsaveBufferOptions{
+			Q: quality,
+		}
+		if stripMetadata {
+			opts.Keep = vips.KeepNone
+		}
+		return image.JxlsaveBuffer(opts)
 	case vips.ImageTypeTiff:
 		opts := &vips.TiffsaveBufferOptions{
 			Q: quality,
