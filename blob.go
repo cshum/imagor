@@ -318,11 +318,11 @@ func (b *Blob) doInit() {
 			b.blobType = BlobTypePNG
 		} else if bytes.Equal(b.sniffBuf[:3], gifHeader) {
 			b.blobType = BlobTypeGIF
-		} else if bytes.Equal(b.sniffBuf[8:12], webpHeader) {
-			b.blobType = BlobTypeWEBP
 		} else if bytes.Equal(b.sniffBuf[:jxlHeaderLen], jxlHeader) ||
 			bytes.Equal(b.sniffBuf[:jxlHeaderISOBMFFLen], jxlHeaderISOBMFF) {
 			b.blobType = BlobTypeJXL
+		} else if bytes.Equal(b.sniffBuf[8:12], webpHeader) {
+			b.blobType = BlobTypeWEBP
 		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], avif) {
 			b.blobType = BlobTypeAVIF
 		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && (bytes.Equal(b.sniffBuf[8:12], heic) ||
