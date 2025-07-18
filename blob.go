@@ -405,7 +405,7 @@ func (b *Blob) IsEmpty() bool {
 // SupportsAnimation check if blob supports animation
 func (b *Blob) SupportsAnimation() bool {
 	b.init()
-	return b.blobType == BlobTypeGIF || b.blobType == BlobTypeWEBP || b.blobType == BlobTypeJXL
+	return b.blobType == BlobTypeGIF || b.blobType == BlobTypeWEBP
 }
 
 // BlobType returns BlobType

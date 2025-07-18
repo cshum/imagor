@@ -31,7 +31,7 @@ var imageTypeMap = map[string]vips.ImageType{
 
 // IsAnimationSupported indicates if image type supports animation
 func IsAnimationSupported(imageType vips.ImageType) bool {
-	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp || imageType == vips.ImageTypeJxl
+	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp
 }
 
 // Process implements imagor.Processor interface
