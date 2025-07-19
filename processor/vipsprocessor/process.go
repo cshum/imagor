@@ -606,7 +606,6 @@ func (v *Processor) export(
 			opts.Keep = vips.KeepNone
 		}
 		return image.WebpsaveBuffer(opts)
-
 	case vips.ImageTypeJxl:
 		opts := &vips.JxlsaveBufferOptions{
 			Q: quality,
