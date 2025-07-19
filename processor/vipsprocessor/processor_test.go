@@ -137,7 +137,7 @@ func TestProcessor(t *testing.T) {
 			{name: "webp", path: "fit-in/67x67/demo3.webp", arm64Golden: true},
 			{name: "tiff", path: "fit-in/67x67/gopher.tiff", arm64Golden: true},
 			{name: "tiff", path: "fit-in/67x67/dancing-banana.gif", arm64Golden: true},
-			//{name: "avif", path: "fit-in/67x67/gopher-front.avif", checkTypeOnly: true},
+			{name: "avif", path: "fit-in/67x67/gopher-front.avif", checkTypeOnly: true},
 		}, WithDebug(true), WithStripMetadata(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips strip_metadata filter", func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestProcessor(t *testing.T) {
 			{name: "webp", path: "fit-in/67x67/filters:strip_metadata()/demo3.webp", arm64Golden: true},
 			{name: "tiff", path: "fit-in/67x67/filters:strip_metadata()/gopher.tiff"},
 			{name: "gif", path: "fit-in/67x67/filters:strip_metadata()/dancing-banana.gif", arm64Golden: true},
-			//{name: "avif", path: "fit-in/67x67/filters:strip_metadata()/gopher-front.avif", checkTypeOnly: true},
+			{name: "avif", path: "fit-in/67x67/filters:strip_metadata()/gopher-front.avif", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips operations", func(t *testing.T) {
