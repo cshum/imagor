@@ -104,12 +104,14 @@ func TestProcessor(t *testing.T) {
 			{name: "jpeg", path: "fit-in/100x100/demo1.jpg"},
 			{name: "webp", path: "fit-in/100x100/demo3.webp", arm64Golden: true},
 			{name: "tiff", path: "fit-in/100x100/gopher.tiff"},
-			//{name: "avif", path: "fit-in/100x100/gopher-front.avif", checkTypeOnly: true},
+			{name: "avif", path: "fit-in/100x100/gopher-front.avif", checkTypeOnly: true},
+			{name: "jxl", path: "fit-in/100x100/jxl-isobmff.jxl"},
 			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png", arm64Golden: true},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
-			//{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
-			//{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export jxl", path: "filters:format(jxl):quality(70)/gopher-front.png"},
+			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("meta", func(t *testing.T) {
