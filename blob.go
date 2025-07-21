@@ -29,6 +29,7 @@ const (
 	BlobTypePNG
 	BlobTypeGIF
 	BlobTypeWEBP
+	BlobTypeJXL
 	BlobTypeAVIF
 	BlobTypeHEIF
 	BlobTypeTIFF
@@ -175,6 +176,15 @@ var jpm = []byte{0x6a, 0x70, 0x6D, 0x20}
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
 
+// JXL headers
+var jxlHeader = []byte("\xff\x0a")
+var jxlHeaderISOBMFF = []byte("\x00\x00\x00\x0C\x4A\x58\x4C\x20\x0D\x0A\x87\x0A")
+
+const (
+	jxlHeaderLen        = 2
+	jxlHeaderISOBMFFLen = 12
+)
+
 var jsonPrefix = []byte(`{"`)
 var (
 	svgComment       = regexp.MustCompile(`(?s)<!--.*?-->`)
@@ -308,6 +318,9 @@ func (b *Blob) doInit() {
 			b.blobType = BlobTypePNG
 		} else if bytes.Equal(b.sniffBuf[:3], gifHeader) {
 			b.blobType = BlobTypeGIF
+		} else if bytes.Equal(b.sniffBuf[:jxlHeaderLen], jxlHeader) ||
+			bytes.Equal(b.sniffBuf[:jxlHeaderISOBMFFLen], jxlHeaderISOBMFF) {
+			b.blobType = BlobTypeJXL
 		} else if bytes.Equal(b.sniffBuf[8:12], webpHeader) {
 			b.blobType = BlobTypeWEBP
 		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], avif) {
@@ -341,6 +354,8 @@ func (b *Blob) doInit() {
 			b.contentType = "image/gif"
 		case BlobTypeWEBP:
 			b.contentType = "image/webp"
+		case BlobTypeJXL:
+			b.contentType = "image/jxl"
 		case BlobTypeAVIF:
 			b.contentType = "image/avif"
 		case BlobTypeHEIF:
@@ -530,6 +545,8 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".gif"
 	case BlobTypeWEBP:
 		ext = ".webp"
+	case BlobTypeJXL:
+		ext = ".jxl"
 	case BlobTypeAVIF:
 		ext = ".avif"
 	case BlobTypeHEIF:
