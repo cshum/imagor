@@ -2,19 +2,19 @@ package s3storage
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cshum/imagor"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 func TestS3Store_Path(t *testing.T) {
@@ -103,9 +103,8 @@ func TestS3Store_Path(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sess, err := session.NewSession()
-			if err != nil {
-				t.Error(err)
+			cfg := aws.Config{
+				Region: "us-east-1",
 			}
 			var opts []Option
 			if tt.baseURI != "" {
@@ -115,7 +114,7 @@ func TestS3Store_Path(t *testing.T) {
 				opts = append(opts, WithBaseDir(tt.baseDir))
 			}
 			opts = append(opts, WithSafeChars(tt.safeChars))
-			s := New(sess, tt.bucket, opts...)
+			s := New(cfg, tt.bucket, opts...)
 			res, ok := s.Path(tt.image)
 			if res != tt.expectedPath || ok != tt.expectedOk || s.Bucket != tt.expectedBucket {
 				t.Errorf("= %s,%s,%v want %s,%s,%v", tt.bucket, res, ok, tt.expectedBucket, tt.expectedPath, tt.expectedOk)
@@ -130,28 +129,31 @@ func fakeS3Server() *httptest.Server {
 	return httptest.NewServer(faker.Server())
 }
 
-func fakeS3Session(ts *httptest.Server, bucket string) *session.Session {
-	config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
-		Endpoint:         aws.String(ts.URL),
-		Region:           aws.String("eu-central-1"),
-		DisableSSL:       aws.Bool(true),
-		S3ForcePathStyle: aws.Bool(true),
+func fakeS3Config(ts *httptest.Server, bucket string) aws.Config {
+	cfg := aws.Config{
+		Region:      "eu-central-1",
+		Credentials: credentials.NewStaticCredentialsProvider("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
+		EndpointResolver: aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
+			return aws.Endpoint{
+				URL:               ts.URL,
+				SigningRegion:     region,
+				HostnameImmutable: true,
+			}, nil
+		}),
 	}
-	// activate AWS Session only if credentials present
-	sess, err := session.NewSession(config)
-	if err != nil {
-		panic(err)
-	}
-	s3Client := s3.New(sess)
-	// Create a new bucket using the CreateBucket call.
-	_, err = s3Client.CreateBucket(&s3.CreateBucketInput{
+
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+	})
+
+	// Create a new bucket
+	_, err := client.CreateBucket(context.Background(), &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
 		panic(err)
 	}
-	return sess
+	return cfg
 }
 
 func TestCRUD(t *testing.T) {
@@ -161,7 +163,7 @@ func TestCRUD(t *testing.T) {
 	var err error
 	ctx := context.Background()
 	r := (&http.Request{}).WithContext(ctx)
-	s := New(fakeS3Session(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"))
+	s := New(fakeS3Config(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"))
 
 	_, err = s.Get(r, "/bar/fooo/asdf")
 	assert.Equal(t, imagor.ErrInvalid, err)
@@ -211,7 +213,7 @@ func TestExpiration(t *testing.T) {
 
 	var err error
 	ctx := context.Background()
-	s := New(fakeS3Session(ts, "test"), "test", WithExpiration(time.Second))
+	s := New(fakeS3Config(ts, "test"), "test", WithExpiration(time.Second))
 
 	b, _ := s.Get(&http.Request{}, "/foo/bar/asdf")
 	_, err = b.ReadAll()

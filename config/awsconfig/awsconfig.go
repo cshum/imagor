@@ -1,11 +1,13 @@
 package awsconfig
 
 import (
+	"context"
 	"flag"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/storage/s3storage"
 	"go.uber.org/zap"
@@ -100,95 +102,138 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		if *s3StorageBucket == "" && *s3LoaderBucket == "" && *s3ResultStorageBucket == "" {
 			return
 		}
-		var loaderSess, storageSess, resultStorageSess *session.Session
-		var cred = credentials.NewStaticCredentials(
-			*awsAccessKeyID, *awsSecretAccessKey, *awsSessionToken)
-		var options = session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-		}
-		if _, err := cred.Get(); err != nil {
-			cred = credentials.NewSharedCredentials("", "")
-		}
-		if _, err := cred.Get(); err == nil {
-			options.Config = aws.Config{
-				Endpoint:         s3Endpoint,
-				Region:           awsRegion,
-				Credentials:      cred,
-				S3ForcePathStyle: s3ForcePathStyle,
+
+		ctx := context.Background()
+
+		// Helper function to create S3 client with custom endpoint
+		createS3Client := func(cfg aws.Config, endpoint string) *s3.Client {
+			var options []func(*s3.Options)
+
+			if endpoint != "" {
+				options = append(options, func(o *s3.Options) {
+					o.BaseEndpoint = aws.String(endpoint)
+				})
 			}
+
+			if *s3ForcePathStyle {
+				options = append(options, func(o *s3.Options) {
+					o.UsePathStyle = true
+				})
+			}
+
+			return s3.NewFromConfig(cfg, options...)
 		}
-		var sess = session.Must(session.NewSessionWithOptions(options))
-		loaderSess = sess
-		storageSess = sess
-		resultStorageSess = sess
+
+		// Create base configuration
+		var loaderCfg, storageCfg, resultStorageCfg aws.Config
+		var err error
+
+		// Default configuration
+		defaultCfg, err := config.LoadDefaultConfig(ctx)
+		if err != nil {
+			panic(err)
+		}
+
+		// Override with explicit credentials if provided
+		if *awsAccessKeyID != "" && *awsSecretAccessKey != "" {
+			defaultCfg.Credentials = credentials.NewStaticCredentialsProvider(
+				*awsAccessKeyID, *awsSecretAccessKey, *awsSessionToken)
+		}
+		if *awsRegion != "" {
+			defaultCfg.Region = *awsRegion
+		}
+
+		// Set default configurations
+		loaderCfg = defaultCfg
+		storageCfg = defaultCfg
+		resultStorageCfg = defaultCfg
+
+		// Override loader config if specific credentials provided
 		if *awsLoaderRegion != "" && *awsLoaderAccessKeyID != "" && *awsLoaderSecretAccessKey != "" {
-			cfg := &aws.Config{
-				Endpoint: s3LoaderEndpoint,
-				Region:   awsLoaderRegion,
-				Credentials: credentials.NewStaticCredentials(
+			loaderCfg = aws.Config{
+				Region: *awsLoaderRegion,
+				Credentials: credentials.NewStaticCredentialsProvider(
 					*awsLoaderAccessKeyID, *awsLoaderSecretAccessKey, *awsLoaderSessionToken),
-				S3ForcePathStyle: s3ForcePathStyle,
 			}
-			// activate AWS Session only if credentials present
-			loaderSess = session.Must(session.NewSession(cfg))
 		}
+
+		// Override storage config if specific credentials provided
 		if *awsStorageRegion != "" && *awsStorageAccessKeyID != "" && *awsStorageSecretAccessKey != "" {
-			cfg := &aws.Config{
-				Endpoint: s3StorageEndpoint,
-				Region:   awsStorageRegion,
-				Credentials: credentials.NewStaticCredentials(
+			storageCfg = aws.Config{
+				Region: *awsStorageRegion,
+				Credentials: credentials.NewStaticCredentialsProvider(
 					*awsStorageAccessKeyID, *awsStorageSecretAccessKey, *awsStorageSessionToken),
-				S3ForcePathStyle: s3ForcePathStyle,
 			}
-			// activate AWS Session only if credentials present
-			storageSess = session.Must(session.NewSession(cfg))
 		}
+
+		// Override result storage config if specific credentials provided
 		if *awsResultStorageRegion != "" && *awsResultStorageAccessKeyID != "" && *awsResultStorageSecretAccessKey != "" {
-			cfg := &aws.Config{
-				Endpoint: s3ResultStorageEndpoint,
-				Region:   awsResultStorageRegion,
-				Credentials: credentials.NewStaticCredentials(
+			resultStorageCfg = aws.Config{
+				Region: *awsResultStorageRegion,
+				Credentials: credentials.NewStaticCredentialsProvider(
 					*awsResultStorageAccessKeyID, *awsResultStorageSecretAccessKey, *awsResultStorageSessionToken),
-				S3ForcePathStyle: s3ForcePathStyle,
 			}
-			// activate AWS Session only if credentials present
-			resultStorageSess = session.Must(session.NewSession(cfg))
 		}
-		if storageSess != nil && *s3StorageBucket != "" {
-			// activate S3 Storage only if bucket config presents
-			app.Storages = append(app.Storages,
-				s3storage.New(storageSess, *s3StorageBucket,
-					s3storage.WithPathPrefix(*s3StoragePathPrefix),
-					s3storage.WithBaseDir(*s3StorageBaseDir),
-					s3storage.WithACL(*s3StorageACL),
-					s3storage.WithSafeChars(*s3SafeChars),
-					s3storage.WithExpiration(*s3StorageExpiration),
-					s3storage.WithStorageClass(*s3StorageClass),
-				),
+
+		// Create S3 Storage instances
+		if *s3StorageBucket != "" {
+			// Determine endpoint: service-specific takes priority over global
+			endpoint := *s3StorageEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			storage := s3storage.New(storageCfg, *s3StorageBucket,
+				s3storage.WithPathPrefix(*s3StoragePathPrefix),
+				s3storage.WithBaseDir(*s3StorageBaseDir),
+				s3storage.WithACL(*s3StorageACL),
+				s3storage.WithSafeChars(*s3SafeChars),
+				s3storage.WithExpiration(*s3StorageExpiration),
+				s3storage.WithStorageClass(*s3StorageClass),
 			)
+			// Override client with custom endpoint if needed
+			storage.Client = createS3Client(storageCfg, endpoint)
+
+			app.Storages = append(app.Storages, storage)
 		}
-		if loaderSess != nil && *s3LoaderBucket != "" {
-			// activate S3 Loader only if bucket config presents
-			app.Loaders = append(app.Loaders,
-				s3storage.New(loaderSess, *s3LoaderBucket,
-					s3storage.WithPathPrefix(*s3LoaderPathPrefix),
-					s3storage.WithBaseDir(*s3LoaderBaseDir),
-					s3storage.WithSafeChars(*s3SafeChars),
-				),
+
+		if *s3LoaderBucket != "" {
+			// Determine endpoint: service-specific takes priority over global
+			endpoint := *s3LoaderEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			loader := s3storage.New(loaderCfg, *s3LoaderBucket,
+				s3storage.WithPathPrefix(*s3LoaderPathPrefix),
+				s3storage.WithBaseDir(*s3LoaderBaseDir),
+				s3storage.WithSafeChars(*s3SafeChars),
 			)
+			// Override client with custom endpoint if needed
+			loader.Client = createS3Client(loaderCfg, endpoint)
+
+			app.Loaders = append(app.Loaders, loader)
 		}
-		if resultStorageSess != nil && *s3ResultStorageBucket != "" {
-			// activate S3 ResultStorage only if bucket config presents
-			app.ResultStorages = append(app.ResultStorages,
-				s3storage.New(resultStorageSess, *s3ResultStorageBucket,
-					s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
-					s3storage.WithBaseDir(*s3ResultStorageBaseDir),
-					s3storage.WithACL(*s3ResultStorageACL),
-					s3storage.WithSafeChars(*s3SafeChars),
-					s3storage.WithExpiration(*s3ResultStorageExpiration),
-					s3storage.WithStorageClass(*s3StorageClass),
-				),
+
+		if *s3ResultStorageBucket != "" {
+			// Determine endpoint: service-specific takes priority over global
+			endpoint := *s3ResultStorageEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			resultStorage := s3storage.New(resultStorageCfg, *s3ResultStorageBucket,
+				s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
+				s3storage.WithBaseDir(*s3ResultStorageBaseDir),
+				s3storage.WithACL(*s3ResultStorageACL),
+				s3storage.WithSafeChars(*s3SafeChars),
+				s3storage.WithExpiration(*s3ResultStorageExpiration),
+				s3storage.WithStorageClass(*s3StorageClass),
 			)
+			// Override client with custom endpoint if needed
+			resultStorage.Client = createS3Client(resultStorageCfg, endpoint)
+
+			app.ResultStorages = append(app.ResultStorages, resultStorage)
 		}
 	}
 }
