@@ -105,18 +105,23 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		ctx := context.Background()
 
-		// Helper function to create endpoint resolver
-		createEndpointResolver := func(endpoint string) aws.EndpointResolver {
-			if endpoint == "" {
-				return nil
+		// Helper function to create S3 client with custom endpoint
+		createS3Client := func(cfg aws.Config, endpoint string) *s3.Client {
+			var options []func(*s3.Options)
+
+			if endpoint != "" {
+				options = append(options, func(o *s3.Options) {
+					o.BaseEndpoint = aws.String(endpoint)
+				})
 			}
-			return aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
-				return aws.Endpoint{
-					URL:               endpoint,
-					SigningRegion:     region,
-					HostnameImmutable: true,
-				}, nil
-			})
+
+			if *s3ForcePathStyle {
+				options = append(options, func(o *s3.Options) {
+					o.UsePathStyle = true
+				})
+			}
+
+			return s3.NewFromConfig(cfg, options...)
 		}
 
 		// Create base configuration
@@ -137,10 +142,6 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		if *awsRegion != "" {
 			defaultCfg.Region = *awsRegion
 		}
-		// Apply global S3 endpoint if specified
-		if *s3Endpoint != "" {
-			defaultCfg.EndpointResolver = createEndpointResolver(*s3Endpoint)
-		}
 
 		// Set default configurations
 		loaderCfg = defaultCfg
@@ -154,17 +155,6 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				Credentials: credentials.NewStaticCredentialsProvider(
 					*awsLoaderAccessKeyID, *awsLoaderSecretAccessKey, *awsLoaderSessionToken),
 			}
-			// Use loader-specific endpoint, or fall back to global endpoint
-			endpoint := *s3LoaderEndpoint
-			if endpoint == "" {
-				endpoint = *s3Endpoint
-			}
-			if endpoint != "" {
-				loaderCfg.EndpointResolver = createEndpointResolver(endpoint)
-			}
-		} else if *s3LoaderEndpoint != "" {
-			// Only override endpoint if loader-specific endpoint is provided
-			loaderCfg.EndpointResolver = createEndpointResolver(*s3LoaderEndpoint)
 		}
 
 		// Override storage config if specific credentials provided
@@ -174,17 +164,6 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				Credentials: credentials.NewStaticCredentialsProvider(
 					*awsStorageAccessKeyID, *awsStorageSecretAccessKey, *awsStorageSessionToken),
 			}
-			// Use storage-specific endpoint, or fall back to global endpoint
-			endpoint := *s3StorageEndpoint
-			if endpoint == "" {
-				endpoint = *s3Endpoint
-			}
-			if endpoint != "" {
-				storageCfg.EndpointResolver = createEndpointResolver(endpoint)
-			}
-		} else if *s3StorageEndpoint != "" {
-			// Only override endpoint if storage-specific endpoint is provided
-			storageCfg.EndpointResolver = createEndpointResolver(*s3StorageEndpoint)
 		}
 
 		// Override result storage config if specific credentials provided
@@ -194,75 +173,67 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				Credentials: credentials.NewStaticCredentialsProvider(
 					*awsResultStorageAccessKeyID, *awsResultStorageSecretAccessKey, *awsResultStorageSessionToken),
 			}
-			// Use result storage-specific endpoint, or fall back to global endpoint
-			endpoint := *s3ResultStorageEndpoint
-			if endpoint == "" {
-				endpoint = *s3Endpoint
-			}
-			if endpoint != "" {
-				resultStorageCfg.EndpointResolver = createEndpointResolver(endpoint)
-			}
-		} else if *s3ResultStorageEndpoint != "" {
-			// Only override endpoint if result storage-specific endpoint is provided
-			resultStorageCfg.EndpointResolver = createEndpointResolver(*s3ResultStorageEndpoint)
 		}
 
 		// Create S3 Storage instances
 		if *s3StorageBucket != "" {
-			app.Storages = append(app.Storages,
-				s3storage.New(storageCfg, *s3StorageBucket,
-					s3storage.WithPathPrefix(*s3StoragePathPrefix),
-					s3storage.WithBaseDir(*s3StorageBaseDir),
-					s3storage.WithACL(*s3StorageACL),
-					s3storage.WithSafeChars(*s3SafeChars),
-					s3storage.WithExpiration(*s3StorageExpiration),
-					s3storage.WithStorageClass(*s3StorageClass),
-					func(s *s3storage.S3Storage) {
-						if *s3ForcePathStyle {
-							s.Client = s3.NewFromConfig(storageCfg, func(o *s3.Options) {
-								o.UsePathStyle = true
-							})
-						}
-					},
-				),
+			// Determine endpoint: service-specific takes priority over global
+			endpoint := *s3StorageEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			storage := s3storage.New(storageCfg, *s3StorageBucket,
+				s3storage.WithPathPrefix(*s3StoragePathPrefix),
+				s3storage.WithBaseDir(*s3StorageBaseDir),
+				s3storage.WithACL(*s3StorageACL),
+				s3storage.WithSafeChars(*s3SafeChars),
+				s3storage.WithExpiration(*s3StorageExpiration),
+				s3storage.WithStorageClass(*s3StorageClass),
 			)
+			// Override client with custom endpoint if needed
+			storage.Client = createS3Client(storageCfg, endpoint)
+
+			app.Storages = append(app.Storages, storage)
 		}
 
 		if *s3LoaderBucket != "" {
-			app.Loaders = append(app.Loaders,
-				s3storage.New(loaderCfg, *s3LoaderBucket,
-					s3storage.WithPathPrefix(*s3LoaderPathPrefix),
-					s3storage.WithBaseDir(*s3LoaderBaseDir),
-					s3storage.WithSafeChars(*s3SafeChars),
-					func(s *s3storage.S3Storage) {
-						if *s3ForcePathStyle {
-							s.Client = s3.NewFromConfig(loaderCfg, func(o *s3.Options) {
-								o.UsePathStyle = true
-							})
-						}
-					},
-				),
+			// Determine endpoint: service-specific takes priority over global
+			endpoint := *s3LoaderEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			loader := s3storage.New(loaderCfg, *s3LoaderBucket,
+				s3storage.WithPathPrefix(*s3LoaderPathPrefix),
+				s3storage.WithBaseDir(*s3LoaderBaseDir),
+				s3storage.WithSafeChars(*s3SafeChars),
 			)
+			// Override client with custom endpoint if needed
+			loader.Client = createS3Client(loaderCfg, endpoint)
+
+			app.Loaders = append(app.Loaders, loader)
 		}
 
 		if *s3ResultStorageBucket != "" {
-			app.ResultStorages = append(app.ResultStorages,
-				s3storage.New(resultStorageCfg, *s3ResultStorageBucket,
-					s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
-					s3storage.WithBaseDir(*s3ResultStorageBaseDir),
-					s3storage.WithACL(*s3ResultStorageACL),
-					s3storage.WithSafeChars(*s3SafeChars),
-					s3storage.WithExpiration(*s3ResultStorageExpiration),
-					s3storage.WithStorageClass(*s3StorageClass),
-					func(s *s3storage.S3Storage) {
-						if *s3ForcePathStyle {
-							s.Client = s3.NewFromConfig(resultStorageCfg, func(o *s3.Options) {
-								o.UsePathStyle = true
-							})
-						}
-					},
-				),
+			// Determine endpoint: service-specific takes priority over global
+			endpoint := *s3ResultStorageEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			resultStorage := s3storage.New(resultStorageCfg, *s3ResultStorageBucket,
+				s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
+				s3storage.WithBaseDir(*s3ResultStorageBaseDir),
+				s3storage.WithACL(*s3ResultStorageACL),
+				s3storage.WithSafeChars(*s3SafeChars),
+				s3storage.WithExpiration(*s3ResultStorageExpiration),
+				s3storage.WithStorageClass(*s3StorageClass),
 			)
+			// Override client with custom endpoint if needed
+			resultStorage.Client = createS3Client(resultStorageCfg, endpoint)
+
+			app.ResultStorages = append(app.ResultStorages, resultStorage)
 		}
 	}
 }
