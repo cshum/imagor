@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // Option S3Storage option
@@ -38,8 +38,8 @@ func WithPathPrefix(prefix string) Option {
 
 var aclValuesMap = (func() map[string]bool {
 	m := map[string]bool{}
-	for _, acl := range s3.ObjectCannedACL_Values() {
-		m[acl] = true
+	for _, acl := range types.ObjectCannedACL("").Values() {
+		m[string(acl)] = true
 	}
 	return m
 })()
@@ -72,7 +72,7 @@ func WithExpiration(exp time.Duration) Option {
 	}
 }
 
-// WithFileStorageClass with storage storage class option
+// WithStorageClass with storage class option
 func WithStorageClass(storageClass string) Option {
 	return func(h *S3Storage) {
 		allowedStorageClasses := [6]string{"REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA",
