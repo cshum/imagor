@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 )
@@ -85,8 +86,7 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		}
 		out, err := s.Client.GetObject(ctx, input)
 		if err != nil {
-			var nsk *types.NoSuchKey
-			if errors.As(err, &nsk) {
+			if isNotFoundError(err) {
 				return nil, 0, imagor.ErrNotFound
 			}
 			return nil, 0, err
@@ -168,8 +168,7 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 	}
 	head, err := s.Client.HeadObject(ctx, input)
 	if err != nil {
-		var nsk *types.NoSuchKey
-		if errors.As(err, &nsk) {
+		if isNotFoundError(err) {
 			return nil, imagor.ErrNotFound
 		}
 		return nil, err
@@ -179,4 +178,21 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 		ETag:         *head.ETag,
 		ModifiedTime: *head.LastModified,
 	}, nil
+}
+
+// Helper function for not found errors
+func isNotFoundError(err error) bool {
+	var nsk *types.NoSuchKey
+	var nbf *types.NoSuchBucket
+	if errors.As(err, &nsk) || errors.As(err, &nbf) {
+		return true
+	}
+	var ae smithy.APIError
+	if errors.As(err, &ae) {
+		switch ae.ErrorCode() {
+		case "NoSuchKey", "NotFound":
+			return true
+		}
+	}
+	return false
 }
