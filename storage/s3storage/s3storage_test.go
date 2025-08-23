@@ -204,6 +204,9 @@ func TestCRUD(t *testing.T) {
 	_, err = b.ReadAll()
 	assert.Equal(t, imagor.ErrNotFound, err)
 
+	_, err = s.Stat(ctx, "/foo/fooo/asdf")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
 	require.NoError(t, s.Put(ctx, "/foo/boo/asdf", imagor.NewBlobFromBytes([]byte("bar"))))
 }
 
