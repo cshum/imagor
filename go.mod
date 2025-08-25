@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.87.1
 	github.com/aws/smithy-go v1.22.5
 	github.com/cshum/vipsgen v1.1.2
-	github.com/fsouza/fake-gcs-server v1.52.2
+	github.com/fsouza/fake-gcs-server v1.52.3
 	github.com/getsentry/sentry-go v0.35.1
 	github.com/johannesboyne/gofakes3 v0.0.0-20250819190956-70603d73f06f
 	github.com/peterbourgon/ff/v3 v3.4.0
@@ -31,7 +31,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.8.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/monitoring v1.24.2 // indirect
-	cloud.google.com/go/pubsub v1.50.0 // indirect
 	cloud.google.com/go/pubsub/v2 v2.0.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.29.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.53.0 // indirect
@@ -75,6 +74,7 @@ require (
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
+	go.einride.tech/aip v0.73.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.37.0 // indirect
