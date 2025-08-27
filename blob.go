@@ -3,8 +3,6 @@ package imagor
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/cshum/imagor/fanoutreader"
-	"github.com/cshum/imagor/seekstream"
 	"io"
 	"net/http"
 	"os"
@@ -12,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cshum/imagor/fanoutreader"
+	"github.com/cshum/imagor/seekstream"
 )
 
 // BlobType blob content type
