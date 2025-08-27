@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/storage/s3storage"
 	"go.uber.org/zap"
@@ -105,24 +104,6 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		ctx := context.Background()
 
-		// Helper function to create S3 client with custom endpoint
-		createS3Client := func(cfg aws.Config, endpoint string) *s3.Client {
-			var options []func(*s3.Options)
-
-			if endpoint != "" {
-				options = append(options, func(o *s3.Options) {
-					o.BaseEndpoint = aws.String(endpoint)
-				})
-			}
-
-			if *s3ForcePathStyle {
-				options = append(options, func(o *s3.Options) {
-					o.UsePathStyle = true
-				})
-			}
-
-			return s3.NewFromConfig(cfg, options...)
-		}
 
 		// Create base configuration
 		var loaderCfg, storageCfg, resultStorageCfg aws.Config
@@ -190,9 +171,9 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				s3storage.WithSafeChars(*s3SafeChars),
 				s3storage.WithExpiration(*s3StorageExpiration),
 				s3storage.WithStorageClass(*s3StorageClass),
+				s3storage.WithEndpoint(endpoint),
+				s3storage.WithForcePathStyle(*s3ForcePathStyle),
 			)
-			// Override client with custom endpoint if needed
-			storage.Client = createS3Client(storageCfg, endpoint)
 
 			app.Storages = append(app.Storages, storage)
 		}
@@ -208,9 +189,9 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				s3storage.WithPathPrefix(*s3LoaderPathPrefix),
 				s3storage.WithBaseDir(*s3LoaderBaseDir),
 				s3storage.WithSafeChars(*s3SafeChars),
+				s3storage.WithEndpoint(endpoint),
+				s3storage.WithForcePathStyle(*s3ForcePathStyle),
 			)
-			// Override client with custom endpoint if needed
-			loader.Client = createS3Client(loaderCfg, endpoint)
 
 			app.Loaders = append(app.Loaders, loader)
 		}
@@ -229,9 +210,9 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				s3storage.WithSafeChars(*s3SafeChars),
 				s3storage.WithExpiration(*s3ResultStorageExpiration),
 				s3storage.WithStorageClass(*s3StorageClass),
+				s3storage.WithEndpoint(endpoint),
+				s3storage.WithForcePathStyle(*s3ForcePathStyle),
 			)
-			// Override client with custom endpoint if needed
-			resultStorage.Client = createS3Client(resultStorageCfg, endpoint)
 
 			app.ResultStorages = append(app.ResultStorages, resultStorage)
 		}

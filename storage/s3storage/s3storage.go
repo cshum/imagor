@@ -23,12 +23,14 @@ type S3Storage struct {
 	Client *s3.Client
 	Bucket string
 
-	BaseDir      string
-	PathPrefix   string
-	ACL          string
-	SafeChars    string
-	StorageClass string
-	Expiration   time.Duration
+	BaseDir        string
+	PathPrefix     string
+	ACL            string
+	SafeChars      string
+	StorageClass   string
+	Expiration     time.Duration
+	Endpoint       string
+	ForcePathStyle bool
 
 	safeChars imagorpath.SafeChars
 }
@@ -41,7 +43,6 @@ func New(cfg aws.Config, bucket string, options ...Option) *S3Storage {
 		bucket = bucket[:idx]
 	}
 	s := &S3Storage{
-		Client: s3.NewFromConfig(cfg),
 		Bucket: bucket,
 
 		BaseDir:    baseDir,
@@ -51,6 +52,21 @@ func New(cfg aws.Config, bucket string, options ...Option) *S3Storage {
 	for _, option := range options {
 		option(s)
 	}
+
+	// Create S3 client with endpoint and path style options
+	var s3Options []func(*s3.Options)
+	if s.Endpoint != "" {
+		s3Options = append(s3Options, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(s.Endpoint)
+		})
+	}
+	if s.ForcePathStyle {
+		s3Options = append(s3Options, func(o *s3.Options) {
+			o.UsePathStyle = true
+		})
+	}
+	s.Client = s3.NewFromConfig(cfg, s3Options...)
+
 	if s.SafeChars == "--" {
 		s.safeChars = imagorpath.NewNoopSafeChars()
 	} else {
