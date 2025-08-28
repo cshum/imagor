@@ -83,7 +83,11 @@ func (s *S3Storage) Path(image string) (string, bool) {
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
+	result := filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
+	if len(result) > 0 && result[0] == '/' {
+		result = result[1:]
+	}
+	return result, true
 }
 
 // Get implements imagor.Storage interface

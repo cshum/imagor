@@ -34,7 +34,7 @@ func TestS3Store_Path(t *testing.T) {
 			bucket:         "mybucket",
 			image:          "/foo/bar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/foo/bar",
+			expectedPath:   "foo/bar",
 			expectedOk:     true,
 		},
 		{
@@ -42,7 +42,7 @@ func TestS3Store_Path(t *testing.T) {
 			bucket:         "mybucket",
 			image:          "/foo/b{:}ar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/foo/b%7B%3A%7Dar",
+			expectedPath:   "foo/b%7B%3A%7Dar",
 			expectedOk:     true,
 		},
 		{
@@ -50,7 +50,7 @@ func TestS3Store_Path(t *testing.T) {
 			bucket:         "mybucket",
 			image:          "/foo/b{:}\"ar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/foo/b{%3A}\"ar",
+			expectedPath:   "foo/b{%3A}\"ar",
 			safeChars:      "{}",
 			expectedOk:     true,
 		},
@@ -59,7 +59,7 @@ func TestS3Store_Path(t *testing.T) {
 			bucket:         "mybucket",
 			image:          "/foo/b{:}\"ar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/foo/b{:}\"ar",
+			expectedPath:   "foo/b{:}\"ar",
 			safeChars:      "--",
 			expectedOk:     true,
 		},
@@ -70,7 +70,7 @@ func TestS3Store_Path(t *testing.T) {
 			baseURI:        "/foo",
 			image:          "/foo/bar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/home/imagor/bar",
+			expectedPath:   "home/imagor/bar",
 			expectedOk:     true,
 		},
 		{
@@ -79,7 +79,7 @@ func TestS3Store_Path(t *testing.T) {
 			baseDir:        "/home/imagor",
 			image:          "/foo/bar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/home/imagor/foo/bar",
+			expectedPath:   "home/imagor/foo/bar",
 			expectedOk:     true,
 		},
 		{
@@ -97,7 +97,44 @@ func TestS3Store_Path(t *testing.T) {
 			baseURI:        "/foo",
 			image:          "/foo/bar",
 			expectedBucket: "mybucket",
-			expectedPath:   "/home/imagor/bar",
+			expectedPath:   "home/imagor/bar",
+			expectedOk:     true,
+		},
+		{
+			name:           "leading slash stripped with root base dir",
+			bucket:         "mybucket",
+			baseDir:        "/",
+			image:          "/foo/bar",
+			expectedBucket: "mybucket",
+			expectedPath:   "foo/bar",
+			expectedOk:     true,
+		},
+		{
+			name:           "leading slash stripped with nested base dir",
+			bucket:         "mybucket",
+			baseDir:        "/images",
+			image:          "/foo/bar",
+			expectedBucket: "mybucket",
+			expectedPath:   "images/foo/bar",
+			expectedOk:     true,
+		},
+		{
+			name:           "leading slash stripped with base uri and root base dir",
+			bucket:         "mybucket",
+			baseDir:        "/",
+			baseURI:        "/api",
+			image:          "/api/foo/bar",
+			expectedBucket: "mybucket",
+			expectedPath:   "foo/bar",
+			expectedOk:     true,
+		},
+		{
+			name:           "no leading slash when base dir doesn't start with slash",
+			bucket:         "mybucket",
+			baseDir:        "images",
+			image:          "/foo/bar",
+			expectedBucket: "mybucket",
+			expectedPath:   "images/foo/bar",
 			expectedOk:     true,
 		},
 	}
@@ -387,4 +424,71 @@ func TestWithForcePathStyleDefault(t *testing.T) {
 	assert.False(t, s.ForcePathStyle) // Default should be false
 	s2 := New(cfg, "test-bucket", WithForcePathStyle(true))
 	assert.True(t, s2.ForcePathStyle)
+}
+
+func TestLocalstackCompatibility(t *testing.T) {
+	cfg := aws.Config{
+		Region: "us-east-1",
+	}
+
+	tests := []struct {
+		name    string
+		bucket  string
+		baseDir string
+		baseURI string
+		image   string
+	}{
+		{
+			name:    "root base dir with simple path",
+			bucket:  "test-bucket",
+			baseDir: "/",
+			image:   "/my-image.jpg",
+		},
+		{
+			name:    "nested base dir with simple path",
+			bucket:  "test-bucket",
+			baseDir: "/images",
+			image:   "/my-image.jpg",
+		},
+		{
+			name:    "root base dir with base URI",
+			bucket:  "test-bucket",
+			baseDir: "/",
+			baseURI: "/api/v1",
+			image:   "/api/v1/my-image.jpg",
+		},
+		{
+			name:    "complex path with multiple segments",
+			bucket:  "test-bucket",
+			baseDir: "/storage/images",
+			baseURI: "/uploads",
+			image:   "/uploads/user/123/profile.jpg",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var opts []Option
+			if tt.baseDir != "" {
+				opts = append(opts, WithBaseDir(tt.baseDir))
+			}
+			if tt.baseURI != "" {
+				opts = append(opts, WithPathPrefix(tt.baseURI))
+			}
+
+			s := New(cfg, tt.bucket, opts...)
+			path, ok := s.Path(tt.image)
+
+			// Verify the path is valid
+			require.True(t, ok, "Path should be valid")
+
+			// Critical test: ensure no leading slash for Localstack compatibility
+			if len(path) > 0 {
+				assert.NotEqual(t, '/', path[0], "Path should not start with leading slash for Localstack compatibility: %s", path)
+			}
+
+			// Verify path is not empty (unless it's a root case)
+			assert.NotEmpty(t, path, "Path should not be empty")
+		})
+	}
 }
