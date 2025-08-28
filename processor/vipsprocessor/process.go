@@ -2,7 +2,6 @@ package vipsprocessor
 
 import (
 	"context"
-	"github.com/cshum/vipsgen/vips"
 	"math"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
 )
 

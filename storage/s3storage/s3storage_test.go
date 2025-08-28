@@ -234,3 +234,157 @@ func TestExpiration(t *testing.T) {
 	_, err = b.ReadAll()
 	require.ErrorIs(t, err, imagor.ErrExpired)
 }
+
+func TestWithEndpoint(t *testing.T) {
+	tests := []struct {
+		name             string
+		endpoint         string
+		expectedEndpoint string
+	}{
+		{
+			name:             "valid endpoint",
+			endpoint:         "https://s3.example.com",
+			expectedEndpoint: "https://s3.example.com",
+		},
+		{
+			name:             "valid endpoint with port",
+			endpoint:         "http://localhost:9000",
+			expectedEndpoint: "http://localhost:9000",
+		},
+		{
+			name:             "empty endpoint",
+			endpoint:         "",
+			expectedEndpoint: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := aws.Config{
+				Region: "us-east-1",
+			}
+			s := New(cfg, "test-bucket", WithEndpoint(tt.endpoint))
+			assert.Equal(t, tt.expectedEndpoint, s.Endpoint)
+		})
+	}
+}
+
+func TestWithForcePathStyle(t *testing.T) {
+	tests := []struct {
+		name                   string
+		forcePathStyle         bool
+		expectedForcePathStyle bool
+	}{
+		{
+			name:                   "force path style true",
+			forcePathStyle:         true,
+			expectedForcePathStyle: true,
+		},
+		{
+			name:                   "force path style false",
+			forcePathStyle:         false,
+			expectedForcePathStyle: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := aws.Config{
+				Region: "us-east-1",
+			}
+			s := New(cfg, "test-bucket", WithForcePathStyle(tt.forcePathStyle))
+			assert.Equal(t, tt.expectedForcePathStyle, s.ForcePathStyle)
+		})
+	}
+}
+
+func TestEndpointAndForcePathStyleIntegration(t *testing.T) {
+	ts := fakeS3Server()
+	defer ts.Close()
+
+	tests := []struct {
+		name           string
+		endpoint       string
+		forcePathStyle bool
+		bucketName     string
+	}{
+		{
+			name:           "custom endpoint with force path style",
+			endpoint:       ts.URL,
+			forcePathStyle: true,
+			bucketName:     "test-force-path",
+		},
+		{
+			name:           "custom endpoint without force path style",
+			endpoint:       ts.URL,
+			forcePathStyle: false,
+			bucketName:     "test-no-force-path",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := aws.Config{
+				Region:      "eu-central-1",
+				Credentials: credentials.NewStaticCredentialsProvider("test", "test", ""),
+			}
+
+			// Create S3Storage with custom endpoint and force path style options
+			s := New(cfg, tt.bucketName, WithEndpoint(tt.endpoint), WithForcePathStyle(tt.forcePathStyle))
+
+			// Verify the options are set correctly
+			assert.Equal(t, tt.endpoint, s.Endpoint)
+			assert.Equal(t, tt.forcePathStyle, s.ForcePathStyle)
+
+			// Verify the S3 client is created (this tests that the options don't break client creation)
+			assert.NotNil(t, s.Client)
+
+			// Test basic functionality with the configured client
+			ctx := context.Background()
+
+			// Create bucket for this test
+			_, err := s.Client.CreateBucket(ctx, &s3.CreateBucketInput{
+				Bucket: aws.String(tt.bucketName),
+			})
+			require.NoError(t, err)
+
+			// Test basic CRUD operations work with the custom configuration
+			blob := imagor.NewBlobFromBytes([]byte("test-data"))
+			err = s.Put(ctx, "/test-key", blob)
+			require.NoError(t, err)
+
+			// Verify we can retrieve the data
+			r := (&http.Request{}).WithContext(ctx)
+			retrievedBlob, err := s.Get(r, "/test-key")
+			require.NoError(t, err)
+
+			data, err := retrievedBlob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, "test-data", string(data))
+
+			// Clean up
+			err = s.Delete(ctx, "/test-key")
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestWithEndpointEmptyString(t *testing.T) {
+	cfg := aws.Config{
+		Region: "us-east-1",
+	}
+	s := New(cfg, "test-bucket")
+	originalEndpoint := s.Endpoint
+	WithEndpoint("")(s)
+	assert.Equal(t, originalEndpoint, s.Endpoint)
+}
+
+func TestWithForcePathStyleDefault(t *testing.T) {
+	cfg := aws.Config{
+		Region: "us-east-1",
+	}
+	s := New(cfg, "test-bucket")
+	assert.False(t, s.ForcePathStyle) // Default should be false
+	s2 := New(cfg, "test-bucket", WithForcePathStyle(true))
+	assert.True(t, s2.ForcePathStyle)
+}

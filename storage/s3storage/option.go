@@ -86,3 +86,19 @@ func WithStorageClass(storageClass string) Option {
 		}
 	}
 }
+
+// WithEndpoint with custom S3 endpoint option
+func WithEndpoint(endpoint string) Option {
+	return func(s *S3Storage) {
+		if endpoint != "" {
+			s.Endpoint = endpoint
+		}
+	}
+}
+
+// WithForcePathStyle with force path style option
+func WithForcePathStyle(forcePathStyle bool) Option {
+	return func(s *S3Storage) {
+		s.ForcePathStyle = forcePathStyle
+	}
+}
