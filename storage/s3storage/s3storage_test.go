@@ -133,19 +133,12 @@ func fakeS3Config(ts *httptest.Server, bucket string) aws.Config {
 	cfg := aws.Config{
 		Region:      "eu-central-1",
 		Credentials: credentials.NewStaticCredentialsProvider("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
-		EndpointResolver: aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
-			return aws.Endpoint{
-				URL:               ts.URL,
-				SigningRegion:     region,
-				HostnameImmutable: true,
-			}, nil
-		}),
 	}
-
+	// Create S3 client with test server endpoint
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(ts.URL)
 		o.UsePathStyle = true
 	})
-
 	// Create a new bucket
 	_, err := client.CreateBucket(context.Background(), &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
@@ -163,7 +156,7 @@ func TestCRUD(t *testing.T) {
 	var err error
 	ctx := context.Background()
 	r := (&http.Request{}).WithContext(ctx)
-	s := New(fakeS3Config(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"))
+	s := New(fakeS3Config(ts, "test"), "test", WithPathPrefix("/foo"), WithACL("public-read"), WithEndpoint(ts.URL), WithForcePathStyle(true))
 
 	_, err = s.Get(r, "/bar/fooo/asdf")
 	assert.Equal(t, imagor.ErrInvalid, err)
@@ -216,7 +209,7 @@ func TestExpiration(t *testing.T) {
 
 	var err error
 	ctx := context.Background()
-	s := New(fakeS3Config(ts, "test"), "test", WithExpiration(time.Second))
+	s := New(fakeS3Config(ts, "test"), "test", WithExpiration(time.Second), WithEndpoint(ts.URL), WithForcePathStyle(true))
 
 	b, _ := s.Get(&http.Request{}, "/foo/bar/asdf")
 	_, err = b.ReadAll()
