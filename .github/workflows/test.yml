@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CGO_CFLAGS_ALLOW: -Xpreprocessor
       VIPS_VERSION: 8.17.1
@@ -26,8 +26,6 @@ jobs:
 
       - name: Install linux dependencies
         run: |
-          # Add backports for updated libheif
-          echo "deb http://archive.ubuntu.com/ubuntu jammy-backports main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/backports.list
           sudo apt-get update
           sudo apt-get install -y \
           meson ninja-build \
@@ -36,20 +34,7 @@ jobs:
           libpoppler-glib-dev libxml2-dev \
           libopenslide-dev libcfitsio-dev liborc-0.4-dev libpango1.0-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev \
-          libopenjp2-7-dev libcgif-dev wget
-          sudo apt-get install -y -t jammy-backports libheif-dev
-
-      - name: Install JPEG XL from official packages
-        run: |
-          # Download and install official JPEG XL packages for Ubuntu 22.04
-          wget -q https://github.com/libjxl/libjxl/releases/download/v0.11.1/jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz || true
-          tar xf jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz || true
-          sudo dpkg -i libjxl_0.11.1_amd64.deb libjxl-dev_0.11.1_amd64.deb libjxl-gdk-pixbuf_0.11.1_amd64.deb libjxl-gimp-plugin_0.11.1_amd64.deb jxl_0.11.1_amd64.deb || true
-          sudo apt-get install -f -y || true
-          
-          # Clean up
-          rm -f jxl-debs-amd64-ubuntu-22.04-v0.11.1.tar.gz
-          rm -rf jxl-debs-amd64-ubuntu-22.04-v0.11.1/ 2>/dev/null || true
+          libopenjp2-7-dev libcgif-dev libheif-dev libjxl-dev wget
 
       - name: Cache libvips
         uses: actions/cache@v3
