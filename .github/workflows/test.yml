@@ -44,7 +44,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             imagor-test \
-            sh -c "go test -coverprofile=profile.cov \$(go list ./... | grep -v /examples/ | grep -v /cmd/)"
+            make test
 
       - name: Coveralls
         uses: shogo82148/actions-goveralls@v1
