@@ -10,7 +10,6 @@ jobs:
   test:
     name: Docker Test
     runs-on: ubuntu-24.04
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -28,7 +27,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             imagor-test \
-            sh -c "cp -r /go/src/github.com/cshum/imagor/* . && go test ./... -v"
+            go test ./... -v
 
       - name: Commit golden files
         if: github.event_name == 'pull_request'
@@ -43,7 +42,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             imagor-test \
-            sh -c "cp -r /go/src/github.com/cshum/imagor/* . && make test"
+            make test
 
       - name: Coveralls
         uses: shogo82148/actions-goveralls@v1
