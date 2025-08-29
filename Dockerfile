@@ -72,7 +72,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
   libspng0 libcgif0 libheif1 libheif-plugin-x265 libheif-plugin-aomenc libjxl0.11 && \
   # Conditionally install ImageMagick runtime
   if [ "$ENABLE_MAGICK" = "true" ]; then \
-    apt-get install --no-install-recommends -y libmagickwand-6.q16-6; \
+    apt-get install --no-install-recommends -y libmagickwand-7.q16-10; \
   fi && \
   ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
   apt-get autoremove -y && \
