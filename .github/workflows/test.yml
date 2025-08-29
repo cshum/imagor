@@ -34,7 +34,8 @@ jobs:
           libpoppler-glib-dev libxml2-dev \
           libopenslide-dev libcfitsio-dev liborc-0.4-dev libpango1.0-dev \
           libtiff5-dev libgsf-1-dev giflib-tools libwebp-dev \
-          libopenjp2-7-dev libcgif-dev libheif-dev libjxl-dev wget
+          libopenjp2-7-dev libcgif-dev libheif-dev libjxl-dev \
+          libavif-dev libaom-dev wget
 
       - name: Cache libvips
         uses: actions/cache@v3
@@ -59,6 +60,7 @@ jobs:
           --libdir=lib \
           -Dmagick=disabled \
           -Djpeg-xl=enabled \
+          -Dheif=enabled \
           -Dintrospection=disabled
           ninja -C _build
           sudo ninja -C _build install
