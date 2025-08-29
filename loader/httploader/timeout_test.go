@@ -3,13 +3,14 @@ package httploader
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cshum/imagor"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/stretchr/testify/assert"
 )
 
 func jsonStr(v interface{}) string {

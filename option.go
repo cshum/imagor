@@ -1,9 +1,10 @@
 package imagor
 
 import (
+	"time"
+
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
-	"time"
 )
 
 // Option imagor option

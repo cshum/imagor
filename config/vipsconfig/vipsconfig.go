@@ -2,6 +2,7 @@ package vipsconfig
 
 import (
 	"flag"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"go.uber.org/zap"

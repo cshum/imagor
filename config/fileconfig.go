@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/storage/filestorage"
 	"go.uber.org/zap"

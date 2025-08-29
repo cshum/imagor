@@ -7,10 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"io"
 	"math/rand"
 	"net/http"
@@ -19,6 +15,11 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestWithUnsafe(t *testing.T) {

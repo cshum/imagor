@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/cshum/vipsgen/vips"
 	"image"
 	_ "image/png"
 	"log"
 	"net/http"
+
+	"github.com/cshum/vipsgen/vips"
 )
 
 func main() {

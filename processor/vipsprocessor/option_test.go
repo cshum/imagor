@@ -2,11 +2,12 @@ package vipsprocessor
 
 import (
 	"context"
+	"runtime"
+	"testing"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
 	"github.com/stretchr/testify/assert"
-	"runtime"
-	"testing"
 )
 
 func TestWithOption(t *testing.T) {
