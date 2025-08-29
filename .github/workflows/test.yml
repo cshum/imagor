@@ -43,7 +43,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             imagor-test \
-            sh -c "cp -r /go/src/github.com/cshum/imagor/* . && go test ./... -coverprofile=profile.cov"
+            sh -c "cp -r /go/src/github.com/cshum/imagor/* . && make test"
 
       - name: Coveralls
         uses: shogo82148/actions-goveralls@v1
