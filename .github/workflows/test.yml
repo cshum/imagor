@@ -25,10 +25,10 @@ jobs:
       - name: Run tests in Docker
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}/testdata:/workspace/testdata \
-            -w /go/src/github.com/cshum/imagor \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
             imagor-test \
-            sh -c "go test ./... -v"
+            sh -c "cp -r /go/src/github.com/cshum/imagor/* . && go test ./... -v"
 
       - name: Commit golden files
         if: github.event_name == 'pull_request'
@@ -41,9 +41,9 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
-            -w /go/src/github.com/cshum/imagor \
+            -w /workspace \
             imagor-test \
-            sh -c "go test ./... -coverprofile=/workspace/profile.cov"
+            sh -c "cp -r /go/src/github.com/cshum/imagor/* . && go test ./... -coverprofile=profile.cov"
 
       - name: Coveralls
         uses: shogo82148/actions-goveralls@v1
