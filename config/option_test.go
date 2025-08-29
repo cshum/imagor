@@ -2,10 +2,11 @@ package config
 
 import (
 	"flag"
+	"testing"
+
 	"github.com/cshum/imagor"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"testing"
 )
 
 func TestApplyOptions(t *testing.T) {

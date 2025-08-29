@@ -3,17 +3,18 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type testProcessor struct {

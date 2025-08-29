@@ -3,10 +3,11 @@ package imagorpath
 import (
 	"crypto/sha256"
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseGenerate(t *testing.T) {

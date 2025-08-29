@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os"
+
 	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/config/awsconfig"
 	"github.com/cshum/imagor/config/gcloudconfig"
 	"github.com/cshum/imagor/config/vipsconfig"
-	"os"
 )
 
 func main() {

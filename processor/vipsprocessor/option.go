@@ -1,8 +1,9 @@
 package vipsprocessor
 
 import (
-	"go.uber.org/zap"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 // Option Processor option

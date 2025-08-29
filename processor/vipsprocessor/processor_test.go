@@ -3,13 +3,6 @@ package vipsprocessor
 import (
 	"context"
 	"fmt"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/cshum/vipsgen/vips"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,6 +13,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/storage/filestorage"
+	"github.com/cshum/vipsgen/vips"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 var testDataDir string

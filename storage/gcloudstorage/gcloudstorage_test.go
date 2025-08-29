@@ -2,13 +2,14 @@ package gcloudstorage
 
 import (
 	"context"
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/cshum/imagor"
 	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"testing"
-	"time"
 )
 
 func TestGCloudStorage_Path(t *testing.T) {

@@ -6,20 +6,19 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
-	"github.com/TheZeroSlave/zapsentry"
-	"github.com/getsentry/sentry-go"
-	"go.uber.org/zap/zapcore"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/cshum/imagor/metrics/prometheusmetrics"
-
+	"github.com/TheZeroSlave/zapsentry"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/server"
+	"github.com/getsentry/sentry-go"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var baseConfig = []Option{

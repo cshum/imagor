@@ -5,15 +5,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/errgroup"
 	"io"
 	"math/rand"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 func doFanoutTest(t *testing.T, do func(), n, m int) {

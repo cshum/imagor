@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/cshum/vipsgen/vips"
 	"io"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/cshum/vipsgen/vips"
 )
 
 // downloadFile helper function to download file from url

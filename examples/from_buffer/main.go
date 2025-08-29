@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/cshum/vipsgen/vips"
 	_ "image/png"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/cshum/vipsgen/vips"
 )
 
 func getBytesFromURL(url string) ([]byte, error) {

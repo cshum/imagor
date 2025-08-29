@@ -104,7 +104,6 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		ctx := context.Background()
 
-
 		// Create base configuration
 		var loaderCfg, storageCfg, resultStorageCfg aws.Config
 		var err error

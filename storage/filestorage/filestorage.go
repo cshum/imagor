@@ -2,8 +2,6 @@ package filestorage
 
 import (
 	"context"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
 	"io"
 	"net/http"
 	"os"
@@ -11,6 +9,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
 )
 
 var dotFileRegex = regexp.MustCompile("/\\.")
