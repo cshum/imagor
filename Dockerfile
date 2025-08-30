@@ -19,7 +19,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
   swig libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev libopenjp2-7-dev liblcms2-dev \
   libgsf-1-dev libfftw3-dev liborc-0.4-dev librsvg2-dev libimagequant-dev libaom-dev \
   libspng-dev libcgif-dev libheif-dev libheif-plugin-x265 libheif-plugin-aomenc libjxl-dev libavif-dev && \
-  # Conditionally install ImageMagick
   if [ "$ENABLE_MAGICK" = "true" ]; then \
     apt-get install --no-install-recommends -y libmagickwand-dev; \
   fi && \
@@ -70,7 +69,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
   libpango-1.0-0 libmatio13 libopenslide0 libopenjp2-7 libjemalloc2 \
   libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10t64 libimagequant0 libaom3 \
   libspng0 libcgif0 libheif1 libheif-plugin-x265 libheif-plugin-aomenc libjxl0.11 && \
-  # Conditionally install ImageMagick runtime
   if [ "$ENABLE_MAGICK" = "true" ]; then \
     apt-get install --no-install-recommends -y libmagickwand-7.q16-10; \
   fi && \
