@@ -58,6 +58,7 @@ func New(cfg aws.Config, bucket string, options ...Option) *S3Storage {
 	if s.Endpoint != "" {
 		s3Options = append(s3Options, func(o *s3.Options) {
 			o.BaseEndpoint = aws.String(s.Endpoint)
+			o.DisableLogOutputChecksumValidationSkipped = true
 		})
 	}
 	if s.ForcePathStyle {
