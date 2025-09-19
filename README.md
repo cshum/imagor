@@ -613,6 +613,8 @@ Usage of imagor:
         Output WebP format automatically if browser supports
   -imagor-auto-avif
         Output AVIF format automatically if browser supports (experimental)
+  -imagor-auto-jpeg
+        Output JPEG format automatically if JPEG or no specific format is requested
   -imagor-base-params string
         imagor endpoint base params that applies to all resulting images e.g. filters:watermark(example.jpg)
   -imagor-signer-type string

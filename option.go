@@ -160,6 +160,13 @@ func WithAutoAVIF(enable bool) Option {
 	}
 }
 
+// WithAutoJPEG with auto JPEG option when JPEG or no specific format is requested
+func WithAutoJPEG(enable bool) Option {
+	return func(app *Imagor) {
+		app.AutoJPEG = enable
+	}
+}
+
 // WithBasePathRedirect with base path redirect option
 func WithBasePathRedirect(url string) Option {
 	return func(app *Imagor) {
