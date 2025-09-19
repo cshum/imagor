@@ -1426,6 +1426,174 @@ func TestAutoAVIF(t *testing.T) {
 	})
 }
 
+func TestAutoJPEG(t *testing.T) {
+	factory := func(isAuto bool) *Imagor {
+		return New(
+			WithDebug(true),
+			WithUnsafe(true),
+			WithAutoJPEG(isAuto),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobFromBytes([]byte(p.Path)), nil
+			})),
+			WithDebug(true))
+	}
+
+	t.Run("supported auto img tag not enabled", func(t *testing.T) {
+		app := factory(false)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jpeg,image/png,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+	t.Run("supported auto img tag", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jpeg,image/png,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(jpeg)/abc.png", w.Body.String())
+	})
+	t.Run("supported auto fallback image/*", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/*,*/*")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, w.Body.String(), "filters:format(jpeg)/abc.png")
+	})
+	t.Run("supported auto fallback */*", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, w.Body.String(), "filters:format(jpeg)/abc.png")
+	})
+	t.Run("supported auto no accept header", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		// No Accept header set
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, w.Body.String(), "filters:format(jpeg)/abc.png")
+	})
+	t.Run("no supported no auto", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+	t.Run("explicit format no auto", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/filters:format(png)/abc.png", nil)
+		r.Header.Set("Accept", "image/jpeg,image/png,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "filters:format(png)/abc.png")
+	})
+}
+
+func TestAutoFormatPrecedence(t *testing.T) {
+	factory := func(autoAVIF, autoWebP, autoJPEG bool) *Imagor {
+		return New(
+			WithDebug(true),
+			WithUnsafe(true),
+			WithAutoAVIF(autoAVIF),
+			WithAutoWebP(autoWebP),
+			WithAutoJPEG(autoJPEG),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobFromBytes([]byte(p.Path)), nil
+			})),
+			WithDebug(true))
+	}
+
+	t.Run("AVIF takes precedence over WebP and JPEG", func(t *testing.T) {
+		app := factory(true, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/jpeg,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(avif)/abc.png", w.Body.String())
+	})
+
+	t.Run("WebP takes precedence over JPEG when AVIF not supported", func(t *testing.T) {
+		app := factory(true, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/webp,image/jpeg,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(webp)/abc.png", w.Body.String())
+	})
+
+	t.Run("JPEG fallback when AVIF and WebP not supported", func(t *testing.T) {
+		app := factory(true, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jpeg,image/png,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(jpeg)/abc.png", w.Body.String())
+	})
+
+	t.Run("JPEG only when AVIF and WebP disabled", func(t *testing.T) {
+		app := factory(false, false, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/jpeg,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(jpeg)/abc.png", w.Body.String())
+	})
+
+	t.Run("no auto format when none supported and JPEG fallback disabled", func(t *testing.T) {
+		app := factory(true, true, false)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jpeg,image/png,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+}
+
 func TestWithTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.String(), "sleep") {

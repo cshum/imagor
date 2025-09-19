@@ -82,6 +82,7 @@ type Imagor struct {
 	ProcessQueueSize       int64
 	AutoWebP               bool
 	AutoAVIF               bool
+	AutoJPEG               bool
 	ModifiedTimeCheck      bool
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
@@ -294,8 +295,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			p.Filters = append(p.Filters, f)
 		}
 	}
-	// auto WebP / AVIF
-	if !hasFormat && (app.AutoWebP || app.AutoAVIF) {
+	// auto WebP / AVIF / JPEG
+	if !hasFormat && (app.AutoWebP || app.AutoAVIF || app.AutoJPEG) {
 		accept := r.Header.Get("Accept")
 		if app.AutoAVIF && strings.Contains(accept, "image/avif") {
 			p.Filters = append(p.Filters, imagorpath.Filter{
@@ -310,6 +311,13 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				Args: "webp",
 			})
 			r.Header.Set("Imagor-Auto-Format", "webp") // response Vary: Accept header
+			isPathChanged = true
+		} else if app.AutoJPEG && (accept == "" || strings.Contains(accept, "image/jpeg") || strings.Contains(accept, "image/*") || strings.Contains(accept, "*/*")) {
+			p.Filters = append(p.Filters, imagorpath.Filter{
+				Name: "format",
+				Args: "jpeg",
+			})
+			r.Header.Set("Imagor-Auto-Format", "jpeg") // response Vary: Accept header
 			isPathChanged = true
 		}
 	}
