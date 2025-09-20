@@ -1,15 +1,16 @@
 package config
 
 import (
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
-	"time"
 )
 
 func TestDefault(t *testing.T) {
@@ -29,6 +30,7 @@ func TestDefault(t *testing.T) {
 	assert.False(t, app.ModifiedTimeCheck)
 	assert.False(t, app.AutoWebP)
 	assert.False(t, app.AutoAVIF)
+	assert.False(t, app.AutoJPEG)
 	assert.False(t, app.DisableErrorBody)
 	assert.False(t, app.DisableParamsEndpoint)
 	assert.Equal(t, time.Hour*24*7, app.CacheHeaderTTL)
@@ -48,6 +50,7 @@ func TestBasic(t *testing.T) {
 		"-imagor-unsafe",
 		"-imagor-auto-webp",
 		"-imagor-auto-avif",
+		"-imagor-auto-jpeg",
 		"-imagor-disable-error-body",
 		"-imagor-disable-params-endpoint",
 		"-imagor-request-timeout", "16s",
@@ -70,6 +73,8 @@ func TestBasic(t *testing.T) {
 	assert.True(t, app.Debug)
 	assert.True(t, app.Unsafe)
 	assert.True(t, app.AutoWebP)
+	assert.True(t, app.AutoAVIF)
+	assert.True(t, app.AutoJPEG)
 	assert.True(t, app.DisableErrorBody)
 	assert.True(t, app.DisableParamsEndpoint)
 	assert.Equal(t, "RrTsWGEXFU2s1J1mTl1j_ciO-1E=", app.Signer.Sign("bar"))

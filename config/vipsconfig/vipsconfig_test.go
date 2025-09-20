@@ -1,11 +1,12 @@
 package vipsconfig
 
 import (
+	"testing"
+
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/config"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestWithVips(t *testing.T) {

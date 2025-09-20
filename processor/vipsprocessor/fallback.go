@@ -1,12 +1,13 @@
 package vipsprocessor
 
 import (
-	"github.com/cshum/imagor"
-	"github.com/cshum/vipsgen/vips"
-	"golang.org/x/image/bmp"
 	"image"
 	"image/draw"
 	"io"
+
+	"github.com/cshum/imagor"
+	"github.com/cshum/vipsgen/vips"
+	"golang.org/x/image/bmp"
 )
 
 // FallbackFunc vips.Image fallback handler when vips.NewImageFromSource failed

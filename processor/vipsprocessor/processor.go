@@ -2,13 +2,13 @@ package vipsprocessor
 
 import (
 	"context"
-	"github.com/cshum/vipsgen/vips"
 	"math"
 	"runtime"
 	"strings"
 	"sync"
 
 	"github.com/cshum/imagor"
+	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
 )
 

@@ -3,12 +3,13 @@ package vipsprocessor
 import (
 	"context"
 	"fmt"
-	"github.com/cshum/vipsgen/vips"
 	"image/color"
 	"math"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/cshum/vipsgen/vips"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"

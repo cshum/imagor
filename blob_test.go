@@ -91,6 +91,13 @@ func TestBlobTypes(t *testing.T) {
 			supportsAnimation: true,
 		},
 		{
+			name:        "jxl",
+			path:        "jxl-isobmff.jxl",
+			contentType: "image/jxl",
+			extension:   ".jxl",
+			bytesType:   BlobTypeJXL,
+		},
+		{
 			name:        "avif",
 			path:        "gopher-front.avif",
 			contentType: "image/avif",

@@ -2,14 +2,15 @@ package filestorage
 
 import (
 	"context"
-	"github.com/cshum/imagor"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/cshum/imagor"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFileStore_Path(t *testing.T) {

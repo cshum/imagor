@@ -3,7 +3,6 @@ package vipsprocessor
 import (
 	"context"
 	"fmt"
-	"github.com/cshum/vipsgen/vips"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,10 +12,12 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/storage/filestorage"
+	"github.com/cshum/vipsgen/vips"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -36,6 +37,58 @@ type test struct {
 	arm64Golden   bool
 }
 
+func TestMain(m *testing.M) {
+	vips.Startup(&vips.Config{
+		ReportLeaks: true,
+	})
+
+	// Get initial memory stats
+	var initialStats vips.MemoryStats
+	vips.ReadVipsMemStats(&initialStats)
+
+	// Force garbage collection before running tests
+	runtime.GC()
+
+	// Run the tests
+	code := m.Run()
+
+	runtime.GC()
+
+	// Give some time for cleanup
+	time.Sleep(100 * time.Millisecond)
+
+	// Get final memory stats
+	var finalStats vips.MemoryStats
+	vips.ReadVipsMemStats(&finalStats)
+
+	// Check for memory leaks
+	memLeaked := finalStats.Mem > initialStats.Mem
+	filesLeaked := finalStats.Files > initialStats.Files
+	allocsLeaked := finalStats.Allocs > initialStats.Allocs
+
+	if memLeaked || filesLeaked || allocsLeaked {
+		fmt.Printf("MEMORY LEAK DETECTED!\n")
+		fmt.Printf("Initial stats - Mem: %d, Files: %d, Allocs: %d\n",
+			initialStats.Mem, initialStats.Files, initialStats.Allocs)
+		fmt.Printf("Final stats   - Mem: %d, Files: %d, Allocs: %d\n",
+			finalStats.Mem, finalStats.Files, finalStats.Allocs)
+		fmt.Printf("Differences   - Mem: %+d, Files: %+d, Allocs: %+d\n",
+			finalStats.Mem-initialStats.Mem,
+			finalStats.Files-initialStats.Files,
+			finalStats.Allocs-initialStats.Allocs)
+
+		vips.Shutdown()
+		os.Exit(1) // Exit with error code
+	}
+
+	fmt.Printf("No memory leaks detected.\n")
+	fmt.Printf("Final stats - Mem: %d, Files: %d, Allocs: %d\n",
+		finalStats.Mem, finalStats.Files, finalStats.Allocs)
+
+	vips.Shutdown()
+	os.Exit(code) // Exit with the test result code
+}
+
 func TestProcessor(t *testing.T) {
 	v := NewProcessor(WithDebug(true))
 	require.NoError(t, v.Startup(context.Background()))
@@ -52,12 +105,14 @@ func TestProcessor(t *testing.T) {
 			{name: "jpeg", path: "fit-in/100x100/demo1.jpg"},
 			{name: "webp", path: "fit-in/100x100/demo3.webp", arm64Golden: true},
 			{name: "tiff", path: "fit-in/100x100/gopher.tiff"},
-			//{name: "avif", path: "fit-in/100x100/gopher-front.avif", checkTypeOnly: true},
+			{name: "avif", path: "fit-in/100x100/gopher-front.avif", checkTypeOnly: true},
+			{name: "jxl", path: "fit-in/100x100/jxl-isobmff.jxl", checkTypeOnly: true},
 			{name: "export gif", path: "filters:format(gif):quality(70)/gopher-front.png"},
 			{name: "export webp", path: "filters:format(webp):quality(70)/gopher-front.png", arm64Golden: true},
 			{name: "export tiff", path: "filters:format(tiff):quality(70)/gopher-front.png"},
-			//{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
-			//{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export jxl", path: "filters:format(jxl):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export avif", path: "filters:format(avif):quality(70)/gopher-front.png", checkTypeOnly: true},
+			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("meta", func(t *testing.T) {
@@ -83,7 +138,7 @@ func TestProcessor(t *testing.T) {
 			{name: "webp", path: "fit-in/67x67/demo3.webp", arm64Golden: true},
 			{name: "tiff", path: "fit-in/67x67/gopher.tiff", arm64Golden: true},
 			{name: "tiff", path: "fit-in/67x67/dancing-banana.gif", arm64Golden: true},
-			//{name: "avif", path: "fit-in/67x67/gopher-front.avif", checkTypeOnly: true},
+			{name: "avif", path: "fit-in/67x67/gopher-front.avif", checkTypeOnly: true},
 		}, WithDebug(true), WithStripMetadata(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips strip_metadata filter", func(t *testing.T) {
@@ -94,7 +149,7 @@ func TestProcessor(t *testing.T) {
 			{name: "webp", path: "fit-in/67x67/filters:strip_metadata()/demo3.webp", arm64Golden: true},
 			{name: "tiff", path: "fit-in/67x67/filters:strip_metadata()/gopher.tiff"},
 			{name: "gif", path: "fit-in/67x67/filters:strip_metadata()/dancing-banana.gif", arm64Golden: true},
-			//{name: "avif", path: "fit-in/67x67/filters:strip_metadata()/gopher-front.avif", checkTypeOnly: true},
+			{name: "avif", path: "fit-in/67x67/filters:strip_metadata()/gopher-front.avif", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
 	t.Run("vips operations", func(t *testing.T) {
@@ -319,7 +374,7 @@ func TestProcessor(t *testing.T) {
 
 		w = httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "/unsafe/trim/1000x0/gopher-front.png", nil))
+			http.MethodGet, "/unsafe/1000x0/gopher-front.png", nil))
 		assert.Equal(t, 422, w.Code)
 	})
 
@@ -490,8 +545,10 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			}
 			img1, err := vips.NewImageFromBuffer(buf, nil)
 			require.NoError(t, err)
+			defer img1.Close()
 			img2, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
 			require.NoError(t, err)
+			defer img2.Close()
 			require.Equal(t, img1.Width(), img2.Width(), "width mismatch")
 			require.Equal(t, img1.Height(), img2.Height(), "height mismatch")
 			buf1, err := img1.WebpsaveBuffer(nil)

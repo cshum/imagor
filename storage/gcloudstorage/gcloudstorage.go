@@ -1,16 +1,17 @@
 package gcloudstorage
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"errors"
-	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
 	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"cloud.google.com/go/storage"
+	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/imagorpath"
 )
 
 // GCloudStorage Google Cloud Storage implements imagor.Storage interface

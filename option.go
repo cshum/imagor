@@ -1,9 +1,10 @@
 package imagor
 
 import (
+	"time"
+
 	"github.com/cshum/imagor/imagorpath"
 	"go.uber.org/zap"
-	"time"
 )
 
 // Option imagor option
@@ -156,6 +157,13 @@ func WithAutoWebP(enable bool) Option {
 func WithAutoAVIF(enable bool) Option {
 	return func(app *Imagor) {
 		app.AutoAVIF = enable
+	}
+}
+
+// WithAutoJPEG with auto JPEG option when JPEG or no specific format is requested
+func WithAutoJPEG(enable bool) Option {
+	return func(app *Imagor) {
+		app.AutoJPEG = enable
 	}
 }
 
