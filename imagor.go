@@ -689,13 +689,58 @@ func (app *Imagor) debugLog() {
 }
 
 var landing = fmt.Sprintf(`
-<!doctype html>
-<html>
-	<head><title>imagor v%s</title></head>
-	<body>
-		<h1>imagor v%s</h1>
-		<p><a href="https://github.com/cshum/imagor" target="_blank">https://github.com/cshum/imagor</a></p>
-	</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>imagor v%s</title>
+	<style>
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+			margin: 0;
+			padding: 4rem 2rem 2rem;
+			min-height: 100vh;
+			display: flex;
+			align-items: flex-start;
+			justify-content: center;
+			background: #fff;
+			color: #333;
+		}
+		.container {
+			text-align: center;
+		}
+		h1 {
+			font-size: 4rem;
+			font-weight: 700;
+			margin-bottom: 0.75rem;
+			color: #333;
+		}
+		.version {
+			font-size: 1.5rem;
+			color: #666;
+			margin-bottom: 2rem;
+			font-weight: 400;
+		}
+		a {
+			color: #999;
+			text-decoration: none;
+			font-size: 1.25rem;
+			transition: color 0.2s ease;
+		}
+		a:hover {
+			color: #666;
+			text-decoration: underline;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>imagor</h1>
+		<div class="version">v%s</div>
+		<a href="https://imagor.net" target="_blank">imagor.net</a>
+	</div>
+</body>
 </html>
 `, Version, Version)
 
