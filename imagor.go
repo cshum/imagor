@@ -22,7 +22,7 @@ import (
 )
 
 // Version imagor version
-const Version = "1.5.15"
+const Version = "1.5.16"
 
 // Loader image loader interface
 type Loader interface {
@@ -475,7 +475,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 		if app.ModifiedTimeCheck && origin != nil && blob.Stat != nil {
 			var sourceStat *Stat
 			var sourceStatErr error
-			
+
 			// Try loader stat first (if no Storages configured)
 			if len(app.Storages) == 0 {
 				sourceStat, sourceStatErr = app.loaderStat(ctx, imageKey)
@@ -491,15 +491,15 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 					}
 				}
 			}
-			
+
 			// Fallback to storage stat if loader didn't work or Storages is configured
 			if (sourceStat == nil || sourceStatErr != nil) && len(app.Storages) > 0 {
 				sourceStat, sourceStatErr = app.storageStat(ctx, imageKey)
 			}
-			
+
 			if sourceStat != nil && sourceStatErr == nil {
 				if app.Debug {
-					app.Logger.Debug("modified-time-check", 
+					app.Logger.Debug("modified-time-check",
 						zap.Time("result_time", blob.Stat.ModifiedTime),
 						zap.Time("source_time", sourceStat.ModifiedTime),
 						zap.Bool("result_before_source", blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime)),
@@ -511,7 +511,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 				}
 			} else {
 				if app.Debug {
-					app.Logger.Debug("modified-time-check-failed-fallback-to-cache", 
+					app.Logger.Debug("modified-time-check-failed-fallback-to-cache",
 						zap.Bool("has_source_stat", sourceStat != nil),
 						zap.Error(sourceStatErr),
 						zap.String("image_key", imageKey))
@@ -522,7 +522,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 			}
 		} else {
 			if app.Debug && app.ModifiedTimeCheck {
-				app.Logger.Debug("modified-time-check-skipped", 
+				app.Logger.Debug("modified-time-check-skipped",
 					zap.Bool("has_origin", origin != nil),
 					zap.Bool("has_blob_stat", blob.Stat != nil),
 					zap.String("result_key", resultKey))
