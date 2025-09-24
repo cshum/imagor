@@ -44,6 +44,11 @@ type Storage interface {
 	Delete(ctx context.Context, key string) error
 }
 
+// Stater optional interface for loaders that support stat operations
+type Stater interface {
+	Stat(ctx context.Context, key string) (*Stat, error)
+}
+
 // LoadFunc function handler for Processor to call loader
 type LoadFunc func(string) (*Blob, error)
 
@@ -468,12 +473,60 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 	blob, origin, err := fromStorages(r, app.ResultStorages, resultKey)
 	if err == nil && !isBlobEmpty(blob) {
 		if app.ModifiedTimeCheck && origin != nil && blob.Stat != nil {
-			if sourceStat, err2 := app.storageStat(ctx, imageKey); sourceStat != nil && err2 == nil {
+			var sourceStat *Stat
+			var sourceStatErr error
+			
+			// Try loader stat first (if no Storages configured)
+			if len(app.Storages) == 0 {
+				sourceStat, sourceStatErr = app.loaderStat(ctx, imageKey)
+				if app.Debug {
+					if sourceStatErr == nil && sourceStat != nil {
+						app.Logger.Debug("source stat from loader succeeded",
+							zap.String("image_key", imageKey),
+							zap.Time("source_time", sourceStat.ModifiedTime))
+					} else {
+						app.Logger.Debug("source stat from loader failed",
+							zap.String("image_key", imageKey),
+							zap.Error(sourceStatErr))
+					}
+				}
+			}
+			
+			// Fallback to storage stat if loader didn't work or Storages is configured
+			if (sourceStat == nil || sourceStatErr != nil) && len(app.Storages) > 0 {
+				sourceStat, sourceStatErr = app.storageStat(ctx, imageKey)
+			}
+			
+			if sourceStat != nil && sourceStatErr == nil {
+				if app.Debug {
+					app.Logger.Debug("modified-time-check", 
+						zap.Time("result_time", blob.Stat.ModifiedTime),
+						zap.Time("source_time", sourceStat.ModifiedTime),
+						zap.Bool("result_before_source", blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime)),
+						zap.String("result_key", resultKey),
+						zap.String("image_key", imageKey))
+				}
 				if !blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime) {
 					return blob
 				}
+			} else {
+				if app.Debug {
+					app.Logger.Debug("modified-time-check-failed-fallback-to-cache", 
+						zap.Bool("has_source_stat", sourceStat != nil),
+						zap.Error(sourceStatErr),
+						zap.String("image_key", imageKey))
+				}
+				// If we can't stat the source, use the cached result
+				// This handles cases where source is in loader but not storage
+				return blob
 			}
 		} else {
+			if app.Debug && app.ModifiedTimeCheck {
+				app.Logger.Debug("modified-time-check-skipped", 
+					zap.Bool("has_origin", origin != nil),
+					zap.Bool("has_blob_stat", blob.Stat != nil),
+					zap.String("result_key", resultKey))
+			}
 			return blob
 		}
 	}
@@ -552,6 +605,17 @@ func (app *Imagor) storageStat(ctx context.Context, key string) (stat *Stat, err
 	for _, storage := range app.Storages {
 		if stat, err = storage.Stat(ctx, key); stat != nil && err == nil {
 			return
+		}
+	}
+	return
+}
+
+func (app *Imagor) loaderStat(ctx context.Context, key string) (stat *Stat, err error) {
+	for _, loader := range app.Loaders {
+		if stater, ok := loader.(Stater); ok {
+			if stat, err = stater.Stat(ctx, key); stat != nil && err == nil {
+				return
+			}
 		}
 	}
 	return
