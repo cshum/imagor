@@ -144,7 +144,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	if !ok {
 		return imagor.ErrInvalid
 	}
-	reader, _, err := blob.NewReader()
+	reader, size, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
@@ -153,12 +153,13 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	}()
 
 	input := &s3.PutObjectInput{
-		ACL:          types.ObjectCannedACL(s.ACL),
-		Body:         reader,
-		Bucket:       aws.String(s.Bucket),
-		ContentType:  aws.String(blob.ContentType()),
-		Key:          aws.String(image),
-		StorageClass: types.StorageClass(s.StorageClass),
+		ACL:           types.ObjectCannedACL(s.ACL),
+		Body:          reader,
+		Bucket:        aws.String(s.Bucket),
+		ContentLength: aws.Int64(size),
+		ContentType:   aws.String(blob.ContentType()),
+		Key:           aws.String(image),
+		StorageClass:  types.StorageClass(s.StorageClass),
 	}
 	_, err = s.Client.PutObject(ctx, input)
 	return err
