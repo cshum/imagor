@@ -15,6 +15,7 @@ import (
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/server"
+	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/getsentry/sentry-go"
 	"github.com/peterbourgon/ff/v3"
 	"go.uber.org/zap"
@@ -233,5 +234,6 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		server.WithDebug(*debug),
 		server.WithMetrics(pm),
 		server.WithSentry(*sentryDsn),
+		server.WithMiddleware(s3storage.BucketMiddleware),
 	)
 }

@@ -78,6 +78,23 @@ func New(cfg aws.Config, bucket string, options ...Option) *S3Storage {
 	return s
 }
 
+// getBucketFromRequest extracts the bucket name from the "AWS-BUCKET" header
+func (s *S3Storage) getBucketFromRequest(r *http.Request) string {
+	bucket := r.Header.Get("AWS-BUCKET")
+	if bucket == "" {
+		return s.Bucket
+	}
+	return bucket
+}
+
+// getBucketFromContext extracts the bucket name from the context
+func (s *S3Storage) getBucketFromContext(ctx context.Context) string {
+	if bucket, ok := ctx.Value("aws-bucket").(string); ok && bucket != "" {
+		return bucket
+	}
+	return s.Bucket
+}
+
 // Path transforms and validates image key for storage path
 func (s *S3Storage) Path(image string) (string, bool) {
 	image = "/" + imagorpath.Normalize(image, s.safeChars)
@@ -98,11 +115,12 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
+	bucket := s.getBucketFromRequest(r)
 	var blob *imagor.Blob
 	var once sync.Once
 	blob = imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		input := &s3.GetObjectInput{
-			Bucket: aws.String(s.Bucket),
+			Bucket: aws.String(bucket),
 			Key:    aws.String(image),
 		}
 		out, err := s.Client.GetObject(ctx, input)
@@ -144,6 +162,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	if !ok {
 		return imagor.ErrInvalid
 	}
+	bucket := s.getBucketFromContext(ctx)
 	reader, size, err := blob.NewReader()
 	if err != nil {
 		return err
@@ -155,7 +174,7 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	input := &s3.PutObjectInput{
 		ACL:           types.ObjectCannedACL(s.ACL),
 		Body:          reader,
-		Bucket:        aws.String(s.Bucket),
+		Bucket:        aws.String(bucket),
 		ContentLength: aws.Int64(size),
 		ContentType:   aws.String(blob.ContentType()),
 		Key:           aws.String(image),
@@ -171,8 +190,9 @@ func (s *S3Storage) Delete(ctx context.Context, image string) error {
 	if !ok {
 		return imagor.ErrInvalid
 	}
+	bucket := s.getBucketFromContext(ctx)
 	_, err := s.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(s.Bucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(image),
 	})
 	return err
@@ -184,8 +204,9 @@ func (s *S3Storage) Stat(ctx context.Context, image string) (stat *imagor.Stat, 
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
+	bucket := s.getBucketFromContext(ctx)
 	input := &s3.HeadObjectInput{
-		Bucket: aws.String(s.Bucket),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(image),
 	}
 	head, err := s.Client.HeadObject(ctx, input)

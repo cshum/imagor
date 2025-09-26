@@ -1,0 +1,51 @@
+services:
+  imagor:
+    image: mrsool-imagor:latest
+    container_name: mrsool-imagor
+    build: .
+    environment:
+      PORT: 8000
+      IMAGOR_UNSAFE: 1
+      IMAGOR_AUTO_WEBP: 1
+      # AWS Global Configuration
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: eu-west-3
+      # S3 Loader Configuration
+      S3_LOADER_BUCKET: mrsool-data-dev
+      S3_LOADER_REGION: eu-west-3
+      # S3 Storage Configuration (for processed images)
+      S3_STORAGE_BUCKET: mrsool-data-dev
+      S3_STORAGE_BASE_DIR: images/storage
+      S3_STORAGE_ACL: public-read
+      # S3 Result Storage Configuration
+      S3_RESULT_STORAGE_BUCKET: mrsool-data-dev
+      S3_RESULT_STORAGE_BASE_DIR: images/result
+      S3_RESULT_STORAGE_ACL: public-read
+      S3_SAFE_CHARS: "'{}()="
+
+      DEBUG: 1
+      
+    ports:
+      - "8001:8000"
+
+  nginx:
+    image: nginx:alpine
+    container_name: mrsool-imagor-proxy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - imagor
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  nginx_cache:

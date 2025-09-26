@@ -15,6 +15,12 @@ imagor features a ton of image processing use cases, available as a HTTP server 
 
 imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
+### Mrsool specific changes
+
+- Fix: Missing content-length header for s3 uploads
+- Support for dynamic s3 bucket using request header `AWS-BUCKET` (loader,storage and results location would be in same bucket regardless of env, provide nested folders for storage and results)
+- docker-compose file for support for some Imgix operations
+
 ### Quick Start
 
 ```bash
