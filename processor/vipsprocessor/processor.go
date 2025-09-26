@@ -42,6 +42,7 @@ type Processor struct {
 	AvifSpeed          int
 	Unlimited          bool
 	Debug              bool
+	PNGBufferThreshold int64 // Threshold for loading PNG files into buffer to avoid streaming issues
 
 	disableFilters map[string]bool
 }
@@ -55,6 +56,7 @@ func NewProcessor(options ...Option) *Processor {
 		Concurrency:        1,
 		MaxFilterOps:       -1,
 		MaxAnimationFrames: -1,
+		PNGBufferThreshold: 1024 * 1024, // 1MB default threshold for large PNGs
 		Logger:             zap.NewNop(),
 		disableFilters:     map[string]bool{},
 	}
@@ -159,6 +161,17 @@ func (v *Processor) newImageFromBlob(
 		buf, width, height, bands, _ := blob.Memory()
 		return vips.NewImageFromMemory(buf, width, height, bands)
 	}
+
+	// For large PNG files (>1MB), use buffer fallback to avoid streaming issues
+	// that can cause row duplication in libvips 8.17.2
+	if blob.BlobType() == imagor.BlobTypePNG && blob.Size() > 0 && blob.Size() > v.PNGBufferThreshold {
+		buf, err := blob.ReadAll()
+		if err != nil {
+			return nil, err
+		}
+		return vips.NewImageFromBuffer(buf, options)
+	}
+
 	reader, _, err := blob.NewReader()
 	if err != nil {
 		return nil, err

@@ -171,3 +171,15 @@ func WithUnlimited(unlimited bool) Option {
 		v.Unlimited = unlimited
 	}
 }
+
+// WithPNGBufferThreshold with PNG buffer threshold option
+// PNG files larger than this threshold will be loaded into memory buffer
+// to avoid streaming issues that can cause row duplication in libvips 8.17.2
+// Default is 1MB (1024*1024 bytes)
+func WithPNGBufferThreshold(threshold int64) Option {
+	return func(v *Processor) {
+		if threshold > 0 {
+			v.PNGBufferThreshold = threshold
+		}
+	}
+}

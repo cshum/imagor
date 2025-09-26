@@ -7,6 +7,11 @@ services:
       PORT: 8000
       IMAGOR_UNSAFE: 1
       IMAGOR_AUTO_WEBP: 1
+      # Timeout Configuration - Increased for large PNG files
+      IMAGOR_REQUEST_TIMEOUT: 120s
+      IMAGOR_LOAD_TIMEOUT: 90s
+      IMAGOR_SAVE_TIMEOUT: 60s
+      IMAGOR_PROCESS_TIMEOUT: 90s
       # AWS Global Configuration
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
@@ -23,11 +28,19 @@ services:
       S3_RESULT_STORAGE_BASE_DIR: images/result
       S3_RESULT_STORAGE_ACL: public-read
       S3_SAFE_CHARS: "'{}()="
-
+      # Prometheus Metrics Configuration
+      PROMETHEUS_BIND: ":5000"
+      PROMETHEUS_PATH: "/metrics"
+      # Sentry Configuration
+      # SENTRY_DSN: ${SENTRY_DSN}
+      # Server Configuration
+      SERVER_ACCESS_LOG: 1
+      SERVER_CORS: 1
       DEBUG: 1
       
     ports:
       - "8001:8000"
+      - "5000:5000"  # Prometheus metrics port
 
   nginx:
     image: nginx:alpine
