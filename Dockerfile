@@ -13,20 +13,20 @@ ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 # Conditionally install MozJPEG build dependencies and build MozJPEG
 RUN if [ "$ENABLE_MOZJPEG" = "true" ]; then \
-    DEBIAN_FRONTEND=noninteractive \
-    apt-get update && \
-    apt-get install --no-install-recommends -y build-essential libboost-all-dev pkg-config autoconf automake libtool nasm make cmake flex libpng-tools libpng-dev zlib1g-dev && \
-    cd /tmp && \
-    curl -fsSLO ${MOZJPEG_URL}/v${MOZJPEG_VERSION}.tar.gz && \
-    tar xf v${MOZJPEG_VERSION}.tar.gz && \
-    cd mozjpeg-${MOZJPEG_VERSION} && \
-    cmake -G"Unix Makefiles" . && \
-    make -j4 && \
-    make install && \
-    cp jpegint.h /usr/include/jpegint.h && \
-    cd .. && \
-    rm -rf mozjpeg-${MOZJPEG_VERSION} v${MOZJPEG_VERSION}.tar.gz; \
-  fi
+  DEBIAN_FRONTEND=noninteractive \
+  apt-get update && \
+  apt-get install --no-install-recommends -y build-essential libboost-all-dev pkg-config autoconf automake libtool nasm make cmake flex libpng-tools libpng-dev zlib1g-dev && \
+  cd /tmp && \
+  curl -fsSLO ${MOZJPEG_URL}/v${MOZJPEG_VERSION}.tar.gz && \
+  tar xf v${MOZJPEG_VERSION}.tar.gz && \
+  cd mozjpeg-${MOZJPEG_VERSION} && \
+  cmake -G"Unix Makefiles" . && \
+  make -j4 && \
+  make install && \
+  cp jpegint.h /usr/include/jpegint.h && \
+  cd .. && \
+  rm -rf mozjpeg-${MOZJPEG_VERSION} v${MOZJPEG_VERSION}.tar.gz; \
+fi
 
 # Installs libvips + required libraries + conditionally ImageMagick
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -88,8 +88,8 @@ COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 # Conditionally copy MozJPEG libraries
 COPY --from=builder /opt/mozjpeg /opt/mozjpeg
 RUN if [ "$ENABLE_MOZJPEG" != "true" ]; then \
-    rm -rf /opt/mozjpeg; \
-  fi
+  rm -rf /opt/mozjpeg; \
+fi
 
 # Install runtime dependencies including conditionally ImageMagick
 RUN DEBIAN_FRONTEND=noninteractive \
