@@ -3,9 +3,31 @@ FROM golang:${GOLANG_VERSION}-trixie as builder
 
 ARG VIPS_VERSION=8.17.2
 ARG TARGETARCH
+
 ARG ENABLE_MAGICK=false
 
+ARG ENABLE_MOZJPEG=false
+ARG MOZJPEG_VERSION=4.1.1
+ARG MOZJPEG_URL=https://github.com/mozilla/mozjpeg/archive
+
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
+# Conditionally install MozJPEG build dependencies and build MozJPEG
+RUN if [ "$ENABLE_MOZJPEG" = "true" ]; then \
+  DEBIAN_FRONTEND=noninteractive \
+  apt-get update && \
+  apt-get install --no-install-recommends -y build-essential libboost-all-dev pkg-config autoconf automake libtool nasm make cmake flex libpng-tools libpng-dev zlib1g-dev && \
+  cd /tmp && \
+  curl -fsSLO ${MOZJPEG_URL}/v${MOZJPEG_VERSION}.tar.gz && \
+  tar xf v${MOZJPEG_VERSION}.tar.gz && \
+  cd mozjpeg-${MOZJPEG_VERSION} && \
+  cmake -G"Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/usr/local . && \
+  make -j4 && \
+  make install && \
+  cp jpegint.h /usr/include/jpegint.h && \
+  cd .. && \
+  rm -rf mozjpeg-${MOZJPEG_VERSION} v${MOZJPEG_VERSION}.tar.gz; \
+fi
 
 # Installs libvips + required libraries + conditionally ImageMagick
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -56,6 +78,7 @@ FROM debian:trixie-slim as runtime
 LABEL maintainer="adrian@cshum.com"
 
 ARG ENABLE_MAGICK=false
+ARG ENABLE_MOZJPEG=false
 
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
