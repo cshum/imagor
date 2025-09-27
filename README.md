@@ -442,7 +442,7 @@ We recommend using the standard imagor image for most use cases.
 
 By default, imagor uses libjpeg-turbo for JPEG encoding, which provides fast compression. For enhanced JPEG compression at the cost of slower encoding speed, imagor provides a MozJPEG-enabled variant that includes [MozJPEG](https://github.com/mozilla/mozjpeg) support through libvips.
 
-MozJPEG improves JPEG compression efficiency while maintaining compatibility with existing JPEG decoders. It can typically reduce JPEG file sizes by 10-15% compared to libjpeg-turbo while maintaining the same visual quality, but with slower encoding performance.
+MozJPEG improves JPEG compression efficiency while maintaining compatibility with existing JPEG decoders. It can reduce JPEG file sizes up to 30% compared to libjpeg-turbo while maintaining the same visual quality, but with slower encoding performance.
 
 #### Docker build `imagor-mozjpeg`
 
