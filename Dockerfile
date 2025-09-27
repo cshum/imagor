@@ -3,9 +3,10 @@ FROM golang:${GOLANG_VERSION}-trixie as builder
 
 ARG VIPS_VERSION=8.17.2
 ARG TARGETARCH
-ARG ENABLE_MAGICK=false
-ARG ENABLE_MOZJPEG=false
 
+ARG ENABLE_MAGICK=false
+
+ARG ENABLE_MOZJPEG=false
 ARG MOZJPEG_VERSION=4.1.1
 ARG MOZJPEG_URL=https://github.com/mozilla/mozjpeg/archive
 
