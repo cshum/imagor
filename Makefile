@@ -22,6 +22,24 @@ docker-dev-run:
 
 docker-dev: docker-dev-build docker-dev-run
 
+docker-magick-build:
+	docker build --build-arg ENABLE_MAGICK=true -t imagor:magick .
+
+docker-magick-run:
+	touch .env
+	docker run --rm -p 8000:8000 --env-file .env imagor:magick -debug -imagor-unsafe
+
+docker-magick: docker-magick-build docker-magick-run
+
+docker-mozjpeg-build:
+	docker build --build-arg ENABLE_MOZJPEG=true -t imagor:mozjpeg .
+
+docker-mozjpeg-run:
+	touch .env
+	docker run --rm -p 8000:8000 --env-file .env imagor:mozjpeg -debug -imagor-unsafe -vips-mozjpeg
+
+docker-mozjpeg: docker-mozjpeg-build docker-mozjpeg-run
+
 %-tag: VERSION:=$(if $(VERSION),$(VERSION),$$(./bin/imagor -version))
 
 git-tag:
