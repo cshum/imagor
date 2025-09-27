@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.25.1
-FROM golang:${GOLANG_VERSION}-trixie as builder
+FROM golang:${GOLANG_VERSION}-trixie AS builder
 
 ARG VIPS_VERSION=8.17.2
 ARG TARGETARCH
@@ -78,7 +78,7 @@ COPY . .
 
 RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
-FROM debian:trixie-slim as runtime
+FROM debian:trixie-slim AS runtime
 LABEL maintainer="adrian@cshum.com"
 
 ARG ENABLE_MAGICK=false
