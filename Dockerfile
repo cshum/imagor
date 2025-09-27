@@ -30,7 +30,7 @@ RUN if [ "$ENABLE_MOZJPEG" = "true" ]; then \
   rm -rf mozjpeg-${MOZJPEG_VERSION} v${MOZJPEG_VERSION}.tar.gz; \
 fi
 
-# Installs libvips + required libraries + conditionally ImageMagick + conditionally libjpeg
+# Installs libvips + required libraries + conditionally ImageMagick + conditionally libjpeg-turbo
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
   apt-get install --no-install-recommends -y \
@@ -76,7 +76,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_CFLAGS_ALLOW=-Xpreprocessor go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
+RUN go build -o ${GOPATH}/bin/imagor ./cmd/imagor/main.go
 
 FROM debian:trixie-slim as runtime
 LABEL maintainer="adrian@cshum.com"
@@ -87,7 +87,7 @@ ARG ENABLE_MOZJPEG=false
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 
-# Install runtime dependencies including conditionally ImageMagick and libjpeg
+# Install runtime dependencies including conditionally ImageMagick and libjpeg-turbo
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
   apt-get install --no-install-recommends -y \
