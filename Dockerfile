@@ -83,7 +83,6 @@ ARG ENABLE_MOZJPEG=false
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 
-
 # Install runtime dependencies including conditionally ImageMagick
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get update && \
