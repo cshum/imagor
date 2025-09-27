@@ -1,4 +1,4 @@
-name: docker-imagor-variants
+name: docker-variants
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-variants:
-    name: Docker imagor variants
+    name: Docker variants
     runs-on: ubuntu-latest
     if: github.repository == 'cshum/imagor'
     permissions:
