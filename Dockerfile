@@ -4,8 +4,29 @@ FROM golang:${GOLANG_VERSION}-trixie as builder
 ARG VIPS_VERSION=8.17.2
 ARG TARGETARCH
 ARG ENABLE_MAGICK=false
+ARG ENABLE_MOZJPEG=false
+
+ARG MOZJPEG_VERSION=4.1.1
+ARG MOZJPEG_URL=https://github.com/mozilla/mozjpeg/archive
 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
+# Conditionally install MozJPEG build dependencies and build MozJPEG
+RUN if [ "$ENABLE_MOZJPEG" = "true" ]; then \
+    DEBIAN_FRONTEND=noninteractive \
+    apt-get update && \
+    apt-get install --no-install-recommends -y build-essential libboost-all-dev pkg-config autoconf automake libtool nasm make cmake flex libpng-tools libpng-dev zlib1g-dev && \
+    cd /tmp && \
+    curl -fsSLO ${MOZJPEG_URL}/v${MOZJPEG_VERSION}.tar.gz && \
+    tar xf v${MOZJPEG_VERSION}.tar.gz && \
+    cd mozjpeg-${MOZJPEG_VERSION} && \
+    cmake -G"Unix Makefiles" . && \
+    make -j4 && \
+    make install && \
+    cp jpegint.h /usr/include/jpegint.h && \
+    cd .. && \
+    rm -rf mozjpeg-${MOZJPEG_VERSION} v${MOZJPEG_VERSION}.tar.gz; \
+  fi
 
 # Installs libvips + required libraries + conditionally ImageMagick
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -23,6 +44,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends -y libmagickwand-dev; \
   fi && \
   cd /tmp && \
+    if [ "$ENABLE_MOZJPEG" = "true" ]; then \
+      export PKG_CONFIG_PATH=/opt/mozjpeg/lib64/pkgconfig/; \
+    fi && \
     curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
     tar xf vips-${VIPS_VERSION}.tar.xz && \
     cd vips-${VIPS_VERSION} && \
@@ -56,9 +80,16 @@ FROM debian:trixie-slim as runtime
 LABEL maintainer="adrian@cshum.com"
 
 ARG ENABLE_MAGICK=false
+ARG ENABLE_MOZJPEG=false
 
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
+
+# Conditionally copy MozJPEG libraries
+COPY --from=builder /opt/mozjpeg /opt/mozjpeg
+RUN if [ "$ENABLE_MOZJPEG" != "true" ]; then \
+    rm -rf /opt/mozjpeg; \
+  fi
 
 # Install runtime dependencies including conditionally ImageMagick
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -80,9 +111,12 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=builder /go/bin/imagor /usr/local/bin/imagor
 
+# Set MozJPEG environment variables conditionally
 ENV VIPS_WARNING=0
 ENV MALLOC_ARENA_MAX=2
 ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
+ENV PKG_CONFIG_PATH=${ENABLE_MOZJPEG:+/opt/mozjpeg/lib64/pkgconfig/}
+ENV LD_LIBRARY_PATH=${ENABLE_MOZJPEG:+/opt/mozjpeg/lib64}
 
 ENV PORT 8000
 
