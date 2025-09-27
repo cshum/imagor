@@ -427,13 +427,13 @@ imagor provides an ImageMagick-enabled variant that includes ImageMagick support
 #### Docker build `imagor-magick`
 
 ```bash
-docker pull ghcr.io/cshum/imagor-magick:latest
+docker pull ghcr.io/cshum/imagor-magick
 ```
 
 Usage:
 
 ```bash
-docker run -p 8000:8000 ghcr.io/cshum/imagor-magick:latest -imagor-unsafe -imagor-auto-webp
+docker run -p 8000:8000 ghcr.io/cshum/imagor-magick -imagor-unsafe -imagor-auto-webp
 ```
 
 We recommend using the standard imagor image for most use cases.
@@ -478,91 +478,14 @@ Prepending `/params` to the existing endpoint returns the endpoint attributes in
 curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
 ```
 
-### Go Library
+### Community
 
-imagor is a Go library built with speed, security and extensibility in mind.
-It facilitates high-level image processing in a modular architecture made up of a series of Go packages:
+The imagor ecosystem includes several community-contributed projects that extend and integrate with imagor:
 
-- [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
-- [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint
-- [vipsprocessor](https://pkg.go.dev/github.com/cshum/imagor/processor/vipsprocessor) - [libvips](https://www.libvips.org/) processor, an `imagor.Processor` implementation using Go binding generator [vipsgen](https://github.com/cshum/vipsgen)
-- [httploader](https://pkg.go.dev/github.com/cshum/imagor/loader/httploader) - HTTP Loader, an `imagor.Loader` implementation
-- [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
-- [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
-- [gcloudstorage](https://pkg.go.dev/github.com/cshum/imagor/storage/gcloudstorage) - Google Cloud Storage, an `imagor.Storage` implementation
-
-Install [libvips](https://www.libvips.org/) and enable CGO:
-- `brew install vips` for Mac
-- `CGO_CFLAGS_ALLOW=-Xpreprocessor` being set to compile Go
-
-See [examples](https://github.com/cshum/imagor/tree/master/examples) folder for common usage patterns. 
-
-```go
-package main
-
-import (
-	"log"
-	"net/http"
-
-	"github.com/cshum/vipsgen/vips"
-)
-
-func main() {
-	// Fetch an image from http.Get
-	resp, err := http.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
-	if err != nil {
-		log.Fatalf("Failed to fetch image: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Create source from io.ReadCloser
-	source := vips.NewSource(resp.Body)
-	defer source.Close() // source needs to remain available during image lifetime
-
-	// Shrink-on-load via creating image from thumbnail source with options
-	image, err := vips.NewThumbnailSource(source, 800, &vips.ThumbnailSourceOptions{
-		Height: 1000,
-		FailOn: vips.FailOnError, // Fail on first error
-	})
-	if err != nil {
-		log.Fatalf("Failed to load image: %v", err)
-	}
-	defer image.Close() // always close images to free memory
-
-	// Add a yellow border using vips_embed
-	border := 10
-	if err := image.Embed(
-		border, border,
-		image.Width()+border*2,
-		image.Height()+border*2,
-		&vips.EmbedOptions{
-			Extend:     vips.ExtendBackground,       // extend with colour from the background property
-			Background: []float64{255, 255, 0, 255}, // Yellow border
-		},
-	); err != nil {
-		log.Fatalf("Failed to add border: %v", err)
-	}
-
-	log.Printf("Processed image: %dx%d\n", image.Width(), image.Height())
-
-	// Save the result as WebP file with options
-	err = image.Webpsave("resized-gopher.webp", &vips.WebpsaveOptions{
-		Q:              85,   // Quality factor (0-100)
-		Effort:         4,    // Compression effort (0-6)
-		SmartSubsample: true, // Better chroma subsampling
-	})
-	if err != nil {
-		log.Fatalf("Failed to save image as WebP: %v", err)
-	}
-	log.Println("Successfully saved processed images")
-}
-```
-
-
-
-### Golden Test Data
-
-imagor employs golden test data with reference images in `testdata/golden/` to validate image processing operations. Golden test data is automatically updated via CI when imagor or libvips library improves, ensuring regression testing while maintaining visual consistency.
+- **[cshum/imagor-studio](https://github.com/cshum/imagor-studio)** - Image gallery and live editing web application for creators
+- **[cshum/imagorvideo](https://github.com/cshum/imagorvideo)** - imagor video thumbnail server in Go and ffmpeg C bindings
+- **[sandstorm/laravel-imagor](https://github.com/sandstorm/laravel-imagor)** - Laravel integration for imagor
+- **[codedoga/imagor-toy](https://github.com/codedoga/imagor-toy)** - A ReactJS based app to play with Imagor
 
 ### Configuration
 
