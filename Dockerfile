@@ -21,7 +21,7 @@ RUN if [ "$ENABLE_MOZJPEG" = "true" ]; then \
   curl -fsSLO ${MOZJPEG_URL}/v${MOZJPEG_VERSION}.tar.gz && \
   tar xf v${MOZJPEG_VERSION}.tar.gz && \
   cd mozjpeg-${MOZJPEG_VERSION} && \
-  cmake -G"Unix Makefiles" . && \
+  cmake -G"Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/usr/local . && \
   make -j4 && \
   make install && \
   cp jpegint.h /usr/include/jpegint.h && \
@@ -45,9 +45,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends -y libmagickwand-dev; \
   fi && \
   cd /tmp && \
-    if [ "$ENABLE_MOZJPEG" = "true" ]; then \
-      export PKG_CONFIG_PATH=/opt/mozjpeg/lib64/pkgconfig/; \
-    fi && \
     curl -fsSLO https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz && \
     tar xf vips-${VIPS_VERSION}.tar.xz && \
     cd vips-${VIPS_VERSION} && \
@@ -86,11 +83,6 @@ ARG ENABLE_MOZJPEG=false
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 
-# Conditionally copy MozJPEG libraries
-COPY --from=builder /opt/mozjpeg /opt/mozjpeg
-RUN if [ "$ENABLE_MOZJPEG" != "true" ]; then \
-  rm -rf /opt/mozjpeg; \
-fi
 
 # Install runtime dependencies including conditionally ImageMagick
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -112,12 +104,9 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=builder /go/bin/imagor /usr/local/bin/imagor
 
-# Set MozJPEG environment variables conditionally
 ENV VIPS_WARNING=0
 ENV MALLOC_ARENA_MAX=2
 ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
-ENV PKG_CONFIG_PATH=${ENABLE_MOZJPEG:+/opt/mozjpeg/lib64/pkgconfig/}
-ENV LD_LIBRARY_PATH=${ENABLE_MOZJPEG:+/opt/mozjpeg/lib64}
 
 ENV PORT 8000
 
