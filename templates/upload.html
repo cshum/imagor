@@ -2,183 +2,289 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>imagor v{{.Version}} - Upload</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>imagor v{{.Version}} - Upload Loader</title>
 	<style>
+		/* Reset and Base Styles */
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		:root {
+			/* shadcn/ui inspired color palette */
+			--background: 0 0% 100%;
+			--foreground: 0 0% 3.9%;
+			--card: 0 0% 100%;
+			--card-foreground: 0 0% 3.9%;
+			--primary: 0 0% 9%;
+			--primary-foreground: 0 0% 98%;
+			--secondary: 0 0% 96.1%;
+			--secondary-foreground: 0 0% 9%;
+			--muted: 0 0% 96.1%;
+			--muted-foreground: 0 0% 45.1%;
+			--accent: 0 0% 96.1%;
+			--accent-foreground: 0 0% 9%;
+			--border: 0 0% 89.8%;
+			--input: 0 0% 89.8%;
+			--radius: 0.5rem;
+		}
+
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+			line-height: 1.6;
+			color: hsl(var(--foreground));
+			background-color: hsl(var(--background));
+			font-feature-settings: "rlig" 1, "calt" 1;
+			touch-action: manipulation;
+			-webkit-text-size-adjust: 100%;
 			margin: 0;
 			padding: 2rem;
 			min-height: 100vh;
-			background: #f8f9fa;
-			color: #333;
 		}
+
 		.container {
-			max-width: 600px;
+			max-width: 700px;
 			margin: 0 auto;
-			background: white;
-			padding: 2rem;
-			border-radius: 8px;
-			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+			padding: 0;
 		}
+
 		h1 {
 			text-align: center;
-			font-size: 2.5rem;
+			font-size: 2.25rem;
+			font-weight: 600;
+			letter-spacing: -0.025em;
 			margin-bottom: 0.5rem;
-			color: #333;
+			color: hsl(var(--foreground));
 		}
+
 		.version {
 			text-align: center;
 			font-size: 1rem;
-			color: #666;
+			color: hsl(var(--muted-foreground));
 			margin-bottom: 2rem;
+			line-height: 1.6;
 		}
+
 		.form-group {
 			margin-bottom: 1.5rem;
 		}
+
 		label {
 			display: block;
 			margin-bottom: 0.5rem;
 			font-weight: 500;
-			color: #555;
+			color: hsl(var(--foreground));
+			font-size: 1rem;
 		}
-		input[type="file"], input[type="number"], input[type="text"] {
+
+		input[type="file"] {
 			width: 100%;
 			padding: 0.75rem;
-			border: 2px solid #e1e5e9;
-			border-radius: 4px;
+			border: 1px solid hsl(var(--border));
+			border-radius: var(--radius);
 			font-size: 1rem;
 			transition: border-color 0.2s ease;
+			background: hsl(var(--background));
+			color: hsl(var(--foreground));
+			touch-action: manipulation;
+			-webkit-tap-highlight-color: transparent;
 		}
-		input[type="file"]:focus, input[type="number"]:focus, input[type="text"]:focus {
+
+		input[type="file"]:focus {
 			outline: none;
-			border-color: #007bff;
+			border-color: hsl(var(--primary));
+			box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 		}
-		.form-row {
-			display: flex;
-			gap: 1rem;
-		}
-		.form-row .form-group {
-			flex: 1;
-		}
+
 		button {
 			width: 100%;
-			padding: 1rem;
-			background: #007bff;
-			color: white;
-			border: none;
-			border-radius: 4px;
-			font-size: 1.1rem;
+			padding: 0.75rem 1.5rem;
+			background: hsl(var(--primary));
+			color: hsl(var(--primary-foreground));
+			border: 1px solid hsl(var(--primary));
+			border-radius: var(--radius);
+			font-size: 1rem;
 			font-weight: 500;
 			cursor: pointer;
-			transition: background-color 0.2s ease;
+			transition: all 0.2s ease;
+			touch-action: manipulation;
+			-webkit-tap-highlight-color: transparent;
 		}
+
 		button:hover {
-			background: #0056b3;
+			background: hsl(var(--primary) / 0.9);
 		}
+
 		button:disabled {
-			background: #6c757d;
+			background: hsl(var(--muted));
+			color: hsl(var(--muted-foreground));
 			cursor: not-allowed;
 		}
+
+		.loading {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+
+		.spinner {
+			width: 16px;
+			height: 16px;
+			border: 2px solid hsl(var(--muted-foreground));
+			border-top: 2px solid hsl(var(--primary-foreground));
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+		}
+
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+
 		.help-text {
 			font-size: 0.875rem;
-			color: #666;
+			color: hsl(var(--muted-foreground));
 			margin-top: 0.25rem;
+			line-height: 1.6;
 		}
-		.examples {
-			margin-top: 2rem;
-			padding: 1rem;
-			background: #f8f9fa;
-			border-radius: 4px;
+
+
+		.path-section {
+			margin-bottom: 1.5rem;
 		}
-		.examples h3 {
-			margin-top: 0;
-			color: #555;
+
+		.path-label {
+			font-weight: 500;
+			color: hsl(var(--foreground));
+			margin-bottom: 0.5rem;
+			font-size: 1rem;
 		}
-		.examples code {
-			background: #e9ecef;
-			padding: 0.2rem 0.4rem;
-			border-radius: 3px;
-			font-family: 'Monaco', 'Consolas', monospace;
+
+		.path-url {
+			padding: 0.75rem;
+			background: hsl(var(--accent));
+			border-radius: var(--radius);
+			border: 1px solid hsl(var(--border));
+			font-family: 'Monaco', 'Consolas', 'Ubuntu Mono', monospace;
+			max-width: 100%;
+			overflow: auto;
+			white-space: nowrap;
+			margin-bottom: 0.5rem;
+			font-size: 0.875rem;
 		}
-		.current-path {
-			text-align: center;
-			margin-bottom: 1rem;
-			padding: 0.5rem;
-			background: #e3f2fd;
-			border-radius: 4px;
-			font-family: 'Monaco', 'Consolas', monospace;
+
+		.path-description {
+			font-size: 0.875rem;
+			color: hsl(var(--muted-foreground));
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+			line-height: 1.6;
+		}
+
+		@media (max-width: 768px) {
+			body {
+				padding: 1rem;
+			}
+
+			h1 {
+				font-size: 2rem;
+			}
+
+			.path-url {
+				padding: 0.5rem;
+				font-size: 0.8rem;
+			}
 		}
 	</style>
 </head>
 <body>
 	<div class="container">
 		<h1>imagor</h1>
-		<div class="version">v{{.Version}} - Upload Interface</div>
+		<div class="version">v{{.Version}} - Upload Loader</div>
 
-		<div class="current-path">
-			Current path: <strong>{{.Path}}</strong>
+		<div class="path-section">
+			<div class="path-label">Upload Endpoint:</div>
+			<div class="path-url">{{.Path}}</div>
+			{{if ne .Path "/"}}
+			<div class="path-description">Your image will be processed according to the parameters in this URL path</div>
+			{{end}}
 		</div>
 
-		<form method="POST" enctype="multipart/form-data">
+		<form method="POST" enctype="multipart/form-data" id="uploadForm">
 			<div class="form-group">
 				<label for="image">Select Image:</label>
 				<input type="file" id="image" name="image" accept="image/*" required>
 				<div class="help-text">Choose an image file to upload and process</div>
 			</div>
 
-			<div class="form-row">
-				<div class="form-group">
-					<label for="width">Width:</label>
-					<input type="number" id="width" name="width" min="1" placeholder="e.g. 300">
-					<div class="help-text">Target width in pixels</div>
-				</div>
-				<div class="form-group">
-					<label for="height">Height:</label>
-					<input type="number" id="height" name="height" min="1" placeholder="e.g. 200">
-					<div class="help-text">Target height in pixels</div>
-				</div>
-			</div>
-
-			<div class="form-group">
-				<label for="filters">Filters:</label>
-				<input type="text" id="filters" name="filters" placeholder="e.g. quality(80):format(webp)">
-				<div class="help-text">Optional filters separated by colons</div>
-			</div>
-
 			<button type="submit">Upload and Process</button>
 		</form>
 
-		<div class="examples">
-			<h3>Examples:</h3>
-			<p><strong>Resize:</strong> Set width=300, height=200</p>
-			<p><strong>Quality:</strong> filters = <code>quality(80)</code></p>
-			<p><strong>Format:</strong> filters = <code>format(webp)</code></p>
-			<p><strong>Combined:</strong> filters = <code>quality(80):format(webp):blur(2)</code></p>
-		</div>
-
-		<script>
-			document.querySelector('form').addEventListener('submit', function(e) {
-				const width = document.getElementById('width').value;
-				const height = document.getElementById('height').value;
-				const filters = document.getElementById('filters').value;
-
-				let path = '';
-				if (width || height) {
-					path += (width || '0') + 'x' + (height || '0');
-				}
-				if (filters) {
-					path += (path ? '/' : '') + 'filters:' + filters;
-				}
-				if (path) {
-					path = '/' + path + '/';
-				} else {
-					path = '/';
-				}
-
-				this.action = path;
-			});
-		</script>
 	</div>
+
+	<script>
+		// Handle form submission to prevent URL encoding issues
+		document.getElementById('uploadForm').addEventListener('submit', function(e) {
+			e.preventDefault(); // Prevent default form submission
+
+			// Get the current path from the template (unencoded)
+			const currentPath = '{{.Path}}';
+
+			// Get the form data
+			const formData = new FormData(this);
+
+			// Get button and show loading state
+			const button = this.querySelector('button[type="submit"]');
+			const originalText = button.innerHTML;
+
+			// Disable button and show loading
+			button.disabled = true;
+			button.innerHTML = '<span class="loading"><span class="spinner"></span>Uploading...</span>';
+
+			// Create a new XMLHttpRequest to submit the form
+			const xhr = new XMLHttpRequest();
+
+			// Set up the request
+			xhr.open('POST', currentPath, true);
+
+			// Handle the response
+			xhr.onload = function() {
+				// Reset button state
+				button.disabled = false;
+				button.innerHTML = originalText;
+
+				if (xhr.status === 200) {
+					// Create a blob from the response
+					const blob = new Blob([xhr.response], { type: xhr.getResponseHeader('Content-Type') });
+					const url = window.URL.createObjectURL(blob);
+
+					// Create a temporary link to download/view the processed image
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = 'processed-image';
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+					window.URL.revokeObjectURL(url);
+				} else {
+					alert('Upload failed: ' + xhr.status + ' ' + xhr.statusText);
+				}
+			};
+
+			xhr.onerror = function() {
+				// Reset button state
+				button.disabled = false;
+				button.innerHTML = originalText;
+				alert('Upload failed: Network error');
+			};
+
+			// Set response type to handle binary data
+			xhr.responseType = 'arraybuffer';
+
+			// Send the form data
+			xhr.send(formData);
+		});
+	</script>
 </body>
 </html>
