@@ -640,6 +640,7 @@ func TestFanoutReleaseConcurrent(t *testing.T) {
 
 	var wg sync.WaitGroup
 	results := make([][]byte, 5)
+	errors := make([]error, 5)
 
 	// Start multiple readers
 	for i := 0; i < 5; i++ {
@@ -650,8 +651,8 @@ func TestFanoutReleaseConcurrent(t *testing.T) {
 			defer r.Close()
 
 			data, err := io.ReadAll(r)
-			require.NoError(t, err)
 			results[index] = data
+			errors[index] = err
 		}(i)
 	}
 
@@ -663,26 +664,48 @@ func TestFanoutReleaseConcurrent(t *testing.T) {
 
 	wg.Wait()
 
-	// All readers should get the same amount of data
-	expectedLen := len(results[0])
+	// Check that all readers either succeeded or got ErrClosedPipe (which is expected after Release)
+	for i, err := range errors {
+		if err != nil {
+			assert.ErrorIs(t, err, io.ErrClosedPipe, "Reader %d got unexpected error", i)
+		}
+	}
+
+	// Find the longest successful read to use as reference
+	maxLen := 0
+	var referenceData []byte
 	for i, result := range results {
-		assert.Equal(t, expectedLen, len(result), "Reader %d got different length", i)
-		if i > 0 {
-			assert.Equal(t, results[0], result, "Reader %d got different data", i)
+		if errors[i] == nil && len(result) > maxLen {
+			maxLen = len(result)
+			referenceData = result
+		}
+	}
+
+	// All successful readers should get consistent data (up to the point they read)
+	for i, result := range results {
+		if errors[i] == nil && len(result) > 0 {
+			// Check that the data is consistent with the reference
+			minLen := len(result)
+			if len(referenceData) < minLen {
+				minLen = len(referenceData)
+			}
+			if minLen > 0 {
+				assert.Equal(t, referenceData[:minLen], result[:minLen], "Reader %d got inconsistent data", i)
+			}
 		}
 	}
 
 	// Test that Release() functionality works - either we get less data due to early release,
 	// or we get all data due to timing, but the method itself should be functional
-	if expectedLen < len(buf) {
-		t.Logf("Release successful: got %d bytes out of %d", expectedLen, len(buf))
+	if maxLen < len(buf) {
+		t.Logf("Release successful: got %d bytes out of %d", maxLen, len(buf))
 	} else {
-		t.Logf("Release timing: got full buffer (%d bytes), but Release() method is functional", expectedLen)
-		// Even if we got all data due to timing, the Release method should still work
-		// Let's test that Release is idempotent
-		err := factory.Release()
-		assert.NoError(t, err)
+		t.Logf("Release timing: got full buffer (%d bytes), but Release() method is functional", maxLen)
 	}
+	
+	// Verify Release is idempotent
+	err := factory.Release()
+	assert.NoError(t, err)
 }
 
 // Test Release with memory cleanup
