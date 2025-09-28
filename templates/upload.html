@@ -144,6 +144,34 @@
 			line-height: 1.5;
 		}
 
+		.debug-section {
+			margin-top: 2rem;
+			padding-top: 2rem;
+			border-top: 1px solid #e0e0e0;
+		}
+
+		.debug-label {
+			font-weight: 500;
+			color: #333;
+			margin-bottom: 0.5rem;
+			font-size: 1rem;
+		}
+
+		.debug-json {
+			width: 100%;
+			padding: 0.75rem;
+			background: #f8f8f8;
+			border-radius: 6px;
+			border: 1px solid #e0e0e0;
+			font-family: 'Monaco', 'Consolas', 'Ubuntu Mono', monospace;
+			font-size: 0.875rem;
+			color: #333;
+			box-sizing: border-box;
+			overflow: auto;
+			white-space: pre-wrap;
+			margin: 0;
+		}
+
 		@media (max-width: 768px) {
 			body {
 				padding: 1rem;
@@ -182,6 +210,13 @@
 
 			<button type="submit">Upload and Process</button>
 		</form>
+
+		{{if ne .Path "/"}}
+		<div class="debug-section">
+			<div class="debug-label">Debug - imagorpath parameters:</div>
+			<pre class="debug-json">{{.Params}}</pre>
+		</div>
+		{{end}}
 
 	</div>
 

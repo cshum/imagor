@@ -3,8 +3,11 @@ package imagor
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
 	"html/template"
 	"net/http"
+
+	"github.com/cshum/imagor/imagorpath"
 )
 
 //go:embed templates/*.html
@@ -19,6 +22,7 @@ var (
 type TemplateData struct {
 	Version string
 	Path    string
+	Params  interface{}
 }
 
 // init initializes the templates
@@ -54,9 +58,16 @@ func renderLandingPage(w http.ResponseWriter) {
 
 // renderUploadForm renders the upload form template
 func renderUploadForm(w http.ResponseWriter, path string) {
+	// Parse the path to get imagor parameters for debug display
+	params := imagorpath.Parse(path)
+	
+	// Marshal params as indented JSON for better readability
+	paramsJSON, _ := json.MarshalIndent(params, "", "  ")
+	
 	data := TemplateData{
 		Version: Version,
 		Path:    path,
+		Params:  string(paramsJSON),
 	}
 	
 	var buf bytes.Buffer

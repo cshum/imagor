@@ -181,12 +181,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		if app.BasePathRedirect == "" {
-			if app.hasUploadLoader() && app.Unsafe {
-				// Show upload form when UploadLoader is enabled and unsafe mode is on
-				renderUploadForm(w, path)
-			} else {
-				renderLandingPage(w)
-			}
+			renderLandingPage(w)
 		} else {
 			http.Redirect(w, r, app.BasePathRedirect, http.StatusTemporaryRedirect)
 		}
