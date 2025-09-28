@@ -169,9 +169,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Handle POST uploads only when unsafe mode is enabled
+	// Handle POST uploads only when unsafe mode is enabled AND UploadLoader is available
 	if r.Method == http.MethodPost {
-		if !app.Unsafe {
+		if !app.Unsafe || !app.hasUploadLoader() {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}

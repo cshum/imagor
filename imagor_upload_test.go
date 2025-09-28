@@ -38,9 +38,9 @@ func TestImagor_PostUpload_UnsafeEnabled_NoLoaders(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, req)
 
-	// Should return 404 since no loaders can handle the upload
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected status %d, got %d", http.StatusNotFound, w.Code)
+	// Should return 405 since no UploadLoader is configured
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected status %d, got %d", http.StatusMethodNotAllowed, w.Code)
 	}
 }
 
@@ -58,9 +58,9 @@ func TestImagor_PostUpload_WithProcessingParams(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, req)
 
-	// Should return 404 since no loaders can handle the upload
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected status %d, got %d", http.StatusNotFound, w.Code)
+	// Should return 405 since no UploadLoader is configured
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected status %d, got %d", http.StatusMethodNotAllowed, w.Code)
 	}
 }
 
@@ -85,15 +85,15 @@ func TestImagor_PostUpload_NonPOSTMethod(t *testing.T) {
 func TestImagor_ServeHTTP_PostMethodHandling(t *testing.T) {
 	app := New(WithUnsafe(true))
 
-	// Test that POST requests are routed to handlePostUpload
+	// Test that POST requests are rejected when no UploadLoader is configured
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("test")))
 	req.Header.Set("Content-Type", "image/jpeg")
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, req)
 
-	// The request should be handled by handlePostUpload, not rejected as method not allowed
-	if w.Code == http.StatusMethodNotAllowed {
-		t.Error("POST requests should be handled when unsafe mode is enabled")
+	// POST requests should be rejected with 405 when no UploadLoader is configured
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("POST requests should return 405 when no UploadLoader is configured, got %d", w.Code)
 	}
 }
