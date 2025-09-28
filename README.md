@@ -521,11 +521,9 @@ Prepending `/params` to the existing endpoint returns the endpoint attributes in
 curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
 ```
 
-### Upload Endpoint
+### POST Upload Endpoint
 
-imagor supports POST uploads for processing images directly without requiring them to be hosted elsewhere. This feature allows you to upload an image file and apply the same transformations available through the standard GET endpoint.
-
-#### Requirements
+imagor supports POST uploads for processing images directly without requiring them to be hosted elsewhere. This feature allows you to upload an image file and apply the same transformations available through the standard endpoint.
 
 Upload functionality requires **unsafe mode** to be enabled:
 
@@ -536,8 +534,6 @@ docker run -p 8000:8000 shumc/imagor -imagor-unsafe
 # Environment variable
 IMAGOR_UNSAFE=1
 ```
-
-#### Basic Upload
 
 Upload an image using POST request to any imagor endpoint. The URL path defines the image operations to apply:
 
@@ -550,16 +546,12 @@ curl -X POST -F "image=@photo.jpg" \
   http://localhost:8000/unsafe/fit-in/400x300/filters:quality(80):format(webp)/
 ```
 
-#### Web Interface
-
 When upload is enabled, visiting processing paths in a browser shows a built-in upload form:
 
 - `http://localhost:8000/unsafe/200x200/` - Upload form with 200x200 resize
 - `http://localhost:8000/unsafe/filters:blur(5)/` - Upload form with blur filter
 
 The upload form includes debug information showing how imagor parses the URL parameters, useful for testing and development.
-
-#### Docker Setup with Upload
 
 ```yaml
 version: "3"
@@ -573,8 +565,6 @@ services:
     ports:
       - "8000:8000"
 ```
-
-#### Security Considerations
 
 Upload functionality requires unsafe mode, which disables URL signature verification. This feature is designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints.
 
