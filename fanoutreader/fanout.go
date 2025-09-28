@@ -9,14 +9,15 @@ import (
 // from one data source with known total size,
 // using channel and memory buffer.
 type Fanout struct {
-	source  io.ReadCloser
-	size    int
-	current int
-	buf     []byte
-	err     error
-	lock    sync.RWMutex
-	once    sync.Once
-	readers []*reader
+	source   io.ReadCloser
+	size     int
+	current  int
+	buf      []byte
+	err      error
+	lock     sync.RWMutex
+	once     sync.Once
+	readers  []*reader
+	released bool
 }
 
 // reader io.ReadCloser spawned via Fanout
@@ -62,6 +63,14 @@ func (f *Fanout) readAll() {
 		f.lock.Unlock()
 	}()
 	for f.current < f.size {
+		// Check if release was called before reading more data
+		f.lock.RLock()
+		released := f.released
+		f.lock.RUnlock()
+		if released {
+			break
+		}
+		
 		b := f.buf[f.current:]
 		n, e := f.source.Read(b)
 		if f.current+n > f.size {
@@ -73,6 +82,13 @@ func (f *Fanout) readAll() {
 		}
 		f.lock.Lock()
 		f.current += n
+		
+		// Check again after acquiring write lock in case Release was called
+		if f.released {
+			f.lock.Unlock()
+			break
+		}
+		
 		if e != nil {
 			if e == io.EOF {
 				e = nil
@@ -133,6 +149,7 @@ func (f *Fanout) NewReader() io.ReadCloser {
 
 	f.lock.Lock()
 	if f.current > 0 {
+		// Give access to data that has been buffered so far
 		r.buf = f.buf[:f.current]
 	}
 	f.readers = append(f.readers, r)
@@ -203,4 +220,29 @@ func (r *reader) close(closeReader bool) (e error) {
 // Close implements the io.Closer interface.
 func (r *reader) Close() error {
 	return r.close(true)
+}
+
+// Release stops reading from the source early and releases resources.
+// This method is safe to call multiple times and from multiple goroutines.
+// After Release is called, no more data will be read from the source,
+// but existing readers can still access any data that was already buffered.
+func (f *Fanout) Release() error {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	
+	if f.released {
+		return nil // Already released, idempotent
+	}
+	
+	f.released = true
+	
+	// Truncate buffer to current position to free memory
+	if f.current < len(f.buf) {
+		f.buf = f.buf[:f.current]
+	}
+	
+	// Update size to current position so readers know where data ends
+	f.size = f.current
+	
+	return nil
 }
