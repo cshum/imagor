@@ -381,6 +381,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			return blob, err
 		}
+
+		sourceBlob := blob
 		var doneSave chan struct{}
 		if shouldSave {
 			doneSave = make(chan struct{})
@@ -452,17 +454,18 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			app.del(ctx, app.Storages, storageKey)
 		}
-		
+
 		// Release fanout resources early when safe to do so
 		// Only release when blob won't be reused (no caching scenarios)
+		// Release the SOURCE blob (large file) instead of final processed blob
 		if err == nil && !isBlobEmpty(blob) &&
-			!shouldSave &&    // Blob won't be saved to storage
+			!shouldSave && // Blob won't be saved to storage
 			resultKey == "" && // Result won't be cached
-			!hasPreview &&    // Not a preview request
-			!isRaw {          // Not a raw request
-			_ = blob.Release() // Ignore errors - this is optimization only
+			!hasPreview && // Not a preview request
+			!isRaw { // Not a raw request
+			_ = sourceBlob.Release() // Release source blob - ignore errors, this is optimization only
 		}
-		
+
 		return blob, err
 	})
 }
