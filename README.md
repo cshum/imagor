@@ -550,24 +550,6 @@ curl -X POST -F "image=@photo.jpg" \
   http://localhost:8000/unsafe/fit-in/400x300/filters:quality(80):format(webp)/
 ```
 
-#### JavaScript Example
-
-```javascript
-const formData = new FormData();
-formData.append('image', fileInput.files[0]);
-
-fetch('/unsafe/200x200/filters:fill(white)', {
-  method: 'POST',
-  body: formData
-})
-.then(response => response.blob())
-.then(blob => {
-  // Handle processed image blob
-  const url = URL.createObjectURL(blob);
-  document.getElementById('result').src = url;
-});
-```
-
 #### Web Interface
 
 When upload is enabled, visiting processing paths in a browser shows a built-in upload form:
@@ -594,10 +576,7 @@ services:
 
 #### Security Considerations
 
-- Upload functionality requires unsafe mode, which disables URL signature verification
-- Only enable uploads in trusted environments or with proper access controls
-- Consider implementing rate limiting and file size restrictions at the reverse proxy level
-- The upload feature is designed for development, testing, and controlled environments
+Upload functionality requires unsafe mode, which disables URL signature verification. This feature is designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints.
 
 ### Community
 
