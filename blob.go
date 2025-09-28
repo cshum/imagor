@@ -42,17 +42,18 @@ const (
 
 // Blob imagor data blob abstraction
 type Blob struct {
-	newReader     func() (r io.ReadCloser, size int64, err error)
-	newReadSeeker func() (rs io.ReadSeekCloser, size int64, err error)
-	fanout        bool
-	once          sync.Once
-	sniffBuf      []byte
-	err           error
-	size          int64
-	blobType      BlobType
-	filepath      string
-	contentType   string
-	memory        *memory
+	newReader      func() (r io.ReadCloser, size int64, err error)
+	newReadSeeker  func() (rs io.ReadSeekCloser, size int64, err error)
+	fanout         bool
+	fanoutInstance *fanoutreader.Fanout
+	once           sync.Once
+	sniffBuf       []byte
+	err            error
+	size           int64
+	blobType       BlobType
+	filepath       string
+	contentType    string
+	memory         *memory
 
 	Header http.Header
 	Stat   *Stat
@@ -277,6 +278,7 @@ func (b *Blob) doInit() {
 		// use fan-out reader if buf size known and within memory size
 		// otherwise create new readers
 		fanout := fanoutreader.New(reader, int(size))
+		b.fanoutInstance = fanout
 		b.newReader = func() (io.ReadCloser, int64, error) {
 			return fanout.NewReader(), size, nil
 		}
@@ -523,6 +525,17 @@ func (b *Blob) ReadAll() ([]byte, error) {
 func (b *Blob) Err() error {
 	b.init()
 	return b.err
+}
+
+// Release stops reading from the source early and releases resources.
+// This is safe to call multiple times and from multiple goroutines.
+// Only works for blobs that use fanoutreader (when fanout is enabled).
+func (b *Blob) Release() error {
+	b.init()
+	if b.fanoutInstance != nil {
+		return b.fanoutInstance.Release()
+	}
+	return nil // No-op for blobs that don't use fanout
 }
 
 func isBlobEmpty(blob *Blob) bool {

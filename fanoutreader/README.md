@@ -26,6 +26,20 @@ reader := fanout.NewReader()
 ``` 
 and they will simply work as expected, concurrently.
 
+### Early Release
+
+You can stop reading from the source early and release resources using the `Release()` method:
+```go
+err := fanout.Release()
+```
+After `Release()` is called:
+- No more data will be read from the source
+- Existing readers can still access any data that was already buffered
+- New readers created after release will only get access to the buffered data
+- The method is safe to call multiple times and from multiple goroutines
+
+This is useful for scenarios where you want to stop processing early, such as when an error occurs or when you've received enough data for your use case.
+
 ### Example
 
 Example writing 10 files concurrently from single io.ReadCloser HTTP request. (Error handling are omitted for demo purpose only)

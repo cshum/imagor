@@ -452,6 +452,17 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			app.del(ctx, app.Storages, storageKey)
 		}
+		
+		// Release fanout resources early when safe to do so
+		// Only release when blob won't be reused (no caching scenarios)
+		if err == nil && !isBlobEmpty(blob) &&
+			!shouldSave &&    // Blob won't be saved to storage
+			resultKey == "" && // Result won't be cached
+			!hasPreview &&    // Not a preview request
+			!isRaw {          // Not a raw request
+			_ = blob.Release() // Ignore errors - this is optimization only
+		}
+		
 		return blob, err
 	})
 }
