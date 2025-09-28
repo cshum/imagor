@@ -154,8 +154,18 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 
 // ServeHTTP implements http.Handler for imagor operations
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	
+	// Handle POST uploads only when unsafe mode is enabled
+	if r.Method == http.MethodPost {
+		if !app.Unsafe {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		app.handlePostUpload(w, r)
 		return
 	}
 	path := r.URL.EscapedPath()
@@ -470,6 +480,64 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	})
 }
 
+// handlePostUpload handles POST upload requests
+func (app *Imagor) handlePostUpload(w http.ResponseWriter, r *http.Request) {
+	// Use imagorpath to parse URL path for processing parameters
+	path := r.URL.EscapedPath()
+	if path == "/" || path == "" {
+		path = "/" // Default path for uploads without processing
+	}
+	
+	// Parse imagor parameters from URL path
+	p := imagorpath.Parse(path)
+	
+	// Set image to empty string to indicate upload source (no source key)
+	p.Image = ""
+	p.Unsafe = true // POST uploads are always unsafe
+	
+	// Process the upload through normal imagor pipeline
+	blob, err := checkBlob(app.Do(r, p))
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			w.WriteHeader(499)
+			return
+		}
+		e := WrapError(err)
+		if app.DisableErrorBody {
+			w.WriteHeader(e.Code)
+			return
+		}
+		w.WriteHeader(e.Code)
+		writeJSON(w, r, e)
+		return
+	}
+	
+	if isBlobEmpty(blob) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	
+	// Set response headers
+	w.Header().Set("Content-Type", blob.ContentType())
+	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
+	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
+	
+	if r.Header.Get("Imagor-Auto-Format") != "" {
+		w.Header().Add("Vary", "Accept")
+	}
+	if r.Header.Get("Imagor-Raw") != "" {
+		w.Header().Set("Content-Security-Policy", "script-src 'none'")
+	}
+	if h := blob.Header; h != nil {
+		for key := range h {
+			w.Header().Set(key, h.Get(key))
+		}
+	}
+	
+	reader, size, _ := blob.NewReader()
+	writeBody(w, r, reader, size)
+}
+
 func (app *Imagor) requestWithLoadContext(r *http.Request) *http.Request {
 	var ctx = r.Context()
 	var cancel func()
@@ -582,7 +650,23 @@ func (app *Imagor) fromStoragesAndLoaders(
 	if image == "" {
 		ref := mustContextRef(r.Context())
 		if ref.Blob == nil {
-			err = ErrNotFound
+			// For POST uploads, try loaders even with empty image key
+			if r.Method == http.MethodPost {
+				for _, loader := range loaders {
+					b, e := checkBlob(loader.Get(r, image))
+					if !isBlobEmpty(b) {
+						blob = b
+						if e == nil {
+							err = nil
+							return
+						}
+					}
+					err = e
+				}
+			}
+			if err == nil && isBlobEmpty(blob) {
+				err = ErrNotFound
+			}
 		} else {
 			blob = ref.Blob
 		}
