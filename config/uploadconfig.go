@@ -17,13 +17,13 @@ func withUploadLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Op
 			"Upload Loader accepted Content-Type for uploads")
 		uploadLoaderFormFieldName = fs.String("upload-loader-form-field-name", "image",
 			"Upload Loader form field name for multipart uploads")
-		uploadLoaderDisable = fs.Bool("upload-loader-disable", false,
-			"Disable Upload Loader")
+		uploadLoaderEnable = fs.Bool("upload-loader-enable", false,
+			"Enable Upload Loader for POST uploads")
 	)
 	_, _ = cb()
 	return func(app *imagor.Imagor) {
-		if !*uploadLoaderDisable {
-			// Add Upload Loader for POST uploads when unsafe mode is enabled
+		if *uploadLoaderEnable {
+			// Add Upload Loader for POST uploads when explicitly enabled
 			app.Loaders = append(app.Loaders,
 				uploadloader.New(
 					uploadloader.WithMaxAllowedSize(*uploadLoaderMaxAllowedSize),
