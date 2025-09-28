@@ -521,6 +521,84 @@ Prepending `/params` to the existing endpoint returns the endpoint attributes in
 curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
 ```
 
+### Upload Endpoint
+
+imagor supports POST uploads for processing images directly without requiring them to be hosted elsewhere. This feature allows you to upload an image file and apply the same transformations available through the standard GET endpoint.
+
+#### Requirements
+
+Upload functionality requires **unsafe mode** to be enabled:
+
+```bash
+# Docker
+docker run -p 8000:8000 shumc/imagor -imagor-unsafe
+
+# Environment variable
+IMAGOR_UNSAFE=1
+```
+
+#### Basic Upload
+
+Upload an image using POST request to any imagor endpoint. The URL path defines the image operations to apply:
+
+```bash
+# Upload and resize to 300x200
+curl -X POST -F "image=@photo.jpg" http://localhost:8000/unsafe/300x200/
+
+# Upload with filters applied
+curl -X POST -F "image=@photo.jpg" \
+  http://localhost:8000/unsafe/fit-in/400x300/filters:quality(80):format(webp)/
+```
+
+#### JavaScript Example
+
+```javascript
+const formData = new FormData();
+formData.append('image', fileInput.files[0]);
+
+fetch('/unsafe/200x200/filters:fill(white)', {
+  method: 'POST',
+  body: formData
+})
+.then(response => response.blob())
+.then(blob => {
+  // Handle processed image blob
+  const url = URL.createObjectURL(blob);
+  document.getElementById('result').src = url;
+});
+```
+
+#### Web Interface
+
+When upload is enabled, visiting processing paths in a browser shows a built-in upload form:
+
+- `http://localhost:8000/unsafe/200x200/` - Upload form with 200x200 resize
+- `http://localhost:8000/unsafe/filters:blur(5)/` - Upload form with blur filter
+
+The upload form includes debug information showing how imagor parses the URL parameters, useful for testing and development.
+
+#### Docker Setup with Upload
+
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    environment:
+      PORT: 8000
+      IMAGOR_UNSAFE: 1  # Enable upload functionality
+      IMAGOR_AUTO_WEBP: 1  # Optional: auto WebP conversion
+    ports:
+      - "8000:8000"
+```
+
+#### Security Considerations
+
+- Upload functionality requires unsafe mode, which disables URL signature verification
+- Only enable uploads in trusted environments or with proper access controls
+- Consider implementing rate limiting and file size restrictions at the reverse proxy level
+- The upload feature is designed for development, testing, and controlled environments
+
 ### Community
 
 The imagor ecosystem includes several community-contributed projects that extend and integrate with imagor:
