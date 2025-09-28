@@ -5,66 +5,66 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 	<title>imagor v{{.Version}} - Upload Loader</title>
 	<style>
-		/* Reset and Base Styles */
-		* {
-			margin: 0;
-			padding: 0;
-			box-sizing: border-box;
-		}
-
-		:root {
-			/* shadcn/ui inspired color palette */
-			--background: 0 0% 100%;
-			--foreground: 0 0% 3.9%;
-			--card: 0 0% 100%;
-			--card-foreground: 0 0% 3.9%;
-			--primary: 0 0% 9%;
-			--primary-foreground: 0 0% 98%;
-			--secondary: 0 0% 96.1%;
-			--secondary-foreground: 0 0% 9%;
-			--muted: 0 0% 96.1%;
-			--muted-foreground: 0 0% 45.1%;
-			--accent: 0 0% 96.1%;
-			--accent-foreground: 0 0% 9%;
-			--border: 0 0% 89.8%;
-			--input: 0 0% 89.8%;
-			--radius: 0.5rem;
-		}
-
 		body {
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-			line-height: 1.6;
-			color: hsl(var(--foreground));
-			background-color: hsl(var(--background));
-			font-feature-settings: "rlig" 1, "calt" 1;
-			touch-action: manipulation;
-			-webkit-text-size-adjust: 100%;
 			margin: 0;
 			padding: 2rem;
 			min-height: 100vh;
+			background: #fff;
+			color: #333;
 		}
 
 		.container {
 			max-width: 700px;
 			margin: 0 auto;
-			padding: 0;
 		}
 
 		h1 {
 			text-align: center;
-			font-size: 2.25rem;
-			font-weight: 600;
-			letter-spacing: -0.025em;
-			margin-bottom: 0.5rem;
-			color: hsl(var(--foreground));
+			font-size: 4rem;
+			font-weight: 700;
+			margin-bottom: 0.75rem;
+			color: #333;
 		}
 
 		.version {
 			text-align: center;
-			font-size: 1rem;
-			color: hsl(var(--muted-foreground));
+			font-size: 1.5rem;
+			color: #666;
 			margin-bottom: 2rem;
-			line-height: 1.6;
+			font-weight: 400;
+		}
+
+		.path-section {
+			margin-bottom: 2rem;
+		}
+
+		.path-label {
+			font-weight: 500;
+			color: #333;
+			margin-bottom: 0.5rem;
+			font-size: 1rem;
+		}
+
+		.path-url {
+			width: 100%;
+			padding: 0.75rem;
+			background: #f8f8f8;
+			border-radius: 6px;
+			border: 1px solid #e0e0e0;
+			font-family: 'Monaco', 'Consolas', 'Ubuntu Mono', monospace;
+			overflow: auto;
+			white-space: nowrap;
+			margin-bottom: 0.5rem;
+			font-size: 0.875rem;
+			color: #333;
+			box-sizing: border-box;
+		}
+
+		.path-description {
+			font-size: 0.875rem;
+			color: #666;
+			line-height: 1.5;
 		}
 
 		.form-group {
@@ -75,51 +75,44 @@
 			display: block;
 			margin-bottom: 0.5rem;
 			font-weight: 500;
-			color: hsl(var(--foreground));
+			color: #333;
 			font-size: 1rem;
 		}
 
 		input[type="file"] {
 			width: 100%;
 			padding: 0.75rem;
-			border: 1px solid hsl(var(--border));
-			border-radius: var(--radius);
+			border: 1px solid #e0e0e0;
+			border-radius: 6px;
 			font-size: 1rem;
-			transition: border-color 0.2s ease;
-			background: hsl(var(--background));
-			color: hsl(var(--foreground));
-			touch-action: manipulation;
-			-webkit-tap-highlight-color: transparent;
+			background: #fff;
+			color: #333;
 		}
 
 		input[type="file"]:focus {
 			outline: none;
-			border-color: hsl(var(--primary));
-			box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+			border-color: #333;
 		}
 
 		button {
 			width: 100%;
 			padding: 0.75rem 1.5rem;
-			background: hsl(var(--primary));
-			color: hsl(var(--primary-foreground));
-			border: 1px solid hsl(var(--primary));
-			border-radius: var(--radius);
+			background: #333;
+			color: #fff;
+			border: 1px solid #333;
+			border-radius: 6px;
 			font-size: 1rem;
 			font-weight: 500;
 			cursor: pointer;
-			transition: all 0.2s ease;
-			touch-action: manipulation;
-			-webkit-tap-highlight-color: transparent;
+			transition: opacity 0.2s ease;
 		}
 
-		button:hover {
-			background: hsl(var(--primary) / 0.9);
+		button:hover:not(:disabled) {
+			background: #222;
 		}
 
 		button:disabled {
-			background: hsl(var(--muted));
-			color: hsl(var(--muted-foreground));
+			opacity: 0.8;
 			cursor: not-allowed;
 		}
 
@@ -130,10 +123,10 @@
 		}
 
 		.spinner {
-			width: 16px;
-			height: 16px;
-			border: 2px solid hsl(var(--muted-foreground));
-			border-top: 2px solid hsl(var(--primary-foreground));
+			width: 12px;
+			height: 12px;
+			border: 1.5px solid #ccc;
+			border-top: 1.5px solid #333;
 			border-radius: 50%;
 			animation: spin 1s linear infinite;
 		}
@@ -145,41 +138,9 @@
 
 		.help-text {
 			font-size: 0.875rem;
-			color: hsl(var(--muted-foreground));
+			color: #666;
 			margin-top: 0.25rem;
-			line-height: 1.6;
-		}
-
-
-		.path-section {
-			margin-bottom: 1.5rem;
-		}
-
-		.path-label {
-			font-weight: 500;
-			color: hsl(var(--foreground));
-			margin-bottom: 0.5rem;
-			font-size: 1rem;
-		}
-
-		.path-url {
-			padding: 0.75rem;
-			background: hsl(var(--accent));
-			border-radius: var(--radius);
-			border: 1px solid hsl(var(--border));
-			font-family: 'Monaco', 'Consolas', 'Ubuntu Mono', monospace;
-			max-width: 100%;
-			overflow: auto;
-			white-space: nowrap;
-			margin-bottom: 0.5rem;
-			font-size: 0.875rem;
-		}
-
-		.path-description {
-			font-size: 0.875rem;
-			color: hsl(var(--muted-foreground));
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-			line-height: 1.6;
+			line-height: 1.5;
 		}
 
 		@media (max-width: 768px) {
@@ -188,7 +149,7 @@
 			}
 
 			h1 {
-				font-size: 2rem;
+				font-size: 3rem;
 			}
 
 			.path-url {
@@ -240,7 +201,7 @@
 
 			// Disable button and show loading
 			button.disabled = true;
-			button.innerHTML = '<span class="loading"><span class="spinner"></span>Uploading...</span>';
+			button.innerHTML = '<span class="loading"><span class="spinner"></span></span>';
 
 			// Create a new XMLHttpRequest to submit the form
 			const xhr = new XMLHttpRequest();

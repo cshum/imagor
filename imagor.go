@@ -303,6 +303,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	var hasFormat, hasPreview, isRaw bool
 	var filters = p.Filters
 	p.Filters = nil
+	
 	for _, f := range filters {
 		switch f.Name {
 		case "expire":
