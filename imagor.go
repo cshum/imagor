@@ -133,7 +133,6 @@ func New(options ...Option) *Imagor {
 	return app
 }
 
-
 // Startup Imagor startup lifecycle
 func (app *Imagor) Startup(ctx context.Context) (err error) {
 	for _, processor := range app.Processors {
@@ -160,14 +159,14 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	// Handle POST requests only when unsafe mode and POST requests are enabled
 	if r.Method == http.MethodPost {
 		if !app.Unsafe || !app.EnablePostRequests {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		app.handlePostUpload(w, r)
+		app.handlePostRequest(w, r)
 		return
 	}
 	path := r.URL.EscapedPath()
@@ -179,7 +178,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	// Check if this is a GET request to a processing path with no image
 	p := imagorpath.Parse(path)
 	if p.Image == "" && !p.Params && app.EnablePostRequests && app.Unsafe {
@@ -290,7 +289,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	var hasFormat, hasPreview, isRaw bool
 	var filters = p.Filters
 	p.Filters = nil
-	
+
 	for _, f := range filters {
 		switch f.Name {
 		case "expire":
@@ -488,21 +487,21 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	})
 }
 
-// handlePostUpload handles POST upload requests
-func (app *Imagor) handlePostUpload(w http.ResponseWriter, r *http.Request) {
+// handlePostRequest handles POST upload requests
+func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 	// Use imagorpath to parse URL path for processing parameters
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		path = "/" // Default path for uploads without processing
 	}
-	
+
 	// Parse imagor parameters from URL path
 	p := imagorpath.Parse(path)
-	
+
 	// Set image to empty string to indicate upload source (no source key)
 	p.Image = ""
 	p.Unsafe = true // POST uploads are always unsafe
-	
+
 	// Process the upload through normal imagor pipeline
 	blob, err := checkBlob(app.Do(r, p))
 	if err != nil {
@@ -519,17 +518,17 @@ func (app *Imagor) handlePostUpload(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, r, e)
 		return
 	}
-	
+
 	if isBlobEmpty(blob) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	
+
 	// Set response headers
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
-	
+
 	if r.Header.Get("Imagor-Auto-Format") != "" {
 		w.Header().Add("Vary", "Accept")
 	}
@@ -541,7 +540,7 @@ func (app *Imagor) handlePostUpload(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set(key, h.Get(key))
 		}
 	}
-	
+
 	reader, size, _ := blob.NewReader()
 	writeBody(w, r, reader, size)
 }
@@ -857,7 +856,6 @@ func (app *Imagor) debugLog() {
 		zap.Strings("processors", processors),
 	)
 }
-
 
 func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
 	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
