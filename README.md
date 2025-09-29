@@ -525,14 +525,20 @@ curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0
 
 imagor supports POST uploads for processing images directly without requiring them to be hosted elsewhere. This feature allows you to upload an image file and apply the same transformations available through the standard endpoint.
 
-Upload functionality requires **unsafe mode** to be enabled:
+Upload functionality is an **opt-in feature** designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints. When enabled, it requires both flags to be explicitly set:
+
+- **Unsafe Mode** (`IMAGOR_UNSAFE=1`) - disables URL signature verification
+- **Upload Loader** (`UPLOAD_LOADER_ENABLE=1`) - enables POST upload functionality
+
+Usage:
 
 ```bash
-# Docker
-docker run -p 8000:8000 shumc/imagor -imagor-unsafe
+docker run -p 8000:8000 shumc/imagor -imagor-unsafe -upload-loader-enable
+```
 
-# Environment variable
+```dotenv
 IMAGOR_UNSAFE=1
+UPLOAD_LOADER_ENABLE=1
 ```
 
 Upload an image using POST request to any imagor endpoint. The URL path defines the image operations to apply:
@@ -553,20 +559,6 @@ When upload is enabled, visiting processing paths in a browser shows a built-in 
 
 The upload form includes debug information showing how imagor parses the URL parameters, useful for testing and development.
 
-```yaml
-version: "3"
-services:
-  imagor:
-    image: shumc/imagor:latest
-    environment:
-      PORT: 8000
-      IMAGOR_UNSAFE: 1  # Enable upload functionality
-      IMAGOR_AUTO_WEBP: 1  # Optional: auto WebP conversion
-    ports:
-      - "8000:8000"
-```
-
-Upload functionality requires unsafe mode, which disables URL signature verification. This feature is designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints.
 
 ### Community
 
