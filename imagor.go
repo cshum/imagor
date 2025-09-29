@@ -201,17 +201,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			w.WriteHeader(499)
-			return
-		}
-		e := WrapError(err)
-		if app.DisableErrorBody {
-			w.WriteHeader(e.Code)
-			return
-		}
-		w.WriteHeader(e.Code)
-		writeJSON(w, r, e)
+		app.handleErrorResponse(w, r, err)
 		return
 	}
 	if isBlobEmpty(blob) {
@@ -492,17 +482,7 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 	// Process the upload through normal imagor pipeline
 	blob, err := checkBlob(app.Do(r, p))
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			w.WriteHeader(499)
-			return
-		}
-		e := WrapError(err)
-		if app.DisableErrorBody {
-			w.WriteHeader(e.Code)
-			return
-		}
-		w.WriteHeader(e.Code)
-		writeJSON(w, r, e)
+		app.handleErrorResponse(w, r, err)
 		return
 	}
 
@@ -802,7 +782,7 @@ func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, bl
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
-	
+
 	if r.Header.Get("Imagor-Auto-Format") != "" {
 		w.Header().Add("Vary", "Accept")
 	}
@@ -814,6 +794,21 @@ func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, bl
 			w.Header().Set(key, h.Get(key))
 		}
 	}
+}
+
+// handleErrorResponse handles error responses consistently across endpoints
+func (app *Imagor) handleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, context.Canceled) {
+		w.WriteHeader(499)
+		return
+	}
+	e := WrapError(err)
+	if app.DisableErrorBody {
+		w.WriteHeader(e.Code)
+		return
+	}
+	w.WriteHeader(e.Code)
+	writeJSON(w, r, e)
 }
 
 func (app *Imagor) debugLog() {
