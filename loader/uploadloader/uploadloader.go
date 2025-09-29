@@ -54,8 +54,11 @@ func (u *UploadLoader) Get(r *http.Request, key string) (*imagor.Blob, error) {
 		return nil, imagor.ErrNotFound
 	}
 
-	// For uploads, we ignore the key parameter since there's no source URL
-	// The key is typically empty or a special identifier for POST uploads
+	// For uploads, key should be empty - if not empty, it's invalid
+	// This is inverse to httploader where key should not be empty
+	if key != "" {
+		return nil, imagor.ErrInvalid
+	}
 
 	contentType := r.Header.Get("Content-Type")
 	if contentType == "" {

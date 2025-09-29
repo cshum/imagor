@@ -55,6 +55,38 @@ func TestUploadLoader_Get_NonPOST(t *testing.T) {
 	}
 }
 
+func TestUploadLoader_Get_InvalidKey(t *testing.T) {
+	loader := New()
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("test"))
+	req.Header.Set("Content-Type", "image/jpeg")
+	
+	// Test with non-empty key - should return ErrInvalid
+	blob, err := loader.Get(req, "some-key")
+	if blob != nil {
+		t.Error("expected nil blob for non-empty key")
+	}
+	if err != imagor.ErrInvalid {
+		t.Errorf("expected ErrInvalid, got %v", err)
+	}
+}
+
+func TestUploadLoader_Get_EmptyKeyValid(t *testing.T) {
+	loader := New()
+	imageData := []byte("fake-jpeg-data")
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
+	req.Header.Set("Content-Type", "image/jpeg")
+	req.ContentLength = int64(len(imageData))
+	
+	// Test with empty key - should work normally
+	blob, err := loader.Get(req, "")
+	if err != nil {
+		t.Errorf("unexpected error with empty key: %v", err)
+	}
+	if blob == nil {
+		t.Fatal("expected blob with empty key, got nil")
+	}
+}
+
 func TestUploadLoader_Get_MissingContentType(t *testing.T) {
 	loader := New()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("test"))
@@ -276,4 +308,72 @@ func TestParseContentType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUploadLoader_EdgeCases(t *testing.T) {
+	t.Run("multipart upload with non-empty key", func(t *testing.T) {
+		loader := New()
+		
+		// Create multipart form
+		var buf bytes.Buffer
+		writer := multipart.NewWriter(&buf)
+		
+		part, err := writer.CreateFormFile("image", "test.jpg")
+		if err != nil {
+			t.Fatal(err)
+		}
+		
+		_, err = part.Write([]byte("fake-jpeg-data"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		
+		err = writer.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		
+		req := httptest.NewRequest(http.MethodPost, "/", &buf)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		
+		// Test with non-empty key - should return ErrInvalid even for multipart
+		blob, err := loader.Get(req, "non-empty-key")
+		if blob != nil {
+			t.Error("expected nil blob for non-empty key in multipart upload")
+		}
+		if err != imagor.ErrInvalid {
+			t.Errorf("expected ErrInvalid for non-empty key, got %v", err)
+		}
+	})
+	
+	t.Run("various invalid key formats", func(t *testing.T) {
+		loader := New()
+		imageData := []byte("fake-jpeg-data")
+		
+		invalidKeys := []string{
+			"some-key",
+			"path/to/image.jpg",
+			"https://example.com/image.jpg",
+			"123",
+			" ", // space
+			".",
+			"..",
+		}
+		
+		for _, key := range invalidKeys {
+			t.Run("key: "+key, func(t *testing.T) {
+				req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
+				req.Header.Set("Content-Type", "image/jpeg")
+				req.ContentLength = int64(len(imageData))
+				
+				blob, err := loader.Get(req, key)
+				if blob != nil {
+					t.Errorf("expected nil blob for key '%s'", key)
+				}
+				if err != imagor.ErrInvalid {
+					t.Errorf("expected ErrInvalid for key '%s', got %v", key, err)
+				}
+			})
+		}
+	})
 }

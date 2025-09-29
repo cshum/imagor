@@ -716,6 +716,15 @@ Usage of imagor:
   -http-loader-disable
         Disable HTTP Loader
 
+  -upload-loader-enable
+        Enable Upload Loader for POST uploads
+  -upload-loader-max-allowed-size int
+        Upload Loader maximum allowed size in bytes for uploaded images (default 33554432)
+  -upload-loader-accept string
+        Upload Loader accepted Content-Type for uploads (default "image/*")
+  -upload-loader-form-field-name string
+        Upload Loader form field name for multipart uploads (default "image")
+
   -file-safe-chars string
         File safe characters to be excluded from image key escape. Set -- for no-op
   -file-loader-base-dir string
