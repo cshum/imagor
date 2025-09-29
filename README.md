@@ -523,11 +523,11 @@ curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0
 
 ### POST Upload Endpoint
 
-imagor supports POST uploads for processing images directly without requiring them to be hosted elsewhere. This feature allows you to upload an image file and apply the same transformations available through the standard endpoint.
+imagor supports POST uploads for direct image processing and transformation. 
+Upload functionality is an **opt-in feature** designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints. 
+When enabled, it requires both flags to be explicitly set:
 
-Upload functionality is an **opt-in feature** designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints. When enabled, it requires both flags to be explicitly set:
-
-- **Unsafe Mode** (`IMAGOR_UNSAFE=1`) - disables URL signature verification
+- **Unsafe mode** (`IMAGOR_UNSAFE=1`) - disables URL signature verification
 - **Upload Loader** (`UPLOAD_LOADER_ENABLE=1`) - enables POST upload functionality
 
 Usage:
