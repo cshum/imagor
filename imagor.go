@@ -217,20 +217,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if isBlobEmpty(blob) {
 		return
 	}
-	w.Header().Set("Content-Type", blob.ContentType())
-	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
-	if r.Header.Get("Imagor-Auto-Format") != "" {
-		w.Header().Add("Vary", "Accept")
-	}
-	if r.Header.Get("Imagor-Raw") != "" {
-		w.Header().Set("Content-Security-Policy", "script-src 'none'")
-	}
-	if h := blob.Header; h != nil {
-		for key := range h {
-			w.Header().Set(key, h.Get(key))
-		}
-	}
+	app.setResponseHeaders(w, r, blob, p)
 	if checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -525,21 +512,7 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set response headers
-	w.Header().Set("Content-Type", blob.ContentType())
-	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
-
-	if r.Header.Get("Imagor-Auto-Format") != "" {
-		w.Header().Add("Vary", "Accept")
-	}
-	if r.Header.Get("Imagor-Raw") != "" {
-		w.Header().Set("Content-Security-Policy", "script-src 'none'")
-	}
-	if h := blob.Header; h != nil {
-		for key := range h {
-			w.Header().Set(key, h.Get(key))
-		}
-	}
+	app.setResponseHeaders(w, r, blob, p)
 
 	reader, size, _ := blob.NewReader()
 	writeBody(w, r, reader, size)
@@ -821,6 +794,25 @@ func (app *Imagor) suppress(
 		return res.Val.(*Blob), res.Err
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	}
+}
+
+// setResponseHeaders sets common response headers for blob responses
+func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, blob *Blob, p imagorpath.Params) {
+	w.Header().Set("Content-Type", blob.ContentType())
+	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
+	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
+	
+	if r.Header.Get("Imagor-Auto-Format") != "" {
+		w.Header().Add("Vary", "Accept")
+	}
+	if r.Header.Get("Imagor-Raw") != "" {
+		w.Header().Set("Content-Security-Policy", "script-src 'none'")
+	}
+	if h := blob.Header; h != nil {
+		for key := range h {
+			w.Header().Set(key, h.Get(key))
+		}
 	}
 }
 
