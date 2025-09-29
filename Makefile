@@ -5,7 +5,7 @@ test:
 	go clean -testcache && CGO_CFLAGS_ALLOW=-Xpreprocessor go test -coverprofile=profile.cov $(shell go list ./... | grep -v /examples/ | grep -v /cmd/)
 
 dev: build
-	./bin/imagor -debug -imagor-unsafe
+	./bin/imagor -debug -imagor-unsafe -upload-loader-enable
 
 help: build
 	./bin/imagor -h
