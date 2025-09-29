@@ -456,14 +456,13 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 
 		// Release fanout resources early when safe to do so
-		// Only release when blob won't be reused (no caching scenarios)
-		// Release the SOURCE blob (large file) instead of final processed blob
-		if err == nil && !isBlobEmpty(blob) &&
-			!shouldSave && // Blob won't be saved to storage
-			resultKey == "" && // Result won't be cached
-			!hasPreview && // Not a preview request
-			!isRaw { // Not a raw request
-			_ = sourceBlob.Release() // Release source blob - ignore errors, this is optimization only
+		// Only release when processing created a new blob (source != result)
+		// Release the SOURCE blob instead of final processed blob
+		if err == nil && !isBlobEmpty(sourceBlob) &&
+			blob != sourceBlob && // Only release if processing created new blob
+			!shouldSave && // Source won't be saved to storage
+			!isRaw {
+			_ = sourceBlob.Release()
 		}
 
 		return blob, err
