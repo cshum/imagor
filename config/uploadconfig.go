@@ -31,6 +31,8 @@ func withUploadLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Op
 					uploadloader.WithFormFieldName(*uploadLoaderFormFieldName),
 				),
 			)
+			// Automatically enable POST requests when upload loader is enabled
+			app.EnablePostRequests = true
 		}
 	}
 }

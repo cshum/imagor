@@ -8,6 +8,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/loader/httploader"
+	"github.com/cshum/imagor/loader/uploadloader"
 	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
@@ -210,4 +211,84 @@ func TestPrometheusBind(t *testing.T) {
 	pm := srv.Metrics.(*prometheusmetrics.PrometheusMetrics)
 	assert.Equal(t, pm.Path, "/myprom")
 	assert.Equal(t, pm.Addr, ":6789")
+}
+
+func TestUploadLoader(t *testing.T) {
+	// Test default (upload loader disabled)
+	srv := CreateServer([]string{})
+	app := srv.App.(*imagor.Imagor)
+	assert.False(t, app.EnablePostRequests)
+
+	// Verify no upload loader is present by default
+	hasUploadLoader := false
+	for _, loader := range app.Loaders {
+		if _, ok := loader.(*uploadloader.UploadLoader); ok {
+			hasUploadLoader = true
+			break
+		}
+	}
+	assert.False(t, hasUploadLoader)
+
+	// Test upload loader enabled with defaults
+	srv = CreateServer([]string{
+		"-upload-loader-enable",
+	})
+	app = srv.App.(*imagor.Imagor)
+	assert.True(t, app.EnablePostRequests)
+
+	// Verify upload loader is present
+	hasUploadLoader = false
+	for _, loader := range app.Loaders {
+		if _, ok := loader.(*uploadloader.UploadLoader); ok {
+			hasUploadLoader = true
+			break
+		}
+	}
+	assert.True(t, hasUploadLoader)
+
+	// Test upload loader with custom configuration
+	srv = CreateServer([]string{
+		"-upload-loader-enable",
+		"-upload-loader-max-allowed-size", "16777216", // 16MB
+		"-upload-loader-accept", "image/jpeg,image/png",
+		"-upload-loader-form-field-name", "file",
+	})
+	app = srv.App.(*imagor.Imagor)
+	assert.True(t, app.EnablePostRequests)
+
+	// Verify upload loader is present with custom config
+	hasUploadLoader = false
+	for _, loader := range app.Loaders {
+		if _, ok := loader.(*uploadloader.UploadLoader); ok {
+			hasUploadLoader = true
+			break
+		}
+	}
+	assert.True(t, hasUploadLoader)
+
+	// Test integration with other options
+	srv = CreateServer([]string{
+		"-imagor-unsafe",
+		"-debug",
+		"-upload-loader-enable",
+		"-upload-loader-max-allowed-size", "33554432", // 32MB
+	})
+	app = srv.App.(*imagor.Imagor)
+	assert.True(t, app.Unsafe)
+	assert.True(t, app.Debug)
+	assert.True(t, app.EnablePostRequests)
+
+	// Should have both HTTP loader and upload loader
+	httpLoaderCount := 0
+	uploadLoaderCount := 0
+	for _, loader := range app.Loaders {
+		switch loader.(type) {
+		case *httploader.HTTPLoader:
+			httpLoaderCount++
+		case *uploadloader.UploadLoader:
+			uploadLoaderCount++
+		}
+	}
+	assert.Equal(t, 1, httpLoaderCount)
+	assert.Equal(t, 1, uploadLoaderCount)
 }

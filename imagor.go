@@ -91,6 +91,7 @@ type Imagor struct {
 	ModifiedTimeCheck      bool
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
+	EnablePostRequests     bool
 	BaseParams             string
 	Logger                 *zap.Logger
 	Debug                  bool
@@ -132,15 +133,6 @@ func New(options ...Option) *Imagor {
 	return app
 }
 
-// hasUploadLoader checks if UploadLoader is enabled
-func (app *Imagor) hasUploadLoader() bool {
-	for _, loader := range app.Loaders {
-		if getType(loader) == "UploadLoader" {
-			return true
-		}
-	}
-	return false
-}
 
 // Startup Imagor startup lifecycle
 func (app *Imagor) Startup(ctx context.Context) (err error) {
@@ -169,9 +161,9 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Handle POST uploads only when unsafe mode is enabled AND UploadLoader is available
+	// Handle POST requests only when unsafe mode and POST requests are enabled
 	if r.Method == http.MethodPost {
-		if !app.Unsafe || !app.hasUploadLoader() {
+		if !app.Unsafe || !app.EnablePostRequests {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
@@ -190,8 +182,8 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	
 	// Check if this is a GET request to a processing path with no image
 	p := imagorpath.Parse(path)
-	if p.Image == "" && !p.Params && app.hasUploadLoader() && app.Unsafe {
-		// Show upload form for processing paths when UploadLoader is enabled
+	if p.Image == "" && !p.Params && app.EnablePostRequests && app.Unsafe {
+		// Show upload form for processing paths when POST requests are enabled
 		renderUploadForm(w, path)
 		return
 	}
