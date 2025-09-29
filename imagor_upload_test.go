@@ -160,9 +160,9 @@ func createMockUploadLoader() Loader {
 
 func TestImagor_PostUpload_Success_RawUpload(t *testing.T) {
 	app := New(
-		WithUnsafe(true),                      // Enable unsafe mode
-		WithEnablePostRequests(true),          // Enable POST requests
-		WithLoaders(createMockUploadLoader()), // Add mock upload loader
+		WithUnsafe(true),
+		WithEnablePostRequests(true),
+		WithLoaders(createMockUploadLoader()),
 	)
 
 	imageData := []byte("fake-jpeg-data")
@@ -191,9 +191,9 @@ func TestImagor_PostUpload_Success_RawUpload(t *testing.T) {
 
 func TestImagor_PostUpload_Success_MultipartUpload(t *testing.T) {
 	app := New(
-		WithUnsafe(true),                      // Enable unsafe mode
-		WithEnablePostRequests(true),          // Enable POST requests
-		WithLoaders(createMockUploadLoader()), // Add mock upload loader
+		WithUnsafe(true),
+		WithEnablePostRequests(true),
+		WithLoaders(createMockUploadLoader()),
 	)
 
 	// Create multipart form
@@ -244,9 +244,9 @@ func TestImagor_PostUpload_Success_MultipartUpload(t *testing.T) {
 
 func TestImagor_PostUpload_Success_WithProcessingParams(t *testing.T) {
 	app := New(
-		WithUnsafe(true),                      // Enable unsafe mode
-		WithEnablePostRequests(true),          // Enable POST requests
-		WithLoaders(createMockUploadLoader()), // Add mock upload loader
+		WithUnsafe(true),
+		WithEnablePostRequests(true),
+		WithLoaders(createMockUploadLoader()),
 	)
 
 	imageData := []byte("fake-jpeg-data")
@@ -290,9 +290,9 @@ func TestImagor_PostUpload_Success_DifferentContentTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			app := New(
-				WithUnsafe(true),                      // Enable unsafe mode
-				WithEnablePostRequests(true),          // Enable POST requests
-				WithLoaders(createMockUploadLoader()), // Add mock upload loader
+				WithUnsafe(true),
+				WithEnablePostRequests(true),
+				WithLoaders(createMockUploadLoader()),
 			)
 
 			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(tt.data))
@@ -322,9 +322,9 @@ func TestImagor_PostUpload_Success_DifferentContentTypes(t *testing.T) {
 
 func TestImagor_PostUpload_Success_PostRequestsDisabled(t *testing.T) {
 	app := New(
-		WithUnsafe(true),                      // Enable unsafe mode
-		WithEnablePostRequests(false),         // Disable POST requests
-		WithLoaders(createMockUploadLoader()), // Add mock upload loader
+		WithUnsafe(true),
+		WithEnablePostRequests(false),
+		WithLoaders(createMockUploadLoader()),
 	)
 
 	imageData := []byte("fake-jpeg-data")
@@ -344,9 +344,9 @@ func TestImagor_PostUpload_Success_PostRequestsDisabled(t *testing.T) {
 func TestImagor_PostUpload_Success_CustomUploadLoader(t *testing.T) {
 	// Test with custom upload loader configuration (simplified for testing)
 	app := New(
-		WithUnsafe(true),                      // Enable unsafe mode
-		WithEnablePostRequests(true),          // Enable POST requests
-		WithLoaders(createMockUploadLoader()), // Add mock upload loader
+		WithUnsafe(true),
+		WithEnablePostRequests(true),
+		WithLoaders(createMockUploadLoader()),
 	)
 
 	imageData := []byte("fake-jpeg-data")
