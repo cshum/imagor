@@ -66,12 +66,13 @@ func (s *FileStorage) Get(_ *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
-	return imagor.NewBlobFromFile(image, func(stat os.FileInfo) error {
+	blob := imagor.NewBlobFromFile(image, func(stat os.FileInfo) error {
 		if s.Expiration > 0 && time.Now().Sub(stat.ModTime()) > s.Expiration {
 			return imagor.ErrExpired
 		}
 		return nil
-	}), nil
+	})
+	return blob, blob.Err()
 }
 
 // Put implements imagor.Storage interface
