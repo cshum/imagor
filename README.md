@@ -524,6 +524,7 @@ curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0
 ### POST Upload Endpoint
 
 imagor supports POST uploads for direct image processing and transformation. 
+
 Upload functionality is an **opt-in feature** designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints. 
 When enabled, it requires both flags to be explicitly set:
 
