@@ -75,7 +75,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 			ModifiedTime: attrs.Updated,
 		}
 	}
-	return blob, err
+	return blob, blob.Err()
 }
 
 // Put implements imagor.Storage interface

@@ -208,7 +208,7 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	app.setResponseHeaders(w, r, blob, p)
-	if checkStatNotModified(w, r, blob.Stat) {
+	if blob != nil && checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -779,6 +779,10 @@ func (app *Imagor) suppress(
 
 // setResponseHeaders sets common response headers for blob responses
 func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, blob *Blob, p imagorpath.Params) {
+	if blob == nil {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		return
+	}
 	w.Header().Set("Content-Type", blob.ContentType())
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
@@ -966,9 +970,11 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 				_, filename = filepath.Split(p.Image)
 			}
 			filename = strings.ReplaceAll(filename, `"`, "%22")
-			if ext := getExtension(blob.BlobType()); ext != "" &&
-				!(ext == ".jpg" && strings.HasSuffix(filename, ".jpeg")) {
-				filename = strings.TrimSuffix(filename, ext) + ext
+			if blob != nil {
+				if ext := getExtension(blob.BlobType()); ext != "" &&
+					!(ext == ".jpg" && strings.HasSuffix(filename, ".jpeg")) {
+					filename = strings.TrimSuffix(filename, ext) + ext
+				}
 			}
 			return fmt.Sprintf(`attachment; filename="%s"`, filename)
 		}
