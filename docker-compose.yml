@@ -6,7 +6,9 @@ services:
     environment:
       PORT: 8000
       IMAGOR_UNSAFE: 1
+      # format configuration
       IMAGOR_AUTO_WEBP: 1
+      IMAGOR_BASE_PARAMS: "filters:format(webp)"
       # Timeout Configuration - Increased for large PNG files
       IMAGOR_REQUEST_TIMEOUT: 120s
       IMAGOR_LOAD_TIMEOUT: 90s

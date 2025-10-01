@@ -20,6 +20,7 @@ imagor is a Go library built with speed, security and extensibility in mind. Alo
 - Fix: Missing content-length header for s3 uploads
 - Support for dynamic s3 bucket using request header `AWS-BUCKET` (loader,storage and results location would be in same bucket regardless of env, provide nested folders for storage and results)
 - docker-compose file for support for some Imgix operations
+- Added new path parameter `max-dim` to provide maximum constraints for image size in format `ExF`
 
 ### Quick Start
 
@@ -54,7 +55,7 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
-/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
+/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/max-dim/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
 - `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
@@ -62,6 +63,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
 - `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
 - `stretch` means resize the image to `ExF` without keeping its aspect ratios
+- `max-dim` means generated image should not exceed given dimension `ExF` other methods would define crop conditions
 - `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
 - `GxH:IxJ` add left-top padding `GxH` and right-bottom padding `IxJ`
 - `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`

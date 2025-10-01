@@ -37,6 +37,9 @@ func GeneratePath(p Params) string {
 	if p.Stretch {
 		parts = append(parts, "stretch")
 	}
+	if p.MaxDim {
+		parts = append(parts, "max-dim")
+	}
 	if p.HFlip || p.Width != 0 || p.VFlip || p.Height != 0 ||
 		p.PaddingLeft > 0 || p.PaddingTop > 0 {
 		if p.Width < 0 {

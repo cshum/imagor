@@ -63,6 +63,17 @@ func (v *Processor) Process(
 	if p.FitIn {
 		upscale = false
 	}
+	// Store original max dimensions and use temporary values for this request
+	maxWidth := v.MaxWidth
+	maxHeight := v.MaxHeight
+	if p.MaxDim && p.Width > 0 {
+		maxWidth = p.Width
+		p.Width = 0
+	}
+	if p.MaxDim && p.Height > 0 {
+		maxHeight = p.Height
+		p.Height = 0
+	}
 	if maxN == 0 || maxN < -1 {
 		maxN = 1
 	}
@@ -143,10 +154,10 @@ func (v *Processor) Process(
 				w := p.Width
 				h := p.Height
 				if w == 0 {
-					w = v.MaxWidth
+					w = maxWidth
 				}
 				if h == 0 {
-					h = v.MaxHeight
+					h = maxHeight
 				}
 				size := vips.SizeDown
 				if upscale {
@@ -198,7 +209,7 @@ func (v *Processor) Process(
 				}
 			} else if p.Width > 0 && p.Height == 0 {
 				if img, err = v.NewThumbnail(
-					ctx, blob, p.Width, v.MaxHeight,
+					ctx, blob, p.Width, maxHeight,
 					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
 					return nil, err
@@ -206,7 +217,7 @@ func (v *Processor) Process(
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
 				if img, err = v.NewThumbnail(
-					ctx, blob, v.MaxWidth, p.Height,
+					ctx, blob, maxWidth, p.Height,
 					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
 					return nil, err
@@ -221,9 +232,14 @@ func (v *Processor) Process(
 				return nil, err
 			}
 		} else {
+			interest := vips.InterestingNone
+			// Use cropping behavior for maxWidth/maxHeight only when MaxDim is true and FitIn is false
+			if p.MaxDim && !p.FitIn {
+				interest = vips.InterestingCentre
+			}
 			if img, err = v.NewThumbnail(
-				ctx, blob, v.MaxWidth, v.MaxHeight,
-				vips.InterestingNone, vips.SizeDown, maxN, page, dpi,
+				ctx, blob, maxWidth, maxHeight,
+				interest, vips.SizeDown, maxN, page, dpi,
 			); err != nil {
 				return nil, err
 			}
