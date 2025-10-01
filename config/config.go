@@ -25,6 +25,7 @@ import (
 var baseConfig = []Option{
 	withFileSystem,
 	withHTTPLoader,
+	withUploadLoader,
 }
 
 // NewImagor create imagor from config flags

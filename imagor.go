@@ -22,7 +22,7 @@ import (
 )
 
 // Version imagor version
-const Version = "1.5.16"
+const Version = "1.6.1"
 
 // Loader image loader interface
 type Loader interface {
@@ -91,6 +91,7 @@ type Imagor struct {
 	ModifiedTimeCheck      bool
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
+	EnablePostRequests     bool
 	BaseParams             string
 	Logger                 *zap.Logger
 	Debug                  bool
@@ -154,21 +155,37 @@ func (app *Imagor) Shutdown(ctx context.Context) (err error) {
 
 // ServeHTTP implements http.Handler for imagor operations
 func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Handle POST requests only when unsafe mode and POST requests are enabled
+	if r.Method == http.MethodPost {
+		if !app.Unsafe || !app.EnablePostRequests {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		app.handlePostRequest(w, r)
 		return
 	}
 	path := r.URL.EscapedPath()
 	if path == "/" || path == "" {
 		if app.BasePathRedirect == "" {
-			w.Header().Set("Content-Type", "text/html")
-			_, _ = w.Write([]byte(landing))
+			renderLandingPage(w)
 		} else {
 			http.Redirect(w, r, app.BasePathRedirect, http.StatusTemporaryRedirect)
 		}
 		return
 	}
+
+	// Check if this is a GET request to a processing path with no image
 	p := imagorpath.Parse(path)
+	if p.Image == "" && !p.Params && app.EnablePostRequests && app.Unsafe {
+		// Show upload form for processing paths when POST requests are enabled
+		renderUploadForm(w, path)
+		return
+	}
 	if p.Params {
 		if !app.DisableParamsEndpoint {
 			writeJSONIndent(w, r, p)
@@ -184,37 +201,14 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			w.WriteHeader(499)
-			return
-		}
-		e := WrapError(err)
-		if app.DisableErrorBody {
-			w.WriteHeader(e.Code)
-			return
-		}
-		w.WriteHeader(e.Code)
-		writeJSON(w, r, e)
+		app.handleErrorResponse(w, r, err)
 		return
 	}
 	if isBlobEmpty(blob) {
 		return
 	}
-	w.Header().Set("Content-Type", blob.ContentType())
-	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
-	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
-	if r.Header.Get("Imagor-Auto-Format") != "" {
-		w.Header().Add("Vary", "Accept")
-	}
-	if r.Header.Get("Imagor-Raw") != "" {
-		w.Header().Set("Content-Security-Policy", "script-src 'none'")
-	}
-	if h := blob.Header; h != nil {
-		for key := range h {
-			w.Header().Set(key, h.Get(key))
-		}
-	}
-	if checkStatNotModified(w, r, blob.Stat) {
+	app.setResponseHeaders(w, r, blob, p)
+	if blob != nil && checkStatNotModified(w, r, blob.Stat) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -272,6 +266,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	var hasFormat, hasPreview, isRaw bool
 	var filters = p.Filters
 	p.Filters = nil
+
 	for _, f := range filters {
 		switch f.Name {
 		case "expire":
@@ -381,6 +376,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			return blob, err
 		}
+
+		sourceBlob := blob
 		var doneSave chan struct{}
 		if shouldSave {
 			doneSave = make(chan struct{})
@@ -452,8 +449,53 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			app.del(ctx, app.Storages, storageKey)
 		}
+
+		// Release fanout resources early when safe to do so
+		// Only release when processing created a new blob (source != result)
+		// Release the SOURCE blob instead of final processed blob
+		if err == nil && !isBlobEmpty(sourceBlob) &&
+			blob != sourceBlob && // Only release if processing created new blob
+			!shouldSave && // Source won't be saved to storage
+			!isRaw {
+			_ = sourceBlob.Release()
+		}
+
 		return blob, err
 	})
+}
+
+// handlePostRequest handles POST upload requests
+func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
+	// Use imagorpath to parse URL path for processing parameters
+	path := r.URL.EscapedPath()
+	if path == "/" || path == "" {
+		path = "/" // Default path for uploads without processing
+	}
+
+	// Parse imagor parameters from URL path
+	p := imagorpath.Parse(path)
+
+	// Set image to empty string to indicate upload source (no source key)
+	p.Image = ""
+	p.Unsafe = true // POST uploads are always unsafe
+
+	// Process the upload through normal imagor pipeline
+	blob, err := checkBlob(app.Do(r, p))
+	if err != nil {
+		app.handleErrorResponse(w, r, err)
+		return
+	}
+
+	if isBlobEmpty(blob) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// Set response headers
+	app.setResponseHeaders(w, r, blob, p)
+
+	reader, size, _ := blob.NewReader()
+	writeBody(w, r, reader, size)
 }
 
 func (app *Imagor) requestWithLoadContext(r *http.Request) *http.Request {
@@ -568,7 +610,23 @@ func (app *Imagor) fromStoragesAndLoaders(
 	if image == "" {
 		ref := mustContextRef(r.Context())
 		if ref.Blob == nil {
-			err = ErrNotFound
+			// For POST uploads, try loaders even with empty image key
+			if r.Method == http.MethodPost {
+				for _, loader := range loaders {
+					b, e := checkBlob(loader.Get(r, image))
+					if !isBlobEmpty(b) {
+						blob = b
+						if e == nil {
+							err = nil
+							return
+						}
+					}
+					err = e
+				}
+			}
+			if err == nil && isBlobEmpty(blob) {
+				err = ErrNotFound
+			}
 		} else {
 			blob = ref.Blob
 		}
@@ -719,6 +777,44 @@ func (app *Imagor) suppress(
 	}
 }
 
+// setResponseHeaders sets common response headers for blob responses
+func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, blob *Blob, p imagorpath.Params) {
+	if blob == nil {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		return
+	}
+	w.Header().Set("Content-Type", blob.ContentType())
+	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
+	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
+
+	if r.Header.Get("Imagor-Auto-Format") != "" {
+		w.Header().Add("Vary", "Accept")
+	}
+	if r.Header.Get("Imagor-Raw") != "" {
+		w.Header().Set("Content-Security-Policy", "script-src 'none'")
+	}
+	if h := blob.Header; h != nil {
+		for key := range h {
+			w.Header().Set(key, h.Get(key))
+		}
+	}
+}
+
+// handleErrorResponse handles error responses consistently across endpoints
+func (app *Imagor) handleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, context.Canceled) {
+		w.WriteHeader(499)
+		return
+	}
+	e := WrapError(err)
+	if app.DisableErrorBody {
+		w.WriteHeader(e.Code)
+		return
+	}
+	w.WriteHeader(e.Code)
+	writeJSON(w, r, e)
+}
+
 func (app *Imagor) debugLog() {
 	if !app.Debug {
 		return
@@ -751,62 +847,6 @@ func (app *Imagor) debugLog() {
 		zap.Strings("processors", processors),
 	)
 }
-
-var landing = fmt.Sprintf(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>imagor v%s</title>
-	<style>
-		body {
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-			margin: 0;
-			padding: 4rem 2rem 2rem;
-			min-height: 100vh;
-			display: flex;
-			align-items: flex-start;
-			justify-content: center;
-			background: #fff;
-			color: #333;
-		}
-		.container {
-			text-align: center;
-		}
-		h1 {
-			font-size: 4rem;
-			font-weight: 700;
-			margin-bottom: 0.75rem;
-			color: #333;
-		}
-		.version {
-			font-size: 1.5rem;
-			color: #666;
-			margin-bottom: 2rem;
-			font-weight: 400;
-		}
-		a {
-			color: #999;
-			text-decoration: none;
-			font-size: 1.25rem;
-			transition: color 0.2s ease;
-		}
-		a:hover {
-			color: #666;
-			text-decoration: underline;
-		}
-	</style>
-</head>
-<body>
-	<div class="container">
-		<h1>imagor</h1>
-		<div class="version">v%s</div>
-		<a href="https://imagor.net" target="_blank">imagor.net</a>
-	</div>
-</body>
-</html>
-`, Version, Version)
 
 func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bool {
 	if stat == nil || strings.Contains(r.Header.Get("Cache-Control"), "no-cache") {
@@ -930,9 +970,11 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 				_, filename = filepath.Split(p.Image)
 			}
 			filename = strings.ReplaceAll(filename, `"`, "%22")
-			if ext := getExtension(blob.BlobType()); ext != "" &&
-				!(ext == ".jpg" && strings.HasSuffix(filename, ".jpeg")) {
-				filename = strings.TrimSuffix(filename, ext) + ext
+			if blob != nil {
+				if ext := getExtension(blob.BlobType()); ext != "" &&
+					!(ext == ".jpg" && strings.HasSuffix(filename, ".jpeg")) {
+					filename = strings.TrimSuffix(filename, ext) + ext
+				}
 			}
 			return fmt.Sprintf(`attachment; filename="%s"`, filename)
 		}

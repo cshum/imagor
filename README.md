@@ -435,16 +435,59 @@ imagor provides an ImageMagick-enabled variant that includes ImageMagick support
 #### Docker build `imagor-magick`
 
 ```bash
-docker pull ghcr.io/cshum/imagor-magick:latest
+docker pull ghcr.io/cshum/imagor-magick
 ```
 
 Usage:
 
 ```bash
-docker run -p 8000:8000 ghcr.io/cshum/imagor-magick:latest -imagor-unsafe -imagor-auto-webp
+docker run -p 8000:8000 ghcr.io/cshum/imagor-magick -imagor-unsafe -imagor-auto-webp
 ```
 
 We recommend using the standard imagor image for most use cases.
+
+### MozJPEG Support
+
+By default, imagor uses libjpeg-turbo for JPEG encoding, which provides fast compression. For enhanced JPEG compression at the cost of slower encoding speed, imagor provides a MozJPEG-enabled variant that includes [MozJPEG](https://github.com/mozilla/mozjpeg) support through libvips.
+
+MozJPEG improves JPEG compression efficiency while maintaining compatibility with existing JPEG decoders. It can reduce JPEG file sizes up to 30% compared to libjpeg-turbo while maintaining the same visual quality, but with slower encoding performance.
+
+#### Docker build `imagor-mozjpeg`
+
+```bash
+docker pull ghcr.io/cshum/imagor-mozjpeg
+```
+
+Usage:
+
+```bash
+docker run -p 8000:8000 ghcr.io/cshum/imagor-mozjpeg -imagor-unsafe -vips-mozjpeg
+```
+
+#### Enabling MozJPEG
+
+MozJPEG can be enabled using the `-vips-mozjpeg` command-line argument, or the equivalent environment variable:
+
+```bash
+VIPS_MOZJPEG=1
+```
+
+Docker Compose example:
+
+```yaml
+version: "3"
+services:
+  imagor:
+    image: ghcr.io/cshum/imagor-mozjpeg:latest
+    environment:
+      PORT: 8000
+      IMAGOR_UNSAFE: 1
+      VIPS_MOZJPEG: 1  # Enable MozJPEG compression
+    ports:
+      - "8000:8000"
+```
+
+When enabled, MozJPEG will be used for JPEG output, providing better compression efficiency for JPEG images.
 
 ### Metadata and Exif
 
@@ -486,91 +529,54 @@ Prepending `/params` to the existing endpoint returns the endpoint attributes in
 curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
 ```
 
-### Go Library
+### POST Upload Endpoint
 
-imagor is a Go library built with speed, security and extensibility in mind.
-It facilitates high-level image processing in a modular architecture made up of a series of Go packages:
+imagor supports POST uploads for direct image processing and transformation. 
 
-- [imagor](https://pkg.go.dev/github.com/cshum/imagor) - the imagor core library
-- [imagorpath](https://pkg.go.dev/github.com/cshum/imagor/imagorpath) - parse and generate imagor endpoint
-- [vipsprocessor](https://pkg.go.dev/github.com/cshum/imagor/processor/vipsprocessor) - [libvips](https://www.libvips.org/) processor, an `imagor.Processor` implementation using Go binding generator [vipsgen](https://github.com/cshum/vipsgen)
-- [httploader](https://pkg.go.dev/github.com/cshum/imagor/loader/httploader) - HTTP Loader, an `imagor.Loader` implementation
-- [filestorage](https://pkg.go.dev/github.com/cshum/imagor/storage/filestorage) - File Storage, an `imagor.Storage` implementation
-- [s3storage](https://pkg.go.dev/github.com/cshum/imagor/storage/s3storage) - AWS S3 Storage, an `imagor.Storage` implementation
-- [gcloudstorage](https://pkg.go.dev/github.com/cshum/imagor/storage/gcloudstorage) - Google Cloud Storage, an `imagor.Storage` implementation
+Upload functionality is an **opt-in feature** designed for **internal use** where imagor serves as a backend service in trusted environments with proper access controls, not for public-facing endpoints. 
+When enabled, it requires both flags to be explicitly set:
 
-Install [libvips](https://www.libvips.org/) and enable CGO:
-- `brew install vips` for Mac
-- `CGO_CFLAGS_ALLOW=-Xpreprocessor` being set to compile Go
+- **Unsafe mode** (`IMAGOR_UNSAFE=1`) - disables URL signature verification
+- **Upload Loader** (`UPLOAD_LOADER_ENABLE=1`) - enables POST upload functionality
 
-See [examples](https://github.com/cshum/imagor/tree/master/examples) folder for common usage patterns. 
+Usage:
 
-```go
-package main
-
-import (
-	"log"
-	"net/http"
-
-	"github.com/cshum/vipsgen/vips"
-)
-
-func main() {
-	// Fetch an image from http.Get
-	resp, err := http.Get("https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png")
-	if err != nil {
-		log.Fatalf("Failed to fetch image: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Create source from io.ReadCloser
-	source := vips.NewSource(resp.Body)
-	defer source.Close() // source needs to remain available during image lifetime
-
-	// Shrink-on-load via creating image from thumbnail source with options
-	image, err := vips.NewThumbnailSource(source, 800, &vips.ThumbnailSourceOptions{
-		Height: 1000,
-		FailOn: vips.FailOnError, // Fail on first error
-	})
-	if err != nil {
-		log.Fatalf("Failed to load image: %v", err)
-	}
-	defer image.Close() // always close images to free memory
-
-	// Add a yellow border using vips_embed
-	border := 10
-	if err := image.Embed(
-		border, border,
-		image.Width()+border*2,
-		image.Height()+border*2,
-		&vips.EmbedOptions{
-			Extend:     vips.ExtendBackground,       // extend with colour from the background property
-			Background: []float64{255, 255, 0, 255}, // Yellow border
-		},
-	); err != nil {
-		log.Fatalf("Failed to add border: %v", err)
-	}
-
-	log.Printf("Processed image: %dx%d\n", image.Width(), image.Height())
-
-	// Save the result as WebP file with options
-	err = image.Webpsave("resized-gopher.webp", &vips.WebpsaveOptions{
-		Q:              85,   // Quality factor (0-100)
-		Effort:         4,    // Compression effort (0-6)
-		SmartSubsample: true, // Better chroma subsampling
-	})
-	if err != nil {
-		log.Fatalf("Failed to save image as WebP: %v", err)
-	}
-	log.Println("Successfully saved processed images")
-}
+```bash
+docker run -p 8000:8000 shumc/imagor -imagor-unsafe -upload-loader-enable
 ```
 
+```dotenv
+IMAGOR_UNSAFE=1
+UPLOAD_LOADER_ENABLE=1
+```
+
+Upload an image using POST request to any imagor endpoint. The URL path defines the image operations to apply:
+
+```bash
+# Upload and resize to 300x200
+curl -X POST -F "image=@photo.jpg" http://localhost:8000/unsafe/300x200/
+
+# Upload with filters applied
+curl -X POST -F "image=@photo.jpg" \
+  http://localhost:8000/unsafe/fit-in/400x300/filters:quality(80):format(webp)/
+```
+
+When upload is enabled, visiting processing paths in a browser shows a built-in upload form:
+
+- `http://localhost:8000/unsafe/200x200/` - Upload form with 200x200 resize
+- `http://localhost:8000/unsafe/filters:blur(5)/` - Upload form with blur filter
+
+The upload form includes debug information showing how imagor parses the URL parameters, useful for testing and development.
 
 
-### Golden Test Data
+### Community
 
-imagor employs golden test data with reference images in `testdata/golden/` to validate image processing operations. Golden test data is automatically updated via CI when imagor or libvips library improves, ensuring regression testing while maintaining visual consistency.
+The imagor ecosystem includes several community-contributed projects that extend and integrate with imagor:
+
+- **[cshum/imagor-studio](https://github.com/cshum/imagor-studio)** - Image gallery and live editing web application for creators
+- **[cshum/imagorvideo](https://github.com/cshum/imagorvideo)** - imagor video thumbnail server in Go and ffmpeg C bindings
+- **[sandstorm/laravel-imagor](https://github.com/sandstorm/laravel-imagor)** - Laravel integration for imagor
+- **[codedoga/imagor-toy](https://github.com/codedoga/imagor-toy)** - A ReactJS based app to play with Imagor
 
 ### Configuration
 
@@ -710,6 +716,15 @@ Usage of imagor:
         HTTP Loader rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g ::1/128,127.0.0.0/8.
   -http-loader-disable
         Disable HTTP Loader
+
+  -upload-loader-enable
+        Enable Upload Loader for POST uploads
+  -upload-loader-max-allowed-size int
+        Upload Loader maximum allowed size in bytes for uploaded images (default 33554432)
+  -upload-loader-accept string
+        Upload Loader accepted Content-Type for uploads (default "image/*")
+  -upload-loader-form-field-name string
+        Upload Loader form field name for multipart uploads (default "image")
 
   -file-safe-chars string
         File safe characters to be excluded from image key escape. Set -- for no-op

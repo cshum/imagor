@@ -52,6 +52,96 @@ func TestWithUnsafe(t *testing.T) {
 	assert.Equal(t, w.Body.String(), jsonStr(ErrSignatureMismatch))
 }
 
+func TestWithEnablePostRequests(t *testing.T) {
+	logger := zap.NewExample()
+	
+	t.Run("POST requests disabled by default", func(t *testing.T) {
+		app := New(WithOptions(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+			WithLogger(logger),
+		))
+		assert.False(t, app.EnablePostRequests)
+
+		// GET should work
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+
+		// POST should be rejected
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodPost, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 405, w.Code)
+	})
+
+	t.Run("POST requests enabled", func(t *testing.T) {
+		app := New(WithOptions(
+			WithUnsafe(true),
+			WithEnablePostRequests(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("uploaded")), nil
+			})),
+			WithLogger(logger),
+		))
+		assert.True(t, app.EnablePostRequests)
+
+		// GET should still work
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+
+		// POST should now be accepted
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodPost, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "uploaded", w.Body.String())
+	})
+
+	t.Run("POST requests require unsafe mode", func(t *testing.T) {
+		app := New(WithOptions(
+			WithEnablePostRequests(true), // POST enabled but unsafe disabled
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+			WithLogger(logger),
+		))
+		assert.True(t, app.EnablePostRequests)
+		assert.False(t, app.Unsafe)
+
+		// POST should be rejected due to unsafe mode being disabled
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodPost, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 405, w.Code)
+	})
+
+	t.Run("POST requests with both unsafe and POST enabled", func(t *testing.T) {
+		app := New(WithOptions(
+			WithUnsafe(true),
+			WithEnablePostRequests(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("both-enabled")), nil
+			})),
+			WithLogger(logger),
+		))
+		assert.True(t, app.EnablePostRequests)
+		assert.True(t, app.Unsafe)
+
+		// POST should work with both flags enabled
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodPost, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "both-enabled", w.Body.String())
+	})
+}
+
 func TestWithInternal(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()

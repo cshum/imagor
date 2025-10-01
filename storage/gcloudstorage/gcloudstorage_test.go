@@ -201,8 +201,5 @@ func TestContextCancel(t *testing.T) {
 	assert.Equal(t, "bar", string(buf))
 	cancel()
 	b, err = s.Get(r, "/foo/bar/asdf")
-	require.NoError(t, err)
-	buf, err = b.ReadAll()
-	assert.Empty(t, buf)
 	require.ErrorIs(t, err, context.Canceled)
 }

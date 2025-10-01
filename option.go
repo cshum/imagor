@@ -235,3 +235,10 @@ func WithSigner(signer imagorpath.Signer) Option {
 		}
 	}
 }
+
+// WithEnablePostRequests with enable POST requests option
+func WithEnablePostRequests(enable bool) Option {
+	return func(app *Imagor) {
+		app.EnablePostRequests = enable
+	}
+}

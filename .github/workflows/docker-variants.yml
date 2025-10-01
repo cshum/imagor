@@ -1,4 +1,4 @@
-name: docker-imagor-magick
+name: docker-variants
 
 on:
   push:
@@ -7,14 +7,22 @@ on:
     tags: [ 'v*.*.*' ]
 
 jobs:
-  build:
-    name: Docker imagor-magick
+  build-variants:
+    name: Docker variants
     runs-on: ubuntu-latest
     if: github.repository == 'cshum/imagor'
     permissions:
       contents: read
       packages: write
-
+    strategy:
+      matrix:
+        variant:
+          - name: magick
+            build_args: |
+              ENABLE_MAGICK=true
+          - name: mozjpeg
+            build_args: |
+              ENABLE_MOZJPEG=true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -38,7 +46,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/cshum/imagor-magick
+          images: ghcr.io/cshum/imagor-${{ matrix.variant.name }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -52,5 +60,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            ENABLE_MAGICK=true
+          build-args: ${{ matrix.variant.build_args }}

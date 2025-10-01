@@ -170,13 +170,12 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	defer func() {
 		_ = reader.Close()
 	}()
-
 	input := &s3.PutObjectInput{
 		ACL:           types.ObjectCannedACL(s.ACL),
 		Body:          reader,
 		Bucket:        aws.String(bucket),
-		ContentLength: aws.Int64(size),
 		ContentType:   aws.String(blob.ContentType()),
+		ContentLength: aws.Int64(size),
 		Key:           aws.String(image),
 		StorageClass:  types.StorageClass(s.StorageClass),
 	}
