@@ -1,6 +1,8 @@
 package gcloudstorage
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"net/http"
 	"testing"
@@ -202,4 +204,48 @@ func TestContextCancel(t *testing.T) {
 	cancel()
 	b, err = s.Get(r, "/foo/bar/asdf")
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
+	// Test that gzip-compressed objects don't cause fanout buffer size issues
+	
+	// Create properly gzipped content
+	originalContent := "this content is longer than 20 bytes when decompressed and should not be truncated"
+	var gzipBuf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&gzipBuf)
+	_, err := gzipWriter.Write([]byte(originalContent))
+	require.NoError(t, err)
+	require.NoError(t, gzipWriter.Close())
+	
+	gzippedContent := gzipBuf.Bytes()
+	
+	srv := fakestorage.NewServer([]fakestorage.Object{{
+		ObjectAttrs: fakestorage.ObjectAttrs{
+			BucketName:      "test",
+			Name:           "test-gzip",
+			ContentEncoding: "gzip",
+			Size:           int64(len(gzippedContent)), // Actual compressed size
+		},
+		Content: gzippedContent,
+	}})
+	
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+	s := New(srv.Client(), "test")
+	
+	// Test the fix - should not truncate despite size mismatch
+	b, err := s.Get(r, "/test-gzip")
+	require.NoError(t, err)
+	
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, originalContent, string(buf))
+	
+	// Verify blob stats are still set correctly
+	assert.NotNil(t, b.Stat)
+	// The stat size will still show compressed size, which is correct behavior
+	assert.Equal(t, int64(len(gzippedContent)), b.Stat.Size)
+	
+	// The key fix is that content is fully readable despite size mismatch
+	// (the fanout optimization is disabled internally for gzip content)
 }
