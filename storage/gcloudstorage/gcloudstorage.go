@@ -61,10 +61,15 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		if err = ctx.Err(); err != nil {
 			return
 		}
-		if attrs != nil {
+		// Do NOT pass size for gzip-encoded objects as attrs.Size contains the compressed size,
+		// but the GCS reader auto-decompresses on the fly, resulting in a size mismatch.
+		// This causes the fanoutreader to allocate an undersized buffer leading to truncated reads.
+		// By passing size=0, we disable the fanoutreader optimization and create new readers instead,
+		// which correctly handles the decompressed stream without size constraints.
+		if attrs != nil && attrs.ContentEncoding != "gzip" {
 			size = attrs.Size
 		}
-		reader, err = object.NewReader(context.Background())
+		reader, err = object.NewReader(ctx)
 		return
 	})
 	if attrs != nil {
