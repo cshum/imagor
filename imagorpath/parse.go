@@ -1,6 +1,7 @@
 package imagorpath
 
 import (
+	"encoding/base64"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -136,6 +137,14 @@ func Apply(p Params, path string) Params {
 		filters, img := parseFilters(match[index])
 		p.Filters = append(p.Filters, filters...)
 		if img != "" {
+			if strings.HasPrefix(img, "b64:") {
+				// if image URL starts with b64: prefix, Base64 decode it according to "base64url" in RFC 4648 (Section 5).
+				result := make([]byte, base64.RawURLEncoding.DecodedLen(len(img[4:])))
+				// no way to return a possible encoding error here
+				if _, err := base64.RawURLEncoding.Decode(result, []byte(img[4:])); err == nil {
+					img = string(result)
+				}
+			}
 			p.Image = img
 			if u, err := url.QueryUnescape(img); err == nil {
 				p.Image = u

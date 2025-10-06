@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"image/color"
 	"math"
@@ -22,9 +23,19 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		return
 	}
 	image := args[0]
-	if unescape, e := url.QueryUnescape(args[0]); e == nil {
-		image = unescape
+	if strings.HasPrefix(image, "b64:") {
+		// if image URL starts with b64: prefix, Base64 decode it according to "base64url" in RFC 4648 (Section 5).
+		result := make([]byte, base64.RawURLEncoding.DecodedLen(len(image[4:])))
+		if _, err = base64.RawURLEncoding.Decode(result, []byte(image[4:])); err != nil {
+			return fmt.Errorf("base64 decode error: %w", err)
+		}
+		image = string(result)
+	} else {
+		if unescape, e := url.QueryUnescape(args[0]); e == nil {
+			image = unescape
+		}
 	}
+
 	var blob *imagor.Blob
 	if blob, err = load(image); err != nil {
 		return

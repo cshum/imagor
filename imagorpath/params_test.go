@@ -12,10 +12,11 @@ import (
 
 func TestParseGenerate(t *testing.T) {
 	tests := []struct {
-		name   string
-		uri    string
-		params Params
-		signer Signer
+		name                        string
+		uri                         string
+		skipUriGenerationFromParams bool
+		params                      Params
+		signer                      Signer
 	}{
 		{
 			name: "non url image",
@@ -64,6 +65,31 @@ func TestParseGenerate(t *testing.T) {
 				Smart:         true,
 				FitIn:         true,
 				Filters:       []Filter{{Name: "some_filter"}},
+			},
+		},
+		{
+			name:                        "non url image base64url encoded",
+			uri:                         "meta/trim/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/b64:bXkgaW1hZ2UgKHNwZWNpYWwpPy5qcGc",
+			skipUriGenerationFromParams: true, // the reverse direction from params to path will not return the base64url encoded image; so that's why we need to disable it
+			params: Params{
+				Path:       "meta/trim/10x11:12x13/fit-in/-300x-200/left/top/smart/filters:some_filter()/b64:bXkgaW1hZ2UgKHNwZWNpYWwpPy5qcGc",
+				Image:      "my image (special)?.jpg",
+				Trim:       true,
+				TrimBy:     "top-left",
+				CropLeft:   10,
+				CropTop:    11,
+				CropRight:  12,
+				CropBottom: 13,
+				Width:      300,
+				Height:     200,
+				Meta:       true,
+				HFlip:      true,
+				VFlip:      true,
+				HAlign:     "left",
+				VAlign:     "top",
+				Smart:      true,
+				FitIn:      true,
+				Filters:    []Filter{{Name: "some_filter"}},
 			},
 		},
 		{
@@ -374,17 +400,19 @@ func TestParseGenerate(t *testing.T) {
 			if test.signer != nil && test.signer.Sign(resp.Path) != resp.Hash {
 				t.Errorf("signature mismatch = %s, want %s", resp.Hash, test.signer.Sign(resp.Path))
 			}
-			if test.params.Hash != "" && test.signer != nil {
-				if uri := Generate(test.params, test.signer); uri != test.uri {
-					t.Errorf(" = %s, want = %s", uri, test.uri)
-				}
-			} else if test.params.Unsafe {
-				if uri := GenerateUnsafe(test.params); uri != test.uri {
-					t.Errorf(" = %s, want = %s", uri, test.uri)
-				}
-			} else {
-				if uri := GeneratePath(test.params); uri != test.uri {
-					t.Errorf(" = %s, want = %s", uri, test.uri)
+			if !test.skipUriGenerationFromParams {
+				if test.params.Hash != "" && test.signer != nil {
+					if uri := Generate(test.params, test.signer); uri != test.uri {
+						t.Errorf(" = %s, want = %s", uri, test.uri)
+					}
+				} else if test.params.Unsafe {
+					if uri := GenerateUnsafe(test.params); uri != test.uri {
+						t.Errorf(" = %s, want = %s", uri, test.uri)
+					}
+				} else {
+					if uri := GeneratePath(test.params); uri != test.uri {
+						t.Errorf(" = %s, want = %s", uri, test.uri)
+					}
 				}
 			}
 		})
