@@ -807,6 +807,29 @@ func (app *Imagor) handleErrorResponse(w http.ResponseWriter, r *http.Request, e
 		return
 	}
 	e := WrapError(err)
+
+	// For non-404 errors, try to return original image from storage with no-cache headers
+	if e.Code != http.StatusNotFound {
+		// Parse the path to get the original image name
+		path := r.URL.EscapedPath()
+		p := imagorpath.Parse(path)
+		if p.Image != "" {
+			// Try to load original image from storage
+			originalBlob, _, loadErr := app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, p.Image)
+			if loadErr == nil && !isBlobEmpty(originalBlob) {
+				// Set no-cache headers to prevent CloudFront caching
+				w.Header().Set("Cache-Control", "private, no-cache, no-store, must-revalidate")
+				w.Header().Set("Content-Type", originalBlob.ContentType())
+				w.Header().Set("Content-Disposition", getContentDisposition(p, originalBlob))
+
+				// Write the original image
+				reader, size, _ := originalBlob.NewReader()
+				writeBody(w, r, reader, size)
+				return
+			}
+		}
+	}
+
 	if app.DisableErrorBody {
 		w.WriteHeader(e.Code)
 		return

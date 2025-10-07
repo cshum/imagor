@@ -54,7 +54,7 @@ func TestWithUnsafe(t *testing.T) {
 
 func TestWithEnablePostRequests(t *testing.T) {
 	logger := zap.NewExample()
-	
+
 	t.Run("POST requests disabled by default", func(t *testing.T) {
 		app := New(WithOptions(
 			WithUnsafe(true),
@@ -1886,7 +1886,7 @@ func (l *loaderWithStat) Stat(ctx context.Context, key string) (*Stat, error) {
 	l.mu.Lock()
 	l.statCalls++
 	l.mu.Unlock()
-	
+
 	if l.statErr != nil {
 		return nil, l.statErr
 	}
@@ -1910,11 +1910,11 @@ func (l *loaderWithStat) GetStatCalls() int {
 func TestWithModifiedTimeCheckLoader(t *testing.T) {
 	resultStore := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader with data
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.modTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat), // No storages configured - should use loader stat
@@ -1929,14 +1929,14 @@ func TestWithModifiedTimeCheckLoader(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Second request - should call loader stat for comparison
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Verify that loader stat was called (key test for the new functionality)
 	assert.Greater(t, loaderStat.GetStatCalls(), 0, "Loader Stat method should have been called")
 }
@@ -1945,15 +1945,15 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader to fail stat operation
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.statErr = errors.New("stat failed")
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat),
@@ -1976,7 +1976,7 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
-	
+
 	// Regular loader without Stater interface
 	regularLoader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		if image == "test-image" {
@@ -1984,11 +1984,11 @@ func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 		}
 		return nil, ErrNotFound
 	})
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(regularLoader), // Loader without Stater
