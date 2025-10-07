@@ -12,6 +12,9 @@ jobs:
   test:
     name: Docker Test
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
