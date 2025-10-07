@@ -66,12 +66,13 @@ func (v *Processor) Process(
 	// Store original max dimensions and use temporary values for this request
 	maxWidth := v.MaxWidth
 	maxHeight := v.MaxHeight
+	var maxDimWidth, maxDimHeight int
 	if p.MaxDim && p.Width > 0 {
-		maxWidth = p.Width
+		maxDimWidth = p.Width
 		p.Width = 0
 	}
 	if p.MaxDim && p.Height > 0 {
-		maxHeight = p.Height
+		maxDimHeight = p.Height
 		p.Height = 0
 	}
 	if maxN == 0 || maxN < -1 {
@@ -237,8 +238,12 @@ func (v *Processor) Process(
 			if p.MaxDim && !p.FitIn {
 				interest = vips.InterestingCentre
 			}
+			// Use original maxWidth/maxHeight for thumbnail operation, not the MaxDim values
+			// to avoid "extract_area: bad extract area" errors
+			thumbnailWidth := maxWidth
+			thumbnailHeight := maxHeight
 			if img, err = v.NewThumbnail(
-				ctx, blob, maxWidth, maxHeight,
+				ctx, blob, thumbnailWidth, thumbnailHeight,
 				interest, vips.SizeDown, maxN, page, dpi,
 			); err != nil {
 				return nil, err
@@ -254,6 +259,71 @@ func (v *Processor) Process(
 			return nil, err
 		}
 	}
+
+	// Apply max dimension constraints if MaxDim is true
+	if p.MaxDim && (maxDimWidth > 0 || maxDimHeight > 0) {
+		imgWidth := img.Width()
+		imgHeight := img.PageHeight()
+
+		// Check if image exceeds max dimensions and resize if necessary
+		if (maxDimWidth > 0 && imgWidth > maxDimWidth) || (maxDimHeight > 0 && imgHeight > maxDimHeight) {
+			var resizeWidth, resizeHeight int
+
+			if p.FitIn {
+				// FitIn mode - clip to fit within max dimensions while preserving aspect ratio
+				if maxDimWidth > 0 && maxDimHeight > 0 {
+					// Both dimensions specified - use the more restrictive one
+					widthRatio := float64(maxDimWidth) / float64(imgWidth)
+					heightRatio := float64(maxDimHeight) / float64(imgHeight)
+					ratio := math.Min(widthRatio, heightRatio)
+					resizeWidth = int(float64(imgWidth) * ratio)
+					resizeHeight = int(float64(imgHeight) * ratio)
+				} else if maxDimWidth > 0 {
+					// Only width specified
+					resizeWidth = maxDimWidth
+					resizeHeight = int(float64(imgHeight) * float64(maxDimWidth) / float64(imgWidth))
+				} else {
+					// Only height specified
+					resizeHeight = maxDimHeight
+					resizeWidth = int(float64(imgWidth) * float64(maxDimHeight) / float64(imgHeight))
+				}
+
+				// Clip to fit within max dimensions (never upscale)
+				if err := img.ThumbnailImage(resizeWidth, &vips.ThumbnailImageOptions{
+					Height: resizeHeight,
+					Crop:   vips.InterestingNone,
+					Size:   vips.SizeDown,
+				}); err != nil {
+					return nil, err
+				}
+			} else {
+				// Non-FitIn mode - crop to exact dimensions (never upscale)
+				if maxDimWidth > 0 && maxDimHeight > 0 {
+					// Both dimensions specified - crop to exact dimensions
+					resizeWidth = maxDimWidth
+					resizeHeight = maxDimHeight
+				} else if maxDimWidth > 0 {
+					// Only width specified - crop to exact width, maintain aspect ratio for height
+					resizeWidth = maxDimWidth
+					resizeHeight = int(float64(imgHeight) * float64(maxDimWidth) / float64(imgWidth))
+				} else {
+					// Only height specified - crop to exact height, maintain aspect ratio for width
+					resizeHeight = maxDimHeight
+					resizeWidth = int(float64(imgWidth) * float64(maxDimHeight) / float64(imgHeight))
+				}
+
+				// Crop to exact dimensions (never upscale)
+				if err := img.ThumbnailImage(resizeWidth, &vips.ThumbnailImageOptions{
+					Height: resizeHeight,
+					Crop:   vips.InterestingCentre,
+					Size:   vips.SizeDown,
+				}); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	var (
 		quality     int
 		bitdepth    int

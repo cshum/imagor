@@ -9,6 +9,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 )
 
@@ -438,5 +439,7 @@ func WrapErr(err error) error {
 		strings.HasSuffix(msg, "is not in a known format") {
 		return imagor.ErrUnsupportedFormat
 	}
+	// send error to sentry
+	sentry.CaptureException(err)
 	return imagor.NewError(msg, 406)
 }
