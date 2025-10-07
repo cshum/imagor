@@ -22,6 +22,34 @@ type FilterMap map[string]FilterFunc
 var processorLock sync.RWMutex
 var processorCount int
 
+// Global context storage for VIPS logging
+var (
+	currentContext context.Context
+	contextMutex   sync.RWMutex
+)
+
+// setCurrentContext sets the current context for VIPS logging
+func setCurrentContext(ctx context.Context) {
+	contextMutex.Lock()
+	currentContext = ctx
+	contextMutex.Unlock()
+}
+
+// getCurrentContext gets the current context for VIPS logging
+func getCurrentContext() context.Context {
+	contextMutex.RLock()
+	defer contextMutex.RUnlock()
+	return currentContext
+}
+
+// withContextLogger creates a logger that automatically includes request ID from context
+func (v *Processor) withContextLogger(ctx context.Context) *zap.Logger {
+	if requestID := imagor.GetRequestID(ctx); requestID != "" {
+		return v.Logger.With(zap.String("request_id", requestID))
+	}
+	return v.Logger
+}
+
 // Processor implements imagor.Processor interface
 type Processor struct {
 	Filters            FilterMap
@@ -105,18 +133,32 @@ func (v *Processor) Startup(_ context.Context) error {
 	if processorCount <= 1 {
 		if v.Debug {
 			vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
+				ctx := getCurrentContext()
+				logFields := []zap.Field{zap.String("log", msg)}
+				if ctx != nil {
+					if requestID := imagor.GetRequestID(ctx); requestID != "" {
+						logFields = append(logFields, zap.String("request_id", requestID))
+					}
+				}
 				switch level {
 				case vips.LogLevelDebug:
-					v.Logger.Debug(domain, zap.String("log", msg))
+					v.Logger.Debug(domain, logFields...)
 				case vips.LogLevelMessage, vips.LogLevelInfo:
-					v.Logger.Info(domain, zap.String("log", msg))
+					v.Logger.Info(domain, logFields...)
 				case vips.LogLevelWarning, vips.LogLevelCritical, vips.LogLevelError:
-					v.Logger.Warn(domain, zap.String("log", msg))
+					v.Logger.Warn(domain, logFields...)
 				}
 			}, vips.LogLevelDebug)
 		} else {
 			vips.SetLogging(func(domain string, level vips.LogLevel, msg string) {
-				v.Logger.Warn(domain, zap.String("log", msg))
+				ctx := getCurrentContext()
+				logFields := []zap.Field{zap.String("log", msg)}
+				if ctx != nil {
+					if requestID := imagor.GetRequestID(ctx); requestID != "" {
+						logFields = append(logFields, zap.String("request_id", requestID))
+					}
+				}
+				v.Logger.Warn(domain, logFields...)
 			}, vips.LogLevelError)
 		}
 		vips.Startup(&vips.Config{

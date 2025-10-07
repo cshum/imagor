@@ -133,6 +133,14 @@ func New(options ...Option) *Imagor {
 	return app
 }
 
+// withContextLogger creates a logger that automatically includes request ID from context
+func (app *Imagor) withContextLogger(ctx context.Context) *zap.Logger {
+	if requestID := GetRequestID(ctx); requestID != "" {
+		return app.Logger.With(zap.String("request_id", requestID))
+	}
+	return app.Logger
+}
+
 // Startup Imagor startup lifecycle
 func (app *Imagor) Startup(ctx context.Context) (err error) {
 	for _, processor := range app.Processors {
@@ -253,7 +261,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if hash := app.Signer.Sign(p.Path); hash != p.Hash {
 			err = ErrSignatureMismatch
 			if app.Debug {
-				app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", hash))
+				app.withContextLogger(ctx).Debug("sign-mismatch",
+					zap.Any("params", p),
+					zap.String("expected", hash))
 			}
 			return
 		}
@@ -354,7 +364,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			if !app.queueSema.TryAcquire(1) {
 				err = ErrTooManyRequests
 				if app.Debug {
-					app.Logger.Debug("queue-acquire", zap.Error(err))
+					app.withContextLogger(ctx).Debug("queue-acquire",
+						zap.Error(err))
 				}
 				return blob, err
 			}
@@ -363,7 +374,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if app.sema != nil && !isRaw {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
 				if app.Debug {
-					app.Logger.Debug("acquire", zap.Error(err))
+					app.withContextLogger(ctx).Debug("acquire",
+						zap.Error(err))
 				}
 				return blob, err
 			}
@@ -372,7 +384,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var shouldSave bool
 		if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
 			if app.Debug {
-				app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+				app.withContextLogger(ctx).Debug("load",
+					zap.Any("params", p),
+					zap.Error(err))
 			}
 			return blob, err
 		}
@@ -412,19 +426,23 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 					blob = b
 					err = nil
 					if app.Debug {
-						app.Logger.Debug("processed", zap.Any("params", forwardP))
+						app.withContextLogger(ctx).Debug("processed",
+							zap.Any("params", forwardP))
 					}
 					break
 				} else if forward, ok := e.(ErrForward); ok {
 					err = e
 					forwardP = forward.Params
 					if app.Debug {
-						app.Logger.Debug("forward", zap.Any("params", forwardP))
+						app.withContextLogger(ctx).Debug("forward",
+							zap.Any("params", forwardP))
 					}
 				} else {
 					if ctx.Err() == nil {
 						err = e
-						app.Logger.Warn("process", zap.Any("params", p), zap.Error(err))
+						app.withContextLogger(ctx).Warn("process",
+							zap.Any("params", p),
+							zap.Error(err))
 					} else {
 						err = ctx.Err()
 					}
@@ -523,11 +541,11 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 				sourceStat, sourceStatErr = app.loaderStat(ctx, imageKey)
 				if app.Debug {
 					if sourceStatErr == nil && sourceStat != nil {
-						app.Logger.Debug("source stat from loader succeeded",
+						app.withContextLogger(ctx).Debug("source stat from loader succeeded",
 							zap.String("image_key", imageKey),
 							zap.Time("source_time", sourceStat.ModifiedTime))
 					} else {
-						app.Logger.Debug("source stat from loader failed",
+						app.withContextLogger(ctx).Debug("source stat from loader failed",
 							zap.String("image_key", imageKey),
 							zap.Error(sourceStatErr))
 					}
@@ -541,7 +559,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 
 			if sourceStat != nil && sourceStatErr == nil {
 				if app.Debug {
-					app.Logger.Debug("modified-time-check",
+					app.withContextLogger(ctx).Debug("modified-time-check",
 						zap.Time("result_time", blob.Stat.ModifiedTime),
 						zap.Time("source_time", sourceStat.ModifiedTime),
 						zap.Bool("result_before_source", blob.Stat.ModifiedTime.Before(sourceStat.ModifiedTime)),
@@ -553,7 +571,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 				}
 			} else {
 				if app.Debug {
-					app.Logger.Debug("modified-time-check-failed-fallback-to-cache",
+					app.withContextLogger(ctx).Debug("modified-time-check-failed-fallback-to-cache",
 						zap.Bool("has_source_stat", sourceStat != nil),
 						zap.Error(sourceStatErr),
 						zap.String("image_key", imageKey))
@@ -564,7 +582,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 			}
 		} else {
 			if app.Debug && app.ModifiedTimeCheck {
-				app.Logger.Debug("modified-time-check-skipped",
+				app.withContextLogger(ctx).Debug("modified-time-check-skipped",
 					zap.Bool("has_origin", origin != nil),
 					zap.Bool("has_blob_stat", blob.Stat != nil),
 					zap.String("result_key", resultKey))
@@ -694,9 +712,12 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 		go func(storage Storage) {
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
-				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
+				app.withContextLogger(ctx).Warn("save",
+					zap.String("key", key),
+					zap.Error(err))
 			} else if app.Debug {
-				app.Logger.Debug("saved", zap.String("key", key))
+				app.withContextLogger(ctx).Debug("saved",
+					zap.String("key", key))
 			}
 		}(storage)
 	}
@@ -717,9 +738,12 @@ func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
 		go func(storage Storage) {
 			defer wg.Done()
 			if err := storage.Delete(ctx, key); err != nil {
-				app.Logger.Warn("delete", zap.String("key", key), zap.Error(err))
+				app.withContextLogger(ctx).Warn("delete",
+					zap.String("key", key),
+					zap.Error(err))
 			} else if app.Debug {
-				app.Logger.Debug("deleted", zap.String("key", key))
+				app.withContextLogger(ctx).Debug("deleted",
+					zap.String("key", key))
 			}
 		}(storage)
 	}
@@ -741,7 +765,8 @@ func (app *Imagor) suppress(
 		return fn(ctx, blobNoop)
 	}
 	if app.Debug {
-		app.Logger.Debug("suppress", zap.String("key", key))
+		app.withContextLogger(ctx).Debug("suppress",
+			zap.String("key", key))
 	}
 	if isAcquired, ok := ctx.Value(suppressKey{key}).(bool); ok && isAcquired {
 		// resolve deadlock

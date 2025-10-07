@@ -40,6 +40,9 @@ func (v *Processor) Process(
 ) (*imagor.Blob, error) {
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
+
+	// Set the current context for VIPS logging
+	setCurrentContext(ctx)
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
@@ -341,7 +344,7 @@ func (v *Processor) Process(
 		}
 	}
 	if v.Debug {
-		v.Logger.Debug("image",
+		v.withContextLogger(ctx).Debug("image",
 			zap.Int("width", img.Width()),
 			zap.Int("height", img.Height()),
 			zap.Int("page_height", img.PageHeight()))
@@ -415,7 +418,7 @@ func (v *Processor) Process(
 		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePng {
 			ln := len(buf)
 			if v.Debug {
-				v.Logger.Debug("max_bytes",
+				v.withContextLogger(ctx).Debug("max_bytes",
 					zap.Int("bytes", ln),
 					zap.Int("quality", quality),
 				)
@@ -590,7 +593,7 @@ func (v *Processor) process(
 		}
 		if v.MaxFilterOps > 0 && i >= v.MaxFilterOps {
 			if v.Debug {
-				v.Logger.Debug("max-filter-ops-exceeded",
+				v.withContextLogger(ctx).Debug("max-filter-ops-exceeded",
 					zap.String("name", filter.Name), zap.String("args", filter.Args))
 			}
 			break
@@ -612,7 +615,7 @@ func (v *Processor) process(
 			}
 		}
 		if v.Debug {
-			v.Logger.Debug("filter",
+			v.withContextLogger(ctx).Debug("filter",
 				zap.String("name", filter.Name), zap.String("args", filter.Args),
 				zap.Duration("took", time.Since(start)))
 		}

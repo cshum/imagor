@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cshum/imagor"
 	"go.uber.org/zap"
 )
 
@@ -74,6 +75,9 @@ func New(app Service, options ...Option) *Server {
 		option(s)
 	}
 
+	// Handler: request ID middleware (must be after options so it runs before accessLogHandler)
+	s.Handler = requestIDHandler(s.Handler)
+
 	// Handler: prefixes
 	if s.PathPrefix != "" {
 		s.Handler = http.StripPrefix(s.PathPrefix, s.Handler)
@@ -92,6 +96,14 @@ func New(app Service, options ...Option) *Server {
 	}
 	s.ErrorLog = newServerErrorLog(s.Logger)
 	return s
+}
+
+// withContextLogger creates a logger that automatically includes request ID from context
+func (s *Server) withContextLogger(ctx context.Context) *zap.Logger {
+	if requestID := imagor.GetRequestID(ctx); requestID != "" {
+		return s.Logger.With(zap.String("request_id", requestID))
+	}
+	return s.Logger
 }
 
 // Run server that terminates on SIGINT, SIGTERM signals

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cshum/imagor"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +35,8 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 				if !ok {
 					err = fmt.Errorf("%v", rvr)
 				}
-				s.Logger.Error("panic", zap.Error(err))
+				s.withContextLogger(r.Context()).Error("panic",
+					zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
 				writeJSON(w, r, errResp{
 					Message: err.Error(),
@@ -42,6 +44,25 @@ func (s *Server) panicHandler(next http.Handler) http.Handler {
 				})
 			}
 		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+func requestIDHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Generate or extract request ID
+		requestID := r.Header.Get("X-Request-ID")
+		if requestID == "" {
+			requestID = imagor.GenerateRequestID()
+		}
+
+		// Add request ID to response headers
+		w.Header().Set("X-Request-ID", requestID)
+
+		// Add request ID to context
+		ctx := imagor.WithRequestID(r.Context(), requestID)
+		r = r.WithContext(ctx)
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -99,7 +120,7 @@ func (s *Server) accessLogHandler(next http.Handler) http.Handler {
 		if isNoopRequest(r) {
 			return // skip logging no-op requests
 		}
-		s.Logger.Info("access",
+		s.withContextLogger(r.Context()).Info("access",
 			zap.Int("status", wr.Status),
 			zap.String("method", r.Method),
 			zap.String("uri", r.URL.RequestURI()),

@@ -2,6 +2,8 @@ package imagor
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"sync"
 	"time"
@@ -13,6 +15,7 @@ type contextKey struct {
 
 var imagorContextKey = contextKey{1}
 var detachContextKey = contextKey{2}
+var requestIDContextKey = contextKey{3}
 
 type imagorContextRef struct {
 	funcs []func()
@@ -95,4 +98,24 @@ func detachContext(ctx context.Context) context.Context {
 func isDetached(ctx context.Context) bool {
 	_, ok := ctx.Value(detachContextKey).(bool)
 	return ok
+}
+
+// GenerateRequestID generates a random request ID
+func GenerateRequestID() string {
+	bytes := make([]byte, 8)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+// WithRequestID adds a request ID to the context
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, requestIDContextKey, requestID)
+}
+
+// GetRequestID retrieves the request ID from the context
+func GetRequestID(ctx context.Context) string {
+	if requestID, ok := ctx.Value(requestIDContextKey).(string); ok {
+		return requestID
+	}
+	return ""
 }
