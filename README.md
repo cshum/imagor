@@ -64,14 +64,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - `filters` a pipeline of image filter operations to be applied, see filters section
 - `IMAGE` is the image path or URI
   - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
-  - Base64 Option: If you prefix the IMAGE with `b64:`, you can alternatively encode the image URL as
-    [base64url](https://www.rfc-editor.org/rfc/rfc4648.html#section-5), i.e. an un-padded base64 encoding
-    with the characters `+` and `/` replaced with `-` and `_` respectively. This encoding is helpful if
-    you have lots of special characters in your image URL, and you want to avoid URL encoding them - as
-    this might lead to issues with some proxies or client libraries.
-  - For example:
-    - `b64:Z29waGVyLnBuZw` means `gopher.png`
-    - `b64:L2Zvby9nb3BoZXIgKHdpdGggc3BlY2lhbD8gY2hhcmFjdGVycykucG5n` means `/foo/gopher (with special? characters).png` 
+  - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64). This encoding is  more robust if you have special characters in your image URL, and can fix encoding/signing issues in your setup.
 
 ### Filters
 
@@ -142,13 +135,8 @@ imagor supports the following filters:
 - `strip_metadata()` removes all metadata from the resulting image
 - `upscale()` upscale the image if `fit-in` is used
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
-  - `image` watermark image URI, using the same image loader configured for imagor
-    If you prefix the image URI with `b64:`, you can alternatively encode the image URL as
-    [base64url](https://www.rfc-editor.org/rfc/rfc4648.html#section-5), i.e. an un-padded base64 encoding
-    with the characters `+` and `/` replaced with `-` and `_` respectively. This encoding is helpful if
-    you have lots of special characters in your image URL, and you want to avoid URL encoding them - as
-    this might lead to issues with some proxies or client libraries.
-
+  - `image` watermark image URI, using the same image loader configured for imagor.
+    Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
   - `x` horizontal position that the watermark will be in:
     - Positive number indicate position from the left, negative number from the right.
     - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage

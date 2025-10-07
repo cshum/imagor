@@ -140,9 +140,10 @@ func Apply(p Params, path string) Params {
 			if strings.HasPrefix(img, "b64:") {
 				// if image URL starts with b64: prefix, Base64 decode it according to "base64url" in RFC 4648 (Section 5).
 				result := make([]byte, base64.RawURLEncoding.DecodedLen(len(img[4:])))
-				// no way to return a possible encoding error here
+				// in case decoding fails, use original image URL (possible that filename starts with b64: prefix, but as part of the file name)
 				if _, err := base64.RawURLEncoding.Decode(result, []byte(img[4:])); err == nil {
 					img = string(result)
+					p.Base64Image = true
 				}
 			}
 			p.Image = img
