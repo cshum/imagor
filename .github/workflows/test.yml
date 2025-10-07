@@ -12,6 +12,9 @@ jobs:
   test:
     name: Docker Test
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -43,7 +46,6 @@ jobs:
         with:
           commit_message: "test: update golden files"
           file_pattern: "testdata/golden"
-          branch: ${{ github.head_ref }}
 
       - name: Run coverage in Docker
         run: |
