@@ -43,6 +43,7 @@ jobs:
         with:
           commit_message: "test: update golden files"
           file_pattern: "testdata/golden"
+          branch: ${{ github.head_ref }}
 
       - name: Run coverage in Docker
         run: |
