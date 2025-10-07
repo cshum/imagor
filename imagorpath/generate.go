@@ -1,6 +1,7 @@
 package imagorpath
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -83,20 +84,26 @@ func GeneratePath(p Params) string {
 		}
 		parts = append(parts, "filters:"+strings.Join(filters, ":"))
 	}
-	if strings.Contains(p.Image, "?") ||
-		strings.HasPrefix(p.Image, "trim/") ||
-		strings.HasPrefix(p.Image, "meta/") ||
-		strings.HasPrefix(p.Image, "fit-in/") ||
-		strings.HasPrefix(p.Image, "stretch/") ||
-		strings.HasPrefix(p.Image, "top/") ||
-		strings.HasPrefix(p.Image, "left/") ||
-		strings.HasPrefix(p.Image, "right/") ||
-		strings.HasPrefix(p.Image, "bottom/") ||
-		strings.HasPrefix(p.Image, "center/") ||
-		strings.HasPrefix(p.Image, "smart/") {
-		p.Image = url.QueryEscape(p.Image)
+	if p.Base64Image {
+		encoded := make([]byte, base64.RawURLEncoding.EncodedLen(len(p.Image)))
+		base64.RawURLEncoding.Encode(encoded, []byte(p.Image))
+		parts = append(parts, "b64:"+string(encoded))
+	} else {
+		if strings.Contains(p.Image, "?") ||
+			strings.HasPrefix(p.Image, "trim/") ||
+			strings.HasPrefix(p.Image, "meta/") ||
+			strings.HasPrefix(p.Image, "fit-in/") ||
+			strings.HasPrefix(p.Image, "stretch/") ||
+			strings.HasPrefix(p.Image, "top/") ||
+			strings.HasPrefix(p.Image, "left/") ||
+			strings.HasPrefix(p.Image, "right/") ||
+			strings.HasPrefix(p.Image, "bottom/") ||
+			strings.HasPrefix(p.Image, "center/") ||
+			strings.HasPrefix(p.Image, "smart/") {
+			p.Image = url.QueryEscape(p.Image)
+		}
+		parts = append(parts, p.Image)
 	}
-	parts = append(parts, p.Image)
 	return strings.Join(parts, "/")
 }
 

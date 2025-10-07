@@ -23,6 +23,7 @@ type Params struct {
 	Params        bool    `json:"-"`
 	Path          string  `json:"path,omitempty"`
 	Image         string  `json:"image,omitempty"`
+	Base64Image   bool    `json:"base64_image,omitempty"`
 	Unsafe        bool    `json:"unsafe,omitempty"`
 	Hash          string  `json:"hash,omitempty"`
 	Meta          bool    `json:"meta,omitempty"`

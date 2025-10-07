@@ -211,6 +211,7 @@ func TestProcessor(t *testing.T) {
 			{name: "trim position tolerance filter", path: "50x50:0x0/filters:trim(50,bottom-right)/find_trim.png"},
 			{name: "trim filter", path: "/fit-in/100x100/filters:fill(auto):trim(50)/find_trim.png"},
 			{name: "watermark", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png", arm64Golden: true},
+			{name: "watermark base64encoded", path: "fit-in/500x500/filters:fill(white):watermark(b64:Z29waGVyLnBuZw,10p,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-10p)/gopher.png", arm64Golden: true},
 			{name: "watermark non alpha", path: "filters:watermark(demo1.jpg,repeat,repeat,40,25,50)/demo1.jpg", arm64Golden: true},
 			{name: "background color non alpha", path: "filters:background_color(yellow)/demo1.jpg"},
 			{name: "watermark 2 bands", path: "filters:watermark(2bands.png,repeat,bottom,40,25,50)/demo1.jpg", arm64Golden: true},
