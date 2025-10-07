@@ -137,6 +137,10 @@ func Apply(p Params, path string) Params {
 		filters, img := parseFilters(match[index])
 		p.Filters = append(p.Filters, filters...)
 		if img != "" {
+			if u, err := url.QueryUnescape(img); err == nil {
+				img = u
+			}
+
 			if strings.HasPrefix(img, "b64:") {
 				// if image URL starts with b64: prefix, Base64 decode it according to "base64url" in RFC 4648 (Section 5).
 				result := make([]byte, base64.RawURLEncoding.DecodedLen(len(img[4:])))
@@ -147,9 +151,6 @@ func Apply(p Params, path string) Params {
 				}
 			}
 			p.Image = img
-			if u, err := url.QueryUnescape(img); err == nil {
-				p.Image = u
-			}
 		}
 	}
 	return p
