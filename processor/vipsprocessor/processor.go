@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/metrics/instrumentation"
 	"github.com/cshum/vipsgen/vips"
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
@@ -50,6 +51,14 @@ func (v *Processor) withContextLogger(ctx context.Context) *zap.Logger {
 	return v.Logger
 }
 
+// NewMethodTimer creates a new method timer for instrumentation
+func (v *Processor) NewMethodTimer(identifier string) *instrumentation.MethodTimer {
+	if v.Instrumentation == nil {
+		return nil
+	}
+	return v.Instrumentation.NewMethodTimerFromString(identifier)
+}
+
 // Processor implements imagor.Processor interface
 type Processor struct {
 	Filters            FilterMap
@@ -72,6 +81,7 @@ type Processor struct {
 	Unlimited          bool
 	Debug              bool
 	PNGBufferThreshold int64 // Threshold for loading PNG files into buffer to avoid streaming issues
+	Instrumentation    *instrumentation.Instrumentation
 
 	disableFilters map[string]bool
 }
@@ -197,6 +207,10 @@ func (v *Processor) Shutdown(_ context.Context) error {
 func (v *Processor) newImageFromBlob(
 	ctx context.Context, blob *imagor.Blob, options *vips.LoadOptions,
 ) (*vips.Image, error) {
+	timer := v.NewMethodTimer("vipsprocessor.newImageFromBlob")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
@@ -229,10 +243,14 @@ func (v *Processor) newImageFromBlob(
 	return img, err
 }
 
-func newThumbnailFromBlob(
+func (v *Processor) newThumbnailFromBlob(
 	ctx context.Context, blob *imagor.Blob,
 	width, height int, crop vips.Interesting, size vips.Size, options *vips.LoadOptions,
 ) (*vips.Image, error) {
+	timer := v.NewMethodTimer("vipsprocessor.newThumbnailFromBlob")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
@@ -259,6 +277,10 @@ func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop vips.Interesting,
 	size vips.Size, n, page int, dpi int,
 ) (*vips.Image, error) {
+	timer := v.NewMethodTimer("vipsprocessor.NewThumbnail")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	var options = &vips.LoadOptions{}
 	if dpi > 0 {
 		options.Dpi = dpi
@@ -304,7 +326,7 @@ func (v *Processor) NewThumbnail(
 		switch blob.BlobType() {
 		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP:
 			// only allow real thumbnail for jpeg gif webp
-			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
+			img, err = v.newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
 		default:
 			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, options)
 		}
@@ -315,6 +337,10 @@ func (v *Processor) NewThumbnail(
 func (v *Processor) newThumbnailFallback(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop vips.Interesting, size vips.Size, options *vips.LoadOptions,
 ) (img *vips.Image, err error) {
+	timer := v.NewMethodTimer("vipsprocessor.newThumbnailFallback")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	if img, err = v.CheckResolution(v.newImageFromBlob(ctx, blob, options)); err != nil {
 		return
 	}
@@ -329,6 +355,10 @@ func (v *Processor) newThumbnailFallback(
 
 // NewImage creates new Image from imagor.Blob
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi int) (*vips.Image, error) {
+	timer := v.NewMethodTimer("vipsprocessor.NewImage")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	var options = &vips.LoadOptions{}
 	if dpi > 0 {
 		options.Dpi = dpi
@@ -358,6 +388,10 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 func (v *Processor) Thumbnail(
 	img *vips.Image, width, height int, crop vips.Interesting, size vips.Size,
 ) error {
+	timer := v.NewMethodTimer("vipsprocessor.Thumbnail")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	if crop == vips.InterestingNone || size == vips.SizeForce || img.Height() == img.PageHeight() {
 		return img.ThumbnailImage(width, &vips.ThumbnailImageOptions{
 			Height: height, Size: size, Crop: crop,
@@ -368,6 +402,10 @@ func (v *Processor) Thumbnail(
 
 // FocalThumbnail handles thumbnail with custom focal point
 func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, fx, fy float64) (err error) {
+	timer := v.NewMethodTimer("vipsprocessor.FocalThumbnail")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	var imageWidth, imageHeight float64
 	// exif orientation greater 5-8 are 90 or 270 degrees, w and h swapped
 	if img.Orientation() > 4 {

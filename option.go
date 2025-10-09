@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/metrics/instrumentation"
 	"go.uber.org/zap"
 )
 
@@ -27,6 +28,13 @@ func WithLogger(logger *zap.Logger) Option {
 		if logger != nil {
 			app.Logger = logger
 		}
+	}
+}
+
+// WithInstrumentation with instrumentation option
+func WithInstrumentation(instrumentation *instrumentation.Instrumentation) Option {
+	return func(app *Imagor) {
+		app.Instrumentation = instrumentation
 	}
 }
 

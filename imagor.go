@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/metrics/instrumentation"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
@@ -95,6 +96,7 @@ type Imagor struct {
 	BaseParams             string
 	Logger                 *zap.Logger
 	Debug                  bool
+	Instrumentation        *instrumentation.Instrumentation
 
 	g          singleflight.Group
 	sema       *semaphore.Weighted
@@ -139,6 +141,14 @@ func (app *Imagor) withContextLogger(ctx context.Context) *zap.Logger {
 		return app.Logger.With(zap.String("request_id", requestID))
 	}
 	return app.Logger
+}
+
+// NewMethodTimer creates a new method timer for instrumentation
+func (app *Imagor) NewMethodTimer(identifier string) *instrumentation.MethodTimer {
+	if app.Instrumentation == nil {
+		return nil
+	}
+	return app.Instrumentation.NewMethodTimerFromString(identifier)
 }
 
 // Startup Imagor startup lifecycle
@@ -250,6 +260,11 @@ func (app *Imagor) ServeBlob(
 
 // Do executes imagor operations
 func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err error) {
+	timer := app.NewMethodTimer("Imagor.Do")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
+
 	var ctx = withContext(r.Context())
 	var cancel func()
 	if app.RequestTimeout > 0 {
@@ -528,6 +543,10 @@ func (app *Imagor) requestWithLoadContext(r *http.Request) *http.Request {
 }
 
 func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob {
+	timer := app.NewMethodTimer("Imagor.loadResult")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	r = app.requestWithLoadContext(r)
 	ctx := r.Context()
 	blob, origin, err := fromStorages(r, app.ResultStorages, resultKey)
@@ -612,6 +631,11 @@ func fromStorages(
 }
 
 func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldSave bool, err error) {
+	timer := app.NewMethodTimer("Imagor.loadStorage")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
+
 	r = app.requestWithLoadContext(r)
 	var origin Storage
 	blob, origin, err = app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, key)
@@ -698,6 +722,11 @@ func (app *Imagor) loaderStat(ctx context.Context, key string) (stat *Stat, err 
 }
 
 func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
+	timer := app.NewMethodTimer("Imagor.save")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
+
 	if key == "" {
 		return
 	}
@@ -761,6 +790,10 @@ func (app *Imagor) suppress(
 	ctx context.Context,
 	key string, fn func(ctx context.Context, cb func(*Blob, error)) (*Blob, error),
 ) (blob *Blob, err error) {
+	timer := app.NewMethodTimer("Imagor.suppress")
+	if timer != nil {
+		defer timer.ObserveDurationWithError(err)
+	}
 	if key == "" {
 		return fn(ctx, blobNoop)
 	}
@@ -835,19 +868,14 @@ func (app *Imagor) handleErrorResponse(w http.ResponseWriter, r *http.Request, e
 
 	// For non-404 errors, try to return original image from storage with no-cache headers
 	if e.Code != http.StatusNotFound {
-		// Parse the path to get the original image name
 		path := r.URL.EscapedPath()
 		p := imagorpath.Parse(path)
 		if p.Image != "" {
-			// Try to load original image from storage
 			originalBlob, _, loadErr := app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, p.Image)
 			if loadErr == nil && !isBlobEmpty(originalBlob) {
-				// Set no-cache headers to prevent CloudFront caching
 				w.Header().Set("Cache-Control", "private, no-cache, no-store, must-revalidate")
 				w.Header().Set("Content-Type", originalBlob.ContentType())
 				w.Header().Set("Content-Disposition", getContentDisposition(p, originalBlob))
-
-				// Write the original image
 				reader, size, _ := originalBlob.NewReader()
 				writeBody(w, r, reader, size)
 				return

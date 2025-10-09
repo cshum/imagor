@@ -13,7 +13,9 @@ import (
 	"github.com/TheZeroSlave/zapsentry"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/metrics/instrumentation"
 	"github.com/cshum/imagor/metrics/prometheusmetrics"
+	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/server"
 	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/getsentry/sentry-go"
@@ -99,7 +101,7 @@ func NewImagor(
 		resultHasher = imagorpath.SizeSuffixResultStorageHasher
 	}
 
-	return imagor.New(append(
+	app := imagor.New(append(
 		options,
 		imagor.WithSigner(imagorpath.NewHMACSigner(
 			alg, *imagorSignerTruncate, *imagorSecret,
@@ -126,7 +128,14 @@ func NewImagor(
 		imagor.WithUnsafe(*imagorUnsafe),
 		imagor.WithLogger(logger),
 		imagor.WithDebug(isDebug),
+		imagor.WithInstrumentation(instrumentation.New(logger)),
 	)...)
+	for _, processor := range app.Processors {
+		if vipsProcessor, ok := processor.(*vipsprocessor.Processor); ok {
+			vipsProcessor.Instrumentation = app.Instrumentation
+		}
+	}
+	return app
 }
 
 // CreateServer create server from config flags. Returns nil on version or help command

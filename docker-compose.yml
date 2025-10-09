@@ -37,6 +37,7 @@ services:
       # SENTRY_DSN: ${SENTRY_DSN}
       # Server Configuration
       SERVER_ACCESS_LOG: 1
+      VIPS_CONCURRENCY: 4
       SERVER_CORS: 1
       DEBUG: 1
       

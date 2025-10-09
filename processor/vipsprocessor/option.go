@@ -3,6 +3,7 @@ package vipsprocessor
 import (
 	"strings"
 
+	"github.com/cshum/imagor/metrics/instrumentation"
 	"go.uber.org/zap"
 )
 
@@ -181,5 +182,12 @@ func WithPNGBufferThreshold(threshold int64) Option {
 		if threshold > 0 {
 			v.PNGBufferThreshold = threshold
 		}
+	}
+}
+
+// WithInstrumentation with instrumentation option
+func WithInstrumentation(instrumentation *instrumentation.Instrumentation) Option {
+	return func(v *Processor) {
+		v.Instrumentation = instrumentation
 	}
 }

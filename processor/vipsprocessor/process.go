@@ -38,6 +38,10 @@ func IsAnimationSupported(imageType vips.ImageType) bool {
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
+	timer := v.NewMethodTimer("vipsprocessor.Process")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
 
@@ -265,6 +269,19 @@ func (v *Processor) Process(
 
 	// Apply max dimension constraints if MaxDim is true
 	if p.MaxDim && (maxDimWidth > 0 || maxDimHeight > 0) {
+		startTime := time.Now()
+		defer func() {
+			duration := time.Since(startTime)
+			if v.Logger != nil {
+				v.Logger.Debug("max dimension processing completed",
+					zap.Duration("latency", duration),
+					zap.Int("max_width", maxDimWidth),
+					zap.Int("max_height", maxDimHeight),
+					zap.Bool("fit_in", p.FitIn),
+				)
+			}
+		}()
+
 		imgWidth := img.Width()
 		imgHeight := img.PageHeight()
 
@@ -453,6 +470,10 @@ func (v *Processor) Process(
 func (v *Processor) process(
 	ctx context.Context, img *vips.Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
+	timer := v.NewMethodTimer("vipsprocessor.process")
+	if timer != nil {
+		defer timer.ObserveDuration()
+	}
 	var (
 		origWidth  = float64(img.Width())
 		origHeight = float64(img.PageHeight())
