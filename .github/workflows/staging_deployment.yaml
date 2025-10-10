@@ -1,0 +1,15 @@
+on:
+  push:
+    branches:
+      - master
+
+name: Deploy New Staging Releases
+
+jobs:
+  staging_release:
+    uses: mrsool/workflows/.github/workflows/staging_deployment.yaml@main
+    with:
+      project_name: mrsool-imagor
+      values_files: mrsool-imagor/ci/staging-values.yaml
+      push_to_ar: true
+    secrets: inherit
