@@ -19,17 +19,3 @@ docker run -p 8000:8000 ghcr.io/cshum/imagor-magick -imagor-unsafe -imagor-auto-
 ```
 
 We recommend using the standard imagor image for most use cases.
-
-## Additional Information
-
-### Supported Formats
-
-The ImageMagick variant can process additional formats that libvips doesn't support natively, including PSD, BMP, XCF and other legacy formats.
-
-### Performance Considerations
-
-As noted in the README, ImageMagick is significantly slower than libvips and should only be used when you need to process formats that aren't supported by the standard imagor image.
-
-### Security Notes
-
-ImageMagick has historically had security vulnerabilities, so it's important to use appropriate security measures when deploying the ImageMagick variant in production environments.

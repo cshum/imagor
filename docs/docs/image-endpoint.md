@@ -147,24 +147,3 @@ Examples:
 /unsafe/300x200/https://example.com/image.jpg
 /unsafe/300x200/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc/
 ```
-
-## Complete Examples
-
-### Basic resize with quality
-```
-/unsafe/300x200/filters:quality(80)/https://example.com/image.jpg
-```
-
-### Smart crop with format conversion
-```
-/unsafe/200x200/smart/filters:format(webp):quality(90)/https://example.com/image.jpg
-```
-
-### Complex transformation
-```
-/unsafe/fit-in/-180x180/10x10/filters:hue(290):saturation(100):fill(yellow)/https://example.com/image.jpg
-```
-
-### Watermark with positioning
-```
-/unsafe/fit-in/400x300/filters:watermark(logo.png,repeat,bottom,10)/https://example.com/image.jpg
