@@ -69,13 +69,13 @@ const config: Config = {
           label: "Documentation",
         },
         {
-          href: "https://github.com/cshum/imagor",
-          label: "GitHub",
+          href: "https://docs.studio.imagor.net",
+          label: "Imagor Studio",
           position: "right",
         },
         {
-          href: "https://pkg.go.dev/github.com/cshum/imagor",
-          label: "Go Reference",
+          href: "https://github.com/cshum/imagor",
+          label: "GitHub",
           position: "right",
         },
       ],
