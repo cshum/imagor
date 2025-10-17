@@ -131,7 +131,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Built with ❤️ for fast image processing. Copyright © ${new Date().getFullYear()} Adrian Shum.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Adrian Shum.`,
     },
     prism: {
       theme: prismThemes.github,

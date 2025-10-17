@@ -129,7 +129,7 @@ Enable smart detection of focal points for automatic cropping.
 
 ### filters
 
-A pipeline of image filter operations to be applied. See [Filters](./filters) for detailed documentation.
+A pipeline of image filter operations to be applied. See [Filters](filters.md) for detailed documentation.
 
 ```
 /unsafe/300x200/filters:blur(5):quality(80)/image.jpg

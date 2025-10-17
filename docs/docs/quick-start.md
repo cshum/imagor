@@ -62,8 +62,8 @@ Key components:
 
 ## Next Steps
 
-- Learn about [Image Endpoint](../api/image-endpoint) syntax
-- Explore available [Filters](../api/filters)
+- Learn about [Image Endpoint](image-endpoint.md) syntax
+- Explore available [Filters](filters.md)
 - Set up [Production Configuration](../configuration/overview)
 - Deploy with [Docker Compose](../deployment/docker-compose)
 
