@@ -1,14 +1,27 @@
 # Image Endpoint
 
-imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI.
-
-## URL Structure
+imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
 /HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
-## URL Components
+- `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
+- `trim` removes surrounding space in images using top-left pixel color
+- `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
+- `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
+- `stretch` means resize the image to `ExF` without keeping its aspect ratios
+- `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
+- `GxH:IxJ` add left-top padding `GxH` and right-bottom padding `IxJ`
+- `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
+- `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
+- `smart` means using smart detection of focal points
+- `filters` a pipeline of image filter operations to be applied, see filters section
+- `IMAGE` is the image path or URI
+  - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
+  - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64). This encoding is  more robust if you have special characters in your image URL, and can fix encoding/signing issues in your setup.
+
+## URL Components Details
 
 ### HASH or unsafe
 
@@ -62,7 +75,6 @@ Resize the image to `ExF` without keeping its aspect ratios.
 Resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically.
 
 Examples:
-
 - `300x200` - Resize to 300x200
 - `-300x200` - Resize to 300x200 and flip horizontally
 - `300x-200` - Resize to 300x200 and flip vertically
@@ -84,9 +96,8 @@ Add left-top padding `GxH` and right-bottom padding `IxJ`.
 ### Horizontal Alignment (HALIGN)
 
 Horizontal alignment of crop:
-
 - `left` - Align to left
-- `right` - Align to right
+- `right` - Align to right  
 - `center` - Center alignment (default)
 
 ```
@@ -98,7 +109,6 @@ Horizontal alignment of crop:
 ### Vertical Alignment (VALIGN)
 
 Vertical alignment of crop:
-
 - `top` - Align to top
 - `bottom` - Align to bottom
 - `middle` - Middle alignment (default)
@@ -133,7 +143,6 @@ The image path or URI:
 - **Base64 URLs**: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64)
 
 Examples:
-
 ```
 /unsafe/300x200/https://example.com/image.jpg
 /unsafe/300x200/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc/
@@ -142,25 +151,20 @@ Examples:
 ## Complete Examples
 
 ### Basic resize with quality
-
 ```
 /unsafe/300x200/filters:quality(80)/https://example.com/image.jpg
 ```
 
 ### Smart crop with format conversion
-
 ```
 /unsafe/200x200/smart/filters:format(webp):quality(90)/https://example.com/image.jpg
 ```
 
 ### Complex transformation
-
 ```
 /unsafe/fit-in/-180x180/10x10/filters:hue(290):saturation(100):fill(yellow)/https://example.com/image.jpg
 ```
 
 ### Watermark with positioning
-
 ```
 /unsafe/fit-in/400x300/filters:watermark(logo.png,repeat,bottom,10)/https://example.com/image.jpg
-```

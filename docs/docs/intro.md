@@ -5,31 +5,34 @@ slug: /
 
 # imagor
 
-**imagor** is a fast, secure image processing server and Go library.
+[![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
+[![Coverage Status](https://coveralls.io/repos/github/cshum/imagor/badge.svg?branch=master)](https://coveralls.io/github/cshum/imagor?branch=master)
+[![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/cshum/imagor.svg)](https://pkg.go.dev/github.com/cshum/imagor)
 
-imagor uses one of the most efficient image processing library [libvips](https://github.com/libvips/libvips) with Go binding [vipsgen](https://github.com/cshum/vipsgen). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick settings. imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput.
+imagor is a fast, secure image processing server and Go library.
 
-### Lightning-Fast Image Processing
-
-High-performance image transformations with libvips streaming that facilitates parallel processing pipelines, achieving exceptional network throughput.
-
-### Thumbor-Compatible API
+imagor uses one of the most efficient image processing library
+[libvips](https://github.com/libvips/libvips) with Go binding [vipsgen](https://github.com/cshum/vipsgen). It is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than using the quickest ImageMagick settings.
+imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) that facilitates parallel processing pipelines, achieving high network throughput.
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
 
-### Secure and Extensible
-
 imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
-## Quick Demo
-
-Try imagor with Docker:
+### Quick Start
 
 ```bash
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
 ```
 
 Original images:
+
+```
+https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
+https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png
+```
 
 <div className="demo-images">
 
@@ -39,12 +42,14 @@ Original images:
 
 </div>
 
-Try out the following image transformation URLs:
+Try out the following image URLs:
 
 ```
 http://localhost:8000/unsafe/fit-in/200x200/filters:fill(white)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 http://localhost:8000/unsafe/200x200/smart/filters:fill(white):format(jpeg):quality(80)/https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 http://localhost:8000/unsafe/fit-in/-180x180/10x10/filters:hue(290):saturation(100):fill(yellow)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
+http://localhost:8000/unsafe/30x40:100x150/filters:fill(cyan)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
+http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,0,40,40)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
 ```
 
 <div className="demo-images">
@@ -56,43 +61,3 @@ http://localhost:8000/unsafe/fit-in/-180x180/10x10/filters:hue(290):saturation(1
 ![Demo 5](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif)
 
 </div>
-
-## Key Features
-
-- **High-performance image processing** powered by [libvips](https://github.com/libvips/libvips) with 4-8x faster performance than ImageMagick
-- **Thumbor-compatible API** for easy migration and familiar URL syntax
-- **Comprehensive format support** including JPEG, PNG, WebP, AVIF, GIF, TIFF, and more
-- **Advanced image operations** including smart cropping, filters, watermarks, and transformations
-- **Multiple storage backends** supporting File System, AWS S3, Google Cloud Storage
-- **Built-in security** with URL signing and image bomb prevention
-- **Docker-first deployment** with official Docker images and Kubernetes support
-- **Extensible architecture** as a Go library for custom integrations
-
-## What Makes imagor Special?
-
-### Performance-First Design
-
-Built on libvips with streaming support, imagor delivers exceptional performance for high-throughput image processing workloads.
-
-### Production-Ready Security
-
-Comprehensive security features including URL signing, allowed source restrictions, and image bomb prevention protect against abuse.
-
-### Universal Storage Support
-
-Works seamlessly with local filesystems, S3-compatible storage, Google Cloud Storage, and more. Switch between storage backends without changing your workflow.
-
-### Thumbor Compatibility
-
-Drop-in replacement for thumbor with the same URL syntax, making migration straightforward while gaining significant performance improvements.
-
-## Quick Links
-
-- [Quick Start Guide](./getting-started/quick-start) - Get up and running in minutes
-- [API Reference](./api/image-endpoint) - Complete URL syntax and operations
-- [Configuration](./configuration/overview) - Customize imagor for your needs
-- [GitHub Repository](https://github.com/cshum/imagor) - Source code and issues
-
----
-
-Ready to get started? Head over to the [Quick Start Guide](./getting-started/quick-start)!
