@@ -24,7 +24,7 @@ func GeneratePath(p Params) string {
 		}
 		parts = append(parts, strings.Join(trims, ":"))
 	}
-	if p.CropTop > 0 || p.CropRight > 0 || p.CropLeft > 0 || p.CropBottom > 0 {
+	if p.CropTop != 0 || p.CropRight != 0 || p.CropLeft != 0 || p.CropBottom != 0 {
 		parts = append(parts, fmt.Sprintf(
 			"%sx%s:%sx%s",
 			strconv.FormatFloat(p.CropLeft, 'f', -1, 64),

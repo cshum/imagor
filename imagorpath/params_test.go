@@ -409,6 +409,68 @@ func TestParseGenerate(t *testing.T) {
 				Filters:    []Filter{{Name: "some_filter"}},
 			},
 		},
+		{
+			name: "crop with negative coordinates",
+			uri:  "10x10:-10x-10/200x200/img",
+			params: Params{
+				Path:       "10x10:-10x-10/200x200/img",
+				Image:      "img",
+				CropLeft:   10,
+				CropTop:    10,
+				CropRight:  -10,
+				CropBottom: -10,
+				Width:      200,
+				Height:     200,
+			},
+		},
+		{
+			name: "crop with mixed negative and positive coordinates",
+			uri:  "10x20:-50x-30/300x300/img",
+			params: Params{
+				Path:       "10x20:-50x-30/300x300/img",
+				Image:      "img",
+				CropLeft:   10,
+				CropTop:    20,
+				CropRight:  -50,
+				CropBottom: -30,
+				Width:      300,
+				Height:     300,
+			},
+		},
+		{
+			name: "crop with all negative coordinates",
+			uri:  "-100x-100:-10x-10/img",
+			params: Params{
+				Path:       "-100x-100:-10x-10/img",
+				Image:      "img",
+				CropLeft:   -100,
+				CropTop:    -100,
+				CropRight:  -10,
+				CropBottom: -10,
+			},
+		},
+		{
+			name: "crop filter with negative coordinates",
+			uri:  "200x200/filters:crop(10,10,-10,-10)/img",
+			params: Params{
+				Path:    "200x200/filters:crop(10,10,-10,-10)/img",
+				Image:   "img",
+				Width:   200,
+				Height:  200,
+				Filters: []Filter{{Name: "crop", Args: "10,10,-10,-10"}},
+			},
+		},
+		{
+			name: "crop filter with relative coordinates",
+			uri:  "300x300/filters:crop(0.1,0.1,0.9,0.9)/img",
+			params: Params{
+				Path:    "300x300/filters:crop(0.1,0.1,0.9,0.9)/img",
+				Image:   "img",
+				Width:   300,
+				Height:  300,
+				Filters: []Filter{{Name: "crop", Args: "0.1,0.1,0.9,0.9"}},
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.name == "" {

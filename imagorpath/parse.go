@@ -25,7 +25,7 @@ var paramsRegex = regexp.MustCompile(
 		// trim
 		"(trim(:(top-left|bottom-right))?(:(\\d+))?/)?" +
 		// crop
-		"(((0?\\.)?\\d+)x((0?\\.)?\\d+):(([0-1]?\\.)?\\d+)x(([0-1]?\\.)?\\d+)/)?" +
+		"((-?(?:0?\\.)?\\d+)x(-?(?:0?\\.)?\\d+):(-?(?:0?\\.)?\\d+)x(-?(?:0?\\.)?\\d+)/)?" +
 		// fit-in
 		"(fit-in/)?" +
 		// stretch
@@ -88,12 +88,13 @@ func Apply(p Params, path string) Params {
 	}
 	index += 5
 	if match[index] != "" {
+		// Parse crop coordinates with support for negative values
 		p.CropLeft, _ = strconv.ParseFloat(match[index+1], 64)
-		p.CropTop, _ = strconv.ParseFloat(match[index+3], 64)
-		p.CropRight, _ = strconv.ParseFloat(match[index+5], 64)
-		p.CropBottom, _ = strconv.ParseFloat(match[index+7], 64)
+		p.CropTop, _ = strconv.ParseFloat(match[index+2], 64)
+		p.CropRight, _ = strconv.ParseFloat(match[index+3], 64)
+		p.CropBottom, _ = strconv.ParseFloat(match[index+4], 64)
 	}
-	index += 9
+	index += 5
 	if match[index] != "" {
 		p.FitIn = true
 	}

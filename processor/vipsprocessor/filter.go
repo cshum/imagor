@@ -707,6 +707,21 @@ func hexToByte(b byte) byte {
 	return 0
 }
 
+func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
+	if len(args) < 4 {
+		return nil
+	}
+
+	var (
+		left, _   = strconv.ParseFloat(args[0], 64)
+		top, _    = strconv.ParseFloat(args[1], 64)
+		right, _  = strconv.ParseFloat(args[2], 64)
+		bottom, _ = strconv.ParseFloat(args[3], 64)
+	)
+
+	return applyCrop(img, left, top, right, bottom)
+}
+
 func isAnimated(img *vips.Image) bool {
 	return img.Height() > img.PageHeight()
 }

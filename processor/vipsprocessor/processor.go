@@ -78,6 +78,7 @@ func NewProcessor(options ...Option) *Processor {
 		"trim":             trim,
 		"padding":          v.padding,
 		"proportion":       proportion,
+		"crop":             crop,
 	}
 	for _, option := range options {
 		option(v)

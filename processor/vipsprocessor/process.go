@@ -365,54 +365,50 @@ func (v *Processor) process(
 	ctx context.Context, img *vips.Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
-		origWidth  = float64(img.Width())
-		origHeight = float64(img.PageHeight())
 		cropLeft,
 		cropTop,
 		cropRight,
 		cropBottom float64
 	)
-	if p.CropRight > 0 || p.CropLeft > 0 || p.CropBottom > 0 || p.CropTop > 0 {
-		// percentage
-		cropLeft = math.Max(p.CropLeft, 0)
-		cropTop = math.Max(p.CropTop, 0)
+	if p.CropRight != 0 || p.CropLeft != 0 || p.CropBottom != 0 || p.CropTop != 0 {
+		cropLeft = p.CropLeft
+		cropTop = p.CropTop
 		cropRight = p.CropRight
 		cropBottom = p.CropBottom
-		if p.CropLeft < 1 && p.CropTop < 1 && p.CropRight <= 1 && p.CropBottom <= 1 {
-			cropLeft = math.Round(cropLeft * origWidth)
-			cropTop = math.Round(cropTop * origHeight)
-			cropRight = math.Round(cropRight * origWidth)
-			cropBottom = math.Round(cropBottom * origHeight)
-		}
-		if cropRight == 0 {
-			cropRight = origWidth - 1
-		}
-		if cropBottom == 0 {
-			cropBottom = origHeight - 1
-		}
-		cropRight = math.Min(cropRight, origWidth-1)
-		cropBottom = math.Min(cropBottom, origHeight-1)
 	}
 	if p.Trim {
 		if l, t, w, h, err := findTrim(ctx, img, p.TrimBy, p.TrimTolerance); err == nil {
-			cropLeft = math.Max(cropLeft, float64(l))
-			cropTop = math.Max(cropTop, float64(t))
-			if cropRight > 0 {
-				cropRight = math.Min(cropRight, float64(l+w))
+			trimLeft := float64(l)
+			trimTop := float64(t)
+			trimRight := float64(l + w)
+			trimBottom := float64(t + h)
+
+			// Combine trim with existing crop
+			if cropLeft != 0 || cropTop != 0 || cropRight != 0 || cropBottom != 0 {
+				cropLeft = math.Max(cropLeft, trimLeft)
+				cropTop = math.Max(cropTop, trimTop)
+				if cropRight > 0 {
+					cropRight = math.Min(cropRight, trimRight)
+				} else {
+					cropRight = trimRight
+				}
+				if cropBottom > 0 {
+					cropBottom = math.Min(cropBottom, trimBottom)
+				} else {
+					cropBottom = trimBottom
+				}
 			} else {
-				cropRight = float64(l + w)
-			}
-			if cropBottom > 0 {
-				cropBottom = math.Min(cropBottom, float64(t+h))
-			} else {
-				cropBottom = float64(t + h)
+				cropLeft = trimLeft
+				cropTop = trimTop
+				cropRight = trimRight
+				cropBottom = trimBottom
 			}
 		}
 	}
-	if cropRight > cropLeft && cropBottom > cropTop {
-		if err := img.ExtractAreaMultiPage(
-			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
-		); err != nil {
+
+	// Apply crop using the reusable function
+	if cropLeft != 0 || cropTop != 0 || cropRight != 0 || cropBottom != 0 {
+		if err := applyCrop(img, cropLeft, cropTop, cropRight, cropBottom); err != nil {
 			return err
 		}
 	}
@@ -697,6 +693,69 @@ func parseFocalPoint(focalRects ...focal) (focalX, focalY float64) {
 		focalY += (f.Top + f.Bottom) / 2 * r
 	}
 	return
+}
+
+// applyCrop applies crop coordinates to an image with support for:
+// - Absolute pixel values (e.g., 10, 100)
+// - Relative values 0.0-1.0 (e.g., 0.1 = 10% of dimension)
+// - Negative values from opposite edge (e.g., -10 = 10 pixels from right/bottom)
+func applyCrop(img *vips.Image, cropLeft, cropTop, cropRight, cropBottom float64) error {
+	var (
+		origWidth  = float64(img.Width())
+		origHeight = float64(img.PageHeight())
+		left       = cropLeft
+		top        = cropTop
+		right      = cropRight
+		bottom     = cropBottom
+	)
+
+	// Convert negative coordinates (from opposite edge) first
+	if left < 0 {
+		left = origWidth + left
+	}
+	if top < 0 {
+		top = origHeight + top
+	}
+	if right < 0 {
+		right = origWidth + right
+	}
+	if bottom < 0 {
+		bottom = origHeight + bottom
+	}
+
+	// Convert relative coordinates (0.0-1.0) to absolute pixels
+	// Only if both coordinates in the pair are in the 0-1 range
+	if left >= 0 && left < 1 && right > 0 && right <= 1 {
+		left = math.Round(left * origWidth)
+		right = math.Round(right * origWidth)
+	}
+	if top >= 0 && top < 1 && bottom > 0 && bottom <= 1 {
+		top = math.Round(top * origHeight)
+		bottom = math.Round(bottom * origHeight)
+	}
+
+	// Handle default values (0 means use full dimension)
+	if right == 0 {
+		right = origWidth
+	}
+	if bottom == 0 {
+		bottom = origHeight
+	}
+
+	// Ensure coordinates are within bounds
+	left = math.Max(left, 0)
+	top = math.Max(top, 0)
+	right = math.Min(right, origWidth)
+	bottom = math.Min(bottom, origHeight)
+
+	// Validate crop area
+	if right <= left || bottom <= top {
+		return nil // Invalid crop area, skip
+	}
+
+	return img.ExtractAreaMultiPage(
+		int(left), int(top), int(right-left), int(bottom-top),
+	)
 }
 
 func findTrim(
