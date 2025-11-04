@@ -85,6 +85,9 @@ imagor supports the following filters:
   - `amount` -100 to 100, the amount in % to increase or decrease the image brightness
 - `contrast(amount)` increases or decreases the image contrast
   - `amount` -100 to 100, the amount in % to increase or decrease the image contrast
+- `crop(left,top,width,height)` crops the image after resizing
+  - Absolute pixels: `crop(10,20,200,150)` - crop 200x150 box starting at (10,20)
+  - Relative (0.0-1.0): `crop(0.1,0.1,0.8,0.8)` - crop using percentages
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image

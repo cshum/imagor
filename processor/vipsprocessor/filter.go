@@ -707,6 +707,50 @@ func hexToByte(b byte) byte {
 	return 0
 }
 
+func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
+	if len(args) < 4 {
+		return nil
+	}
+
+	// Parse arguments
+	left, _ := strconv.ParseFloat(args[0], 64)
+	top, _ := strconv.ParseFloat(args[1], 64)
+	width, _ := strconv.ParseFloat(args[2], 64)
+	height, _ := strconv.ParseFloat(args[3], 64)
+
+	imgWidth := float64(img.Width())
+	imgHeight := float64(img.PageHeight())
+
+	// Convert relative (0-1) to absolute pixels
+	if left > 0 && left < 1 {
+		left = left * imgWidth
+	}
+	if top > 0 && top < 1 {
+		top = top * imgHeight
+	}
+	if width > 0 && width < 1 {
+		width = width * imgWidth
+	}
+	if height > 0 && height < 1 {
+		height = height * imgHeight
+	}
+
+	// Clamp left and top to image bounds
+	left = math.Max(0, math.Min(left, imgWidth))
+	top = math.Max(0, math.Min(top, imgHeight))
+
+	// Adjust width and height to not exceed image bounds
+	width = math.Min(width, imgWidth-left)
+	height = math.Min(height, imgHeight-top)
+
+	// Skip if invalid crop area
+	if width <= 0 || height <= 0 {
+		return nil
+	}
+
+	return img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
+}
+
 func isAnimated(img *vips.Image) bool {
 	return img.Height() > img.PageHeight()
 }

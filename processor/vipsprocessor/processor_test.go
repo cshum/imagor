@@ -264,6 +264,11 @@ func TestProcessor(t *testing.T) {
 			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
 			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
 			{name: "svg", path: "test.svg", checkTypeOnly: true},
+			{name: "crop absolute", path: "300x300/filters:crop(50,50,200,200)/gopher.png"},
+			{name: "crop relative", path: "300x300/filters:crop(0.1,0.1,0.8,0.8)/gopher.png"},
+			{name: "crop overflow", path: "300x300/filters:crop(250,250,200,200)/gopher.png"},
+			{name: "crop animated", path: "200x200/filters:crop(20,20,160,160)/dancing-banana.gif", arm64Golden: true},
+			{name: "crop with fill", path: "400x400/filters:fill(yellow):crop(50,50,300,300)/gopher.png"},
 		}, WithDebug(true), WithLogger(zap.NewExample()), WithForceBmpFallback())
 	})
 	t.Run("max frames", func(t *testing.T) {
