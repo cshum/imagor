@@ -769,3 +769,113 @@ func TestWithInvalidHost(t *testing.T) {
 	assert.Empty(t, b)
 	assert.Equal(t, 404, err.(imagor.Error).Code)
 }
+
+func TestHTTPLoader_Stat(t *testing.T) {
+	// Test server that returns proper headers
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodHead, r.Method)
+		
+		switch r.URL.Path {
+		case "/with-last-modified":
+			w.Header().Set("Last-Modified", "Mon, 02 Jan 2006 15:04:05 GMT")
+			w.Header().Set("Content-Length", "12345")
+			w.Header().Set("ETag", `"abc123"`)
+			w.WriteHeader(http.StatusOK)
+		case "/with-etag-only":
+			w.Header().Set("ETag", `"xyz789"`)
+			w.Header().Set("Content-Length", "54321")
+			w.WriteHeader(http.StatusOK)
+		case "/no-metadata":
+			w.Header().Set("Content-Length", "99999")
+			w.WriteHeader(http.StatusOK)
+		case "/not-found":
+			w.WriteHeader(http.StatusNotFound)
+		default:
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer ts.Close()
+
+	loader := New(WithDefaultScheme("http"))
+	r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
+	ctx := r.Context()
+
+	t.Run("with last modified and etag", func(t *testing.T) {
+		stat, err := loader.Stat(ctx, ts.URL+"/with-last-modified")
+		require.NoError(t, err)
+		require.NotNil(t, stat)
+		assert.False(t, stat.ModifiedTime.IsZero())
+		assert.Equal(t, "Mon, 02 Jan 2006 15:04:05 GMT", stat.ModifiedTime.Format(http.TimeFormat))
+		assert.Equal(t, `"abc123"`, stat.ETag)
+		assert.Equal(t, int64(12345), stat.Size)
+	})
+
+	t.Run("with etag only returns not found", func(t *testing.T) {
+		// ETag without ModifiedTime is not sufficient for modified-time-check
+		stat, err := loader.Stat(ctx, ts.URL+"/with-etag-only")
+		assert.Equal(t, imagor.ErrNotFound, err)
+		assert.Nil(t, stat)
+	})
+
+	t.Run("no metadata returns not found", func(t *testing.T) {
+		stat, err := loader.Stat(ctx, ts.URL+"/no-metadata")
+		assert.Equal(t, imagor.ErrNotFound, err)
+		assert.Nil(t, stat)
+	})
+
+	t.Run("not found error", func(t *testing.T) {
+		stat, err := loader.Stat(ctx, ts.URL+"/not-found")
+		assert.Error(t, err)
+		assert.Equal(t, 404, err.(imagor.Error).Code)
+		assert.Nil(t, stat)
+	})
+
+	t.Run("invalid image path", func(t *testing.T) {
+		stat, err := loader.Stat(ctx, "")
+		assert.Equal(t, imagor.ErrInvalid, err)
+		assert.Nil(t, stat)
+	})
+}
+
+func TestHTTPLoader_StatWithBaseURL(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodHead, r.Method)
+		assert.Equal(t, "/images/test.jpg", r.URL.Path)
+		w.Header().Set("Last-Modified", "Tue, 15 Nov 1994 12:45:26 GMT")
+		w.Header().Set("ETag", `"base-url-test"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	baseURLReq, _ := http.NewRequest(http.MethodGet, ts.URL+"/images/", nil)
+	loader := New(WithBaseURL(baseURLReq.URL.String()))
+	r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
+	ctx := r.Context()
+
+	stat, err := loader.Stat(ctx, "test.jpg")
+	require.NoError(t, err)
+	require.NotNil(t, stat)
+	assert.Equal(t, `"base-url-test"`, stat.ETag)
+}
+
+func TestHTTPLoader_StatWithAllowedSources(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Last-Modified", "Wed, 21 Oct 2015 07:28:00 GMT")
+		w.Header().Set("ETag", `"allowed"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	loader := New(
+		WithAllowedSources("allowed.com"),
+		WithDefaultScheme("http"),
+	)
+	r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
+	ctx := r.Context()
+
+	t.Run("disallowed source", func(t *testing.T) {
+		stat, err := loader.Stat(ctx, "notallowed.com/image.jpg")
+		assert.Equal(t, imagor.ErrSourceNotAllowed, err)
+		assert.Nil(t, stat)
+	})
+}
