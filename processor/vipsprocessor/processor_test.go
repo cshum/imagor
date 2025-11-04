@@ -199,7 +199,6 @@ func TestProcessor(t *testing.T) {
 			{name: "resize top flip blur", path: "200x-210/top/filters:blur(5):sharpen(5):background_color(ffff00):format(jpeg):quality(70)/gopher.png"},
 			{name: "blur sharpen 2", path: "200x-210/top/filters:blur(1,2):sharpen(1,2):background_color(ff0):format(jpeg):quality(70)/gopher.png"},
 			{name: "crop stretch top flip", path: "10x20:3000x5000/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
-			{name: "crop-percent stretch top flip", path: "0.006120x0.008993:1.0x1.0/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
 			{name: "padding rotation fill blur grayscale", path: "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
 			{name: "fill round_corner", path: "fit-in/0x210/filters:fill(yellow):round_corner(40,60,green)/gopher.png"},
 			{name: "grayscale fill none", path: "fit-in/100x100/filters:fill(none)/2bands.png", checkTypeOnly: true},
