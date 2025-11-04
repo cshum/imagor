@@ -53,7 +53,10 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 
 - `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
 - `trim` removes surrounding space in images using top-left pixel color
-- `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
+- `AxB:CxD` manually crops the image from left-top point `AxB` to right-bottom point `CxD`
+  - Absolute pixels: `10x20:300x400`
+  - Relative (0.0-1.0): `0.1x0.2:0.9x0.8` as percentage of dimensions
+  - Negative from edge: `10x10:-10x-10` means 10 pixels from each edge
 - `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
 - `stretch` means resize the image to `ExF` without keeping its aspect ratios
 - `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
@@ -85,6 +88,10 @@ imagor supports the following filters:
   - `amount` -100 to 100, the amount in % to increase or decrease the image brightness
 - `contrast(amount)` increases or decreases the image contrast
   - `amount` -100 to 100, the amount in % to increase or decrease the image contrast
+- `crop(left,top,right,bottom)` crops the image after resizing. Supports the same coordinate formats as URL path crop
+  - Absolute: `crop(10,20,990,980)`
+  - Relative: `crop(0.1,0.1,0.9,0.9)`
+  - Negative: `crop(10,10,-10,-10)`
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image
