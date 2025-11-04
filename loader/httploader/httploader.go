@@ -2,6 +2,7 @@ package httploader
 
 import (
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/cshum/imagor"
 )
@@ -129,14 +131,15 @@ func New(options ...Option) *HTTPLoader {
 	return h
 }
 
-// Get implements imagor.Loader interface
-func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
+// parseAndValidateURL validates and normalizes the image URL
+// Returns the final URL string or an error
+func (h *HTTPLoader) parseAndValidateURL(image string) (string, error) {
 	if image == "" {
-		return nil, imagor.ErrInvalid
+		return "", imagor.ErrInvalid
 	}
 	u, err := url.Parse(image)
 	if err != nil {
-		return nil, imagor.ErrInvalid
+		return "", imagor.ErrInvalid
 	}
 	if h.BaseURL != nil {
 		newU := h.BaseURL.JoinPath(u.Path)
@@ -148,10 +151,10 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		if h.DefaultScheme != "" {
 			image = h.DefaultScheme + "://" + image
 			if u, err = url.Parse(image); err != nil {
-				return nil, imagor.ErrInvalid
+				return "", imagor.ErrInvalid
 			}
 		} else {
-			return nil, imagor.ErrInvalid
+			return "", imagor.ErrInvalid
 		}
 	}
 
@@ -161,8 +164,19 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	u.Fragment = ""
 
 	if !isURLAllowed(u, h.AllowedSources) {
-		return nil, imagor.ErrSourceNotAllowed
+		return "", imagor.ErrSourceNotAllowed
 	}
+
+	return image, nil
+}
+
+// Get implements imagor.Loader interface
+func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
+	image, err := h.parseAndValidateURL(image)
+	if err != nil {
+		return nil, err
+	}
+
 	client := &http.Client{
 		Transport:     h.Transport,
 		CheckRedirect: h.checkRedirect,
@@ -299,4 +313,74 @@ func (h *HTTPLoader) DialControl(network string, address string, conn syscall.Ra
 		}
 	}
 	return nil
+}
+
+// Stat implements imagor.Stater interface for HTTP Loader
+// Makes a HEAD request to retrieve Last-Modified, ETag, and Content-Length metadata
+func (h *HTTPLoader) Stat(ctx context.Context, image string) (*imagor.Stat, error) {
+	image, err := h.parseAndValidateURL(image)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create HEAD request to get metadata
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, image, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply headers
+	req.Header.Set("User-Agent", h.UserAgent)
+	if h.Accept != "" {
+		req.Header.Set("Accept", h.Accept)
+	}
+	for key, value := range h.OverrideHeaders {
+		req.Header.Set(key, value)
+	}
+
+	client := &http.Client{
+		Transport:     h.Transport,
+		CheckRedirect: h.checkRedirect,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, imagor.NewErrorFromStatusCode(resp.StatusCode)
+	}
+
+	stat := &imagor.Stat{}
+
+	// Parse Last-Modified header
+	if lastModified := resp.Header.Get("Last-Modified"); lastModified != "" {
+		if t, err := time.Parse(http.TimeFormat, lastModified); err == nil {
+			stat.ModifiedTime = t
+		}
+	}
+
+	// Parse Content-Length for size
+	if contentLength := resp.Header.Get("Content-Length"); contentLength != "" {
+		if size, err := strconv.ParseInt(contentLength, 10, 64); err == nil {
+			stat.Size = size
+		}
+	}
+
+	// Use ETag if available
+	if etag := resp.Header.Get("ETag"); etag != "" {
+		stat.ETag = etag
+	}
+
+	// Return stat only if we have ModifiedTime
+	// ModifiedTime is required for the modified-time-check comparison
+	// ETag and Size are captured for potential future use but not sufficient on their own
+	if !stat.ModifiedTime.IsZero() {
+		return stat, nil
+	}
+
+	// If no ModifiedTime available, return not found
+	return nil, imagor.ErrNotFound
 }
