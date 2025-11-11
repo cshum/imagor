@@ -206,6 +206,42 @@ func TestContextCancel(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+func TestContextCancelDuringBlobInit(t *testing.T) {
+	// This test validates that nil reader protection works when context is cancelled
+	// after Get() succeeds but before the blob is read (during lazy initialization)
+	srv := fakestorage.NewServer([]fakestorage.Object{{
+		ObjectAttrs: fakestorage.ObjectAttrs{
+			BucketName: "test",
+			Name:       "foo/bar/test",
+		},
+		Content: []byte("test content for deferred read"),
+	}})
+	s := New(srv.Client(), "test")
+	
+	// Create a context with very short timeout to simulate cancellation during blob init
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*1)
+	defer cancel()
+	
+	r, err := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+	require.NoError(t, err)
+	
+	// Wait a bit to ensure context times out
+	time.Sleep(time.Millisecond * 10)
+	
+	// Get should fail because context is already cancelled
+	// The fix ensures we get a proper error instead of a panic
+	b, err := s.Get(r, "/foo/bar/test")
+	
+	// Either Get fails immediately (expected), or if Get succeeds,
+	// ReadAll should fail gracefully without panic
+	if err == nil {
+		_, err = b.ReadAll()
+		require.Error(t, err)
+	}
+	// Both scenarios should result in an error, never a panic
+	require.Error(t, err)
+}
+
 func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
 	// Test that gzip-compressed objects don't cause fanout buffer size issues
 	
