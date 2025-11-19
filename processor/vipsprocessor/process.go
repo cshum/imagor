@@ -57,7 +57,7 @@ func (v *Processor) Process(
 		focalRects            []focal
 		err                   error
 	)
-	if p.Trim {
+	if p.Trim || p.VFlip {
 		thumbnailNotSupported = true
 	}
 	if p.FitIn {
