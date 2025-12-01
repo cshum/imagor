@@ -12,7 +12,7 @@ require (
 	github.com/aws/smithy-go v1.23.2
 	github.com/cshum/vipsgen v1.2.1
 	github.com/fsouza/fake-gcs-server v1.52.3
-	github.com/getsentry/sentry-go v0.38.0
+	github.com/getsentry/sentry-go v0.40.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20250916175020-ebf3e50324d3
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/prometheus/client_golang v1.23.2
