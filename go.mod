@@ -5,11 +5,11 @@ go 1.24.2
 require (
 	cloud.google.com/go/storage v1.57.2
 	github.com/TheZeroSlave/zapsentry v1.23.0
-	github.com/aws/aws-sdk-go-v2 v1.39.6
+	github.com/aws/aws-sdk-go-v2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.20
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.24
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.90.2
-	github.com/aws/smithy-go v1.23.2
+	github.com/aws/smithy-go v1.24.0
 	github.com/cshum/vipsgen v1.2.1
 	github.com/fsouza/fake-gcs-server v1.52.3
 	github.com/getsentry/sentry-go v0.38.0
