@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/vips817"
 )
 
 func main() {

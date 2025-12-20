@@ -9,7 +9,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/vips817"
 	"go.uber.org/zap"
 )
 
