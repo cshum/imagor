@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/vips817"
 	"github.com/stretchr/testify/assert"
 )
 
