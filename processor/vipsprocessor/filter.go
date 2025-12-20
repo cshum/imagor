@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/vips817"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
