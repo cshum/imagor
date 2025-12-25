@@ -9,7 +9,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/vipsgen/vips817"
+	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
 )
 
@@ -27,6 +27,26 @@ var imageTypeMap = map[string]vips.ImageType{
 	"avif": vips.ImageTypeAvif,
 	"jp2":  vips.ImageTypeJp2k,
 	"jxl":  vips.ImageTypeJxl,
+	"raw":  vips.ImageTypeRaw,
+	"cr2":  vips.ImageTypeRaw,
+	"crw":  vips.ImageTypeRaw,
+	"nef":  vips.ImageTypeRaw,
+	"nrw":  vips.ImageTypeRaw,
+	"arw":  vips.ImageTypeRaw,
+	"dng":  vips.ImageTypeRaw,
+	"orf":  vips.ImageTypeRaw,
+	"rw2":  vips.ImageTypeRaw,
+	"raf":  vips.ImageTypeRaw,
+	"pef":  vips.ImageTypeRaw,
+	"srw":  vips.ImageTypeRaw,
+	"x3f":  vips.ImageTypeRaw,
+	"erf":  vips.ImageTypeRaw,
+	"mef":  vips.ImageTypeRaw,
+	"mrw":  vips.ImageTypeRaw,
+	"dcr":  vips.ImageTypeRaw,
+	"kdc":  vips.ImageTypeRaw,
+	"srf":  vips.ImageTypeRaw,
+	"sr2":  vips.ImageTypeRaw,
 }
 
 // IsAnimationSupported indicates if image type supports animation
