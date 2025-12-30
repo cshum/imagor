@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/vipsgen/vips817"
+	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
 )
 

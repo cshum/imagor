@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/vipsgen/vips817"
+	"github.com/cshum/vipsgen/vips"
 	"golang.org/x/image/bmp"
 )
 
