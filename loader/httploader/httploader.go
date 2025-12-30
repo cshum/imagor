@@ -148,6 +148,14 @@ func (h *HTTPLoader) parseAndValidateURL(image string) (string, error) {
 		u = newU
 	}
 	if u.Host == "" || u.Scheme == "" {
+		// If the image string contains percent-encoded characters, treat it as a
+		// literal filename rather than a URL missing its scheme. This prevents
+		// filenames like "https%3A%2F%2Fexample.com.avif" (often from b64-decoded
+		// content) from being incorrectly interpreted as URLs by prepending the
+		// default scheme.
+		if containsPercentEncoding(image) {
+			return "", imagor.ErrInvalid
+		}
 		if h.DefaultScheme != "" {
 			image = h.DefaultScheme + "://" + image
 			if u, err = url.Parse(image); err != nil {
@@ -383,4 +391,20 @@ func (h *HTTPLoader) Stat(ctx context.Context, image string) (*imagor.Stat, erro
 
 	// If no ModifiedTime available, return not found
 	return nil, imagor.ErrNotFound
+}
+
+// containsPercentEncoding checks if a string contains valid percent-encoded
+// characters (e.g., %3A, %2F). This is used to detect strings that are likely
+// literal filenames rather than URLs missing a scheme.
+func containsPercentEncoding(s string) bool {
+	for i := 0; i < len(s)-2; i++ {
+		if s[i] == '%' && isHexDigit(s[i+1]) && isHexDigit(s[i+2]) {
+			return true
+		}
+	}
+	return false
+}
+
+func isHexDigit(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
 }

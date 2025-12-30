@@ -770,11 +770,84 @@ func TestWithInvalidHost(t *testing.T) {
 	assert.Equal(t, 404, err.(imagor.Error).Code)
 }
 
+func TestPercentEncodedFilename(t *testing.T) {
+	// Test that percent-encoded filenames are rejected by HTTPLoader
+	// so that other loaders (like FileStorage) can handle them.
+	// This addresses issue #627 where filenames like "https%3A%2F%2Fexample.com.avif"
+	// were incorrectly interpreted as URLs.
+	loader := New()
+	r := httptest.NewRequest(http.MethodGet, "https://example.com/imagor", nil)
+
+	tests := []struct {
+		name   string
+		image  string
+		errMsg string
+	}{
+		{
+			name:   "percent-encoded filename with https scheme",
+			image:  "https%3A%2F%2Fexample.com.avif",
+			errMsg: "imagor: 400 invalid",
+		},
+		{
+			name:   "percent-encoded filename with http scheme",
+			image:  "http%3A%2F%2Fexample.com%2Fimage.jpg",
+			errMsg: "imagor: 400 invalid",
+		},
+		{
+			name:   "percent-encoded slash in filename",
+			image:  "some%2Fpath%2Ffile.jpg",
+			errMsg: "imagor: 400 invalid",
+		},
+		{
+			name:   "double percent-encoded filename",
+			image:  "https%253A%252F%252Fexample.com.avif",
+			errMsg: "imagor: 400 invalid",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := loader.Get(r, tt.image)
+			require.Error(t, err)
+			assert.Equal(t, tt.errMsg, err.Error())
+		})
+	}
+}
+
+func TestContainsPercentEncoding(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"https%3A%2F%2Fexample.com", true},
+		{"file%20name.jpg", true},
+		{"%20", true},
+		{"%2F", true},
+		{"normal-filename.jpg", false},
+		{"https://example.com", false},
+		{"", false},
+		{"%", false},    // incomplete encoding
+		{"%2", false},   // incomplete encoding
+		{"%GG", false},  // invalid hex
+		{"%2g", false},  // invalid hex (lowercase g)
+		{"%G2", false},  // invalid hex (uppercase G)
+		{"a%2fb", true}, // lowercase hex is valid
+		{"a%2Fb", true}, // mixed case hex is valid
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := containsPercentEncoding(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestHTTPLoader_Stat(t *testing.T) {
 	// Test server that returns proper headers
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodHead, r.Method)
-		
+
 		switch r.URL.Path {
 		case "/with-last-modified":
 			w.Header().Set("Last-Modified", "Mon, 02 Jan 2006 15:04:05 GMT")
