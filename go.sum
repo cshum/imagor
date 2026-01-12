@@ -85,8 +85,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 h1:6xNmx7iTtyBRev0+D/Tv1FZd4SCg8axKApyNyRsAt/w=
 github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5/go.mod h1:KdCmV+x/BuvyMxRnYBlmVaq4OLiKW6iRQfvC62cvdkI=
-github.com/cshum/vipsgen v1.3.0 h1:NJi0jMxld2i6tFvFqHt5DlCbqXJTkY0Y5lN0oSeRv0c=
-github.com/cshum/vipsgen v1.3.0/go.mod h1:1GboZQcNmo4NwuNnGogM24m3O+1i6UpnvurqMcsFItE=
+github.com/cshum/vipsgen v1.3.1 h1:deDY4MCgb0YNlQLBS1LSNknU02AUEex6p3L5/chZGls=
+github.com/cshum/vipsgen v1.3.1/go.mod h1:AmCpW+vKfu16ZFPN/PBgtLsAl3kt7c0y2uA4bD5Lzk8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
