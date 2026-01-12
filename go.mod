@@ -3,7 +3,7 @@ module github.com/cshum/imagor
 go 1.24.2
 
 require (
-	cloud.google.com/go/storage v1.58.0
+	cloud.google.com/go/storage v1.59.0
 	github.com/TheZeroSlave/zapsentry v1.23.0
 	github.com/aws/aws-sdk-go-v2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.6
