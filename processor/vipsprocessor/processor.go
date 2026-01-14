@@ -75,6 +75,7 @@ func NewProcessor(options ...Option) *Processor {
 		"sharpen":          sharpen,
 		"strip_icc":        stripIcc,
 		"strip_exif":       stripExif,
+		"to_colorspace":    toColorspace,
 		"trim":             trim,
 		"padding":          v.padding,
 		"proportion":       proportion,

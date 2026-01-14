@@ -598,7 +598,33 @@ func sharpen(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...st
 }
 
 func stripIcc(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
+	if img.HasICCProfile() {
+		opts := vips.DefaultIccTransformOptions()
+		opts.Embedded = true
+		opts.Intent = vips.IntentPerceptual
+		if img.Interpretation() == vips.InterpretationRGB16 {
+			opts.Depth = 16
+		}
+		_ = img.IccTransform("srgb", opts)
+	}
 	return img.RemoveICCProfile()
+}
+
+func toColorspace(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
+	profile := "srgb"
+	if len(args) > 0 && args[0] != "" {
+		profile = strings.ToLower(args[0])
+	}
+	if !img.HasICCProfile() {
+		return nil
+	}
+	opts := vips.DefaultIccTransformOptions()
+	opts.Embedded = true
+	opts.Intent = vips.IntentPerceptual
+	if img.Interpretation() == vips.InterpretationRGB16 {
+		opts.Depth = 16
+	}
+	return img.IccTransform(profile, opts)
 }
 
 func stripExif(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
