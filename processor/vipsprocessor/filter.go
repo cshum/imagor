@@ -602,7 +602,7 @@ func stripIcc(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string
 		opts := vips.DefaultIccTransformOptions()
 		opts.Embedded = true
 		opts.Intent = vips.IntentPerceptual
-		if img.Interpretation() == vips.InterpretationRGB16 {
+		if img.Interpretation() == vips.InterpretationRgb16 {
 			opts.Depth = 16
 		}
 		_ = img.IccTransform("srgb", opts)
@@ -621,7 +621,7 @@ func toColorspace(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ..
 	opts := vips.DefaultIccTransformOptions()
 	opts.Embedded = true
 	opts.Intent = vips.IntentPerceptual
-	if img.Interpretation() == vips.InterpretationRGB16 {
+	if img.Interpretation() == vips.InterpretationRgb16 {
 		opts.Depth = 16
 	}
 	return img.IccTransform(profile, opts)
