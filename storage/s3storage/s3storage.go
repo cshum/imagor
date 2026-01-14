@@ -190,20 +190,31 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	client := s.getOrCreateClient(cfg)
 	bucket := cfg.Name
 
-	blob, err := s.getFromBucket(ctx, client, bucket, image)
-	if err == nil || !errors.Is(err, imagor.ErrNotFound) {
-		return blob, err
+	fallbacks := s.BucketRouter.Fallbacks()
+	if len(fallbacks) == 0 {
+		return s.getFromBucket(ctx, client, bucket, image)
 	}
 
-	for _, fallbackCfg := range s.BucketRouter.Fallbacks() {
+	if s.objectExists(ctx, client, bucket, image) {
+		return s.getFromBucket(ctx, client, bucket, image)
+	}
+
+	for _, fallbackCfg := range fallbacks {
 		fallbackClient := s.getOrCreateClient(fallbackCfg)
-		blob, err = s.getFromBucket(ctx, fallbackClient, fallbackCfg.Name, image)
-		if err == nil || !errors.Is(err, imagor.ErrNotFound) {
-			return blob, err
+		if s.objectExists(ctx, fallbackClient, fallbackCfg.Name, image) {
+			return s.getFromBucket(ctx, fallbackClient, fallbackCfg.Name, image)
 		}
 	}
 
 	return nil, imagor.ErrNotFound
+}
+
+func (s *S3Storage) objectExists(ctx context.Context, client *s3.Client, bucket, key string) bool {
+	_, err := client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	return err == nil
 }
 
 func (s *S3Storage) getFromBucket(ctx context.Context, client *s3.Client, bucket, image string) (*imagor.Blob, error) {
