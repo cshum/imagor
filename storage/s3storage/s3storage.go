@@ -20,8 +20,9 @@ import (
 
 // S3Storage AWS S3 Storage implements imagor.Storage interface
 type S3Storage struct {
-	Client *s3.Client
-	Bucket string
+	Client       *s3.Client
+	Bucket       string
+	BucketRouter BucketRouter
 
 	BaseDir        string
 	PathPrefix     string
@@ -98,11 +99,15 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
+	bucket := s.Bucket
+	if s.BucketRouter != nil {
+		bucket = s.BucketRouter.BucketFor(image)
+	}
 	var blob *imagor.Blob
 	var once sync.Once
 	blob = imagor.NewBlob(func() (io.ReadCloser, int64, error) {
 		input := &s3.GetObjectInput{
-			Bucket: aws.String(s.Bucket),
+			Bucket: aws.String(bucket),
 			Key:    aws.String(image),
 		}
 		out, err := s.Client.GetObject(ctx, input)
