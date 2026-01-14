@@ -277,17 +277,35 @@ S3_RESULT_STORAGE_ENDPOINT
 
 ##### S3 Loader Bucket Routing
 
-For multi-tenant or multi-bucket setups, you can route image requests to different S3 buckets based on path prefix. Create a YAML configuration file:
+For multi-tenant or multi-bucket setups, you can route image requests to different S3 buckets based on path prefix. Each bucket can have its own region, endpoint, and credentials. Create a YAML configuration file:
 
 ```yaml
-default_bucket: imagor-default
+default_bucket:
+  name: imagor-default
+  region: us-east-1
+
+fallback_buckets:
+  - name: imagor-archive
+    region: us-east-1
+  - name: imagor-legacy
+    region: us-west-2
+
 rules:
   - prefix: users
-    bucket: imagor-users
+    bucket:
+      name: imagor-users
+      region: eu-west-1
   - prefix: products
-    bucket: imagor-products
+    bucket:
+      name: imagor-products
+      region: ap-southeast-1
   - prefix: private/images
-    bucket: imagor-private
+    bucket:
+      name: imagor-private
+      region: us-east-1
+      endpoint: https://s3.custom-endpoint.com
+      access_key_id: AKIAIOSFODNN7EXAMPLE
+      secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
 Then specify the config file path:
@@ -305,8 +323,10 @@ imagor -s3-loader-bucket-router-config /path/to/bucket-routing.yaml
 Routing behavior:
 - Rules are matched using longest-prefix-first (e.g., `private/images` matches before `private`)
 - If no rule matches, the `default_bucket` is used
-- Prefixes use pure prefix matching (no trailing slash required)
-- If `S3_LOADER_BUCKET` is not set, `default_bucket` from the config is used
+- If image not found in primary bucket, `fallback_buckets` are tried in order (up to 2 fallbacks)
+- Each bucket config can specify its own `region`, `endpoint`, and credentials
+- If bucket-specific credentials are not provided, global AWS credentials are used
+- If `S3_LOADER_BUCKET` is not set, `default_bucket.name` from the config is used
 
 Docker Compose example with bucket routing:
 

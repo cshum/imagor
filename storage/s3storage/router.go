@@ -5,25 +5,43 @@ import (
 	"strings"
 )
 
-// BucketRouter determines which bucket to use based on the image key
-type BucketRouter interface {
-	BucketFor(key string) string
+// BucketConfig contains S3 bucket configuration including region and credentials
+type BucketConfig struct {
+	Name            string
+	Region          string
+	Endpoint        string
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
 }
 
-// PrefixRule maps a path prefix to a bucket
+// BucketRouter determines which bucket configuration to use based on the image key
+type BucketRouter interface {
+	// ConfigFor returns the bucket config for the given key
+	ConfigFor(key string) *BucketConfig
+	// Fallbacks returns the list of fallback bucket configs to try if primary fails
+	Fallbacks() []*BucketConfig
+	// DefaultConfig returns the default bucket config
+	DefaultConfig() *BucketConfig
+	// AllConfigs returns all unique bucket configs for client initialization
+	AllConfigs() []*BucketConfig
+}
+
+// PrefixRule maps a path prefix to a bucket config
 type PrefixRule struct {
 	Prefix string
-	Bucket string
+	Config *BucketConfig
 }
 
 // PrefixRouter routes requests to buckets based on longest-prefix-first matching
 type PrefixRouter struct {
-	rules    []PrefixRule
-	fallback string
+	rules         []PrefixRule
+	defaultConfig *BucketConfig
+	fallbacks     []*BucketConfig
 }
 
 // NewPrefixRouter creates a PrefixRouter, sorting rules by prefix length descending
-func NewPrefixRouter(rules []PrefixRule, fallback string) *PrefixRouter {
+func NewPrefixRouter(rules []PrefixRule, defaultConfig *BucketConfig, fallbacks []*BucketConfig) *PrefixRouter {
 	sorted := make([]PrefixRule, len(rules))
 	copy(sorted, rules)
 
@@ -31,25 +49,67 @@ func NewPrefixRouter(rules []PrefixRule, fallback string) *PrefixRouter {
 		return len(sorted[i].Prefix) > len(sorted[j].Prefix)
 	})
 
+	// Limit fallbacks to 2
+	if len(fallbacks) > 2 {
+		fallbacks = fallbacks[:2]
+	}
+
 	return &PrefixRouter{
-		rules:    sorted,
-		fallback: fallback,
+		rules:         sorted,
+		defaultConfig: defaultConfig,
+		fallbacks:     fallbacks,
 	}
 }
 
-// BucketFor returns the bucket for the given key, or fallback if no prefix matches
-func (r *PrefixRouter) BucketFor(key string) string {
+// ConfigFor returns the bucket config for the given key, or default if no prefix matches
+func (r *PrefixRouter) ConfigFor(key string) *BucketConfig {
 	key = strings.TrimLeft(key, "/")
 
 	for _, rule := range r.rules {
 		if strings.HasPrefix(key, rule.Prefix) {
-			return rule.Bucket
+			return rule.Config
 		}
 	}
-	return r.fallback
+	return r.defaultConfig
 }
 
-// Fallback returns the fallback bucket name
+// Fallbacks returns the list of fallback bucket configs
+func (r *PrefixRouter) Fallbacks() []*BucketConfig {
+	return r.fallbacks
+}
+
+// DefaultConfig returns the default bucket config
+func (r *PrefixRouter) DefaultConfig() *BucketConfig {
+	return r.defaultConfig
+}
+
+// AllConfigs returns all unique bucket configs for client initialization
+func (r *PrefixRouter) AllConfigs() []*BucketConfig {
+	seen := make(map[string]bool)
+	var configs []*BucketConfig
+
+	addConfig := func(cfg *BucketConfig) {
+		if cfg != nil && !seen[cfg.Name] {
+			seen[cfg.Name] = true
+			configs = append(configs, cfg)
+		}
+	}
+
+	addConfig(r.defaultConfig)
+	for _, rule := range r.rules {
+		addConfig(rule.Config)
+	}
+	for _, fb := range r.fallbacks {
+		addConfig(fb)
+	}
+
+	return configs
+}
+
+// Fallback returns the fallback bucket name (for backward compatibility)
 func (r *PrefixRouter) Fallback() string {
-	return r.fallback
+	if r.defaultConfig != nil {
+		return r.defaultConfig.Name
+	}
+	return ""
 }
