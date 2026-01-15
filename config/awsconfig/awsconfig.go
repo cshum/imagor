@@ -70,6 +70,8 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"Base directory for S3 Loader")
 		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "",
 			"Base path prefix for S3 Loader")
+		s3LoaderBucketRouterConfig = fs.String("s3-loader-bucket-router-config", "",
+			"YAML config file for S3 Loader bucket routing based on path prefix")
 
 		s3StorageBucket = fs.String("s3-storage-bucket", "",
 			"S3 Bucket for S3 Storage. Enable S3 Storage only if this value present")
@@ -98,7 +100,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
-		if *s3StorageBucket == "" && *s3LoaderBucket == "" && *s3ResultStorageBucket == "" {
+		if *s3StorageBucket == "" && *s3LoaderBucket == "" && *s3ResultStorageBucket == "" && *s3LoaderBucketRouterConfig == "" {
 			return
 		}
 
@@ -177,21 +179,32 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			app.Storages = append(app.Storages, storage)
 		}
 
-		if *s3LoaderBucket != "" {
-			// Determine endpoint: service-specific takes priority over global
+		if *s3LoaderBucket != "" || *s3LoaderBucketRouterConfig != "" {
 			endpoint := *s3LoaderEndpoint
 			if endpoint == "" {
 				endpoint = *s3Endpoint
 			}
 
-			loader := s3storage.New(loaderCfg, *s3LoaderBucket,
+			opts := []s3storage.Option{
 				s3storage.WithPathPrefix(*s3LoaderPathPrefix),
 				s3storage.WithBaseDir(*s3LoaderBaseDir),
 				s3storage.WithSafeChars(*s3SafeChars),
 				s3storage.WithEndpoint(endpoint),
 				s3storage.WithForcePathStyle(*s3ForcePathStyle),
-			)
+			}
 
+			if *s3LoaderBucketRouterConfig != "" {
+				router, err := LoadBucketRouterFromYAML(*s3LoaderBucketRouterConfig)
+				if err != nil {
+					panic(err)
+				}
+				opts = append(opts, s3storage.WithBucketRouter(router))
+				if *s3LoaderBucket == "" {
+					*s3LoaderBucket = router.Fallback()
+				}
+			}
+
+			loader := s3storage.New(loaderCfg, *s3LoaderBucket, opts...)
 			app.Loaders = append(app.Loaders, loader)
 		}
 
