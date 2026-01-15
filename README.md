@@ -277,6 +277,79 @@ AWS_RESULT_STORAGE_SECRET_ACCESS_KEY
 S3_RESULT_STORAGE_ENDPOINT
 ```
 
+##### S3 Loader Bucket Routing
+
+For multi-tenant or multi-bucket setups, you can route image requests to different S3 buckets based on path prefix. Each bucket can have its own region, endpoint, and credentials. Create a YAML configuration file:
+
+```yaml
+default_bucket:
+  name: imagor-default
+  region: us-east-1
+
+fallback_buckets:
+  - name: imagor-archive
+    region: us-east-1
+  - name: imagor-legacy
+    region: us-west-2
+
+rules:
+  - prefix: users
+    bucket:
+      name: imagor-users
+      region: eu-west-1
+  - prefix: products
+    bucket:
+      name: imagor-products
+      region: ap-southeast-1
+  - prefix: private/images
+    bucket:
+      name: imagor-private
+      region: us-east-1
+      endpoint: https://s3.custom-endpoint.com
+      access_key_id: AKIAIOSFODNN7EXAMPLE
+      secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+Then specify the config file path:
+
+```dotenv
+S3_LOADER_BUCKET_ROUTER_CONFIG=/path/to/bucket-routing.yaml
+```
+
+Or via command line:
+
+```bash
+imagor -s3-loader-bucket-router-config /path/to/bucket-routing.yaml
+```
+
+Routing behavior:
+- Rules are matched using longest-prefix-first (e.g., `private/images` matches before `private`)
+- If no rule matches, the `default_bucket` is used
+- If image not found in primary bucket, `fallback_buckets` are tried in order (up to 2 fallbacks)
+- Each bucket config can specify its own `region`, `endpoint`, and credentials
+- If bucket-specific credentials are not provided, global AWS credentials are used
+- If `S3_LOADER_BUCKET` is not set, `default_bucket.name` from the config is used
+
+Docker Compose example with bucket routing:
+
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    volumes:
+      - ./bucket-routing.yaml:/etc/imagor/bucket-routing.yaml
+    environment:
+      PORT: 8000
+      IMAGOR_SECRET: mysecret
+      AWS_ACCESS_KEY_ID: ...
+      AWS_SECRET_ACCESS_KEY: ...
+      AWS_REGION: us-east-1
+      S3_LOADER_BUCKET_ROUTER_CONFIG: /etc/imagor/bucket-routing.yaml
+    ports:
+      - "8000:8000"
+```
+
 #### Google Cloud Storage
 
 Docker Compose example with Google Cloud Storage:
@@ -772,6 +845,8 @@ Usage of imagor:
         Base directory for S3 Loader
   -s3-loader-path-prefix string
         Base path prefix for S3 Loader
+  -s3-loader-bucket-router-config string
+        YAML config file for S3 Loader bucket routing based on path prefix
   -s3-result-storage-bucket string
         S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
   -s3-result-storage-base-dir string
