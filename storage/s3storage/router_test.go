@@ -4,106 +4,154 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestPrefixRouter_ConfigFor(t *testing.T) {
+func TestPatternRouter_ConfigFor(t *testing.T) {
 	defaultCfg := &BucketConfig{Name: "default-bucket", Region: "us-east-1"}
-	usersCfg := &BucketConfig{Name: "users-bucket", Region: "eu-west-1"}
-	productsCfg := &BucketConfig{Name: "products-bucket", Region: "ap-southeast-1"}
-	vipCfg := &BucketConfig{Name: "vip-bucket", Region: "us-west-2"}
+	b1Cfg := &BucketConfig{Name: "singapore-bucket", Region: "ap-southeast-1"}
+	usCfg := &BucketConfig{Name: "us-bucket", Region: "us-east-1"}
+	euCfg := &BucketConfig{Name: "eu-bucket", Region: "eu-west-1"}
 
-	tests := []struct {
-		name           string
-		rules          []PrefixRule
-		defaultConfig  *BucketConfig
-		key            string
-		expectedBucket string
-	}{
-		{
-			name:           "empty rules returns default",
-			rules:          []PrefixRule{},
-			defaultConfig:  defaultCfg,
-			key:            "users/123/image.jpg",
-			expectedBucket: "default-bucket",
-		},
-		{
-			name: "exact prefix match",
-			rules: []PrefixRule{
-				{Prefix: "users/", Config: usersCfg},
-				{Prefix: "products/", Config: productsCfg},
-			},
-			defaultConfig:  defaultCfg,
-			key:            "users/123/image.jpg",
-			expectedBucket: "users-bucket",
-		},
-		{
-			name: "no match returns default",
-			rules: []PrefixRule{
-				{Prefix: "users/", Config: usersCfg},
-				{Prefix: "products/", Config: productsCfg},
-			},
-			defaultConfig:  defaultCfg,
-			key:            "other/123/image.jpg",
-			expectedBucket: "default-bucket",
-		},
-		{
-			name: "longest prefix wins",
-			rules: []PrefixRule{
-				{Prefix: "users/", Config: usersCfg},
-				{Prefix: "users/vip/", Config: vipCfg},
-			},
-			defaultConfig:  defaultCfg,
-			key:            "users/vip/123/image.jpg",
-			expectedBucket: "vip-bucket",
-		},
-		{
-			name: "strips leading slash from key",
-			rules: []PrefixRule{
-				{Prefix: "users/", Config: usersCfg},
-			},
-			defaultConfig:  defaultCfg,
-			key:            "/users/123/image.jpg",
-			expectedBucket: "users-bucket",
-		},
-		{
-			name: "deep nested prefix",
-			rules: []PrefixRule{
-				{Prefix: "media/images/thumbnails/", Config: &BucketConfig{Name: "thumbnails-bucket"}},
-				{Prefix: "media/images/", Config: &BucketConfig{Name: "images-bucket"}},
-				{Prefix: "media/", Config: &BucketConfig{Name: "media-bucket"}},
-			},
-			defaultConfig:  defaultCfg,
-			key:            "media/images/thumbnails/123.jpg",
-			expectedBucket: "thumbnails-bucket",
-		},
-		{
-			name: "empty key returns default",
-			rules: []PrefixRule{
-				{Prefix: "users/", Config: usersCfg},
-			},
-			defaultConfig:  defaultCfg,
-			key:            "",
-			expectedBucket: "default-bucket",
-		},
+	rules := []MatchRule{
+		{Match: "B1", Config: b1Cfg},
+		{Match: "US", Config: usCfg},
+		{Match: "EU", Config: euCfg},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := NewPrefixRouter(tt.rules, tt.defaultConfig, nil)
-			cfg := router.ConfigFor(tt.key)
-			assert.Equal(t, tt.expectedBucket, cfg.Name)
-		})
-	}
+	t.Run("random prefix pattern", func(t *testing.T) {
+		router, err := NewPatternRouter(
+			`^[a-f0-9]{4}-(?P<bucket>[A-Za-z0-9]+)-`,
+			rules,
+			defaultCfg,
+			nil,
+		)
+		require.NoError(t, err)
+
+		tests := []struct {
+			key            string
+			expectedBucket string
+		}{
+			{"f7a3-B1-project-123-image.jpg", "singapore-bucket"},
+			{"9bc2-US-project-456-image.png", "us-bucket"},
+			{"a4d1-EU-project-789-image.webp", "eu-bucket"},
+			{"abcd-XX-unknown-code.jpg", "default-bucket"},
+			{"no-match.jpg", "default-bucket"},
+			{"", "default-bucket"},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.key, func(t *testing.T) {
+				cfg := router.ConfigFor(tt.key)
+				assert.Equal(t, tt.expectedBucket, cfg.Name)
+			})
+		}
+	})
+
+	t.Run("simple prefix-like pattern", func(t *testing.T) {
+		prefixRules := []MatchRule{
+			{Match: "users", Config: &BucketConfig{Name: "users-bucket"}},
+			{Match: "products", Config: &BucketConfig{Name: "products-bucket"}},
+		}
+
+		router, err := NewPatternRouter(
+			`^(?P<bucket>[^/]+)/`,
+			prefixRules,
+			defaultCfg,
+			nil,
+		)
+		require.NoError(t, err)
+
+		tests := []struct {
+			key            string
+			expectedBucket string
+		}{
+			{"users/123/image.jpg", "users-bucket"},
+			{"products/456/photo.png", "products-bucket"},
+			{"other/789/file.jpg", "default-bucket"},
+			{"/users/123/image.jpg", "users-bucket"},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.key, func(t *testing.T) {
+				cfg := router.ConfigFor(tt.key)
+				assert.Equal(t, tt.expectedBucket, cfg.Name)
+			})
+		}
+	})
+
+	t.Run("region-based pattern", func(t *testing.T) {
+		regionRules := []MatchRule{
+			{Match: "us", Config: &BucketConfig{Name: "us-bucket"}},
+			{Match: "eu", Config: &BucketConfig{Name: "eu-bucket"}},
+			{Match: "ap", Config: &BucketConfig{Name: "ap-bucket"}},
+		}
+
+		router, err := NewPatternRouter(
+			`^(?P<bucket>us|eu|ap)/`,
+			regionRules,
+			defaultCfg,
+			nil,
+		)
+		require.NoError(t, err)
+
+		tests := []struct {
+			key            string
+			expectedBucket string
+		}{
+			{"us/image.jpg", "us-bucket"},
+			{"eu/photo.png", "eu-bucket"},
+			{"ap/file.webp", "ap-bucket"},
+			{"other/image.jpg", "default-bucket"},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.key, func(t *testing.T) {
+				cfg := router.ConfigFor(tt.key)
+				assert.Equal(t, tt.expectedBucket, cfg.Name)
+			})
+		}
+	})
 }
 
-func TestPrefixRouter_Fallbacks(t *testing.T) {
+func TestPatternRouter_InvalidPattern(t *testing.T) {
+	t.Run("invalid regex", func(t *testing.T) {
+		_, err := NewPatternRouter(
+			`^[invalid(`,
+			nil,
+			nil,
+			nil,
+		)
+		assert.Error(t, err)
+	})
+
+	t.Run("missing bucket capture group", func(t *testing.T) {
+		_, err := NewPatternRouter(
+			`^[a-f0-9]{4}-([A-Za-z0-9]+)-`,
+			nil,
+			nil,
+			nil,
+		)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "(?P<bucket>...)")
+	})
+}
+
+func TestPatternRouter_Fallbacks(t *testing.T) {
 	defaultCfg := &BucketConfig{Name: "default-bucket", Region: "us-east-1"}
 	fb1 := &BucketConfig{Name: "fallback-1", Region: "us-west-1"}
 	fb2 := &BucketConfig{Name: "fallback-2", Region: "eu-west-1"}
 	fb3 := &BucketConfig{Name: "fallback-3", Region: "ap-southeast-1"}
 
 	t.Run("returns fallbacks", func(t *testing.T) {
-		router := NewPrefixRouter(nil, defaultCfg, []*BucketConfig{fb1, fb2})
+		router, err := NewPatternRouter(
+			`^(?P<bucket>[^/]+)/`,
+			nil,
+			defaultCfg,
+			[]*BucketConfig{fb1, fb2},
+		)
+		require.NoError(t, err)
+
 		fallbacks := router.Fallbacks()
 		assert.Len(t, fallbacks, 2)
 		assert.Equal(t, "fallback-1", fallbacks[0].Name)
@@ -111,30 +159,50 @@ func TestPrefixRouter_Fallbacks(t *testing.T) {
 	})
 
 	t.Run("limits to 2 fallbacks", func(t *testing.T) {
-		router := NewPrefixRouter(nil, defaultCfg, []*BucketConfig{fb1, fb2, fb3})
+		router, err := NewPatternRouter(
+			`^(?P<bucket>[^/]+)/`,
+			nil,
+			defaultCfg,
+			[]*BucketConfig{fb1, fb2, fb3},
+		)
+		require.NoError(t, err)
+
 		fallbacks := router.Fallbacks()
 		assert.Len(t, fallbacks, 2)
 	})
 
 	t.Run("empty fallbacks", func(t *testing.T) {
-		router := NewPrefixRouter(nil, defaultCfg, nil)
+		router, err := NewPatternRouter(
+			`^(?P<bucket>[^/]+)/`,
+			nil,
+			defaultCfg,
+			nil,
+		)
+		require.NoError(t, err)
+
 		fallbacks := router.Fallbacks()
 		assert.Len(t, fallbacks, 0)
 	})
 }
 
-func TestPrefixRouter_AllConfigs(t *testing.T) {
+func TestPatternRouter_AllConfigs(t *testing.T) {
 	defaultCfg := &BucketConfig{Name: "default-bucket", Region: "us-east-1"}
 	usersCfg := &BucketConfig{Name: "users-bucket", Region: "eu-west-1"}
 	fb1 := &BucketConfig{Name: "fallback-1", Region: "us-west-1"}
 
-	rules := []PrefixRule{
-		{Prefix: "users/", Config: usersCfg},
+	rules := []MatchRule{
+		{Match: "users", Config: usersCfg},
 	}
 
-	router := NewPrefixRouter(rules, defaultCfg, []*BucketConfig{fb1})
-	configs := router.AllConfigs()
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)/`,
+		rules,
+		defaultCfg,
+		[]*BucketConfig{fb1},
+	)
+	require.NoError(t, err)
 
+	configs := router.AllConfigs()
 	assert.Len(t, configs, 3)
 
 	names := make(map[string]bool)
@@ -146,62 +214,77 @@ func TestPrefixRouter_AllConfigs(t *testing.T) {
 	assert.True(t, names["fallback-1"])
 }
 
-func TestPrefixRouter_AllConfigs_NoDuplicates(t *testing.T) {
+func TestPatternRouter_AllConfigs_NoDuplicates(t *testing.T) {
 	sharedCfg := &BucketConfig{Name: "shared-bucket", Region: "us-east-1"}
 
-	rules := []PrefixRule{
-		{Prefix: "users/", Config: sharedCfg},
-		{Prefix: "products/", Config: sharedCfg},
+	rules := []MatchRule{
+		{Match: "users", Config: sharedCfg},
+		{Match: "products", Config: sharedCfg},
 	}
 
-	router := NewPrefixRouter(rules, sharedCfg, []*BucketConfig{sharedCfg})
-	configs := router.AllConfigs()
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)/`,
+		rules,
+		sharedCfg,
+		[]*BucketConfig{sharedCfg},
+	)
+	require.NoError(t, err)
 
+	configs := router.AllConfigs()
 	assert.Len(t, configs, 1)
 	assert.Equal(t, "shared-bucket", configs[0].Name)
 }
 
-func TestPrefixRouter_Fallback_BackwardCompat(t *testing.T) {
+func TestPatternRouter_Fallback_BackwardCompat(t *testing.T) {
 	defaultCfg := &BucketConfig{Name: "my-fallback", Region: "us-east-1"}
-	router := NewPrefixRouter(nil, defaultCfg, nil)
+
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)/`,
+		nil,
+		defaultCfg,
+		nil,
+	)
+	require.NoError(t, err)
+
 	assert.Equal(t, "my-fallback", router.Fallback())
 }
 
-func TestPrefixRouter_Fallback_NilDefault(t *testing.T) {
-	router := NewPrefixRouter(nil, nil, nil)
+func TestPatternRouter_Fallback_NilDefault(t *testing.T) {
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)/`,
+		nil,
+		nil,
+		nil,
+	)
+	require.NoError(t, err)
+
 	assert.Equal(t, "", router.Fallback())
 }
 
-func TestPrefixRouter_ConfigPreservesRegion(t *testing.T) {
+func TestPatternRouter_ConfigPreservesRegion(t *testing.T) {
 	euConfig := &BucketConfig{Name: "eu-bucket", Region: "eu-west-1", Endpoint: "https://s3.eu-west-1.amazonaws.com"}
 	apConfig := &BucketConfig{Name: "ap-bucket", Region: "ap-southeast-1"}
 	defaultCfg := &BucketConfig{Name: "default", Region: "us-east-1"}
 
-	rules := []PrefixRule{
-		{Prefix: "europe/", Config: euConfig},
-		{Prefix: "asia/", Config: apConfig},
+	rules := []MatchRule{
+		{Match: "EU", Config: euConfig},
+		{Match: "AP", Config: apConfig},
 	}
 
-	router := NewPrefixRouter(rules, defaultCfg, nil)
+	router, err := NewPatternRouter(
+		`^[a-f0-9]{4}-(?P<bucket>[A-Z]+)-`,
+		rules,
+		defaultCfg,
+		nil,
+	)
+	require.NoError(t, err)
 
-	cfg := router.ConfigFor("europe/image.jpg")
+	cfg := router.ConfigFor("abcd-EU-image.jpg")
 	assert.Equal(t, "eu-bucket", cfg.Name)
 	assert.Equal(t, "eu-west-1", cfg.Region)
 	assert.Equal(t, "https://s3.eu-west-1.amazonaws.com", cfg.Endpoint)
 
-	cfg = router.ConfigFor("asia/image.jpg")
+	cfg = router.ConfigFor("1234-AP-image.jpg")
 	assert.Equal(t, "ap-bucket", cfg.Name)
 	assert.Equal(t, "ap-southeast-1", cfg.Region)
-}
-
-func TestPrefixRouter_DoesNotMutateInput(t *testing.T) {
-	rules := []PrefixRule{
-		{Prefix: "b/", Config: &BucketConfig{Name: "bucket-b"}},
-		{Prefix: "a/", Config: &BucketConfig{Name: "bucket-a"}},
-	}
-	originalFirst := rules[0]
-
-	NewPrefixRouter(rules, &BucketConfig{Name: "default"}, nil)
-
-	assert.Equal(t, originalFirst.Prefix, rules[0].Prefix)
 }
