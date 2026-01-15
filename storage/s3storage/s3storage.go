@@ -195,26 +195,69 @@ func (s *S3Storage) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		return s.getFromBucket(ctx, client, bucket, image)
 	}
 
-	if s.objectExists(ctx, client, bucket, image) {
-		return s.getFromBucket(ctx, client, bucket, image)
+	blob, err := s.getFromBucketEager(ctx, client, bucket, image)
+	if err == nil {
+		return blob, nil
+	}
+	if err != imagor.ErrNotFound {
+		return nil, err
 	}
 
 	for _, fallbackCfg := range fallbacks {
 		fallbackClient := s.getOrCreateClient(fallbackCfg)
-		if s.objectExists(ctx, fallbackClient, fallbackCfg.Name, image) {
-			return s.getFromBucket(ctx, fallbackClient, fallbackCfg.Name, image)
+		blob, err = s.getFromBucketEager(ctx, fallbackClient, fallbackCfg.Name, image)
+		if err == nil {
+			return blob, nil
+		}
+		if err != imagor.ErrNotFound {
+			return nil, err
 		}
 	}
 
 	return nil, imagor.ErrNotFound
 }
 
-func (s *S3Storage) objectExists(ctx context.Context, client *s3.Client, bucket, key string) bool {
-	_, err := client.HeadObject(ctx, &s3.HeadObjectInput{
+func (s *S3Storage) getFromBucketEager(ctx context.Context, client *s3.Client, bucket, image string) (*imagor.Blob, error) {
+	input := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Key:    aws.String(image),
+	}
+	out, err := client.GetObject(ctx, input)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, imagor.ErrNotFound
+		}
+		return nil, err
+	}
+
+	if s.Expiration > 0 && out.LastModified != nil {
+		if time.Now().Sub(*out.LastModified) > s.Expiration {
+			_ = out.Body.Close()
+			return nil, imagor.ErrExpired
+		}
+	}
+
+	var size int64
+	if out.ContentLength != nil {
+		size = *out.ContentLength
+	}
+
+	blob := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		return out.Body, size, nil
 	})
-	return err == nil
+
+	if out.ContentType != nil {
+		blob.SetContentType(*out.ContentType)
+	}
+	if out.ContentLength != nil && out.ETag != nil && out.LastModified != nil {
+		blob.Stat = &imagor.Stat{
+			Size:         *out.ContentLength,
+			ETag:         *out.ETag,
+			ModifiedTime: *out.LastModified,
+		}
+	}
+
+	return blob, nil
 }
 
 func (s *S3Storage) getFromBucket(ctx context.Context, client *s3.Client, bucket, image string) (*imagor.Blob, error) {
