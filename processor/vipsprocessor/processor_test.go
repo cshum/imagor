@@ -269,6 +269,7 @@ func TestProcessor(t *testing.T) {
 			{name: "crop overflow", path: "300x300/filters:crop(250,250,200,200)/gopher.png"},
 			{name: "crop animated", path: "200x200/filters:crop(20,20,160,160)/dancing-banana.gif", arm64Golden: true},
 			{name: "crop with fill", path: "400x400/filters:fill(yellow):crop(50,50,300,300)/gopher.png"},
+			{name: "strip icc", path: "200x200/filters:strip_icc():to_colorspace(cmyk)/jpg-24bit-icc-adobe-rgb.jpg"},
 		}, WithDebug(true), WithLogger(zap.NewExample()), WithForceBmpFallback())
 	})
 	t.Run("max frames", func(t *testing.T) {
