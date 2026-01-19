@@ -3,6 +3,9 @@ package awsconfig
 import (
 	"context"
 	"flag"
+	"net"
+	"net/http"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -95,6 +98,19 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		s3StorageClass = fs.String("s3-storage-class", "STANDARD",
 			"S3 File Storage Class. Available values: REDUCED_REDUNDANCY, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, GLACIER, DEEP_ARCHIVE. Default: STANDARD.")
 
+		s3HTTPMaxIdleConns = fs.Int("s3-http-max-idle-conns", 100,
+			"S3 HTTP client max idle connections across all hosts")
+		s3HTTPMaxIdleConnsPerHost = fs.Int("s3-http-max-idle-conns-per-host", 100,
+			"S3 HTTP client max idle connections per host. Increase for high-throughput workloads")
+		s3HTTPMaxConnsPerHost = fs.Int("s3-http-max-conns-per-host", 0,
+			"S3 HTTP client max connections per host. 0 means unlimited")
+		s3HTTPIdleConnTimeout = fs.Duration("s3-http-idle-conn-timeout", 90*time.Second,
+			"S3 HTTP client idle connection timeout")
+		s3HTTPResponseHeaderTimeout = fs.Duration("s3-http-response-header-timeout", 0,
+			"S3 HTTP client response header timeout. 0 means no timeout")
+		s3HTTPDisableKeepAlives = fs.Bool("s3-http-disable-keep-alives", false,
+			"S3 HTTP client disable keep-alives. Not recommended for production")
+
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
@@ -104,12 +120,21 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		ctx := context.Background()
 
-		// Create base configuration
+		httpClient := createHTTPClient(
+			*s3HTTPMaxIdleConns,
+			*s3HTTPMaxIdleConnsPerHost,
+			*s3HTTPMaxConnsPerHost,
+			*s3HTTPIdleConnTimeout,
+			*s3HTTPResponseHeaderTimeout,
+			*s3HTTPDisableKeepAlives,
+		)
+
 		var loaderCfg, storageCfg, resultStorageCfg aws.Config
 		var err error
 
-		// Default configuration
-		defaultCfg, err := config.LoadDefaultConfig(ctx)
+		defaultCfg, err := config.LoadDefaultConfig(ctx,
+			config.WithHTTPClient(httpClient),
+		)
 		if err != nil {
 			panic(err)
 		}
@@ -215,5 +240,35 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 			app.ResultStorages = append(app.ResultStorages, resultStorage)
 		}
+	}
+}
+
+func createHTTPClient(
+	maxIdleConns int,
+	maxIdleConnsPerHost int,
+	maxConnsPerHost int,
+	idleConnTimeout time.Duration,
+	responseHeaderTimeout time.Duration,
+	disableKeepAlives bool,
+) *http.Client {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          maxIdleConns,
+		MaxIdleConnsPerHost:   maxIdleConnsPerHost,
+		MaxConnsPerHost:       maxConnsPerHost,
+		IdleConnTimeout:       idleConnTimeout,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		ResponseHeaderTimeout: responseHeaderTimeout,
+		DisableKeepAlives:     disableKeepAlives,
+		ForceAttemptHTTP2:     true,
+	}
+
+	return &http.Client{
+		Transport: transport,
 	}
 }

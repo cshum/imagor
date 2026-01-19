@@ -824,6 +824,19 @@ Usage of imagor:
   -s3-result-storage-endpoint string
         Optional S3 Storage Endpoint to override default
 
+  -s3-http-max-idle-conns int
+        S3 HTTP client max idle connections across all hosts (default 100)
+  -s3-http-max-idle-conns-per-host int
+        S3 HTTP client max idle connections per host. Increase for high-throughput workloads (default 100)
+  -s3-http-max-conns-per-host int
+        S3 HTTP client max connections per host. 0 means unlimited (default 0)
+  -s3-http-idle-conn-timeout duration
+        S3 HTTP client idle connection timeout (default 90s)
+  -s3-http-response-header-timeout duration
+        S3 HTTP client response header timeout. 0 means no timeout (default 0)
+  -s3-http-disable-keep-alives
+        S3 HTTP client disable keep-alives. Not recommended for production
+
   -gcloud-safe-chars string
         Google Cloud safe characters to be excluded from image key escape. Set -- for no-op
   -gcloud-loader-base-dir string
