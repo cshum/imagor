@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/loader/s3routerloader"
 	"github.com/cshum/imagor/storage/s3storage"
 	"go.uber.org/zap"
 )
@@ -179,32 +180,42 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			app.Storages = append(app.Storages, storage)
 		}
 
-		if *s3LoaderBucket != "" || *s3LoaderBucketRouterConfig != "" {
+		if *s3LoaderBucketRouterConfig != "" {
+			router, err := LoadBucketRouterFromYAML(*s3LoaderBucketRouterConfig)
+			if err != nil {
+				panic(err)
+			}
+
 			endpoint := *s3LoaderEndpoint
 			if endpoint == "" {
 				endpoint = *s3Endpoint
 			}
 
-			opts := []s3storage.Option{
+			storageFactory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+				return s3storage.New(cfg, bucket,
+					s3storage.WithPathPrefix(*s3LoaderPathPrefix),
+					s3storage.WithBaseDir(*s3LoaderBaseDir),
+					s3storage.WithSafeChars(*s3SafeChars),
+					s3storage.WithEndpoint(endpoint),
+					s3storage.WithForcePathStyle(*s3ForcePathStyle),
+				)
+			}
+
+			loader := s3routerloader.New(loaderCfg, router, storageFactory)
+			app.Loaders = append(app.Loaders, loader)
+		} else if *s3LoaderBucket != "" {
+			endpoint := *s3LoaderEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			loader := s3storage.New(loaderCfg, *s3LoaderBucket,
 				s3storage.WithPathPrefix(*s3LoaderPathPrefix),
 				s3storage.WithBaseDir(*s3LoaderBaseDir),
 				s3storage.WithSafeChars(*s3SafeChars),
 				s3storage.WithEndpoint(endpoint),
 				s3storage.WithForcePathStyle(*s3ForcePathStyle),
-			}
-
-			if *s3LoaderBucketRouterConfig != "" {
-				router, err := LoadBucketRouterFromYAML(*s3LoaderBucketRouterConfig)
-				if err != nil {
-					panic(err)
-				}
-				opts = append(opts, s3storage.WithBucketRouter(router))
-				if *s3LoaderBucket == "" {
-					*s3LoaderBucket = router.Fallback()
-				}
-			}
-
-			loader := s3storage.New(loaderCfg, *s3LoaderBucket, opts...)
+			)
 			app.Loaders = append(app.Loaders, loader)
 		}
 

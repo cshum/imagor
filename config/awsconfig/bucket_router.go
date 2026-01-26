@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cshum/imagor/storage/s3storage"
+	"github.com/cshum/imagor/loader/s3routerloader"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,7 +27,7 @@ type bucketRouterConfig struct {
 	} `yaml:"rules"`
 }
 
-func LoadBucketRouterFromYAML(path string) (*s3storage.PatternRouter, error) {
+func LoadBucketRouterFromYAML(path string) (*s3routerloader.PatternRouter, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -44,27 +44,27 @@ func LoadBucketRouterFromYAML(path string) (*s3storage.PatternRouter, error) {
 
 	defaultConfig := toBucketConfig(&cfg.DefaultBucket)
 
-	var fallbacks []*s3storage.BucketConfig
+	var fallbacks []*s3routerloader.BucketConfig
 	for _, fb := range cfg.FallbackBuckets {
 		fallbacks = append(fallbacks, toBucketConfig(&fb))
 	}
 
-	rules := make([]s3storage.MatchRule, 0, len(cfg.Rules))
+	rules := make([]s3routerloader.MatchRule, 0, len(cfg.Rules))
 	for _, r := range cfg.Rules {
-		rules = append(rules, s3storage.MatchRule{
+		rules = append(rules, s3routerloader.MatchRule{
 			Match:  r.Match,
 			Config: toBucketConfig(&r.Bucket),
 		})
 	}
 
-	return s3storage.NewPatternRouter(cfg.RoutingPattern, rules, defaultConfig, fallbacks)
+	return s3routerloader.NewPatternRouter(cfg.RoutingPattern, rules, defaultConfig, fallbacks)
 }
 
-func toBucketConfig(y *bucketConfigYAML) *s3storage.BucketConfig {
+func toBucketConfig(y *bucketConfigYAML) *s3routerloader.BucketConfig {
 	if y == nil || y.Name == "" {
 		return nil
 	}
-	return &s3storage.BucketConfig{
+	return &s3routerloader.BucketConfig{
 		Name:            y.Name,
 		Region:          y.Region,
 		Endpoint:        y.Endpoint,

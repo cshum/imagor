@@ -102,10 +102,3 @@ func WithForcePathStyle(forcePathStyle bool) Option {
 		s.ForcePathStyle = forcePathStyle
 	}
 }
-
-// WithBucketRouter with bucket router option for prefix-based bucket selection
-func WithBucketRouter(router BucketRouter) Option {
-	return func(s *S3Storage) {
-		s.BucketRouter = router
-	}
-}
