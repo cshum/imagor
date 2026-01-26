@@ -66,7 +66,7 @@ func (l *S3RouterLoader) Get(r *http.Request, image string) (*imagor.Blob, error
 		return blob, nil
 	}
 
-	if !imagor.IsNotFound(err) {
+	if err != imagor.ErrNotFound {
 		return nil, err
 	}
 
@@ -78,7 +78,7 @@ func (l *S3RouterLoader) Get(r *http.Request, image string) (*imagor.Blob, error
 		if err == nil {
 			return blob, nil
 		}
-		if !imagor.IsNotFound(err) {
+		if err != imagor.ErrNotFound {
 			return nil, err
 		}
 	}
