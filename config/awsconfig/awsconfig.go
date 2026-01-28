@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/loader/s3routerloader"
 	"github.com/cshum/imagor/storage/s3storage"
 	"go.uber.org/zap"
 )
@@ -73,6 +74,8 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"Base directory for S3 Loader")
 		s3LoaderPathPrefix = fs.String("s3-loader-path-prefix", "",
 			"Base path prefix for S3 Loader")
+		s3LoaderBucketRouterConfig = fs.String("s3-loader-bucket-router-config", "",
+			"YAML config file for S3 Loader bucket routing based on path prefix")
 
 		s3StorageBucket = fs.String("s3-storage-bucket", "",
 			"S3 Bucket for S3 Storage. Enable S3 Storage only if this value present")
@@ -104,7 +107,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
-		if *s3StorageBucket == "" && *s3LoaderBucket == "" && *s3ResultStorageBucket == "" {
+		if *s3StorageBucket == "" && *s3LoaderBucket == "" && *s3ResultStorageBucket == "" && *s3LoaderBucketRouterConfig == "" {
 			return
 		}
 
@@ -185,8 +188,30 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			app.Storages = append(app.Storages, storage)
 		}
 
-		if *s3LoaderBucket != "" {
-			// Determine endpoint: service-specific takes priority over global
+		if *s3LoaderBucketRouterConfig != "" {
+			router, err := LoadBucketRouterFromYAML(*s3LoaderBucketRouterConfig)
+			if err != nil {
+				panic(err)
+			}
+
+			endpoint := *s3LoaderEndpoint
+			if endpoint == "" {
+				endpoint = *s3Endpoint
+			}
+
+			storageFactory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+				return s3storage.New(cfg, bucket,
+					s3storage.WithPathPrefix(*s3LoaderPathPrefix),
+					s3storage.WithBaseDir(*s3LoaderBaseDir),
+					s3storage.WithSafeChars(*s3SafeChars),
+					s3storage.WithEndpoint(endpoint),
+					s3storage.WithForcePathStyle(*s3ForcePathStyle),
+				)
+			}
+
+			loader := s3routerloader.New(loaderCfg, router, storageFactory)
+			app.Loaders = append(app.Loaders, loader)
+		} else if *s3LoaderBucket != "" {
 			endpoint := *s3LoaderEndpoint
 			if endpoint == "" {
 				endpoint = *s3Endpoint
@@ -199,7 +224,6 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				s3storage.WithEndpoint(endpoint),
 				s3storage.WithForcePathStyle(*s3ForcePathStyle),
 			)
-
 			app.Loaders = append(app.Loaders, loader)
 		}
 
