@@ -14,8 +14,17 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"go.uber.org/zap"
 	"golang.org/x/image/colornames"
 )
+
+type watermarkCacheKey struct {
+	Image  string
+	Width  int
+	Height int
+	Alpha  float64
+	N      int
+}
 
 func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
@@ -29,18 +38,12 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	}
 
 	if strings.HasPrefix(image, "b64:") {
-		// if image URL starts with b64: prefix, Base64 decode it according to "base64url" in RFC 4648 (Section 5).
 		result := make([]byte, base64.RawURLEncoding.DecodedLen(len(image[4:])))
-		// in case decoding fails, use original image URL (possible that filename starts with b64: prefix, but as part of the file name)
 		if _, e := base64.RawURLEncoding.Decode(result, []byte(image[4:])); e == nil {
 			image = string(result)
 		}
 	}
 
-	var blob *imagor.Blob
-	if blob, err = load(image); err != nil {
-		return
-	}
 	var x, y, w, h int
 	var across = 1
 	var down = 1
@@ -49,7 +52,13 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	if isAnimated(img) {
 		n = -1
 	}
-	// w_ratio h_ratio
+
+	var alpha float64 = 1
+	if ln >= 4 {
+		alpha, _ = strconv.ParseFloat(args[3], 64)
+		alpha = 1 - alpha/100
+	}
+
 	if ln >= 6 {
 		w = img.Width()
 		h = img.PageHeight()
@@ -61,42 +70,93 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 			h, _ = strconv.Atoi(args[5])
 			h = img.PageHeight() * h / 100
 		}
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
-		); err != nil {
-			return
-		}
 	} else {
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0,
-		); err != nil {
-			return
-		}
+		w = v.MaxWidth
+		h = v.MaxHeight
 	}
-	var overlayN = overlay.Height() / overlay.PageHeight()
-	contextDefer(ctx, overlay.Close)
-	if overlay.Bands() < 3 {
-		if err = overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
-			return
-		}
-	}
-	if !overlay.HasAlpha() {
-		if err = overlay.Addalpha(); err != nil {
-			return
-		}
-	}
-	w = overlay.Width()
-	h = overlay.PageHeight()
-	// alpha
-	if ln >= 4 {
-		alpha, _ := strconv.ParseFloat(args[3], 64)
-		alpha = 1 - alpha/100
-		if alpha != 1 {
-			if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}, nil); err != nil {
-				return
+
+	cacheKey := watermarkCacheKey{Image: image, Width: w, Height: h, Alpha: alpha, N: n}
+	var overlayBytes []byte
+	var cacheHit bool
+
+	if v.watermarkCache != nil {
+		if cached, found := v.watermarkCache.Get(cacheKey); found {
+			overlayBytes = cached.([]byte)
+			cacheHit = true
+			if v.Debug {
+				v.Logger.Debug("watermark cache hit", zap.String("image", image))
 			}
 		}
 	}
+
+	if !cacheHit {
+		var blob *imagor.Blob
+		if blob, err = load(image); err != nil {
+			return
+		}
+
+		if ln >= 6 {
+			if overlay, err = v.NewThumbnail(
+				ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
+			); err != nil {
+				return
+			}
+		} else {
+			if overlay, err = v.NewThumbnail(
+				ctx, blob, w, h, vips.InterestingNone, vips.SizeDown, n, 1, 0,
+			); err != nil {
+				return
+			}
+		}
+
+		if overlay.Bands() < 3 {
+			if err = overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+				overlay.Close()
+				return
+			}
+		}
+		if !overlay.HasAlpha() {
+			if err = overlay.Addalpha(); err != nil {
+				overlay.Close()
+				return
+			}
+		}
+
+		if alpha != 1 {
+			if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}, nil); err != nil {
+				overlay.Close()
+				return
+			}
+		}
+
+		if v.watermarkCache != nil {
+			overlayBytes, err = overlay.PngsaveBuffer(nil)
+			if err != nil {
+				overlay.Close()
+				return
+			}
+			v.watermarkCache.Set(cacheKey, overlayBytes, int64(len(overlayBytes)))
+			if v.Debug {
+				v.Logger.Debug("watermark cache store", zap.String("image", image), zap.Int("bytes", len(overlayBytes)))
+			}
+			overlay.Close()
+
+			overlay, err = vips.NewImageFromBuffer(overlayBytes, nil)
+			if err != nil {
+				return
+			}
+		}
+	} else {
+		overlay, err = vips.NewImageFromBuffer(overlayBytes, nil)
+		if err != nil {
+			return
+		}
+	}
+
+	var overlayN = overlay.Height() / overlay.PageHeight()
+	contextDefer(ctx, overlay.Close)
+	w = overlay.Width()
+	h = overlay.PageHeight()
 	// x y
 	if ln >= 3 {
 		if args[1] == "center" {
