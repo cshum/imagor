@@ -824,6 +824,9 @@ Usage of imagor:
   -s3-result-storage-endpoint string
         Optional S3 Storage Endpoint to override default
 
+  -s3-http-max-idle-conns-per-host int
+        S3 HTTP client max idle connections per host (default 100, Go default is 2)
+
   -gcloud-safe-chars string
         Google Cloud safe characters to be excluded from image key escape. Set -- for no-op
   -gcloud-loader-base-dir string

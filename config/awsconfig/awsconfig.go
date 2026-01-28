@@ -3,6 +3,9 @@ package awsconfig
 import (
 	"context"
 	"flag"
+	"net"
+	"net/http"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -95,6 +98,9 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		s3StorageClass = fs.String("s3-storage-class", "STANDARD",
 			"S3 File Storage Class. Available values: REDUCED_REDUNDANCY, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, GLACIER, DEEP_ARCHIVE. Default: STANDARD.")
 
+		s3HTTPMaxIdleConnsPerHost = fs.Int("s3-http-max-idle-conns-per-host", 100,
+			"S3 HTTP client max idle connections per host (Go default is 2, increase for high-throughput workloads)")
+
 		_, _ = cb()
 	)
 	return func(app *imagor.Imagor) {
@@ -104,12 +110,14 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 		ctx := context.Background()
 
-		// Create base configuration
+		httpClient := createHTTPClient(*s3HTTPMaxIdleConnsPerHost)
+
 		var loaderCfg, storageCfg, resultStorageCfg aws.Config
 		var err error
 
-		// Default configuration
-		defaultCfg, err := config.LoadDefaultConfig(ctx)
+		defaultCfg, err := config.LoadDefaultConfig(ctx,
+			config.WithHTTPClient(httpClient),
+		)
 		if err != nil {
 			panic(err)
 		}
@@ -215,5 +223,25 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 
 			app.ResultStorages = append(app.ResultStorages, resultStorage)
 		}
+	}
+}
+
+func createHTTPClient(maxIdleConnsPerHost int) *http.Client {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   maxIdleConnsPerHost,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:     true,
+	}
+
+	return &http.Client{
+		Transport: transport,
 	}
 }
