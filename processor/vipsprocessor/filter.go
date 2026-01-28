@@ -130,7 +130,7 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		}
 
 		if v.watermarkCache != nil {
-			overlayBytes, err = overlay.PngsaveBuffer(nil)
+			overlayBytes, err = overlay.WebpsaveBuffer(&vips.WebpsaveBufferOptions{Lossless: true})
 			if err != nil {
 				overlay.Close()
 				return
