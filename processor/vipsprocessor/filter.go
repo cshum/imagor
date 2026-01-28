@@ -26,6 +26,10 @@ type watermarkCacheKey struct {
 	N      int
 }
 
+func (k watermarkCacheKey) String() string {
+	return fmt.Sprintf("%s|%d|%d|%.4f|%d", k.Image, k.Width, k.Height, k.Alpha, k.N)
+}
+
 func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
@@ -80,7 +84,7 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	var cacheHit bool
 
 	if v.watermarkCache != nil {
-		if cached, found := v.watermarkCache.Get(cacheKey); found {
+		if cached, found := v.watermarkCache.Get(cacheKey.String()); found {
 			overlayBytes = cached.([]byte)
 			cacheHit = true
 			if v.Debug {
@@ -135,7 +139,7 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 				overlay.Close()
 				return
 			}
-			v.watermarkCache.Set(cacheKey, overlayBytes, int64(len(overlayBytes)))
+			v.watermarkCache.Set(cacheKey.String(), overlayBytes, int64(len(overlayBytes)))
 			if v.Debug {
 				v.Logger.Debug("watermark cache store", zap.String("image", image), zap.Int("bytes", len(overlayBytes)))
 			}
