@@ -157,6 +157,15 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		}
 	}
 
+	// Ensure overlay has alpha channel for proper compositing
+	// (cached WebP should have alpha, but verify to be safe)
+	if !overlay.HasAlpha() {
+		if err = overlay.Addalpha(); err != nil {
+			overlay.Close()
+			return
+		}
+	}
+
 	var overlayN = overlay.Height() / overlay.PageHeight()
 	contextDefer(ctx, overlay.Close)
 	w = overlay.Width()
@@ -213,7 +222,8 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		}
 	}
 	if err = overlay.EmbedMultiPage(
-		x, y, img.Width(), img.PageHeight(), nil,
+		x, y, img.Width(), img.PageHeight(),
+		&vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack},
 	); err != nil {
 		return
 	}
