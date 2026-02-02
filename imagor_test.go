@@ -54,7 +54,7 @@ func TestWithUnsafe(t *testing.T) {
 
 func TestWithEnablePostRequests(t *testing.T) {
 	logger := zap.NewExample()
-	
+
 	t.Run("POST requests disabled by default", func(t *testing.T) {
 		app := New(WithOptions(
 			WithUnsafe(true),
@@ -1886,7 +1886,7 @@ func (l *loaderWithStat) Stat(ctx context.Context, key string) (*Stat, error) {
 	l.mu.Lock()
 	l.statCalls++
 	l.mu.Unlock()
-	
+
 	if l.statErr != nil {
 		return nil, l.statErr
 	}
@@ -1910,11 +1910,11 @@ func (l *loaderWithStat) GetStatCalls() int {
 func TestWithModifiedTimeCheckLoader(t *testing.T) {
 	resultStore := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader with data
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.modTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat), // No storages configured - should use loader stat
@@ -1929,14 +1929,14 @@ func TestWithModifiedTimeCheckLoader(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Second request - should call loader stat for comparison
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Verify that loader stat was called (key test for the new functionality)
 	assert.Greater(t, loaderStat.GetStatCalls(), 0, "Loader Stat method should have been called")
 }
@@ -1945,15 +1945,15 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader to fail stat operation
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.statErr = errors.New("stat failed")
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat),
@@ -1976,7 +1976,7 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
-	
+
 	// Regular loader without Stater interface
 	regularLoader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		if image == "test-image" {
@@ -1984,11 +1984,11 @@ func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 		}
 		return nil, ErrNotFound
 	})
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(regularLoader), // Loader without Stater
@@ -2018,4 +2018,289 @@ func (f processorFunc) Startup(_ context.Context) error {
 }
 func (f processorFunc) Shutdown(_ context.Context) error {
 	return nil
+}
+
+// failingStorage is a mock storage that can be configured to fail on Put operations
+type failingStorage struct {
+	*mapStore
+	failOnPut bool
+	putCalls  int
+	mu        sync.Mutex
+}
+
+func newFailingStorage() *failingStorage {
+	return &failingStorage{
+		mapStore: newMapStore(),
+	}
+}
+
+func (s *failingStorage) Put(ctx context.Context, image string, blob *Blob) error {
+	s.mu.Lock()
+	s.putCalls++
+	shouldFail := s.failOnPut
+	s.mu.Unlock()
+
+	if shouldFail {
+		return errors.New("simulated storage failure")
+	}
+	return s.mapStore.Put(ctx, image, blob)
+}
+
+func (s *failingStorage) GetPutCalls() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.putCalls
+}
+
+func (s *failingStorage) SetFailOnPut(fail bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.failOnPut = fail
+}
+
+// slowPutStorage simulates slow storage operations for timeout testing
+type slowPutStorage struct {
+	*mapStore
+	delay time.Duration
+}
+
+func (s *slowPutStorage) Put(ctx context.Context, image string, blob *Blob) error {
+	time.Sleep(s.delay)
+	// Check if context was cancelled during sleep
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return s.mapStore.Put(ctx, image, blob)
+}
+
+func TestResultStorageCleanupOnFailure(t *testing.T) {
+	t.Run("cleanup on result storage save failure", func(t *testing.T) {
+		resultStore := newFailingStorage()
+		resultStore.SetFailOnPut(true) // Make it fail
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20) // Wait for async save to complete
+
+		assert.Equal(t, 200, w.Code) // Request should still succeed
+		assert.Equal(t, "test content", w.Body.String())
+
+		// Verify Put was called
+		assert.Equal(t, 1, resultStore.GetPutCalls())
+
+		// Verify Delete was called for cleanup
+		assert.Equal(t, 1, resultStore.DelCnt["test-image"])
+
+		// Verify the file was NOT saved (due to cleanup)
+		assert.Nil(t, resultStore.Map["test-image"])
+	})
+
+	t.Run("no cleanup on successful save", func(t *testing.T) {
+		resultStore := newFailingStorage()
+		resultStore.SetFailOnPut(false) // Make it succeed
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20) // Wait for async save to complete
+
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "test content", w.Body.String())
+
+		// Verify Put was called
+		assert.Equal(t, 1, resultStore.GetPutCalls())
+
+		// Verify Delete was NOT called (no cleanup needed)
+		assert.Equal(t, 0, resultStore.DelCnt["test-image"])
+
+		// Verify the file WAS saved
+		assert.NotNil(t, resultStore.Map["test-image"])
+	})
+
+	t.Run("cleanup on partial upload with multiple result storages", func(t *testing.T) {
+		resultStore1 := newFailingStorage()
+		resultStore2 := newFailingStorage()
+
+		resultStore1.SetFailOnPut(true)  // First fails
+		resultStore2.SetFailOnPut(false) // Second succeeds
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(resultStore1, resultStore2),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20) // Wait for async save to complete
+
+		assert.Equal(t, 200, w.Code)
+
+		// Both storages should have been attempted
+		assert.Equal(t, 1, resultStore1.GetPutCalls())
+		assert.Equal(t, 1, resultStore2.GetPutCalls())
+
+		// Both should have cleanup called (since first one failed)
+		assert.Equal(t, 1, resultStore1.DelCnt["test-image"])
+		assert.Equal(t, 1, resultStore2.DelCnt["test-image"])
+
+		// Neither should have the file (cleanup removes from both)
+		assert.Nil(t, resultStore1.Map["test-image"])
+		assert.Nil(t, resultStore2.Map["test-image"])
+	})
+
+	t.Run("concurrent requests with save failures", func(t *testing.T) {
+		resultStore := newFailingStorage()
+		resultStore.SetFailOnPut(true)
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte(image)), nil
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		n := 10
+		var wg sync.WaitGroup
+		wg.Add(n)
+
+		for i := 0; i < n; i++ {
+			go func(i int) {
+				defer wg.Done()
+				w := httptest.NewRecorder()
+				app.ServeHTTP(w, httptest.NewRequest(
+					http.MethodGet, fmt.Sprintf("https://example.com/unsafe/image-%d", i), nil))
+				assert.Equal(t, 200, w.Code)
+			}(i)
+		}
+
+		wg.Wait()
+		time.Sleep(time.Millisecond * 50) // Wait for all async saves to complete
+
+		// All should have attempted save
+		assert.Equal(t, n, resultStore.GetPutCalls())
+
+		// All should have cleanup
+		totalDeletes := 0
+		for i := 0; i < n; i++ {
+			totalDeletes += resultStore.DelCnt[fmt.Sprintf("image-%d", i)]
+		}
+		assert.Equal(t, n, totalDeletes)
+	})
+
+	t.Run("no cleanup when result storage disabled", func(t *testing.T) {
+		store := newMapStore()
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithStorages(store),
+			// No result storage configured
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20)
+
+		assert.Equal(t, 200, w.Code)
+
+		// Source storage should have the file
+		assert.NotNil(t, store.Map["test-image"])
+		assert.Equal(t, 1, store.SaveCnt["test-image"])
+		assert.Equal(t, 0, store.DelCnt["test-image"])
+	})
+
+	t.Run("cleanup on timeout during save", func(t *testing.T) {
+		// Use a custom storage that sleeps during Put to simulate timeout
+		slowStorage := &slowPutStorage{
+			mapStore: newMapStore(),
+			delay:    time.Millisecond * 100,
+		}
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithSaveTimeout(time.Millisecond*10), // Short timeout
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(slowStorage),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 150) // Wait for timeout and cleanup
+
+		assert.Equal(t, 200, w.Code) // Request should still succeed
+
+		// Cleanup should have been called due to timeout
+		assert.Equal(t, 1, slowStorage.DelCnt["test-image"])
+	})
+}
+
+func TestResultStorageCleanupWithProcessingError(t *testing.T) {
+	t.Run("no result storage save on processing error", func(t *testing.T) {
+		resultStore := newMapStore()
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, errors.New("processing failed")
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20)
+
+		assert.Equal(t, 500, w.Code) // Processing error
+
+		// No save should have been attempted
+		assert.Equal(t, 0, resultStore.SaveCnt["test-image"])
+		assert.Equal(t, 0, resultStore.DelCnt["test-image"])
+		assert.Nil(t, resultStore.Map["test-image"])
+	})
 }
