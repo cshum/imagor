@@ -53,11 +53,14 @@ func (v *Processor) Process(
 	defer contextDone(ctx)
 
 	// Load and process the image
-	img, params, err := v.loadAndProcess(ctx, blob, p, load)
+	img, err := v.loadAndProcess(ctx, blob, p, load)
 	if err != nil {
 		return nil, err
 	}
 	defer img.Close()
+
+	// Extract export parameters
+	params := v.extractExportParams(p, blob, img)
 
 	// Handle metadata response
 	if p.Meta {
@@ -113,24 +116,81 @@ func (v *Processor) Process(
 	}
 }
 
+// extractExportParams extracts export-related parameters from filters
+func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, img *vips.Image) *exportParams {
+	var (
+		quality       int
+		bitdepth      int
+		compression   int
+		palette       bool
+		stripMetadata = v.StripMetadata
+		maxBytes      int
+		format        = vips.ImageTypeUnknown
+	)
+
+	// Extract export parameters from filters
+	for _, f := range p.Filters {
+		if v.disableFilters[f.Name] {
+			continue
+		}
+		switch f.Name {
+		case "format":
+			if imageType, ok := imageTypeMap[f.Args]; ok {
+				format = supportedSaveFormat(imageType)
+			}
+		case "quality":
+			quality, _ = strconv.Atoi(f.Args)
+		case "autojpg":
+			format = vips.ImageTypeJpeg
+		case "palette":
+			palette = true
+		case "bitdepth":
+			bitdepth, _ = strconv.Atoi(f.Args)
+		case "compression":
+			compression, _ = strconv.Atoi(f.Args)
+		case "max_bytes":
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
+				maxBytes = n
+			}
+		case "strip_metadata":
+			stripMetadata = true
+		}
+	}
+
+	// Determine format if not specified
+	if format == vips.ImageTypeUnknown {
+		if blob.BlobType() == imagor.BlobTypeAVIF {
+			format = vips.ImageTypeAvif
+		} else {
+			format = img.Format()
+		}
+	}
+
+	return &exportParams{
+		format:        format,
+		quality:       quality,
+		compression:   compression,
+		bitdepth:      bitdepth,
+		palette:       palette,
+		stripMetadata: stripMetadata,
+		maxBytes:      maxBytes,
+	}
+}
+
 // loadAndProcess loads the image from blob and applies all transformations
 func (v *Processor) loadAndProcess(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
-) (*vips.Image, *exportParams, error) {
+) (*vips.Image, error) {
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
-		stripMetadata         = v.StripMetadata
 		orient                int
 		img                   *vips.Image
-		format                = vips.ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
-		maxBytes              int
 		page                  = 1
 		dpi                   = 0
-		focalRects            []focal
 		err                   error
 	)
 	if p.Trim || p.VFlip {
@@ -145,67 +205,52 @@ func (v *Processor) loadAndProcess(
 	if blob != nil && !blob.SupportsAnimation() {
 		maxN = 1
 	}
-	for _, p := range p.Filters {
-		if v.disableFilters[p.Name] {
+	for _, f := range p.Filters {
+		if v.disableFilters[f.Name] {
 			continue
 		}
-		switch p.Name {
+		switch f.Name {
 		case "format":
-			if imageType, ok := imageTypeMap[p.Args]; ok {
-				format = supportedSaveFormat(imageType)
+			if imageType, ok := imageTypeMap[f.Args]; ok {
+				format := supportedSaveFormat(imageType)
 				if !IsAnimationSupported(format) {
 					// no frames if export format not support animation
 					maxN = 1
 				}
 			}
-			break
 		case "max_frames":
-			if n, _ := strconv.Atoi(p.Args); n > 0 && (maxN == -1 || n < maxN) {
+			if n, _ := strconv.Atoi(f.Args); n > 0 && (maxN == -1 || n < maxN) {
 				maxN = n
 			}
-			break
 		case "stretch":
 			stretch = true
-			break
 		case "upscale":
 			upscale = true
-			break
 		case "no_upscale":
 			upscale = false
-			break
 		case "fill", "background_color":
-			if args := strings.Split(p.Args, ","); args[0] == "auto" {
+			if args := strings.Split(f.Args, ","); args[0] == "auto" {
 				thumbnailNotSupported = true
 			}
-			break
 		case "page":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				page = n
 			}
-			break
 		case "dpi":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				dpi = n
 			}
-			break
 		case "orient":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				orient = n
 				thumbnailNotSupported = true
 			}
-			break
 		case "max_bytes":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
-				maxBytes = n
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				thumbnailNotSupported = true
 			}
-			break
 		case "trim", "focal", "rotate":
 			thumbnailNotSupported = true
-			break
-		case "strip_metadata":
-			stripMetadata = true
-			break
 		}
 	}
 
@@ -229,7 +274,7 @@ func (v *Processor) loadAndProcess(
 				if img, err = v.NewThumbnail(
 					ctx, blob, w, h, vips.InterestingNone, size, maxN, page, dpi,
 				); err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 				thumbnail = true
 			}
@@ -239,7 +284,7 @@ func (v *Processor) loadAndProcess(
 					ctx, blob, p.Width, p.Height,
 					vips.InterestingNone, vips.SizeForce, maxN, page, dpi,
 				); err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 				thumbnail = true
 			}
@@ -267,7 +312,7 @@ func (v *Processor) loadAndProcess(
 						ctx, blob, p.Width, p.Height,
 						interest, vips.SizeBoth, maxN, page, dpi,
 					); err != nil {
-						return nil, nil, err
+						return nil, err
 					}
 				}
 			} else if p.Width > 0 && p.Height == 0 {
@@ -275,7 +320,7 @@ func (v *Processor) loadAndProcess(
 					ctx, blob, p.Width, v.MaxHeight,
 					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
@@ -283,7 +328,7 @@ func (v *Processor) loadAndProcess(
 					ctx, blob, v.MaxWidth, p.Height,
 					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 				thumbnail = true
 			}
@@ -292,14 +337,14 @@ func (v *Processor) loadAndProcess(
 	if !thumbnail {
 		if thumbnailNotSupported {
 			if img, err = v.NewImage(ctx, blob, maxN, page, dpi); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		} else {
 			if img, err = v.NewThumbnail(
 				ctx, blob, v.MaxWidth, v.MaxHeight,
 				vips.InterestingNone, vips.SizeDown, maxN, page, dpi,
 			); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	}
@@ -307,100 +352,65 @@ func (v *Processor) loadAndProcess(
 	if orient > 0 {
 		// orient rotate before resize
 		if err = img.RotMultiPage(getAngle(orient)); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
+
 	var (
-		quality     int
-		bitdepth    int
-		compression int
-		palette     bool
-		origWidth   = float64(img.Width())
-		origHeight  = float64(img.PageHeight())
+		origWidth  = float64(img.Width())
+		origHeight = float64(img.PageHeight())
 	)
-	if format == vips.ImageTypeUnknown {
-		if blob.BlobType() == imagor.BlobTypeAVIF {
-			// meta loader determined as heif
-			format = vips.ImageTypeAvif
-		} else {
-			format = img.Format()
-		}
-	}
 	if v.Debug {
 		v.Logger.Debug("image",
 			zap.Int("width", img.Width()),
 			zap.Int("height", img.Height()),
 			zap.Int("page_height", img.PageHeight()))
 	}
-	for _, p := range p.Filters {
-		if v.disableFilters[p.Name] {
+
+	// Extract focal points for transformation
+	var focalRects []focal
+	for _, f := range p.Filters {
+		if v.disableFilters[f.Name] {
 			continue
 		}
-		switch p.Name {
-		case "quality":
-			quality, _ = strconv.Atoi(p.Args)
-			break
-		case "autojpg":
-			format = vips.ImageTypeJpeg
-			break
-		case "focal":
-			args := strings.FieldsFunc(p.Args, argSplit)
+		if f.Name == "focal" {
+			args := strings.FieldsFunc(f.Args, argSplit)
 			switch len(args) {
 			case 4:
-				f := focal{}
-				f.Left, _ = strconv.ParseFloat(args[0], 64)
-				f.Top, _ = strconv.ParseFloat(args[1], 64)
-				f.Right, _ = strconv.ParseFloat(args[2], 64)
-				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
-				if f.Left < 1 && f.Top < 1 && f.Right <= 1 && f.Bottom <= 1 {
-					f.Left *= origWidth
-					f.Right *= origWidth
-					f.Top *= origHeight
-					f.Bottom *= origHeight
+				rect := focal{}
+				rect.Left, _ = strconv.ParseFloat(args[0], 64)
+				rect.Top, _ = strconv.ParseFloat(args[1], 64)
+				rect.Right, _ = strconv.ParseFloat(args[2], 64)
+				rect.Bottom, _ = strconv.ParseFloat(args[3], 64)
+				if rect.Left < 1 && rect.Top < 1 && rect.Right <= 1 && rect.Bottom <= 1 {
+					rect.Left *= origWidth
+					rect.Right *= origWidth
+					rect.Top *= origHeight
+					rect.Bottom *= origHeight
 				}
-				if f.Right > f.Left && f.Bottom > f.Top {
-					focalRects = append(focalRects, f)
+				if rect.Right > rect.Left && rect.Bottom > rect.Top {
+					focalRects = append(focalRects, rect)
 				}
 			case 2:
-				f := focal{}
-				f.Left, _ = strconv.ParseFloat(args[0], 64)
-				f.Top, _ = strconv.ParseFloat(args[1], 64)
-				if f.Left < 1 && f.Top < 1 {
-					f.Left *= origWidth
-					f.Top *= origHeight
+				rect := focal{}
+				rect.Left, _ = strconv.ParseFloat(args[0], 64)
+				rect.Top, _ = strconv.ParseFloat(args[1], 64)
+				if rect.Left < 1 && rect.Top < 1 {
+					rect.Left *= origWidth
+					rect.Top *= origHeight
 				}
-				f.Right = f.Left + 1
-				f.Bottom = f.Top + 1
-				focalRects = append(focalRects, f)
+				rect.Right = rect.Left + 1
+				rect.Bottom = rect.Top + 1
+				focalRects = append(focalRects, rect)
 			}
-			break
-		case "palette":
-			palette = true
-			break
-		case "bitdepth":
-			bitdepth, _ = strconv.Atoi(p.Args)
-			break
-		case "compression":
-			compression, _ = strconv.Atoi(p.Args)
-			break
 		}
 	}
 	// Apply transformations
 	if err := v.applyTransformations(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
-		return nil, nil, WrapErr(err)
+		return nil, WrapErr(err)
 	}
 
-	// Return processed image and export parameters
-	params := &exportParams{
-		format:        format,
-		quality:       quality,
-		compression:   compression,
-		bitdepth:      bitdepth,
-		palette:       palette,
-		stripMetadata: stripMetadata,
-		maxBytes:      maxBytes,
-	}
-	return img, params, nil
+	return img, nil
 }
 
 // applyTransformations applies all image transformations (crop, resize, flip, filters)
