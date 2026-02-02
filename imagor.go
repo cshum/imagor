@@ -440,7 +440,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		ctx = detachContext(ctx)
 		if err == nil && !isBlobEmpty(blob) && resultKey != "" && !isRaw &&
 			len(app.ResultStorages) > 0 {
-			go app.saveWithErrorHandling(ctx, app.ResultStorages, resultKey, blob)
+			app.saveWithErrorHandling(ctx, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && shouldSave {
 			var storageKey = p.Image
