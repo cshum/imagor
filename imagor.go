@@ -386,7 +386,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				storageKey = app.StoragePathStyle.Hash(p.Image)
 			}
 			go func(blob *Blob) {
-				_ = app.save(ctx, app.Storages, storageKey, blob)
+				app.save(ctx, app.Storages, storageKey, blob)
 				close(doneSave)
 			}(blob)
 		}
@@ -679,9 +679,9 @@ func (app *Imagor) loaderStat(ctx context.Context, key string) (stat *Stat, err 
 	return
 }
 
-func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) error {
+func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
 	if key == "" {
-		return nil
+		return
 	}
 	if app.SaveTimeout > 0 {
 		var cancel func()
@@ -689,37 +689,54 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 		defer cancel()
 	}
 	var wg sync.WaitGroup
-	var mu sync.Mutex
-	var errs []error
 	for _, storage := range storages {
 		wg.Add(1)
 		go func(storage Storage) {
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
-				mu.Lock()
-				errs = append(errs, err)
-				mu.Unlock()
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
 			}
 		}(storage)
 	}
 	wg.Wait()
-	if len(errs) > 0 {
-		// Return first error if any storage failed
-		return errs[0]
-	}
-	return nil
+	return
 }
 
 // saveResultWithCleanup saves blob to result storage and cleans up on failure
 func (app *Imagor) saveResultWithCleanup(ctx context.Context, resultKey string, blob *Blob) {
-	if err := app.save(ctx, app.ResultStorages, resultKey, blob); err != nil {
-		// Save failed - cleanup partial/corrupted files
+	if resultKey == "" {
+		return
+	}
+	if app.SaveTimeout > 0 {
+		var cancel func()
+		ctx, cancel = context.WithTimeout(ctx, app.SaveTimeout)
+		defer cancel()
+	}
+	var wg sync.WaitGroup
+	var failed bool
+	var mu sync.Mutex
+	for _, storage := range app.ResultStorages {
+		wg.Add(1)
+		go func(storage Storage) {
+			defer wg.Done()
+			if err := storage.Put(ctx, resultKey, blob); err != nil {
+				app.Logger.Warn("result-storage-save", zap.String("key", resultKey), zap.Error(err))
+				mu.Lock()
+				failed = true
+				mu.Unlock()
+			} else if app.Debug {
+				app.Logger.Debug("result-storage-saved", zap.String("key", resultKey))
+			}
+		}(storage)
+	}
+	wg.Wait()
+
+	// If any storage failed, cleanup all result storages
+	if failed {
 		app.del(ctx, app.ResultStorages, resultKey)
-		app.Logger.Warn("result-storage-save-failed-cleanup",
-			zap.String("key", resultKey), zap.Error(err))
+		app.Logger.Warn("result-storage-cleanup-after-failure", zap.String("key", resultKey))
 	}
 }
 
