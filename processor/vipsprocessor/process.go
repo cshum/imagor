@@ -34,18 +34,94 @@ func IsAnimationSupported(imageType vips.ImageType) bool {
 	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp
 }
 
+// exportParams holds parameters needed for image export
+type exportParams struct {
+	format        vips.ImageType
+	quality       int
+	compression   int
+	bitdepth      int
+	palette       bool
+	stripMetadata bool
+	maxBytes      int
+}
+
 // Process implements imagor.Processor interface
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
+
+	// Load and process the image
+	img, params, err := v.loadAndProcess(ctx, blob, p, load)
+	if err != nil {
+		return nil, err
+	}
+	defer img.Close()
+
+	// Handle metadata response
+	if p.Meta {
+		stripExif := false
+		for _, f := range p.Filters {
+			if f.Name == "strip_exif" {
+				stripExif = true
+				break
+			}
+		}
+		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif)), nil
+	}
+
+	// Export with max_bytes retry loop
+	params.format = supportedSaveFormat(params.format)
+	for {
+		buf, err := v.export(img, params.format, params.compression, params.quality, params.palette, params.bitdepth, params.stripMetadata)
+		if err != nil {
+			return nil, WrapErr(err)
+		}
+		if params.maxBytes > 0 && (params.quality > 10 || params.quality == 0) && params.format != vips.ImageTypePng {
+			ln := len(buf)
+			if v.Debug {
+				v.Logger.Debug("max_bytes",
+					zap.Int("bytes", ln),
+					zap.Int("quality", params.quality),
+				)
+			}
+			if ln > params.maxBytes {
+				if params.quality == 0 {
+					params.quality = 80
+				}
+				delta := float64(ln) / float64(params.maxBytes)
+				switch {
+				case delta > 3:
+					params.quality = params.quality * 25 / 100
+				case delta > 1.5:
+					params.quality = params.quality * 50 / 100
+				default:
+					params.quality = params.quality * 75 / 100
+				}
+				if err := ctx.Err(); err != nil {
+					return nil, WrapErr(err)
+				}
+				continue
+			}
+		}
+		blob := imagor.NewBlobFromBytes(buf)
+		if typ, ok := params.format.MimeType(); ok {
+			blob.SetContentType(typ)
+		}
+		return blob, nil
+	}
+}
+
+// loadAndProcess loads the image from blob and applies all transformations
+func (v *Processor) loadAndProcess(
+	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
+) (*vips.Image, *exportParams, error) {
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
-		stripExif             bool
 		stripMetadata         = v.StripMetadata
 		orient                int
 		img                   *vips.Image
@@ -127,8 +203,6 @@ func (v *Processor) Process(
 		case "trim", "focal", "rotate":
 			thumbnailNotSupported = true
 			break
-		case "strip_exif":
-			stripExif = true
 		case "strip_metadata":
 			stripMetadata = true
 			break
@@ -155,7 +229,7 @@ func (v *Processor) Process(
 				if img, err = v.NewThumbnail(
 					ctx, blob, w, h, vips.InterestingNone, size, maxN, page, dpi,
 				); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				thumbnail = true
 			}
@@ -165,7 +239,7 @@ func (v *Processor) Process(
 					ctx, blob, p.Width, p.Height,
 					vips.InterestingNone, vips.SizeForce, maxN, page, dpi,
 				); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				thumbnail = true
 			}
@@ -193,7 +267,7 @@ func (v *Processor) Process(
 						ctx, blob, p.Width, p.Height,
 						interest, vips.SizeBoth, maxN, page, dpi,
 					); err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 				}
 			} else if p.Width > 0 && p.Height == 0 {
@@ -201,7 +275,7 @@ func (v *Processor) Process(
 					ctx, blob, p.Width, v.MaxHeight,
 					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
@@ -209,7 +283,7 @@ func (v *Processor) Process(
 					ctx, blob, v.MaxWidth, p.Height,
 					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
 				); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				thumbnail = true
 			}
@@ -218,24 +292,22 @@ func (v *Processor) Process(
 	if !thumbnail {
 		if thumbnailNotSupported {
 			if img, err = v.NewImage(ctx, blob, maxN, page, dpi); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		} else {
 			if img, err = v.NewThumbnail(
 				ctx, blob, v.MaxWidth, v.MaxHeight,
 				vips.InterestingNone, vips.SizeDown, maxN, page, dpi,
 			); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
-	// this should be called BEFORE vipscontext.contextDone
-	defer img.Close()
 
 	if orient > 0 {
 		// orient rotate before resize
 		if err = img.RotMultiPage(getAngle(orient)); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	var (
@@ -313,55 +385,26 @@ func (v *Processor) Process(
 			break
 		}
 	}
-	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
-		return nil, WrapErr(err)
+	// Apply transformations
+	if err := v.applyTransformations(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
+		return nil, nil, WrapErr(err)
 	}
-	if p.Meta {
-		// metadata without export
-		return imagor.NewBlobFromJsonMarshal(metadata(img, format, stripExif)), nil
+
+	// Return processed image and export parameters
+	params := &exportParams{
+		format:        format,
+		quality:       quality,
+		compression:   compression,
+		bitdepth:      bitdepth,
+		palette:       palette,
+		stripMetadata: stripMetadata,
+		maxBytes:      maxBytes,
 	}
-	format = supportedSaveFormat(format) // convert to supported export format
-	for {
-		buf, err := v.export(img, format, compression, quality, palette, bitdepth, stripMetadata)
-		if err != nil {
-			return nil, WrapErr(err)
-		}
-		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePng {
-			ln := len(buf)
-			if v.Debug {
-				v.Logger.Debug("max_bytes",
-					zap.Int("bytes", ln),
-					zap.Int("quality", quality),
-				)
-			}
-			if ln > maxBytes {
-				if quality == 0 {
-					quality = 80
-				}
-				delta := float64(ln) / float64(maxBytes)
-				switch {
-				case delta > 3:
-					quality = quality * 25 / 100
-				case delta > 1.5:
-					quality = quality * 50 / 100
-				default:
-					quality = quality * 75 / 100
-				}
-				if err := ctx.Err(); err != nil {
-					return nil, WrapErr(err)
-				}
-				continue
-			}
-		}
-		blob := imagor.NewBlobFromBytes(buf)
-		if typ, ok := format.MimeType(); ok {
-			blob.SetContentType(typ)
-		}
-		return blob, nil
-	}
+	return img, params, nil
 }
 
-func (v *Processor) process(
+// applyTransformations applies all image transformations (crop, resize, flip, filters)
+func (v *Processor) applyTransformations(
 	ctx context.Context, img *vips.Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
