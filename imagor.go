@@ -696,9 +696,6 @@ func (app *Imagor) saveWithErrorHandling(ctx context.Context, storages []Storage
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
-
-				// Cleanup on ANY error (including timeouts)
-				// Cache is regenerable, so safer to delete than risk serving corrupted data
 				if delErr := storage.Delete(ctx, key); delErr != nil {
 					app.Logger.Warn("delete-after-save-error",
 						zap.String("key", key), zap.Error(delErr))
