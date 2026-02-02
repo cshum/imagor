@@ -2166,13 +2166,13 @@ func TestResultStorageCleanupOnFailure(t *testing.T) {
 		assert.Equal(t, 1, resultStore1.GetPutCalls())
 		assert.Equal(t, 1, resultStore2.GetPutCalls())
 
-		// Both should have cleanup called (since first one failed)
-		assert.Equal(t, 1, resultStore1.DelCnt["test-image"])
-		assert.Equal(t, 1, resultStore2.DelCnt["test-image"])
+		// Independent cleanup: only failed storage should have cleanup called
+		assert.Equal(t, 1, resultStore1.DelCnt["test-image"]) // Failed, so cleanup
+		assert.Equal(t, 0, resultStore2.DelCnt["test-image"]) // Succeeded, no cleanup
 
-		// Neither should have the file (cleanup removes from both)
+		// First should not have the file (cleanup removed it), second should have it
 		assert.Nil(t, resultStore1.Map["test-image"])
-		assert.Nil(t, resultStore2.Map["test-image"])
+		assert.NotNil(t, resultStore2.Map["test-image"]) // Successful save preserved
 	})
 
 	t.Run("concurrent requests with save failures", func(t *testing.T) {
