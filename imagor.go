@@ -386,7 +386,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				storageKey = app.StoragePathStyle.Hash(p.Image)
 			}
 			go func(blob *Blob) {
-				app.save(ctx, app.Storages, storageKey, blob)
+				app.saveWithErrorHandling(ctx, app.Storages, storageKey, blob)
 				close(doneSave)
 			}(blob)
 		}
@@ -440,7 +440,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		ctx = detachContext(ctx)
 		if err == nil && !isBlobEmpty(blob) && resultKey != "" && !isRaw &&
 			len(app.ResultStorages) > 0 {
-			app.save(ctx, app.ResultStorages, resultKey, blob)
+			app.saveWithErrorHandling(ctx, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && shouldSave {
 			var storageKey = p.Image
@@ -679,7 +679,8 @@ func (app *Imagor) loaderStat(ctx context.Context, key string) (stat *Stat, err 
 	return
 }
 
-func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
+// saveWithErrorHandling saves blob to storage with cleanup on error
+func (app *Imagor) saveWithErrorHandling(ctx context.Context, storages []Storage, key string, blob *Blob) {
 	if key == "" {
 		return
 	}
@@ -695,13 +696,18 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
+				if delErr := storage.Delete(ctx, key); delErr != nil {
+					app.Logger.Warn("delete-after-save-error",
+						zap.String("key", key), zap.Error(delErr))
+				} else if app.Debug {
+					app.Logger.Debug("deleted-after-save-error", zap.String("key", key))
+				}
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
 			}
 		}(storage)
 	}
 	wg.Wait()
-	return
 }
 
 func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
