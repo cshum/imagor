@@ -41,6 +41,8 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS strips all metadata from the resulting image")
 		vipsUnlimited = fs.Bool("vips-unlimited", false,
 			"VIPS bypass image max resolution check and remove all denial of service limits")
+		imagorWatermarkCacheSize = fs.Int64("imagor-watermark-cache-size", 0,
+			"In-memory watermark cache size in bytes (0 to disable). e.g. 104857600 for 100MB")
 
 		logger, isDebug = cb()
 	)
@@ -61,6 +63,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
 			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
 			vipsprocessor.WithUnlimited(*vipsUnlimited),
+			vipsprocessor.WithWatermarkCacheSize(*imagorWatermarkCacheSize),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
 		),

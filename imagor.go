@@ -341,8 +341,15 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	load := func(image string) (*Blob, error) {
-		blob, _, err := app.loadStorage(r, image)
-		return blob, err
+		// Use singleflight to deduplicate concurrent loads of the same image (e.g., watermarks)
+		v, err, _ := app.g.Do("load:"+image, func() (interface{}, error) {
+			blob, _, err := app.loadStorage(r, image)
+			return blob, err
+		})
+		if v != nil {
+			return v.(*Blob), err
+		}
+		return nil, err
 	}
 	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
 		if resultKey != "" && !isRaw {
