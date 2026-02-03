@@ -474,46 +474,6 @@ VIPS_MAX_WIDTH=5000
 VIPS_MAX_HEIGHT=5000
 ```
 
-#### VIPS Performance Tuning
-
-imagor uses [libvips](https://github.com/libvips/libvips) for image processing. libvips provides several configuration options to tune performance and resource usage:
-
-##### Concurrency
-
-`VIPS_CONCURRENCY` controls the number of threads libvips uses for image operations:
-
-```dotenv
-VIPS_CONCURRENCY=1    # Single-threaded (default)
-VIPS_CONCURRENCY=-1   # Use all available CPU cores
-VIPS_CONCURRENCY=4    # Use 4 threads
-```
-
-**Important:** `VIPS_CONCURRENCY` is a **global setting** that controls threading **within each image operation**, not the number of concurrent requests. 
-
-- **Default (1)**: Single-threaded processing. Recommended for most deployments where you handle concurrency at the application level (multiple imagor processes/containers).
-- **-1 (auto)**: Uses all CPU cores. Can improve performance for individual large images but may cause resource contention under high request concurrency.
-- **Custom value**: Set to a specific number of threads for fine-tuned control.
-
-For high-traffic deployments, it's generally better to scale horizontally (more imagor instances) rather than increasing `VIPS_CONCURRENCY`.
-
-##### Operation Cache
-
-libvips caches recently used operations to improve performance when processing similar images. These settings control the cache behavior:
-
-```dotenv
-VIPS_MAX_CACHE_MEM=50000000     # Max memory for operation cache (bytes)
-VIPS_MAX_CACHE_SIZE=100         # Max number of operations to cache
-VIPS_MAX_CACHE_FILES=0          # Max number of file descriptors to cache
-```
-
-**When to adjust:**
-- **Web servers** (many different images, few operations each): Keep defaults low or disable caching entirely (set to 0). The operation cache is less useful when each request processes a unique image.
-- **Batch processing** (few images, many operations): Increase cache limits to reuse operations across multiple transformations of the same images.
-
-**Default behavior:** libvips uses small cache limits suitable for web serving. For most imagor deployments, the defaults are appropriate.
-
-See [libvips operation cache documentation](https://github.com/libvips/libvips/issues/1585) for more details.
-
 #### Allowed Sources and Base URL
 
 Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES` or `HTTP_LOADER_ALLOWED_SOURCE_REGEXP`.
@@ -651,6 +611,48 @@ Prepending `/params` to the existing endpoint returns the endpoint attributes in
 ```bash
 curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
 ```
+
+
+### VIPS Performance Tuning
+
+imagor uses [libvips](https://github.com/libvips/libvips) for image processing. libvips provides several configuration options to tune performance and resource usage:
+
+#### Concurrency
+
+`VIPS_CONCURRENCY` controls the number of threads libvips uses for image operations:
+
+```dotenv
+VIPS_CONCURRENCY=1    # Single-threaded (default)
+VIPS_CONCURRENCY=-1   # Use all available CPU cores
+VIPS_CONCURRENCY=4    # Use 4 threads
+```
+
+**Important:** `VIPS_CONCURRENCY` is a **global setting** that controls threading **within each image operation**, not the number of concurrent requests.
+
+- **Default (1)**: Single-threaded processing. Recommended for most deployments where you handle concurrency at the application level (multiple imagor processes/containers).
+- **-1 (auto)**: Uses all CPU cores. Can improve performance for individual large images but may cause resource contention under high request concurrency.
+- **Custom value**: Set to a specific number of threads for fine-tuned control.
+
+For high-traffic deployments, it's generally better to scale horizontally (more imagor instances) rather than increasing `VIPS_CONCURRENCY`.
+
+#### Operation Cache
+
+libvips caches recently used operations to improve performance when processing similar images. These settings control the cache behavior:
+
+```dotenv
+VIPS_MAX_CACHE_MEM=50000000     # Max memory for operation cache (bytes)
+VIPS_MAX_CACHE_SIZE=100         # Max number of operations to cache
+VIPS_MAX_CACHE_FILES=0          # Max number of file descriptors to cache
+```
+
+**When to adjust:**
+- **Web servers** (many different images, few operations each): Keep defaults low or disable caching entirely (set to 0). The operation cache is less useful when each request processes a unique image.
+- **Batch processing** (few images, many operations): Increase cache limits to reuse operations across multiple transformations of the same images.
+
+**Default behavior:** libvips uses small cache limits suitable for web serving. For most imagor deployments, the defaults are appropriate.
+
+See [libvips operation cache documentation](https://github.com/libvips/libvips/issues/1585) for more details.
+
 
 ### POST Upload Endpoint
 
