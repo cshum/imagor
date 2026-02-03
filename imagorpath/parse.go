@@ -156,6 +156,48 @@ func Apply(p Params, path string) Params {
 	return p
 }
 
+// SplitArgs splits filter arguments by comma, respecting parentheses nesting.
+// This allows nested filter paths with commas to work correctly.
+// Example: "path(a,b),x,y" -> ["path(a,b)", "x", "y"]
+func SplitArgs(args string) []string {
+	if args == "" {
+		return nil
+	}
+
+	var result []string
+	var s strings.Builder
+	var depth int
+
+	for _, ch := range args {
+		switch ch {
+		case '(':
+			depth++
+			s.WriteRune(ch)
+		case ')':
+			depth--
+			s.WriteRune(ch)
+		case ',':
+			if depth == 0 {
+				// Split here - comma at top level
+				result = append(result, s.String())
+				s.Reset()
+			} else {
+				// Keep comma inside parentheses
+				s.WriteRune(ch)
+			}
+		default:
+			s.WriteRune(ch)
+		}
+	}
+
+	// Add last argument
+	if s.Len() > 0 {
+		result = append(result, s.String())
+	}
+
+	return result
+}
+
 func parseFilters(str string) (filters []Filter, path string) {
 	if strings.HasPrefix(str, "filters:") {
 		str = str[8:]

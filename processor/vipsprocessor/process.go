@@ -565,7 +565,7 @@ func (v *Processor) applyTransformations(
 		start := time.Now()
 		var args []string
 		if filter.Args != "" {
-			args = strings.Split(filter.Args, ",")
+			args = imagorpath.SplitArgs(filter.Args)
 		}
 		if fn := v.Filters[filter.Name]; fn != nil {
 			if err := fn(ctx, img, load, args...); err != nil {
