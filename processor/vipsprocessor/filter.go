@@ -19,27 +19,20 @@ import (
 
 func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
-	if ln < 3 {
-		return // need at least: imagorPath, x, y
+	if ln < 1 {
+		return
 	}
-
 	imagorPath := args[0]
 	if unescape, e := url.QueryUnescape(args[0]); e == nil {
 		imagorPath = unescape
 	}
-
-	// Parse the nested imagor path
 	params := imagorpath.Parse(imagorPath)
-
-	// Load the base image
 	var blob *imagor.Blob
 	if blob, err = load(params.Image); err != nil {
 		return
 	}
-
-	// Process with full pipeline (this is the key - recursive processing!)
 	var overlay *vips.Image
-	if overlay, err = v.loadAndProcess(ctx, blob, params, load); err != nil {
+	if overlay, err = v.loadAndProcess(ctx, blob, params, load); err != nil || overlay == nil {
 		return
 	}
 	contextDefer(ctx, overlay.Close)
@@ -73,44 +66,48 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 		}
 	}
 
-	// Parse x position
-	if args[1] == "center" {
-		x = (img.Width() - overlay.Width()) / 2
-	} else if args[1] == imagorpath.HAlignLeft {
-		x = 0
-	} else if args[1] == imagorpath.HAlignRight {
-		x = img.Width() - overlay.Width()
-	} else if args[1] == "repeat" {
-		x = 0
-		across = img.Width()/overlay.Width() + 1
-	} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
-		pec, _ := strconv.ParseFloat(args[1], 64)
-		x = int(pec * float64(img.Width()))
-	} else if strings.HasSuffix(args[1], "p") {
-		x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
-		x = x * img.Width() / 100
-	} else {
-		x, _ = strconv.Atoi(args[1])
+	// Parse x position (default to 0 if not provided)
+	if ln >= 2 && args[1] != "" {
+		if args[1] == "center" {
+			x = (img.Width() - overlay.Width()) / 2
+		} else if args[1] == imagorpath.HAlignLeft {
+			x = 0
+		} else if args[1] == imagorpath.HAlignRight {
+			x = img.Width() - overlay.Width()
+		} else if args[1] == "repeat" {
+			x = 0
+			across = img.Width()/overlay.Width() + 1
+		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
+			pec, _ := strconv.ParseFloat(args[1], 64)
+			x = int(pec * float64(img.Width()))
+		} else if strings.HasSuffix(args[1], "p") {
+			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
+			x = x * img.Width() / 100
+		} else {
+			x, _ = strconv.Atoi(args[1])
+		}
 	}
 
-	// Parse y position
-	if args[2] == "center" {
-		y = (img.PageHeight() - overlay.PageHeight()) / 2
-	} else if args[2] == imagorpath.VAlignTop {
-		y = 0
-	} else if args[2] == imagorpath.VAlignBottom {
-		y = img.PageHeight() - overlay.PageHeight()
-	} else if args[2] == "repeat" {
-		y = 0
-		down = img.PageHeight()/overlay.PageHeight() + 1
-	} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
-		pec, _ := strconv.ParseFloat(args[2], 64)
-		y = int(pec * float64(img.PageHeight()))
-	} else if strings.HasSuffix(args[2], "p") {
-		y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
-		y = y * img.PageHeight() / 100
-	} else {
-		y, _ = strconv.Atoi(args[2])
+	// Parse y position (default to 0 if not provided)
+	if ln >= 3 && args[2] != "" {
+		if args[2] == "center" {
+			y = (img.PageHeight() - overlay.PageHeight()) / 2
+		} else if args[2] == imagorpath.VAlignTop {
+			y = 0
+		} else if args[2] == imagorpath.VAlignBottom {
+			y = img.PageHeight() - overlay.PageHeight()
+		} else if args[2] == "repeat" {
+			y = 0
+			down = img.PageHeight()/overlay.PageHeight() + 1
+		} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
+			pec, _ := strconv.ParseFloat(args[2], 64)
+			y = int(pec * float64(img.PageHeight()))
+		} else if strings.HasSuffix(args[2], "p") {
+			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
+			y = y * img.PageHeight() / 100
+		} else {
+			y, _ = strconv.Atoi(args[2])
+		}
 	}
 
 	// Handle negative positioning (from opposite edge)
