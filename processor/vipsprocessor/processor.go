@@ -59,6 +59,7 @@ func NewProcessor(options ...Option) *Processor {
 		disableFilters:     map[string]bool{},
 	}
 	v.Filters = FilterMap{
+		"image":            v.image,
 		"watermark":        v.watermark,
 		"round_corner":     roundCorner,
 		"rotate":           rotate,
