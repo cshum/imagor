@@ -153,13 +153,15 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	}()
 
 	input := &s3.PutObjectInput{
-		ACL:           types.ObjectCannedACL(s.ACL),
 		Body:          reader,
 		Bucket:        aws.String(s.Bucket),
 		ContentType:   aws.String(blob.ContentType()),
 		ContentLength: aws.Int64(size),
 		Key:           aws.String(image),
 		StorageClass:  types.StorageClass(s.StorageClass),
+	}
+	if s.ACL != "" {
+		input.ACL = types.ObjectCannedACL(s.ACL)
 	}
 	_, err = s.Client.PutObject(ctx, input)
 	return err
