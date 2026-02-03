@@ -17,6 +17,120 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+// compositeOverlay prepares and composites an overlay image onto the base image
+// Handles color space, alpha channel, positioning, repeat patterns, and animation frames
+func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64) error {
+	// Ensure overlay has proper color space and alpha
+	if overlay.Bands() < 3 {
+		if err := overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+			return err
+		}
+	}
+	if !overlay.HasAlpha() {
+		if err := overlay.Addalpha(); err != nil {
+			return err
+		}
+	}
+
+	w := overlay.Width()
+	h := overlay.PageHeight()
+
+	// Apply alpha if provided
+	if alpha > 0 {
+		alphaMultiplier := 1 - alpha/100
+		if alphaMultiplier != 1 {
+			if err := overlay.Linear([]float64{1, 1, 1, alphaMultiplier}, []float64{0, 0, 0, 0}, nil); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Parse position
+	var x, y int
+	across := 1
+	down := 1
+	overlayWidth := overlay.Width()
+	overlayHeight := overlay.PageHeight()
+
+	if xArg != "" {
+		if xArg == "center" {
+			x = (img.Width() - overlayWidth) / 2
+		} else if xArg == imagorpath.HAlignLeft {
+			x = 0
+		} else if xArg == imagorpath.HAlignRight {
+			x = img.Width() - overlayWidth
+		} else if xArg == "repeat" {
+			x = 0
+			across = img.Width()/overlayWidth + 1
+		} else if strings.HasPrefix(strings.TrimPrefix(xArg, "-"), "0.") {
+			pec, _ := strconv.ParseFloat(xArg, 64)
+			x = int(pec * float64(img.Width()))
+		} else if strings.HasSuffix(xArg, "p") {
+			x, _ = strconv.Atoi(strings.TrimSuffix(xArg, "p"))
+			x = x * img.Width() / 100
+		} else {
+			x, _ = strconv.Atoi(xArg)
+		}
+		if x < 0 {
+			x += img.Width() - overlayWidth
+		}
+	}
+
+	if yArg != "" {
+		if yArg == "center" {
+			y = (img.PageHeight() - overlayHeight) / 2
+		} else if yArg == imagorpath.VAlignTop {
+			y = 0
+		} else if yArg == imagorpath.VAlignBottom {
+			y = img.PageHeight() - overlayHeight
+		} else if yArg == "repeat" {
+			y = 0
+			down = img.PageHeight()/overlayHeight + 1
+		} else if strings.HasPrefix(strings.TrimPrefix(yArg, "-"), "0.") {
+			pec, _ := strconv.ParseFloat(yArg, 64)
+			y = int(pec * float64(img.PageHeight()))
+		} else if strings.HasSuffix(yArg, "p") {
+			y, _ = strconv.Atoi(strings.TrimSuffix(yArg, "p"))
+			y = y * img.PageHeight() / 100
+		} else {
+			y, _ = strconv.Atoi(yArg)
+		}
+		if y < 0 {
+			y += img.PageHeight() - overlayHeight
+		}
+	}
+
+	// Handle repeat pattern
+	if across*down > 1 {
+		if err := overlay.EmbedMultiPage(0, 0, across*w, down*h,
+			&vips.EmbedMultiPageOptions{Extend: vips.ExtendRepeat}); err != nil {
+			return err
+		}
+	}
+
+	// Position overlay on canvas
+	if err := overlay.EmbedMultiPage(
+		x, y, img.Width(), img.PageHeight(), nil,
+	); err != nil {
+		return err
+	}
+
+	// Handle animation frames
+	overlayN := overlay.Height() / overlay.PageHeight()
+	if n := img.Height() / img.PageHeight(); n > overlayN {
+		cnt := n / overlayN
+		if n%overlayN > 0 {
+			cnt++
+		}
+		if err := overlay.Replicate(1, cnt); err != nil {
+			return err
+		}
+	}
+
+	// Composite onto main image
+	return img.Composite2(overlay, vips.BlendModeOver, nil)
+}
+
 func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln < 1 {
@@ -37,119 +151,19 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	}
 	contextDefer(ctx, overlay.Close)
 
-	// Ensure overlay has proper color space and alpha
-	if overlay.Bands() < 3 {
-		if err = overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
-			return
-		}
+	var xArg, yArg string
+	var alpha float64
+	if ln >= 2 {
+		xArg = args[1]
 	}
-	if !overlay.HasAlpha() {
-		if err = overlay.Addalpha(); err != nil {
-			return
-		}
+	if ln >= 3 {
+		yArg = args[2]
 	}
-
-	var x, y int
-	var across = 1
-	var down = 1
-	w := overlay.Width()
-	h := overlay.PageHeight()
-
-	// Apply alpha if provided
 	if ln >= 4 {
-		alpha, _ := strconv.ParseFloat(args[3], 64)
-		alpha = 1 - alpha/100
-		if alpha != 1 {
-			if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}, nil); err != nil {
-				return
-			}
-		}
+		alpha, _ = strconv.ParseFloat(args[3], 64)
 	}
 
-	// Parse x position (default to 0 if not provided)
-	if ln >= 2 && args[1] != "" {
-		if args[1] == "center" {
-			x = (img.Width() - overlay.Width()) / 2
-		} else if args[1] == imagorpath.HAlignLeft {
-			x = 0
-		} else if args[1] == imagorpath.HAlignRight {
-			x = img.Width() - overlay.Width()
-		} else if args[1] == "repeat" {
-			x = 0
-			across = img.Width()/overlay.Width() + 1
-		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[1], 64)
-			x = int(pec * float64(img.Width()))
-		} else if strings.HasSuffix(args[1], "p") {
-			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
-			x = x * img.Width() / 100
-		} else {
-			x, _ = strconv.Atoi(args[1])
-		}
-	}
-
-	// Parse y position (default to 0 if not provided)
-	if ln >= 3 && args[2] != "" {
-		if args[2] == "center" {
-			y = (img.PageHeight() - overlay.PageHeight()) / 2
-		} else if args[2] == imagorpath.VAlignTop {
-			y = 0
-		} else if args[2] == imagorpath.VAlignBottom {
-			y = img.PageHeight() - overlay.PageHeight()
-		} else if args[2] == "repeat" {
-			y = 0
-			down = img.PageHeight()/overlay.PageHeight() + 1
-		} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[2], 64)
-			y = int(pec * float64(img.PageHeight()))
-		} else if strings.HasSuffix(args[2], "p") {
-			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
-			y = y * img.PageHeight() / 100
-		} else {
-			y, _ = strconv.Atoi(args[2])
-		}
-	}
-
-	// Handle negative positioning (from opposite edge)
-	if x < 0 {
-		x += img.Width() - overlay.Width()
-	}
-	if y < 0 {
-		y += img.PageHeight() - overlay.PageHeight()
-	}
-
-	// Handle repeat pattern
-	if across*down > 1 {
-		if err = overlay.EmbedMultiPage(0, 0, across*w, down*h,
-			&vips.EmbedMultiPageOptions{Extend: vips.ExtendRepeat}); err != nil {
-			return
-		}
-	}
-
-	// Position overlay on canvas
-	if err = overlay.EmbedMultiPage(
-		x, y, img.Width(), img.PageHeight(), nil,
-	); err != nil {
-		return
-	}
-
-	// Handle animation frames
-	var overlayN = overlay.Height() / overlay.PageHeight()
-	if n := img.Height() / img.PageHeight(); n > overlayN {
-		cnt := n / overlayN
-		if n%overlayN > 0 {
-			cnt++
-		}
-		if err = overlay.Replicate(1, cnt); err != nil {
-			return
-		}
-	}
-
-	// Composite onto main image
-	if err = img.Composite2(overlay, vips.BlendModeOver, nil); err != nil {
-		return
-	}
-	return
+	return compositeOverlay(img, overlay, xArg, yArg, alpha)
 }
 
 func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
@@ -176,9 +190,7 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	if blob, err = load(image); err != nil {
 		return
 	}
-	var x, y, w, h int
-	var across = 1
-	var down = 1
+	var w, h int
 	var overlay *vips.Image
 	var n = 1
 	if isAnimated(img) {
@@ -208,99 +220,20 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 			return
 		}
 	}
-	var overlayN = overlay.Height() / overlay.PageHeight()
 	contextDefer(ctx, overlay.Close)
-	if overlay.Bands() < 3 {
-		if err = overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
-			return
-		}
-	}
-	if !overlay.HasAlpha() {
-		if err = overlay.Addalpha(); err != nil {
-			return
-		}
-	}
-	w = overlay.Width()
-	h = overlay.PageHeight()
-	// alpha
-	if ln >= 4 {
-		alpha, _ := strconv.ParseFloat(args[3], 64)
-		alpha = 1 - alpha/100
-		if alpha != 1 {
-			if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}, nil); err != nil {
-				return
-			}
-		}
-	}
-	// x y
+
+	// Parse arguments
+	var xArg, yArg string
+	var alpha float64
 	if ln >= 3 {
-		if args[1] == "center" {
-			x = (img.Width() - overlay.Width()) / 2
-		} else if args[1] == imagorpath.HAlignLeft {
-			x = 0
-		} else if args[1] == imagorpath.HAlignRight {
-			x = img.Width() - overlay.Width()
-		} else if args[1] == "repeat" {
-			x = 0
-			across = img.Width()/overlay.Width() + 1
-		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[1], 64)
-			x = int(pec * float64(img.Width()))
-		} else if strings.HasSuffix(args[1], "p") {
-			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
-			x = x * img.Width() / 100
-		} else {
-			x, _ = strconv.Atoi(args[1])
-		}
-		if args[2] == "center" {
-			y = (img.PageHeight() - overlay.PageHeight()) / 2
-		} else if args[2] == imagorpath.VAlignTop {
-			y = 0
-		} else if args[2] == imagorpath.VAlignBottom {
-			y = img.PageHeight() - overlay.PageHeight()
-		} else if args[2] == "repeat" {
-			y = 0
-			down = img.PageHeight()/overlay.PageHeight() + 1
-		} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[2], 64)
-			y = int(pec * float64(img.PageHeight()))
-		} else if strings.HasSuffix(args[2], "p") {
-			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
-			y = y * img.PageHeight() / 100
-		} else {
-			y, _ = strconv.Atoi(args[2])
-		}
-		if x < 0 {
-			x += img.Width() - overlay.Width()
-		}
-		if y < 0 {
-			y += img.PageHeight() - overlay.PageHeight()
-		}
+		xArg = args[1]
+		yArg = args[2]
 	}
-	if across*down > 1 {
-		if err = overlay.EmbedMultiPage(0, 0, across*w, down*h,
-			&vips.EmbedMultiPageOptions{Extend: vips.ExtendRepeat}); err != nil {
-			return
-		}
+	if ln >= 4 {
+		alpha, _ = strconv.ParseFloat(args[3], 64)
 	}
-	if err = overlay.EmbedMultiPage(
-		x, y, img.Width(), img.PageHeight(), nil,
-	); err != nil {
-		return
-	}
-	if n := img.Height() / img.PageHeight(); n > overlayN {
-		cnt := n / overlayN
-		if n%overlayN > 0 {
-			cnt++
-		}
-		if err = overlay.Replicate(1, cnt); err != nil {
-			return
-		}
-	}
-	if err = img.Composite2(overlay, vips.BlendModeOver, nil); err != nil {
-		return
-	}
-	return
+
+	return compositeOverlay(img, overlay, xArg, yArg, alpha)
 }
 
 func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
