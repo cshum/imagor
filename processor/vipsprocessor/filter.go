@@ -17,9 +17,10 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-// compositeOverlay prepares and composites an overlay image onto the base image
+// prepareOverlay prepares an overlay image for compositing
 // Handles color space, alpha channel, positioning, repeat patterns, and animation frames
-func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64) error {
+// Returns the prepared overlay ready for compositing with Composite2()
+func prepareOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64) error {
 	// Ensure overlay has proper color space and alpha
 	if overlay.Bands() < 3 {
 		if err := overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
@@ -127,8 +128,51 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 		}
 	}
 
-	// Composite onto main image
-	return img.Composite2(overlay, vips.BlendModeOver, nil)
+	return nil
+}
+
+// getBlendMode returns the vips.BlendMode for a given mode string
+// Defaults to BlendModeOver (normal) if mode is empty or invalid
+func getBlendMode(mode string) vips.BlendMode {
+	if mode == "" {
+		return vips.BlendModeOver
+	}
+
+	blendModeMap := map[string]vips.BlendMode{
+		// Default
+		"normal": vips.BlendModeOver,
+
+		// Darken group
+		"multiply":   vips.BlendModeMultiply,
+		"color-burn": vips.BlendModeColourBurn,
+		"darken":     vips.BlendModeDarken,
+
+		// Lighten group
+		"screen":      vips.BlendModeScreen,
+		"color-dodge": vips.BlendModeColourDodge,
+		"lighten":     vips.BlendModeLighten,
+		"add":         vips.BlendModeAdd,
+
+		// Contrast group
+		"overlay":    vips.BlendModeOverlay,
+		"soft-light": vips.BlendModeSoftLight,
+		"hard-light": vips.BlendModeHardLight,
+
+		// Inversion group
+		"difference": vips.BlendModeDifference,
+		"exclusion":  vips.BlendModeExclusion,
+
+		// Masking
+		"mask":     vips.BlendModeDestIn,
+		"mask-out": vips.BlendModeDestOut,
+	}
+
+	if blendMode, ok := blendModeMap[strings.ToLower(mode)]; ok {
+		return blendMode
+	}
+
+	// Default to normal if invalid mode
+	return vips.BlendModeOver
 }
 
 func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
@@ -153,6 +197,8 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 
 	var xArg, yArg string
 	var alpha float64
+	var blendMode = vips.BlendModeOver // default to normal
+
 	if ln >= 2 {
 		xArg = args[1]
 	}
@@ -162,8 +208,18 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	if ln >= 4 {
 		alpha, _ = strconv.ParseFloat(args[3], 64)
 	}
+	if ln >= 5 {
+		// Parse blend mode (5th parameter)
+		blendMode = getBlendMode(args[4])
+	}
 
-	return compositeOverlay(img, overlay, xArg, yArg, alpha)
+	// Prepare overlay for compositing
+	if err = prepareOverlay(img, overlay, xArg, yArg, alpha); err != nil {
+		return
+	}
+
+	// Composite overlay onto image with specified blend mode
+	return img.Composite2(overlay, blendMode, nil)
 }
 
 func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
@@ -233,7 +289,13 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		alpha, _ = strconv.ParseFloat(args[3], 64)
 	}
 
-	return compositeOverlay(img, overlay, xArg, yArg, alpha)
+	// Prepare overlay for compositing
+	if err = prepareOverlay(img, overlay, xArg, yArg, alpha); err != nil {
+		return
+	}
+
+	// Composite overlay onto image
+	return img.Composite2(overlay, vips.BlendModeOver, nil)
 }
 
 func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
