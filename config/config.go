@@ -23,8 +23,8 @@ import (
 
 var baseConfig = []Option{
 	withFileSystem,
-	withHTTPLoader,
 	withUploadLoader,
+	withHTTPLoader, // HTTP loader should be last as a fallback
 }
 
 // NewImagor create imagor from config flags
