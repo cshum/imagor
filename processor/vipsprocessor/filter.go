@@ -90,9 +90,10 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 			x = x * img.Width() / 100
 		} else {
 			x, _ = strconv.Atoi(xArg)
-		}
-		if x < 0 {
-			x += img.Width() - overlayWidth
+			// Only apply negative position adjustment for explicitly negative values
+			if x < 0 {
+				x += img.Width() - overlayWidth
+			}
 		}
 	}
 
@@ -114,9 +115,10 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 			y = y * img.PageHeight() / 100
 		} else {
 			y, _ = strconv.Atoi(yArg)
-		}
-		if y < 0 {
-			y += img.PageHeight() - overlayHeight
+			// Only apply negative position adjustment for explicitly negative values
+			if y < 0 {
+				y += img.PageHeight() - overlayHeight
+			}
 		}
 	}
 
