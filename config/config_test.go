@@ -292,3 +292,63 @@ func TestUploadLoader(t *testing.T) {
 	assert.Equal(t, 1, httpLoaderCount)
 	assert.Equal(t, 1, uploadLoaderCount)
 }
+
+func TestLoaderPriority(t *testing.T) {
+	// Test that file loader comes before HTTP loader
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// Should have file loader first, then HTTP loader
+	assert.Equal(t, 2, len(app.Loaders))
+	_, isFileLoader := app.Loaders[0].(*filestorage.FileStorage)
+	_, isHTTPLoader := app.Loaders[1].(*httploader.HTTPLoader)
+	assert.True(t, isFileLoader, "File loader should be first")
+	assert.True(t, isHTTPLoader, "HTTP loader should be second")
+}
+
+func TestLoaderPriorityWithMultipleLoaders(t *testing.T) {
+	// Test that all specific loaders come before HTTP loader (fallback)
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+		"-upload-loader-enable",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// Should have: file loader, upload loader, then HTTP loader
+	assert.Equal(t, 3, len(app.Loaders))
+
+	_, isFileLoader := app.Loaders[0].(*filestorage.FileStorage)
+	_, isUploadLoader := app.Loaders[1].(*uploadloader.UploadLoader)
+	_, isHTTPLoader := app.Loaders[2].(*httploader.HTTPLoader)
+
+	assert.True(t, isFileLoader, "File loader should be first")
+	assert.True(t, isUploadLoader, "Upload loader should be second")
+	assert.True(t, isHTTPLoader, "HTTP loader should be last (fallback)")
+}
+
+func TestHTTPLoaderDisabledDoesNotAffectOtherLoaders(t *testing.T) {
+	// Test that disabling HTTP loader doesn't affect other loaders
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+		"-upload-loader-enable",
+		"-http-loader-disable",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// Should have only file and upload loaders, no HTTP loader
+	assert.Equal(t, 2, len(app.Loaders))
+
+	_, isFileLoader := app.Loaders[0].(*filestorage.FileStorage)
+	_, isUploadLoader := app.Loaders[1].(*uploadloader.UploadLoader)
+
+	assert.True(t, isFileLoader, "File loader should be first")
+	assert.True(t, isUploadLoader, "Upload loader should be second")
+
+	// Verify no HTTP loader
+	for _, loader := range app.Loaders {
+		_, isHTTP := loader.(*httploader.HTTPLoader)
+		assert.False(t, isHTTP, "HTTP loader should not be present when disabled")
+	}
+}
