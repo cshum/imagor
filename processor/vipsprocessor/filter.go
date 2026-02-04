@@ -17,6 +17,25 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+// blendModeMap maps blend mode names to vips.BlendMode constants
+var blendModeMap = map[string]vips.BlendMode{
+	"normal":      vips.BlendModeOver,
+	"multiply":    vips.BlendModeMultiply,
+	"color-burn":  vips.BlendModeColourBurn,
+	"darken":      vips.BlendModeDarken,
+	"screen":      vips.BlendModeScreen,
+	"color-dodge": vips.BlendModeColourDodge,
+	"lighten":     vips.BlendModeLighten,
+	"add":         vips.BlendModeAdd,
+	"overlay":     vips.BlendModeOverlay,
+	"soft-light":  vips.BlendModeSoftLight,
+	"hard-light":  vips.BlendModeHardLight,
+	"difference":  vips.BlendModeDifference,
+	"exclusion":   vips.BlendModeExclusion,
+	"mask":        vips.BlendModeDestIn,
+	"mask-out":    vips.BlendModeDestOut,
+}
+
 // prepareOverlay prepares an overlay image for compositing
 // Handles color space, alpha channel, positioning, repeat patterns, and animation frames
 // Returns the prepared overlay ready for compositing with Composite2()
@@ -137,40 +156,9 @@ func getBlendMode(mode string) vips.BlendMode {
 	if mode == "" {
 		return vips.BlendModeOver
 	}
-
-	blendModeMap := map[string]vips.BlendMode{
-		// Default
-		"normal": vips.BlendModeOver,
-
-		// Darken group
-		"multiply":   vips.BlendModeMultiply,
-		"color-burn": vips.BlendModeColourBurn,
-		"darken":     vips.BlendModeDarken,
-
-		// Lighten group
-		"screen":      vips.BlendModeScreen,
-		"color-dodge": vips.BlendModeColourDodge,
-		"lighten":     vips.BlendModeLighten,
-		"add":         vips.BlendModeAdd,
-
-		// Contrast group
-		"overlay":    vips.BlendModeOverlay,
-		"soft-light": vips.BlendModeSoftLight,
-		"hard-light": vips.BlendModeHardLight,
-
-		// Inversion group
-		"difference": vips.BlendModeDifference,
-		"exclusion":  vips.BlendModeExclusion,
-
-		// Masking
-		"mask":     vips.BlendModeDestIn,
-		"mask-out": vips.BlendModeDestOut,
-	}
-
 	if blendMode, ok := blendModeMap[strings.ToLower(mode)]; ok {
 		return blendMode
 	}
-
 	// Default to normal if invalid mode
 	return vips.BlendModeOver
 }
