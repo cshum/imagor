@@ -91,7 +91,8 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 		} else {
 			x, _ = strconv.Atoi(xArg)
 		}
-		if x < 0 {
+		// Apply negative adjustment for all cases EXCEPT center
+		if x < 0 && xArg != "center" {
 			x += img.Width() - overlayWidth
 		}
 	}
@@ -115,7 +116,8 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 		} else {
 			y, _ = strconv.Atoi(yArg)
 		}
-		if y < 0 {
+		// Apply negative adjustment for all cases EXCEPT center
+		if y < 0 && yArg != "center" {
 			y += img.PageHeight() - overlayHeight
 		}
 	}
