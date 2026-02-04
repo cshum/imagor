@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"image/color"
 	"math"
 	"net/url"
 	"strconv"
@@ -14,187 +13,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"golang.org/x/image/colornames"
 )
-
-// blendModeMap maps blend mode names to vips.BlendMode constants
-var blendModeMap = map[string]vips.BlendMode{
-	"normal":      vips.BlendModeOver,
-	"multiply":    vips.BlendModeMultiply,
-	"color-burn":  vips.BlendModeColourBurn,
-	"darken":      vips.BlendModeDarken,
-	"screen":      vips.BlendModeScreen,
-	"color-dodge": vips.BlendModeColourDodge,
-	"lighten":     vips.BlendModeLighten,
-	"add":         vips.BlendModeAdd,
-	"overlay":     vips.BlendModeOverlay,
-	"soft-light":  vips.BlendModeSoftLight,
-	"hard-light":  vips.BlendModeHardLight,
-	"difference":  vips.BlendModeDifference,
-	"exclusion":   vips.BlendModeExclusion,
-	"mask":        vips.BlendModeDestIn,
-	"mask-out":    vips.BlendModeDestOut,
-}
-
-// parseOverlayPosition parses position argument and returns position value and repeat count
-func parseOverlayPosition(arg string, canvasSize, overlaySize int, hAlign, vAlign string) (pos int, repeat int) {
-	repeat = 1
-	if arg == "" {
-		return 0, 1
-	}
-
-	if arg == "center" {
-		return (canvasSize - overlaySize) / 2, 1
-	} else if arg == hAlign || arg == vAlign {
-		if arg == imagorpath.HAlignRight || arg == imagorpath.VAlignBottom {
-			return canvasSize - overlaySize, 1
-		}
-		return 0, 1
-	} else if arg == "repeat" {
-		return 0, canvasSize/overlaySize + 1
-	} else if strings.HasPrefix(strings.TrimPrefix(arg, "-"), "0.") {
-		pec, _ := strconv.ParseFloat(arg, 64)
-		return int(pec * float64(canvasSize)), 1
-	} else if strings.HasSuffix(arg, "p") {
-		val, _ := strconv.Atoi(strings.TrimSuffix(arg, "p"))
-		return val * canvasSize / 100, 1
-	}
-
-	pos, _ = strconv.Atoi(arg)
-	return pos, 1
-}
-
-// compositeOverlay transforms and composites overlay image onto the base image
-// Handles color space, alpha channel, positioning, repeat patterns, cropping, and animation frames
-// Returns early without compositing if overlay is completely outside canvas bounds
-func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64, blendMode vips.BlendMode) error {
-	// Ensure overlay has proper color space and alpha
-	if overlay.Bands() < 3 {
-		if err := overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
-			return err
-		}
-	}
-	if !overlay.HasAlpha() {
-		if err := overlay.Addalpha(); err != nil {
-			return err
-		}
-	}
-
-	// Apply alpha if provided
-	if alpha > 0 {
-		alphaMultiplier := 1 - alpha/100
-		if alphaMultiplier != 1 {
-			if err := overlay.Linear([]float64{1, 1, 1, alphaMultiplier}, []float64{0, 0, 0, 0}, nil); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Parse position
-	overlayWidth := overlay.Width()
-	overlayHeight := overlay.PageHeight()
-
-	x, across := parseOverlayPosition(xArg, img.Width(), overlayWidth, imagorpath.HAlignLeft, imagorpath.HAlignRight)
-	y, down := parseOverlayPosition(yArg, img.PageHeight(), overlayHeight, imagorpath.VAlignTop, imagorpath.VAlignBottom)
-
-	// Apply negative adjustment for all cases EXCEPT center
-	if x < 0 && xArg != "center" {
-		x += img.Width() - overlayWidth
-	}
-	if y < 0 && yArg != "center" {
-		y += img.PageHeight() - overlayHeight
-	}
-
-	// Handle repeat pattern
-	if across*down > 1 {
-		if err := overlay.EmbedMultiPage(0, 0, across*overlayWidth, down*overlayHeight,
-			&vips.EmbedMultiPageOptions{Extend: vips.ExtendRepeat}); err != nil {
-			return err
-		}
-		// Update dimensions after repeat
-		overlayWidth = overlay.Width()
-		overlayHeight = overlay.PageHeight()
-	}
-
-	// Position overlay on canvas
-	// Crop overlay to only the visible portion within canvas bounds
-	visibleLeft := 0
-	visibleTop := 0
-	visibleWidth := overlayWidth
-	visibleHeight := overlayHeight
-	embedX := x
-	embedY := y
-
-	// Handle overlay extending beyond right/bottom edges
-	if x+overlayWidth > img.Width() {
-		visibleWidth = img.Width() - x
-	}
-	if y+overlayHeight > img.PageHeight() {
-		visibleHeight = img.PageHeight() - y
-	}
-
-	// Handle overlay starting before left/top edges (negative positions)
-	if x < 0 {
-		visibleLeft = -x
-		visibleWidth = overlayWidth + x // reduce width
-		embedX = 0
-	}
-	if y < 0 {
-		visibleTop = -y
-		visibleHeight = overlayHeight + y // reduce height
-		embedY = 0
-	}
-
-	// Crop overlay to visible portion if needed
-	if visibleLeft > 0 || visibleTop > 0 ||
-		visibleWidth < overlayWidth || visibleHeight < overlayHeight {
-		if visibleWidth > 0 && visibleHeight > 0 {
-			if err := overlay.ExtractAreaMultiPage(
-				visibleLeft, visibleTop, visibleWidth, visibleHeight,
-			); err != nil {
-				return err
-			}
-		} else {
-			// Overlay is completely outside canvas bounds, skip it
-			return nil
-		}
-	}
-
-	// Embed the cropped overlay at adjusted position
-	if err := overlay.EmbedMultiPage(
-		embedX, embedY, img.Width(), img.PageHeight(), nil,
-	); err != nil {
-		return err
-	}
-
-	// Handle animation frames
-	overlayN := overlay.Height() / overlay.PageHeight()
-	if n := img.Height() / img.PageHeight(); n > overlayN {
-		cnt := n / overlayN
-		if n%overlayN > 0 {
-			cnt++
-		}
-		if err := overlay.Replicate(1, cnt); err != nil {
-			return err
-		}
-	}
-
-	// Composite overlay onto image with specified blend mode
-	return img.Composite2(overlay, blendMode, nil)
-}
-
-// getBlendMode returns the vips.BlendMode for a given mode string
-// Defaults to BlendModeOver (normal) if mode is empty or invalid
-func getBlendMode(mode string) vips.BlendMode {
-	if mode == "" {
-		return vips.BlendModeOver
-	}
-	if blendMode, ok := blendModeMap[strings.ToLower(mode)]; ok {
-		return blendMode
-	}
-	// Default to normal if invalid mode
-	return vips.BlendModeOver
-}
 
 func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
@@ -587,19 +406,6 @@ func rotate(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...str
 	return
 }
 
-func getAngle(angle int) vips.Angle {
-	switch angle {
-	case 90:
-		return vips.AngleD270
-	case 180:
-		return vips.AngleD180
-	case 270:
-		return vips.AngleD90
-	default:
-		return vips.AngleD0
-	}
-}
-
 func proportion(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
@@ -790,90 +596,6 @@ func trim(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 	return nil
 }
 
-func linearRGB(img *vips.Image, a, b []float64) error {
-	if img.HasAlpha() {
-		a = append(a, 1)
-		b = append(b, 0)
-	}
-	return img.Linear(a, b, nil)
-}
-
-func isBlack(c []float64) bool {
-	if len(c) < 3 {
-		return false
-	}
-	return c[0] == 0x00 && c[1] == 0x00 && c[2] == 0x00
-}
-
-func isWhite(c []float64) bool {
-	if len(c) < 3 {
-		return false
-	}
-	return c[0] == 0xff && c[1] == 0xff && c[2] == 0xff
-}
-
-func getColor(img *vips.Image, color string) []float64 {
-	var vc = make([]float64, 3)
-	args := strings.Split(strings.ToLower(color), ",")
-	mode := ""
-	name := strings.TrimPrefix(args[0], "#")
-	if len(args) > 1 {
-		mode = args[1]
-	}
-	if name == "auto" {
-		if img != nil {
-			x := 0
-			y := 0
-			if mode == "bottom-right" {
-				x = img.Width() - 1
-				y = img.PageHeight() - 1
-			}
-			p, _ := img.Getpoint(x, y, nil)
-			if len(p) >= 3 {
-				vc[0] = p[0]
-				vc[1] = p[1]
-				vc[2] = p[2]
-			}
-		}
-	} else if c, ok := colornames.Map[name]; ok {
-		vc[0] = float64(c.R)
-		vc[1] = float64(c.G)
-		vc[2] = float64(c.B)
-	} else if c, ok := parseHexColor(name); ok {
-		vc[0] = float64(c.R)
-		vc[1] = float64(c.G)
-		vc[2] = float64(c.B)
-	}
-	return vc
-}
-
-func parseHexColor(s string) (c color.RGBA, ok bool) {
-	c.A = 0xff
-	switch len(s) {
-	case 6:
-		c.R = hexToByte(s[0])<<4 + hexToByte(s[1])
-		c.G = hexToByte(s[2])<<4 + hexToByte(s[3])
-		c.B = hexToByte(s[4])<<4 + hexToByte(s[5])
-		ok = true
-	case 3:
-		c.R = hexToByte(s[0]) * 17
-		c.G = hexToByte(s[1]) * 17
-		c.B = hexToByte(s[2]) * 17
-		ok = true
-	}
-	return
-}
-
-func hexToByte(b byte) byte {
-	switch {
-	case b >= '0' && b <= '9':
-		return b - '0'
-	case b >= 'a' && b <= 'f':
-		return b - 'a' + 10
-	}
-	return 0
-}
-
 func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
 	if len(args) < 4 {
 		return nil
@@ -916,8 +638,4 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 	}
 
 	return img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
-}
-
-func isAnimated(img *vips.Image) bool {
-	return img.Height() > img.PageHeight()
 }
