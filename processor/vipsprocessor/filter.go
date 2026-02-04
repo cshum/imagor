@@ -36,10 +36,9 @@ var blendModeMap = map[string]vips.BlendMode{
 	"mask-out":    vips.BlendModeDestOut,
 }
 
-// prepareOverlay prepares an overlay image for compositing
+// transformOverlay transform overlay image for compositing
 // Handles color space, alpha channel, positioning, repeat patterns, and animation frames
-// Returns the prepared overlay ready for compositing with Composite2()
-func prepareOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64) error {
+func transformOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64) error {
 	// Ensure overlay has proper color space and alpha
 	if overlay.Bands() < 3 {
 		if err := overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
@@ -202,7 +201,7 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	}
 
 	// Prepare overlay for compositing
-	if err = prepareOverlay(img, overlay, xArg, yArg, alpha); err != nil {
+	if err = transformOverlay(img, overlay, xArg, yArg, alpha); err != nil {
 		return
 	}
 
@@ -278,7 +277,7 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	}
 
 	// Prepare overlay for compositing
-	if err = prepareOverlay(img, overlay, xArg, yArg, alpha); err != nil {
+	if err = transformOverlay(img, overlay, xArg, yArg, alpha); err != nil {
 		return
 	}
 
