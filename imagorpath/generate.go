@@ -90,6 +90,9 @@ func GeneratePath(p Params) string {
 		parts = append(parts, "b64:"+string(encoded))
 	} else {
 		if strings.Contains(p.Image, "?") ||
+			strings.Contains(p.Image, "(") ||
+			strings.Contains(p.Image, ")") ||
+			strings.Contains(p.Image, ",") ||
 			strings.HasPrefix(p.Image, "trim/") ||
 			strings.HasPrefix(p.Image, "meta/") ||
 			strings.HasPrefix(p.Image, "fit-in/") ||
@@ -100,7 +103,7 @@ func GeneratePath(p Params) string {
 			strings.HasPrefix(p.Image, "bottom/") ||
 			strings.HasPrefix(p.Image, "center/") ||
 			strings.HasPrefix(p.Image, "smart/") {
-			p.Image = url.QueryEscape(p.Image)
+			p.Image = url.PathEscape(p.Image)
 		}
 		parts = append(parts, p.Image)
 	}

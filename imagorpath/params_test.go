@@ -200,9 +200,9 @@ func TestParseGenerate(t *testing.T) {
 		},
 		{
 			name: "contains query",
-			uri:  "unsafe/https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
+			uri:  "unsafe/https:%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo=bar",
 			params: Params{
-				Path:   "https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
+				Path:   "https:%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo=bar",
 				Image:  "https://foobar/en/latest/_images/man_before_sharpen.png?foo=bar",
 				Unsafe: true,
 			},
@@ -295,6 +295,43 @@ func TestParseGenerate(t *testing.T) {
 				Path:   "bottom%2Fimg",
 				Image:  "bottom/img",
 				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains parentheses",
+			uri:  "unsafe/photo%281%29.jpg",
+			params: Params{
+				Path:   "photo%281%29.jpg",
+				Image:  "photo(1).jpg",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains comma",
+			uri:  "unsafe/photo%2Cversion2.jpg",
+			params: Params{
+				Path:   "photo%2Cversion2.jpg",
+				Image:  "photo,version2.jpg",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains parentheses and comma",
+			uri:  "unsafe/my%20image%20%28special%2C%20v2%29.jpg",
+			params: Params{
+				Path:   "my%20image%20%28special%2C%20v2%29.jpg",
+				Image:  "my image (special, v2).jpg",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image with filters and parentheses in filename",
+			uri:  "unsafe/filters:blur(5)/photo%281%29.jpg",
+			params: Params{
+				Path:    "filters:blur(5)/photo%281%29.jpg",
+				Image:   "photo(1).jpg",
+				Unsafe:  true,
+				Filters: []Filter{{Name: "blur", Args: "5"}},
 			},
 		},
 		{
