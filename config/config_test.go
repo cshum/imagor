@@ -352,3 +352,27 @@ func TestHTTPLoaderDisabledDoesNotAffectOtherLoaders(t *testing.T) {
 		assert.False(t, isHTTP, "HTTP loader should not be present when disabled")
 	}
 }
+
+func TestCloudLoadersBeforeHTTP(t *testing.T) {
+	// Test that when file and upload loaders are enabled with cloud loaders,
+	// HTTP loader is last. This test verifies the loader priority order.
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+		"-upload-loader-enable",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// HTTP loader should be the last one
+	assert.GreaterOrEqual(t, len(app.Loaders), 2, "Should have multiple loaders")
+
+	// Last loader should be HTTP loader
+	lastLoader := app.Loaders[len(app.Loaders)-1]
+	_, isHTTPLoader := lastLoader.(*httploader.HTTPLoader)
+	assert.True(t, isHTTPLoader, "HTTP loader should be the last loader (fallback)")
+
+	// All loaders before the last should NOT be HTTP loaders
+	for i := 0; i < len(app.Loaders)-1; i++ {
+		_, isHTTP := app.Loaders[i].(*httploader.HTTPLoader)
+		assert.False(t, isHTTP, "Non-HTTP loaders should come before HTTP loader at index %d", i)
+	}
+}
