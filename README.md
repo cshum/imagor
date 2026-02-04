@@ -101,8 +101,8 @@ imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
-- `image(imagorpath [, x [, y [, alpha]]])` composites a processed image onto the current image with full imagor transformation support. Unlike `watermark()` which only resizes images, `image()` applies the complete imagor processing pipeline including filters, enabling recursive image composition:
-  - `imagorpath` - a complete imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
+- `image(imagorpath [, x [, y [, alpha]]])` composites a processed image onto the current image with full imagor transformation support, enabling recursive image composition:
+  - `imagorpath` - an imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
     - The nested path supports all imagor operations: resizing, cropping, filters, etc.
     - Enables recursive nesting - images can load other processed images
   - `x` - horizontal position (defaults to 0 if not specified):
