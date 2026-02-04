@@ -230,6 +230,13 @@ func TestProcessor(t *testing.T) {
 			{name: "image nested double", path: "fit-in/500x500/filters:image(/200x200/filters:image(/100x100/filters:image(/50x50/gopher-front.png,center,center)/gopher.png,center,center)/demo1.jpg,center,center)/gopher.png", arm64Golden: true},
 			{name: "image nested with transforms", path: "filters:image(/150x150/filters:grayscale():image(/50x50/filters:rotate(90)/gopher-front.png,center,center)/gopher.png,center,center)/demo1.jpg", arm64Golden: true},
 
+			// Overlay cropping edge cases - tests transformOverlay boundary logic
+			{name: "image overlay crop right edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,250,50)/gopher.png"},
+			{name: "image overlay crop bottom edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,50,250)/gopher.png"},
+			{name: "image overlay crop left edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,-50,50)/gopher.png"},
+			{name: "image overlay crop top edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,50,-50)/gopher.png"},
+			{name: "image overlay outside bounds", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,400,50)/gopher.png"},
+
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
 			{name: "original animated quality", path: "filters:quality(60)/dancing-banana.gif"},
