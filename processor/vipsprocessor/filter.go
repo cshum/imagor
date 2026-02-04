@@ -36,9 +36,10 @@ var blendModeMap = map[string]vips.BlendMode{
 	"mask-out":    vips.BlendModeDestOut,
 }
 
-// transformOverlay transform overlay image for compositing
-// Handles color space, alpha channel, positioning, repeat patterns, and animation frames
-func transformOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64) error {
+// compositeOverlay transforms and composites overlay image onto the base image
+// Handles color space, alpha channel, positioning, repeat patterns, cropping, and animation frames
+// Returns early without compositing if overlay is completely outside canvas bounds
+func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64, blendMode vips.BlendMode) error {
 	// Ensure overlay has proper color space and alpha
 	if overlay.Bands() < 3 {
 		if err := overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
@@ -190,7 +191,8 @@ func transformOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 		}
 	}
 
-	return nil
+	// Composite overlay onto image with specified blend mode
+	return img.Composite2(overlay, blendMode, nil)
 }
 
 // getBlendMode returns the vips.BlendMode for a given mode string
@@ -244,13 +246,8 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 		blendMode = getBlendMode(args[4])
 	}
 
-	// Prepare overlay for compositing
-	if err = transformOverlay(img, overlay, xArg, yArg, alpha); err != nil {
-		return
-	}
-
-	// Composite overlay onto image with specified blend mode
-	return img.Composite2(overlay, blendMode, nil)
+	// Transform and composite overlay onto image
+	return compositeOverlay(img, overlay, xArg, yArg, alpha, blendMode)
 }
 
 func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
@@ -320,13 +317,8 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		alpha, _ = strconv.ParseFloat(args[3], 64)
 	}
 
-	// Prepare overlay for compositing
-	if err = transformOverlay(img, overlay, xArg, yArg, alpha); err != nil {
-		return
-	}
-
-	// Composite overlay onto image
-	return img.Composite2(overlay, vips.BlendModeOver, nil)
+	// Transform and composite overlay onto image
+	return compositeOverlay(img, overlay, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
 func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
