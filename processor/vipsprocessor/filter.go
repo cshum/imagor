@@ -36,6 +36,34 @@ var blendModeMap = map[string]vips.BlendMode{
 	"mask-out":    vips.BlendModeDestOut,
 }
 
+// parseOverlayPosition parses position argument and returns position value and repeat count
+func parseOverlayPosition(arg string, canvasSize, overlaySize int, hAlign, vAlign string) (pos int, repeat int) {
+	repeat = 1
+	if arg == "" {
+		return 0, 1
+	}
+
+	if arg == "center" {
+		return (canvasSize - overlaySize) / 2, 1
+	} else if arg == hAlign || arg == vAlign {
+		if arg == imagorpath.HAlignRight || arg == imagorpath.VAlignBottom {
+			return canvasSize - overlaySize, 1
+		}
+		return 0, 1
+	} else if arg == "repeat" {
+		return 0, canvasSize/overlaySize + 1
+	} else if strings.HasPrefix(strings.TrimPrefix(arg, "-"), "0.") {
+		pec, _ := strconv.ParseFloat(arg, 64)
+		return int(pec * float64(canvasSize)), 1
+	} else if strings.HasSuffix(arg, "p") {
+		val, _ := strconv.Atoi(strings.TrimSuffix(arg, "p"))
+		return val * canvasSize / 100, 1
+	}
+
+	pos, _ = strconv.Atoi(arg)
+	return pos, 1
+}
+
 // compositeOverlay transforms and composites overlay image onto the base image
 // Handles color space, alpha channel, positioning, repeat patterns, cropping, and animation frames
 // Returns early without compositing if overlay is completely outside canvas bounds
@@ -52,9 +80,6 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 		}
 	}
 
-	w := overlay.Width()
-	h := overlay.PageHeight()
-
 	// Apply alpha if provided
 	if alpha > 0 {
 		alphaMultiplier := 1 - alpha/100
@@ -66,68 +91,29 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 	}
 
 	// Parse position
-	var x, y int
-	across := 1
-	down := 1
 	overlayWidth := overlay.Width()
 	overlayHeight := overlay.PageHeight()
 
-	if xArg != "" {
-		if xArg == "center" {
-			x = (img.Width() - overlayWidth) / 2
-		} else if xArg == imagorpath.HAlignLeft {
-			x = 0
-		} else if xArg == imagorpath.HAlignRight {
-			x = img.Width() - overlayWidth
-		} else if xArg == "repeat" {
-			x = 0
-			across = img.Width()/overlayWidth + 1
-		} else if strings.HasPrefix(strings.TrimPrefix(xArg, "-"), "0.") {
-			pec, _ := strconv.ParseFloat(xArg, 64)
-			x = int(pec * float64(img.Width()))
-		} else if strings.HasSuffix(xArg, "p") {
-			x, _ = strconv.Atoi(strings.TrimSuffix(xArg, "p"))
-			x = x * img.Width() / 100
-		} else {
-			x, _ = strconv.Atoi(xArg)
-		}
-		// Apply negative adjustment for all cases EXCEPT center
-		if x < 0 && xArg != "center" {
-			x += img.Width() - overlayWidth
-		}
-	}
+	x, across := parseOverlayPosition(xArg, img.Width(), overlayWidth, imagorpath.HAlignLeft, imagorpath.HAlignRight)
+	y, down := parseOverlayPosition(yArg, img.PageHeight(), overlayHeight, imagorpath.VAlignTop, imagorpath.VAlignBottom)
 
-	if yArg != "" {
-		if yArg == "center" {
-			y = (img.PageHeight() - overlayHeight) / 2
-		} else if yArg == imagorpath.VAlignTop {
-			y = 0
-		} else if yArg == imagorpath.VAlignBottom {
-			y = img.PageHeight() - overlayHeight
-		} else if yArg == "repeat" {
-			y = 0
-			down = img.PageHeight()/overlayHeight + 1
-		} else if strings.HasPrefix(strings.TrimPrefix(yArg, "-"), "0.") {
-			pec, _ := strconv.ParseFloat(yArg, 64)
-			y = int(pec * float64(img.PageHeight()))
-		} else if strings.HasSuffix(yArg, "p") {
-			y, _ = strconv.Atoi(strings.TrimSuffix(yArg, "p"))
-			y = y * img.PageHeight() / 100
-		} else {
-			y, _ = strconv.Atoi(yArg)
-		}
-		// Apply negative adjustment for all cases EXCEPT center
-		if y < 0 && yArg != "center" {
-			y += img.PageHeight() - overlayHeight
-		}
+	// Apply negative adjustment for all cases EXCEPT center
+	if x < 0 && xArg != "center" {
+		x += img.Width() - overlayWidth
+	}
+	if y < 0 && yArg != "center" {
+		y += img.PageHeight() - overlayHeight
 	}
 
 	// Handle repeat pattern
 	if across*down > 1 {
-		if err := overlay.EmbedMultiPage(0, 0, across*w, down*h,
+		if err := overlay.EmbedMultiPage(0, 0, across*overlayWidth, down*overlayHeight,
 			&vips.EmbedMultiPageOptions{Extend: vips.ExtendRepeat}); err != nil {
 			return err
 		}
+		// Update dimensions after repeat
+		overlayWidth = overlay.Width()
+		overlayHeight = overlay.PageHeight()
 	}
 
 	// Position overlay on canvas
