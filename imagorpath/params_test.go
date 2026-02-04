@@ -473,6 +473,56 @@ func TestHMACSigner(t *testing.T) {
 	assert.Equal(t, signer.Sign("assfasf"), "zb6uWXQxwJDOe_zOgxkuj96Etrsz")
 }
 
+func TestSplitArgs(t *testing.T) {
+	tests := []struct {
+		name string
+		args string
+		want []string
+	}{
+		{
+			name: "empty",
+			args: "",
+			want: nil,
+		},
+		{
+			name: "single arg",
+			args: "arg1",
+			want: []string{"arg1"},
+		},
+		{
+			name: "simple comma split",
+			args: "arg1,arg2,arg3",
+			want: []string{"arg1", "arg2", "arg3"},
+		},
+		{
+			name: "nested parentheses",
+			args: "path(a,b),x,y",
+			want: []string{"path(a,b)", "x", "y"},
+		},
+		{
+			name: "nested imagor path",
+			args: "/150x150/filters:image(/50x50/gopher-front.png,center,center)/gopher.png,10,10",
+			want: []string{"/150x150/filters:image(/50x50/gopher-front.png,center,center)/gopher.png", "10", "10"},
+		},
+		{
+			name: "double nested",
+			args: "/200x200/filters:image(/100x100/filters:image(/50x50/gopher.png,center,center)/demo.jpg,center,center)/base.jpg,center,center",
+			want: []string{"/200x200/filters:image(/100x100/filters:image(/50x50/gopher.png,center,center)/demo.jpg,center,center)/base.jpg", "center", "center"},
+		},
+		{
+			name: "watermark style",
+			args: "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0",
+			want: []string{"s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg", "0", "0", "0"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SplitArgs(tt.args)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestParseFilters(t *testing.T) {
 	filters, img := parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/some/example/img")
 	assert.Equal(t, []Filter{

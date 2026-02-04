@@ -101,6 +101,23 @@ imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
+- `image(imagorpath [, x [, y [, alpha]]])` composites a processed image onto the current image with full imagor transformation support. Unlike `watermark()` which only resizes images, `image()` applies the complete imagor processing pipeline including filters, enabling recursive image composition:
+  - `imagorpath` - a complete imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
+    - The nested path supports all imagor operations: resizing, cropping, filters, etc.
+    - Enables recursive nesting - images can load other processed images
+  - `x` - horizontal position (defaults to 0 if not specified):
+    - Positive number indicates position from the left, negative from the right
+    - Number followed by `p` e.g. `20p` means percentage of image width
+    - `left`, `right`, `center` for alignment
+    - `repeat` to tile horizontally
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `y` - vertical position (defaults to 0 if not specified):
+    - Positive number indicates position from the top, negative from the bottom
+    - Number followed by `p` e.g. `20p` means percentage of image height
+    - `top`, `bottom`, `center` for alignment
+    - `repeat` to tile vertically
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `alpha` - transparency level, 0 (fully opaque) to 100 (fully transparent)
 - `label(text, x, y, size, color[, alpha[, font]])` adds a text label to the image. It can be positioned inside the image with the alignment specified, color and transparency support:
   - `text` text label, also support url encoded text.
   - `x` horizontal position that the text label will be in:
