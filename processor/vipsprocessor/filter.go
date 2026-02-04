@@ -128,8 +128,52 @@ func transformOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 	}
 
 	// Position overlay on canvas
+	// Crop overlay to only the visible portion within canvas bounds
+	visibleLeft := 0
+	visibleTop := 0
+	visibleWidth := overlayWidth
+	visibleHeight := overlayHeight
+	embedX := x
+	embedY := y
+
+	// Handle overlay extending beyond right/bottom edges
+	if x+overlayWidth > img.Width() {
+		visibleWidth = img.Width() - x
+	}
+	if y+overlayHeight > img.PageHeight() {
+		visibleHeight = img.PageHeight() - y
+	}
+
+	// Handle overlay starting before left/top edges (negative positions)
+	if x < 0 {
+		visibleLeft = -x
+		visibleWidth = overlayWidth + x // reduce width
+		embedX = 0
+	}
+	if y < 0 {
+		visibleTop = -y
+		visibleHeight = overlayHeight + y // reduce height
+		embedY = 0
+	}
+
+	// Crop overlay to visible portion if needed
+	if visibleLeft > 0 || visibleTop > 0 ||
+		visibleWidth < overlayWidth || visibleHeight < overlayHeight {
+		if visibleWidth > 0 && visibleHeight > 0 {
+			if err := overlay.ExtractAreaMultiPage(
+				visibleLeft, visibleTop, visibleWidth, visibleHeight,
+			); err != nil {
+				return err
+			}
+		} else {
+			// Overlay is completely outside canvas bounds, skip it
+			return nil
+		}
+	}
+
+	// Embed the cropped overlay at adjusted position
 	if err := overlay.EmbedMultiPage(
-		x, y, img.Width(), img.PageHeight(), nil,
+		embedX, embedY, img.Width(), img.PageHeight(), nil,
 	); err != nil {
 		return err
 	}
