@@ -26,7 +26,7 @@ var paramsRegex = regexp.MustCompile(
 		"(trim(:(top-left|bottom-right))?(:(\\d+))?/)?" +
 		// crop
 		"(((0?\\.)?\\d+)x((0?\\.)?\\d+):(([0-1]?\\.)?\\d+)x(([0-1]?\\.)?\\d+)/)?" +
-		// fit-in (explicit patterns: adaptive-full-fit-in, adaptive-fit-in, full-fit-in, fit-in)
+		// fit-in (adaptive-full-fit-in, adaptive-fit-in, full-fit-in, fit-in)
 		"((adaptive-full-fit-in|adaptive-fit-in|full-fit-in|fit-in)/)?" +
 		// stretch
 		"(stretch/)?" +
