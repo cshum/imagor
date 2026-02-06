@@ -446,6 +446,69 @@ func TestParseGenerate(t *testing.T) {
 				Filters:    []Filter{{Name: "some_filter"}},
 			},
 		},
+		{
+			name: "adaptive fit-in",
+			uri:  "adaptive-fit-in/300x200/img",
+			params: Params{
+				Path:          "adaptive-fit-in/300x200/img",
+				Image:         "img",
+				FitIn:         true,
+				AdaptiveFitIn: true,
+				Width:         300,
+				Height:        200,
+			},
+		},
+		{
+			name: "full fit-in",
+			uri:  "full-fit-in/300x200/img",
+			params: Params{
+				Path:      "full-fit-in/300x200/img",
+				Image:     "img",
+				FitIn:     true,
+				FullFitIn: true,
+				Width:     300,
+				Height:    200,
+			},
+		},
+		{
+			name: "adaptive full fit-in",
+			uri:  "adaptive-full-fit-in/300x200/img",
+			params: Params{
+				Path:          "adaptive-full-fit-in/300x200/img",
+				Image:         "img",
+				FitIn:         true,
+				AdaptiveFitIn: true,
+				FullFitIn:     true,
+				Width:         300,
+				Height:        200,
+			},
+		},
+		{
+			name: "adaptive fit-in with filters",
+			uri:  "adaptive-fit-in/300x200/filters:blur(5)/img",
+			params: Params{
+				Path:          "adaptive-fit-in/300x200/filters:blur(5)/img",
+				Image:         "img",
+				FitIn:         true,
+				AdaptiveFitIn: true,
+				Width:         300,
+				Height:        200,
+				Filters:       []Filter{{Name: "blur", Args: "5"}},
+			},
+		},
+		{
+			name: "full fit-in with smart crop",
+			uri:  "full-fit-in/300x200/smart/img",
+			params: Params{
+				Path:      "full-fit-in/300x200/smart/img",
+				Image:     "img",
+				FitIn:     true,
+				FullFitIn: true,
+				Width:     300,
+				Height:    200,
+				Smart:     true,
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.name == "" {

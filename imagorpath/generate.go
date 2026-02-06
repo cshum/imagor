@@ -33,7 +33,15 @@ func GeneratePath(p Params) string {
 			strconv.FormatFloat(p.CropBottom, 'f', -1, 64)))
 	}
 	if p.FitIn {
-		parts = append(parts, "fit-in")
+		var fitInStr string
+		if p.AdaptiveFitIn {
+			fitInStr += "adaptive-"
+		}
+		if p.FullFitIn {
+			fitInStr += "full-"
+		}
+		fitInStr += "fit-in"
+		parts = append(parts, fitInStr)
 	}
 	if p.Stretch {
 		parts = append(parts, "stretch")
