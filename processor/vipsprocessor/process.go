@@ -193,7 +193,7 @@ func (v *Processor) loadAndProcess(
 		dpi                   = 0
 		err                   error
 	)
-	if p.Trim || p.VFlip || p.FullFitIn {
+	if p.Trim || p.VFlip || p.FullFitIn || p.AdaptiveFitIn {
 		thumbnailNotSupported = true
 	}
 	if p.FitIn {
