@@ -107,6 +107,14 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 		overlayHeight = overlay.PageHeight()
 	}
 
+	// Check if overlay is completely outside canvas bounds
+	// Skip compositing if there's no intersection with the canvas
+	if x >= img.Width() || y >= img.PageHeight() ||
+		x+overlayWidth <= 0 || y+overlayHeight <= 0 {
+		// Overlay is completely outside canvas bounds, skip it
+		return nil
+	}
+
 	// Position overlay on canvas
 	// Crop overlay to only the visible portion within canvas bounds
 	visibleLeft := 0
