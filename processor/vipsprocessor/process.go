@@ -193,7 +193,7 @@ func (v *Processor) loadAndProcess(
 		dpi                   = 0
 		err                   error
 	)
-	if p.Trim || p.VFlip {
+	if p.Trim || p.VFlip || p.FullFitIn {
 		thumbnailNotSupported = true
 	}
 	if p.FitIn {
@@ -500,12 +500,22 @@ func (v *Processor) applyTransformations(
 	}
 	if !thumbnail {
 		if p.FitIn {
+			// Calculate dimensions for full-fit-in
+			if p.FullFitIn && w > 0 && h > 0 {
+				imgAspect := float64(img.Width()) / float64(img.PageHeight())
+				boxAspect := float64(w) / float64(h)
+
+				if imgAspect < boxAspect {
+					// Image is taller (portrait) - use width as constraint, height will exceed box
+					h = int(float64(w) / imgAspect)
+				} else {
+					// Image is wider (landscape) - use height as constraint, width will exceed box
+					w = int(float64(h) * imgAspect)
+				}
+			}
+
 			if upscale || w < img.Width() || h < img.PageHeight() {
 				opts := &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}
-				// Full fit-in uses the smallest dimension (SizeUp) instead of largest (default)
-				if p.FullFitIn {
-					opts.Size = vips.SizeUp
-				}
 				if err := img.ThumbnailImage(w, opts); err != nil {
 					return err
 				}
