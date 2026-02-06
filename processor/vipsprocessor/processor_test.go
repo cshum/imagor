@@ -236,6 +236,10 @@ func TestProcessor(t *testing.T) {
 			{name: "image overlay crop left edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,-50,50)/gopher.png"},
 			{name: "image overlay crop top edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,50,-50)/gopher.png"},
 			{name: "image overlay outside bounds", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,400,50)/gopher.png"},
+			{name: "image overlay outside bounds far right", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,5000,0)/gopher.png"},
+			{name: "image overlay outside bounds far below", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,0,5000)/gopher.png"},
+			{name: "image overlay outside bounds far left", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,-5000,0)/gopher.png"},
+			{name: "image overlay outside bounds far above", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,0,-5000)/gopher.png"},
 			{name: "image overlay center child larger than parent", path: "fit-in/100x100/filters:fill(yellow):image(/fit-in/150x150/filters:grayscale()/gopher-front.png,center,center)/dancing-banana.gif"},
 
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
