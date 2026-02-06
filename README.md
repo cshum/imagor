@@ -48,13 +48,13 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
-/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
+/HASH|unsafe/trim/AxB:CxD/(adaptive-)(full-)fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
 - `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
 - `trim` removes surrounding space in images using top-left pixel color
 - `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
-- `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
+- `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`. If `full-fit-in` is specified, then the largest size is used for cropping (width instead of height, or the other way around). If `adaptive-fit-in` is specified, it inverts requested width and height if it would get a better image definition
 - `stretch` means resize the image to `ExF` without keeping its aspect ratios
 - `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
 - `GxH:IxJ` add left-top padding `GxH` and right-bottom padding `IxJ`
@@ -101,7 +101,7 @@ imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
-- `image(imagorpath [, x [, y [, alpha]]])` composites a processed image onto the current image with full imagor transformation support, enabling recursive image composition:
+- `image(imagorpath, x, y[, alpha])` composites a processed image onto the current image with full imagor transformation support, enabling recursive image composition:
   - `imagorpath` - an imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
     - The nested path supports all imagor operations: resizing, cropping, filters, etc.
     - Enables recursive nesting - images can load other processed images
