@@ -26,8 +26,8 @@ var paramsRegex = regexp.MustCompile(
 		"(trim(:(top-left|bottom-right))?(:(\\d+))?/)?" +
 		// crop
 		"(((0?\\.)?\\d+)x((0?\\.)?\\d+):(([0-1]?\\.)?\\d+)x(([0-1]?\\.)?\\d+)/)?" +
-		// fit-in
-		"(fit-in/)?" +
+		// fit-in (explicit patterns: adaptive-full-fit-in, adaptive-fit-in, full-fit-in, fit-in)
+		"((adaptive-full-fit-in|adaptive-fit-in|full-fit-in|fit-in)/)?" +
 		// stretch
 		"(stretch/)?" +
 		// dimensions
@@ -63,11 +63,24 @@ func Apply(p Params, path string) Params {
 	index++
 	if match[index+1] == "unsafe/" {
 		p.Unsafe = true
+		index += 3
+		p.Path = match[index]
 	} else if len(match[index+2]) > 8 {
-		p.Hash = match[index+2]
+		// Check if it's actually a fit-in keyword, not a hash
+		hash := match[index+2]
+		if hash != "adaptive-fit-in" && hash != "full-fit-in" && hash != "adaptive-full-fit-in" && hash != "fit-in" {
+			p.Hash = hash
+			index += 3
+			p.Path = match[index]
+		} else {
+			// It's a fit-in keyword, include it in the path
+			index += 3
+			p.Path = hash + "/" + match[index]
+		}
+	} else {
+		index += 3
+		p.Path = match[index]
 	}
-	index += 3
-	p.Path = match[index]
 
 	match = paramsRegex.FindStringSubmatch(p.Path)
 	if len(match) == 0 {
@@ -96,8 +109,18 @@ func Apply(p Params, path string) Params {
 	index += 9
 	if match[index] != "" {
 		p.FitIn = true
+		// Check which variant was matched
+		switch match[index+1] {
+		case "adaptive-full-fit-in":
+			p.AdaptiveFitIn = true
+			p.FullFitIn = true
+		case "adaptive-fit-in":
+			p.AdaptiveFitIn = true
+		case "full-fit-in":
+			p.FullFitIn = true
+		}
 	}
-	index++
+	index += 2
 	if match[index] != "" {
 		p.Stretch = true
 	}
