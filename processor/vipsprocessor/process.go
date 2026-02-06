@@ -473,6 +473,17 @@ func (v *Processor) applyTransformations(
 		w = p.Width
 		h = p.Height
 	)
+
+	// Apply adaptive fit-in: swap dimensions if it would get better image definition
+	if p.AdaptiveFitIn && w > 0 && h > 0 {
+		imgAspect := float64(img.Width()) / float64(img.PageHeight())
+		boxAspect := float64(w) / float64(h)
+		// If orientations differ (one portrait, one landscape), swap dimensions
+		if (imgAspect > 1) != (boxAspect > 1) {
+			w, h = h, w
+		}
+	}
+
 	if w == 0 && h == 0 {
 		w = img.Width()
 		h = img.PageHeight()
@@ -490,7 +501,12 @@ func (v *Processor) applyTransformations(
 	if !thumbnail {
 		if p.FitIn {
 			if upscale || w < img.Width() || h < img.PageHeight() {
-				if err := img.ThumbnailImage(w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}); err != nil {
+				opts := &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}
+				// Full fit-in uses the smallest dimension (SizeUp) instead of largest (default)
+				if p.FullFitIn {
+					opts.Size = vips.SizeUp
+				}
+				if err := img.ThumbnailImage(w, opts); err != nil {
 					return err
 				}
 			}
