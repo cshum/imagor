@@ -107,8 +107,8 @@ github.com/envoyproxy/protoc-gen-validate v1.3.0 h1:TvGH1wof4H33rezVKWSpqKz5NXWg
 github.com/envoyproxy/protoc-gen-validate v1.3.0/go.mod h1:HvYl7zwPa5mffgyeTUHA9zHIH36nmrm7oCbo4YKoSWA=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/fsouza/fake-gcs-server v1.53.0 h1:vboSrd2ZEBoIQBfvUBAWQX0xvSFh1oLsn/Cp+0Pa6IA=
-github.com/fsouza/fake-gcs-server v1.53.0/go.mod h1:kF+DadfinC7mlc1/2d/ZDHS9VyUk1hTcXJ6VwLSlzfM=
+github.com/fsouza/fake-gcs-server v1.53.1 h1:/gjEYut23/MMhe4daYJ5yIBGPUmLAYupgITuoWG3+jI=
+github.com/fsouza/fake-gcs-server v1.53.1/go.mod h1:kF+DadfinC7mlc1/2d/ZDHS9VyUk1hTcXJ6VwLSlzfM=
 github.com/getsentry/sentry-go v0.42.0 h1:eeFMACuZTbUQf90RE8dE4tXeSe4CZyfvR1MBL7RLEt8=
 github.com/getsentry/sentry-go v0.42.0/go.mod h1:eRXCoh3uvmjQLY6qu63BjUZnaBu5L5WhMV1RwYO8W5s=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
