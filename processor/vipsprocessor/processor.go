@@ -248,12 +248,18 @@ func (v *Processor) NewThumbnail(
 			}
 		}
 	} else {
-		switch blob.BlobType() {
-		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP:
-			// only allow real thumbnail for jpeg gif webp
-			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
-		default:
+		// Use fallback for nested images >= 1000px to avoid VIPS thumbnail bug
+		// where the "image source" loader fails to resize properly
+		if isNestedImage(ctx) && (width >= 1000 || height >= 1000) {
 			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, options)
+		} else {
+			switch blob.BlobType() {
+			case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP:
+				// only allow real thumbnail for jpeg gif webp
+				img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
+			default:
+				img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, options)
+			}
 		}
 	}
 	return v.CheckResolution(img, WrapErr(err))

@@ -29,6 +29,8 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	if blob, err = load(params.Image); err != nil {
 		return
 	}
+	// Mark context as nested before processing overlay
+	ctx = withNestedImage(ctx)
 	var overlay *vips.Image
 	if overlay, err = v.loadAndProcess(ctx, blob, params, load); err != nil || overlay == nil {
 		return

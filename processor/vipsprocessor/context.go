@@ -49,3 +49,18 @@ func isRotate90(ctx context.Context) bool {
 	}
 	return false
 }
+
+type nestedImageKey struct{}
+
+// withNestedImage returns a new context marked as processing a nested image filter
+func withNestedImage(ctx context.Context) context.Context {
+	return context.WithValue(ctx, nestedImageKey{}, true)
+}
+
+// isNestedImage checks if the context is processing a nested image filter
+func isNestedImage(ctx context.Context) bool {
+	if v := ctx.Value(nestedImageKey{}); v != nil {
+		return v.(bool)
+	}
+	return false
+}
