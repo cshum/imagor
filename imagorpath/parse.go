@@ -13,7 +13,7 @@ var pathRegex = regexp.MustCompile(
 		// params
 		"(params/)?" +
 		// hash
-		"((unsafe/)|([A-Za-z0-9-_=]{8,})/)?" +
+		"((unsafe/)|([A-Za-z0-9-_=]{12,})/)?" +
 		// path
 		"(.+)?",
 )
