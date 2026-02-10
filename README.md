@@ -492,6 +492,20 @@ VIPS_MAX_WIDTH=5000
 VIPS_MAX_HEIGHT=5000
 ```
 
+#### Watermark Cache
+
+imagor provides an in-memory cache specifically for watermark images to avoid repeated loading and processing. This is particularly useful when the same watermark is applied to many images.
+
+```dotenv
+IMAGOR_WATERMARK_CACHE_SIZE=104857600  # 100MB watermark cache
+```
+
+The cache stores processed watermarks (after resize, colorspace conversion, and alpha application) as `vips.Image` objects for fast retrieval via copy-on-write. Cache cost is based on pixel dimensions (`width × height × bands`).
+
+**When to use:**
+- High-volume watermarking with repeated watermark images (e.g., logos)
+- Watermarks loaded from remote sources (S3, HTTP) where latency is a concern
+
 #### Allowed Sources and Base URL
 
 Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES` or `HTTP_LOADER_ALLOWED_SOURCE_REGEXP`.
@@ -1032,6 +1046,8 @@ Usage of imagor:
         VIPS strips all metadata from the resulting image
   -vips-unlimited
     	VIPS bypass image max resolution check and remove all denial of service limits
+  -imagor-watermark-cache-size int64
+        In-memory watermark cache size in bytes (0 to disable). e.g. 104857600 for 100MB (default 0)
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
