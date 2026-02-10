@@ -13,14 +13,10 @@ var pathRegex = regexp.MustCompile(
 		// params
 		"(params/)?" +
 		// hash
-		"((unsafe/)|([A-Za-z0-9-_=]{12,})/)?" +
+		"((unsafe/)|([A-Za-z0-9-_=]{17,})/)?" +
 		// path
 		"(.+)?",
 )
-
-// dimensionRegex matches dimension patterns like "949x1000/" to avoid treating them as hashes
-// Limits each dimension to 1-5 digits (0-99999) to prevent collision with hashes
-var dimensionRegex = regexp.MustCompile(`^-?\d{1,5}x-?\d{1,5}/$`)
 
 var paramsRegex = regexp.MustCompile(
 	"/*" +
@@ -69,14 +65,9 @@ func Apply(p Params, path string) Params {
 		p.Unsafe = true
 		index += 3
 		p.Path = match[index]
-	} else if match[index+2] != "" && len(match[index+2]) >= 8 {
+	} else if match[index+2] != "" && len(match[index+2]) >= 17 {
 		hash := match[index+2]
-		// Check if it's a dimension pattern (e.g., "949x1000"), not a hash
-		if dimensionRegex.MatchString(hash + "/") {
-			// It's dimensions, include it in the path
-			index += 3
-			p.Path = hash + "/" + match[index]
-		} else if hash != "adaptive-fit-in" && hash != "full-fit-in" && hash != "adaptive-full-fit-in" && hash != "fit-in" {
+		if hash != "adaptive-full-fit-in" {
 			// It's a hash
 			p.Hash = hash
 			index += 3
