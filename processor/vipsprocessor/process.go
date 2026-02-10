@@ -675,6 +675,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.PngsaveBuffer(opts)
 	case vips.ImageTypeWebp:
@@ -683,6 +685,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.WebpsaveBuffer(opts)
 	case vips.ImageTypeJxl:
@@ -691,6 +695,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.JxlsaveBuffer(opts)
 	case vips.ImageTypeTiff:
@@ -699,12 +705,16 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.TiffsaveBuffer(opts)
 	case vips.ImageTypeGif:
 		opts := &vips.GifsaveBufferOptions{}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.GifsaveBuffer(opts)
 	case vips.ImageTypeAvif:
@@ -714,6 +724,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		opts.Effort = 9 - v.AvifSpeed
 		return image.HeifsaveBuffer(opts)
@@ -723,6 +735,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeJp2k:
@@ -731,6 +745,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.Jp2ksaveBuffer(opts)
 	default:
@@ -749,6 +765,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else if !v.MozJPEG {
+			opts.Keep = vips.KeepAll
 		}
 		return image.JpegsaveBuffer(opts)
 	}
