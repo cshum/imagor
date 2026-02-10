@@ -509,6 +509,69 @@ func TestParseGenerate(t *testing.T) {
 				Smart:     true,
 			},
 		},
+		{
+			name: "dimensions 949x1000 (8 chars, should not be treated as hash)",
+			uri:  "949x1000/img.jpg",
+			params: Params{
+				Path:   "949x1000/img.jpg",
+				Image:  "img.jpg",
+				Width:  949,
+				Height: 1000,
+			},
+		},
+		{
+			name: "dimensions 1000x1000 (9 chars, should not be treated as hash)",
+			uri:  "1000x1000/img.jpg",
+			params: Params{
+				Path:   "1000x1000/img.jpg",
+				Image:  "img.jpg",
+				Width:  1000,
+				Height: 1000,
+			},
+		},
+		{
+			name: "dimensions 1920x1080 (9 chars, should not be treated as hash)",
+			uri:  "1920x1080/img.jpg",
+			params: Params{
+				Path:   "1920x1080/img.jpg",
+				Image:  "img.jpg",
+				Width:  1920,
+				Height: 1080,
+			},
+		},
+		{
+			name: "dimensions with flip -1920x-1080 (11 chars, should not be treated as hash)",
+			uri:  "-1920x-1080/img.jpg",
+			params: Params{
+				Path:   "-1920x-1080/img.jpg",
+				Image:  "img.jpg",
+				Width:  1920,
+				Height: 1080,
+				HFlip:  true,
+				VFlip:  true,
+			},
+		},
+		{
+			name: "dimensions in nested path (layer use case)",
+			uri:  "unsafe/949x1000/Google Photos/IMG_20180519_191530.jpg",
+			params: Params{
+				Path:   "949x1000/Google Photos/IMG_20180519_191530.jpg",
+				Image:  "Google Photos/IMG_20180519_191530.jpg",
+				Width:  949,
+				Height: 1000,
+				Unsafe: true,
+			},
+		},
+		{
+			name: "max valid dimensions 99999x99999 (5 digits each)",
+			uri:  "99999x99999/img.jpg",
+			params: Params{
+				Path:   "99999x99999/img.jpg",
+				Image:  "img.jpg",
+				Width:  99999,
+				Height: 99999,
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.name == "" {

@@ -13,7 +13,7 @@ var pathRegex = regexp.MustCompile(
 		// params
 		"(params/)?" +
 		// hash
-		"((unsafe/)|([A-Za-z0-9-_=]{8,})/)?" +
+		"((unsafe/)|([A-Za-z0-9-_=]{17,})/)?" +
 		// path
 		"(.+)?",
 )
@@ -65,10 +65,10 @@ func Apply(p Params, path string) Params {
 		p.Unsafe = true
 		index += 3
 		p.Path = match[index]
-	} else if len(match[index+2]) > 8 {
-		// Check if it's actually a fit-in keyword, not a hash
+	} else if match[index+2] != "" && len(match[index+2]) >= 17 {
 		hash := match[index+2]
-		if hash != "adaptive-fit-in" && hash != "full-fit-in" && hash != "adaptive-full-fit-in" && hash != "fit-in" {
+		if hash != "adaptive-full-fit-in" {
+			// It's a hash
 			p.Hash = hash
 			index += 3
 			p.Path = match[index]
