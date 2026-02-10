@@ -1,0 +1,237 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* Minimal black-and-white color scheme matching imagor.net */
+:root {
+  /* Primary colors - black theme */
+  --ifm-color-primary: #171717;
+  --ifm-color-primary-dark: #0a0a0a;
+  --ifm-color-primary-darker: #000000;
+  --ifm-color-primary-darkest: #000000;
+  --ifm-color-primary-light: #262626;
+  --ifm-color-primary-lighter: #404040;
+  --ifm-color-primary-lightest: #525252;
+
+  /* Background and foreground */
+  --ifm-background-color: #ffffff;
+  --ifm-font-color-base: #0a0a0a;
+
+  /* Muted colors */
+  --ifm-color-emphasis-0: #fafafa;
+  --ifm-color-emphasis-100: #f5f5f5;
+  --ifm-color-emphasis-200: #e5e5e5;
+  --ifm-color-emphasis-300: #d4d4d4;
+  --ifm-color-emphasis-400: #a3a3a3;
+  --ifm-color-emphasis-500: #737373;
+  --ifm-color-emphasis-600: #525252;
+  --ifm-color-emphasis-700: #404040;
+  --ifm-color-emphasis-800: #262626;
+  --ifm-color-emphasis-900: #171717;
+
+  /* Code */
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.05);
+
+  /* Borders */
+  --ifm-table-border-color: #e5e5e5;
+  --ifm-toc-border-color: #e5e5e5;
+
+  /* Navbar */
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.95);
+  --ifm-navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  /* Footer */
+  --ifm-footer-background-color: #fafafa;
+  --ifm-footer-color: #737373;
+  --ifm-footer-link-color: #525252;
+  --ifm-footer-title-color: #171717;
+}
+
+/* Dark mode - inverted minimal theme */
+[data-theme="dark"] {
+  /* Primary colors - light theme for dark mode */
+  --ifm-color-primary: #fafafa;
+  --ifm-color-primary-dark: #e5e5e5;
+  --ifm-color-primary-darker: #d4d4d4;
+  --ifm-color-primary-darkest: #a3a3a3;
+  --ifm-color-primary-light: #ffffff;
+  --ifm-color-primary-lighter: #ffffff;
+  --ifm-color-primary-lightest: #ffffff;
+
+  /* Background and foreground */
+  --ifm-background-color: #0a0a0a;
+  --ifm-font-color-base: #fafafa;
+
+  /* Muted colors - inverted */
+  --ifm-color-emphasis-0: #171717;
+  --ifm-color-emphasis-100: #262626;
+  --ifm-color-emphasis-200: #404040;
+  --ifm-color-emphasis-300: #525252;
+  --ifm-color-emphasis-400: #737373;
+  --ifm-color-emphasis-500: #a3a3a3;
+  --ifm-color-emphasis-600: #d4d4d4;
+  --ifm-color-emphasis-700: #e5e5e5;
+  --ifm-color-emphasis-800: #f5f5f5;
+  --ifm-color-emphasis-900: #fafafa;
+
+  /* Code */
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+
+  /* Borders */
+  --ifm-table-border-color: #404040;
+  --ifm-toc-border-color: #404040;
+
+  /* Navbar */
+  --ifm-navbar-background-color: rgba(10, 10, 10, 0.95);
+  --ifm-navbar-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
+
+  /* Footer */
+  --ifm-footer-background-color: #171717;
+  --ifm-footer-color: #a3a3a3;
+  --ifm-footer-link-color: #d4d4d4;
+  --ifm-footer-title-color: #fafafa;
+}
+
+/* Additional styling for consistency */
+.navbar {
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+.footer {
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+
+/* Button styling to match imagor.net */
+.button {
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.button--primary {
+  background-color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+
+.button--primary:hover {
+  background-color: var(--ifm-color-primary-dark);
+  border-color: var(--ifm-color-primary-dark);
+}
+
+.button--secondary {
+  background-color: transparent;
+  border: 1px solid var(--ifm-toc-border-color);
+  color: var(--ifm-font-color-base);
+}
+
+.button--secondary:hover {
+  background-color: var(--ifm-color-emphasis-100);
+}
+
+/* Screenshot image containers */
+.screenshot-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.screenshot-container-mobile {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.screenshot-container img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .screenshot-container img {
+  box-shadow:
+    0 4px 6px -1px rgba(255, 255, 255, 0.1),
+    0 2px 4px -1px rgba(255, 255, 255, 0.06);
+}
+
+/* Navbar title styling to match imagor.net */
+.navbar__title {
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+  font-size: 1.5rem !important;
+}
+
+/* Demo image styling */
+.demo-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.demo-images img {
+  height: 100px;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .demo-images img {
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+}
+
+/* Code block improvements */
+.prism-code {
+  border-radius: 0.5rem;
+}
+
+/* Table styling */
+.table-wrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid var(--ifm-table-border-color);
+  padding: 0.75rem;
+  text-align: left;
+}
+
+th {
+  background-color: var(--ifm-color-emphasis-100);
+  font-weight: 600;
+}
+
+/* Admonition styling */
+.admonition {
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+/* Link styling */
+a {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--ifm-color-primary-dark);
+  text-decoration: underline;
+}
+
+[data-theme="dark"] a {
+  color: var(--ifm-color-primary-light);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--ifm-color-primary);
+}
