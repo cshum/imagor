@@ -156,6 +156,7 @@ imagor supports the following filters:
 - `to_colorspace(profile)` converts the image to the specified ICC color profile
   - `profile` the target color profile, defaults to `srgb` if not specified. Common values: `srgb`, `p3`, `cmyk`
 - `upscale()` upscale the image if `fit-in` is used
+- `no_upscale()` prevents the image from being upscaled beyond its original dimensions
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for imagor.
     Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
