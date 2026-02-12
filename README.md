@@ -134,6 +134,7 @@ imagor supports the following filters:
   - `font` - text label font type
 - `max_bytes(amount)` automatically degrades the quality of the image until the image is under the specified `amount` of bytes
 - `max_frames(n)` limit maximum number of animation frames `n` to be loaded
+- `no_upscale()` prevents the image from being upscaled beyond its original dimensions
 - `orient(angle)` rotates the image before resizing and cropping, according to the angle value
   - `angle` accepts 0, 90, 180, 270
 - `page(num)` specify page number for PDF, or frame number for animated image, starts from 1
@@ -146,7 +147,7 @@ imagor supports the following filters:
   - `angle` accepts 0, 90, 180, 270
 - `round_corner(rx [, ry [, color]])` adds rounded corners to the image with the specified color as background
   - `rx`, `ry` amount of pixel to use as radius. ry = rx if ry is not provided
-  - `color` the color name or hexadecimal rgb expression without the “#” character
+  - `color` the color name or hexadecimal rgb expression without the "#" character
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
 - `sharpen(sigma)` sharpens the image
@@ -156,7 +157,6 @@ imagor supports the following filters:
 - `to_colorspace(profile)` converts the image to the specified ICC color profile
   - `profile` the target color profile, defaults to `srgb` if not specified. Common values: `srgb`, `p3`, `cmyk`
 - `upscale()` enables upscaling for `fit-in` and `adaptive-fit-in` modes
-- `no_upscale()` prevents the image from being upscaled beyond its original dimensions
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for imagor.
     Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
