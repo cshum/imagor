@@ -229,6 +229,8 @@ func TestProcessor(t *testing.T) {
 
 			{name: "image default position", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png)/gopher.png"},
 			{name: "image center", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center)/gopher.png"},
+			{name: "image outside rotate", path: "fit-in/500x500/filters:rotate(90):image(/100x100/gopher-front.png,center,center)/gopher.png"},
+			{name: "image inside rotate", path: "fit-in/500x500/filters:image(/100x100/filters:rotate(90)/gopher-front.png,center,center)/gopher.png"},
 			{name: "image with alpha", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center,50)/gopher.png"},
 			{name: "image with mask blend mode", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center,0,mask)/gopher.png"},
 			{name: "image with invalid blend mode fallback", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center,50,invalid-mode)/gopher.png"},
