@@ -196,7 +196,7 @@ func (v *Processor) loadAndProcess(
 	if p.Trim || p.VFlip || p.FullFitIn || p.AdaptiveFitIn {
 		thumbnailNotSupported = true
 	}
-	if p.FitIn {
+	if p.FitIn && !p.FullFitIn {
 		upscale = false
 	}
 	if maxN == 0 || maxN < -1 {
@@ -507,10 +507,10 @@ func (v *Processor) applyTransformations(
 
 				if imgAspect < boxAspect {
 					// Image is taller (portrait) - use width as constraint, height will exceed box
-					h = int(float64(w) / imgAspect)
+					h = int(math.Round(float64(w) / imgAspect))
 				} else {
 					// Image is wider (landscape) - use height as constraint, width will exceed box
-					w = int(float64(h) * imgAspect)
+					w = int(math.Round(float64(h) * imgAspect))
 				}
 			}
 
