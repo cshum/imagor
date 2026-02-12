@@ -30,6 +30,9 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 		return
 	}
 	var overlay *vips.Image
+	// create fresh context for this processing level
+	// while preserving parent resource tracking context
+	ctx = withContext(ctx)
 	if overlay, err = v.loadAndProcess(ctx, blob, params, load); err != nil || overlay == nil {
 		return
 	}
