@@ -183,6 +183,8 @@ func TestProcessor(t *testing.T) {
 			{name: "resize unspecified height", path: "50x0/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "fit-in unspecified width", path: "fit-in/0x50/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "resize unspecified width", path: "0x50/filters:fill(white):format(jpg)/Canon_40D.jpg"},
+			{name: "resize with no_upscale", path: "500x400/filters:no_upscale()/gopher-front.png"},
+			{name: "resize with no_upscale unspecified height", path: "500x0/filters:no_upscale()/gopher-front.png"},
 			{name: "adaptive-fit-in landscape to portrait", path: "adaptive-fit-in/100x200/gopher.png"},
 			{name: "adaptive-fit-in portrait to landscape", path: "adaptive-fit-in/200x100/gopher-front.png"},
 			{name: "adaptive-fit-in same orientation", path: "adaptive-fit-in/200x100/gopher.png"},
