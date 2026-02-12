@@ -308,25 +308,37 @@ func (v *Processor) loadAndProcess(
 					thumbnail = true
 				}
 				if thumbnail {
+					size := vips.SizeBoth
+					if !upscale {
+						size = vips.SizeDown
+					}
 					if img, err = v.NewThumbnail(
 						ctx, blob, p.Width, p.Height,
-						interest, vips.SizeBoth, maxN, page, dpi,
+						interest, size, maxN, page, dpi,
 					); err != nil {
 						return nil, err
 					}
 				}
 			} else if p.Width > 0 && p.Height == 0 {
+				size := vips.SizeBoth
+				if !upscale {
+					size = vips.SizeDown
+				}
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, v.MaxHeight,
-					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
+					vips.InterestingNone, size, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
+				size := vips.SizeBoth
+				if !upscale {
+					size = vips.SizeDown
+				}
 				if img, err = v.NewThumbnail(
 					ctx, blob, v.MaxWidth, p.Height,
-					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
+					vips.InterestingNone, size, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
