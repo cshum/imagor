@@ -181,12 +181,6 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 func (v *Processor) loadAndProcess(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*vips.Image, error) {
-	// Create fresh context for this processing level
-	// This ensures nested image() filters get their own rotation context
-	// while preserving parent's resource tracking context
-	ctx = withContext(ctx)
-	defer contextDone(ctx)
-
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
