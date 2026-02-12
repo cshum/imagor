@@ -155,7 +155,7 @@ imagor supports the following filters:
 - `strip_metadata()` removes all metadata from the resulting image
 - `to_colorspace(profile)` converts the image to the specified ICC color profile
   - `profile` the target color profile, defaults to `srgb` if not specified. Common values: `srgb`, `p3`, `cmyk`
-- `upscale()` upscale the image if `fit-in` is used
+- `upscale()` enables upscaling for `fit-in` and `adaptive-fit-in` modes
 - `no_upscale()` prevents the image from being upscaled beyond its original dimensions
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for imagor.
