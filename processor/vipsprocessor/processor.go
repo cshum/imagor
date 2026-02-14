@@ -9,6 +9,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
+	"github.com/dgraph-io/ristretto"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +44,10 @@ type Processor struct {
 	Unlimited          bool
 	Debug              bool
 
+	WatermarkCacheSize int64
+
 	disableFilters map[string]bool
+	watermarkCache *ristretto.Cache
 }
 
 // NewProcessor create Processor
@@ -135,6 +139,23 @@ func (v *Processor) Startup(_ context.Context) error {
 			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 		}
 	}
+	if v.WatermarkCacheSize > 0 {
+		cache, err := ristretto.NewCache(&ristretto.Config{
+			NumCounters: 1e4,
+			MaxCost:     v.WatermarkCacheSize,
+			BufferItems: 64,
+			OnEvict: func(item *ristretto.Item) {
+				if img, ok := item.Value.(*vips.Image); ok {
+					img.Close()
+				}
+			},
+		})
+		if err != nil {
+			return err
+		}
+		v.watermarkCache = cache
+		v.Logger.Info("watermark cache enabled", zap.Int64("max_size", v.WatermarkCacheSize))
+	}
 	return nil
 }
 
@@ -142,6 +163,9 @@ func (v *Processor) Startup(_ context.Context) error {
 func (v *Processor) Shutdown(_ context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
+	if v.watermarkCache != nil {
+		v.watermarkCache.Close()
+	}
 	if processorCount <= 0 {
 		return nil
 	}

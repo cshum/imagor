@@ -520,6 +520,73 @@ func TestProcessor(t *testing.T) {
 		assert.Empty(t, img)
 		assert.Error(t, err)
 	})
+	t.Run("watermark cache", func(t *testing.T) {
+		loadCount := 0
+		loader := loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
+			loadCount++
+			return imagor.NewBlobFromFile(filepath.Join(testDataDir, image)), nil
+		})
+		app := imagor.New(
+			imagor.WithLoaders(loader),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithDebug(true),
+				WithWatermarkCacheSize(10*1024*1024),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/fit-in/200x200/filters:watermark(gopher-front.png,center,center,50,20,20)/demo1.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		firstLoadCount := loadCount
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/fit-in/300x300/filters:watermark(gopher-front.png,center,center,50,20,20)/demo2.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+
+		assert.Equal(t, firstLoadCount+1, loadCount, "watermark should be served from cache, only base image should be loaded")
+	})
+	t.Run("watermark cache disabled", func(t *testing.T) {
+		loadCount := 0
+		loader := loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
+			loadCount++
+			return imagor.NewBlobFromFile(filepath.Join(testDataDir, image)), nil
+		})
+		app := imagor.New(
+			imagor.WithLoaders(loader),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithDebug(true),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/fit-in/200x200/filters:watermark(gopher-front.png,center,center,50,20,20)/demo1.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		firstLoadCount := loadCount
+
+		w = httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/fit-in/300x300/filters:watermark(gopher-front.png,center,center,50,20,20)/demo2.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+
+		assert.Equal(t, firstLoadCount+2, loadCount, "without cache, both base image and watermark should be loaded")
+	})
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
