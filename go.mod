@@ -1,6 +1,6 @@
 module github.com/cshum/imagor
 
-go 1.25
+go 1.25.0
 
 require (
 	cloud.google.com/go/storage v1.60.0
@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
 	github.com/aws/smithy-go v1.24.0
 	github.com/cshum/vipsgen v1.3.1
-	github.com/fsouza/fake-gcs-server v1.53.1
+	github.com/fsouza/fake-gcs-server v1.54.0
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20250916175020-ebf3e50324d3
 	github.com/peterbourgon/ff/v3 v3.4.0
@@ -100,6 +100,6 @@ require (
 	google.golang.org/genproto v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
-	google.golang.org/grpc v1.78.0 // indirect
+	google.golang.org/grpc v1.79.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
