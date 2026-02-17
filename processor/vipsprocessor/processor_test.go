@@ -232,6 +232,10 @@ func TestProcessor(t *testing.T) {
 			{name: "watermark 2 bands", path: "filters:watermark(2bands.png,repeat,bottom,40,25,50)/demo1.jpg", arm64Golden: true},
 			{name: "watermark float", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,0.1,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-0.1)/gopher.png", arm64Golden: true},
 			{name: "watermark align", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,left,top,30,20,20):watermark(gopher.png,right,center,30,30,30):watermark(gopher-front.png,-20,-10)/gopher.png"},
+			{name: "image left offset", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,left-20,top-10)/gopher.png"},
+			{name: "image right offset", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,right-30,bottom-20)/gopher.png"},
+			{name: "image shorthand l t", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,l-20,t-10)/gopher.png"},
+			{name: "image shorthand r b", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,r-30,b-20)/gopher.png"},
 
 			{name: "image default position", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png)/gopher.png"},
 			{name: "image center", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center)/gopher.png"},
