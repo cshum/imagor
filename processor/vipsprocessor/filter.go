@@ -308,7 +308,9 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			x, _ = strconv.Atoi(args[1])
 		}
 		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
-		if x < 0 && !strings.Contains(args[1], "-") {
+		if x < 0 &&
+			!strings.HasPrefix(args[1], "left-") && !strings.HasPrefix(args[1], "l-") &&
+			!strings.HasPrefix(args[1], "right-") && !strings.HasPrefix(args[1], "r-") {
 			align = vips.AlignHigh
 			x += width
 		}
@@ -337,7 +339,9 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			y, _ = strconv.Atoi(args[2])
 		}
 		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
-		if y < 0 && !strings.Contains(args[2], "-") {
+		if y < 0 &&
+			!strings.HasPrefix(args[2], "top-") && !strings.HasPrefix(args[2], "t-") &&
+			!strings.HasPrefix(args[2], "bottom-") && !strings.HasPrefix(args[2], "b-") {
 			y += img.PageHeight() - size
 		}
 	}

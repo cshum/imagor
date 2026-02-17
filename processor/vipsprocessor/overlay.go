@@ -104,10 +104,14 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 	y, down := parseOverlayPosition(yArg, img.PageHeight(), overlayHeight, imagorpath.VAlignTop, imagorpath.VAlignBottom)
 
 	// Apply negative adjustment for plain numeric values only (not prefixed keywords)
-	if x < 0 && xArg != "center" && !strings.Contains(xArg, "-") {
+	if x < 0 && xArg != "center" &&
+		!strings.HasPrefix(xArg, "left-") && !strings.HasPrefix(xArg, "l-") &&
+		!strings.HasPrefix(xArg, "right-") && !strings.HasPrefix(xArg, "r-") {
 		x += img.Width() - overlayWidth
 	}
-	if y < 0 && yArg != "center" && !strings.Contains(yArg, "-") {
+	if y < 0 && yArg != "center" &&
+		!strings.HasPrefix(yArg, "top-") && !strings.HasPrefix(yArg, "t-") &&
+		!strings.HasPrefix(yArg, "bottom-") && !strings.HasPrefix(yArg, "b-") {
 		y += img.PageHeight() - overlayHeight
 	}
 
