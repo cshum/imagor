@@ -460,6 +460,9 @@ func (b *Blob) ContentType() string {
 // NewReader creates new io.ReadCloser and returns size if known
 func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	b.init()
+	if b.newReader == nil {
+		return nil, 0, b.err
+	}
 	return b.newReader()
 }
 
