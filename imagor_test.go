@@ -2422,4 +2422,24 @@ func TestResponseRawOnError(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("loader timeout with nil blob returns error", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				// Simulate loader timeout - returns nil blob with timeout error
+				return nil, ErrTimeout
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		// Should return error JSON, not crash
+		assert.Equal(t, 408, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+		assert.Contains(t, w.Body.String(), "timeout")
+	})
 }
