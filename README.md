@@ -808,6 +808,8 @@ Usage of imagor:
         imagor disable /params endpoint
   -imagor-disable-error-body
         imagor disable response body on error
+  -imagor-response-raw-on-error
+        imagor response with a raw unprocessed and unchecked source image on error
 
   -server-address string
         Server address
