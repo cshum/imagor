@@ -92,6 +92,7 @@ type Imagor struct {
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
 	EnablePostRequests     bool
+	ResponseRawOnError     bool
 	BaseParams             string
 	Logger                 *zap.Logger
 	Debug                  bool
@@ -201,6 +202,22 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
+		// Check if we should respond with raw image on error
+		if app.ResponseRawOnError && !isBlobEmpty(blob) {
+			e := WrapError(err)
+			app.Logger.Warn("response-raw-on-error",
+				zap.Any("params", p),
+				zap.Error(err),
+				zap.Int("status", e.Code))
+
+			// Write error status code but serve raw image
+			w.WriteHeader(e.Code)
+			app.setResponseHeaders(w, r, blob, p)
+			reader, size, _ := blob.NewReader()
+			writeBody(w, r, reader, size)
+			return
+		}
+
 		app.handleErrorResponse(w, r, err)
 		return
 	}

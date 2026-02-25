@@ -242,3 +242,10 @@ func WithEnablePostRequests(enable bool) Option {
 		app.EnablePostRequests = enable
 	}
 }
+
+// WithResponseRawOnError with response raw on error option
+func WithResponseRawOnError(enabled bool) Option {
+	return func(app *Imagor) {
+		app.ResponseRawOnError = enabled
+	}
+}

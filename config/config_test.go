@@ -376,3 +376,11 @@ func TestCloudLoadersBeforeHTTP(t *testing.T) {
 		assert.False(t, isHTTP, "Non-HTTP loaders should come before HTTP loader at index %d", i)
 	}
 }
+
+func TestResponseRawOnError(t *testing.T) {
+	srv := CreateServer([]string{
+		"-imagor-response-raw-on-error",
+	})
+	app := srv.App.(*imagor.Imagor)
+	assert.True(t, app.ResponseRawOnError)
+}

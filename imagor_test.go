@@ -2304,3 +2304,122 @@ func TestResultStorageCleanupWithProcessingError(t *testing.T) {
 		assert.Nil(t, resultStore.Map["test-image"])
 	})
 }
+
+func TestResponseRawOnError(t *testing.T) {
+	t.Run("disabled returns error JSON", func(t *testing.T) {
+		testImageData := []byte("test image data")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlobFromBytes(testImageData), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrMaxResolutionExceeded
+			})),
+			WithResponseRawOnError(false),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 422, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+		assert.Contains(t, w.Body.String(), "maximum resolution exceeded")
+	})
+
+	t.Run("enabled returns raw image with error status", func(t *testing.T) {
+		testImageData := []byte("test image data")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlobFromBytes(testImageData), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrMaxResolutionExceeded
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 422, w.Code)
+		assert.Equal(t, testImageData, w.Body.Bytes())
+		assert.NotContains(t, w.Header().Get("Content-Type"), "application/json")
+	})
+
+	t.Run("no blob returns normal error", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return nil, ErrNotFound
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 404, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+	})
+
+	t.Run("processing succeeds returns normal response", func(t *testing.T) {
+		processedData := []byte("processed image")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("original")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobFromBytes(processedData), nil
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, processedData, w.Body.Bytes())
+	})
+
+	t.Run("different errors return correct status codes", func(t *testing.T) {
+		testCases := []struct {
+			name       string
+			err        error
+			expectCode int
+		}{
+			{"max resolution", ErrMaxResolutionExceeded, 422},
+			{"unsupported format", ErrUnsupportedFormat, 406},
+			{"timeout", ErrTimeout, 408},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				testImageData := []byte("test image")
+				app := New(
+					WithUnsafe(true),
+					WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+						return NewBlobFromBytes(testImageData), nil
+					})),
+					WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+						return nil, tc.err
+					})),
+					WithResponseRawOnError(true),
+				)
+
+				w := httptest.NewRecorder()
+				req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+				app.ServeHTTP(w, req)
+
+				assert.Equal(t, tc.expectCode, w.Code)
+				assert.Equal(t, testImageData, w.Body.Bytes())
+			})
+		}
+	})
+}
