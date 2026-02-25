@@ -284,7 +284,15 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		size, _ = strconv.Atoi(args[3])
 	}
 	if ln > 1 {
-		if args[1] == "center" {
+		// Check for alignment keyword with negative offset (e.g., left-20, l-20, right-30, r-30)
+		if strings.HasPrefix(args[1], "left-") || strings.HasPrefix(args[1], "l-") {
+			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[1], "left-"), "l-"))
+			x = -offset
+		} else if strings.HasPrefix(args[1], "right-") || strings.HasPrefix(args[1], "r-") {
+			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[1], "right-"), "r-"))
+			align = vips.AlignHigh
+			x = width + offset
+		} else if args[1] == "center" {
 			align = vips.AlignCentre
 			x = width / 2
 		} else if args[1] == imagorpath.HAlignRight {
@@ -299,13 +307,23 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		} else {
 			x, _ = strconv.Atoi(args[1])
 		}
-		if x < 0 {
+		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
+		if x < 0 &&
+			!strings.HasPrefix(args[1], "left-") && !strings.HasPrefix(args[1], "l-") &&
+			!strings.HasPrefix(args[1], "right-") && !strings.HasPrefix(args[1], "r-") {
 			align = vips.AlignHigh
 			x += width
 		}
 	}
 	if ln > 2 {
-		if args[2] == "center" {
+		// Check for alignment keyword with negative offset (e.g., top-20, t-20, bottom-20, b-20)
+		if strings.HasPrefix(args[2], "top-") || strings.HasPrefix(args[2], "t-") {
+			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[2], "top-"), "t-"))
+			y = -offset
+		} else if strings.HasPrefix(args[2], "bottom-") || strings.HasPrefix(args[2], "b-") {
+			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[2], "bottom-"), "b-"))
+			y = img.PageHeight() - size + offset
+		} else if args[2] == "center" {
 			y = (img.PageHeight() - size) / 2
 		} else if args[2] == imagorpath.VAlignTop {
 			y = 0
@@ -320,7 +338,10 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		} else {
 			y, _ = strconv.Atoi(args[2])
 		}
-		if y < 0 {
+		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
+		if y < 0 &&
+			!strings.HasPrefix(args[2], "top-") && !strings.HasPrefix(args[2], "t-") &&
+			!strings.HasPrefix(args[2], "bottom-") && !strings.HasPrefix(args[2], "b-") {
 			y += img.PageHeight() - size
 		}
 	}

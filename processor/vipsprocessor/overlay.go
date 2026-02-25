@@ -34,6 +34,21 @@ func parseOverlayPosition(arg string, canvasSize, overlaySize int, hAlign, vAlig
 		return 0, 1
 	}
 
+	// Check for alignment keyword with negative offset (e.g., left-20, l-20, right-30, r-30, top-20, t-20, bottom-20, b-20)
+	if strings.HasPrefix(arg, "left-") || strings.HasPrefix(arg, "l-") {
+		offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(arg, "left-"), "l-"))
+		return -offset, 1
+	} else if strings.HasPrefix(arg, "right-") || strings.HasPrefix(arg, "r-") {
+		offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(arg, "right-"), "r-"))
+		return canvasSize - overlaySize + offset, 1
+	} else if strings.HasPrefix(arg, "top-") || strings.HasPrefix(arg, "t-") {
+		offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(arg, "top-"), "t-"))
+		return -offset, 1
+	} else if strings.HasPrefix(arg, "bottom-") || strings.HasPrefix(arg, "b-") {
+		offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(arg, "bottom-"), "b-"))
+		return canvasSize - overlaySize + offset, 1
+	}
+
 	if arg == "center" {
 		return (canvasSize - overlaySize) / 2, 1
 	} else if arg == hAlign || arg == vAlign {
@@ -88,11 +103,15 @@ func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, a
 	x, across := parseOverlayPosition(xArg, img.Width(), overlayWidth, imagorpath.HAlignLeft, imagorpath.HAlignRight)
 	y, down := parseOverlayPosition(yArg, img.PageHeight(), overlayHeight, imagorpath.VAlignTop, imagorpath.VAlignBottom)
 
-	// Apply negative adjustment for all cases EXCEPT center
-	if x < 0 && xArg != "center" {
+	// Apply negative adjustment for plain numeric values only (not prefixed keywords)
+	if x < 0 && xArg != "center" &&
+		!strings.HasPrefix(xArg, "left-") && !strings.HasPrefix(xArg, "l-") &&
+		!strings.HasPrefix(xArg, "right-") && !strings.HasPrefix(xArg, "r-") {
 		x += img.Width() - overlayWidth
 	}
-	if y < 0 && yArg != "center" {
+	if y < 0 && yArg != "center" &&
+		!strings.HasPrefix(yArg, "top-") && !strings.HasPrefix(yArg, "t-") &&
+		!strings.HasPrefix(yArg, "bottom-") && !strings.HasPrefix(yArg, "b-") {
 		y += img.PageHeight() - overlayHeight
 	}
 

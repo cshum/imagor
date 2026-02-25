@@ -53,9 +53,11 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             imagor-test \
-            sh -c "rm -rf examples cmd && go test -coverprofile=profile.cov ./..."
+            go test -coverprofile=profile.cov ./...
 
-      - name: Coveralls
-        uses: shogo82148/actions-goveralls@v1
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          path-to-profile: profile.cov
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./profile.cov
+          fail_ci_if_error: true
