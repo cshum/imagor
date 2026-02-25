@@ -53,7 +53,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             imagor-test \
-            sh -c "rm -rf examples && go test -coverprofile=profile.cov ./..."
+            go test -coverprofile=profile.cov ./...
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
