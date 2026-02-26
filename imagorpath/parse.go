@@ -13,7 +13,7 @@ var pathRegex = regexp.MustCompile(
 		// params
 		"(params/)?" +
 		// hash
-		"((unsafe/)|([A-Za-z0-9-_=]{17,})/)?" +
+		"((unsafe/)|([A-Za-z0-9-_=]{18,})/)?"+
 		// path
 		"(.+)?",
 )
@@ -44,6 +44,17 @@ var paramsRegex = regexp.MustCompile(
 		"(.+)?",
 )
 
+// fullDimTokenRegex matches a raw f-token WxH segment that may be incorrectly
+// captured as a URL signature by pathRegex when both dimensions use the f-token
+// syntax with large numbers (≥6 digits) and flip prefixes.
+var fullDimTokenRegex = regexp.MustCompile(`^-?f([+-]\d+)?x-?f([+-]\d+)?$`)
+
+// isFullDimToken reports whether s looks like an f-token dimension segment
+// (e.g. fxf, f-20xf-20, -fxf) rather than a real URL signature.
+func isFullDimToken(s string) bool {
+	return fullDimTokenRegex.MatchString(s)
+}
+
 // Parse Params struct from imagor endpoint URI
 func Parse(path string) Params {
 	var p Params
@@ -65,17 +76,17 @@ func Apply(p Params, path string) Params {
 		p.Unsafe = true
 		index += 3
 		p.Path = match[index]
-	} else if match[index+2] != "" && len(match[index+2]) >= 17 {
+	} else if match[index+2] != "" && len(match[index+2]) >= 18 {
 		hash := match[index+2]
-		if hash != "adaptive-full-fit-in" {
+		if hash == "adaptive-full-fit-in" || isFullDimToken(hash) {
+			// It's a path keyword or an f-token dimension — include it in the path
+			index += 3
+			p.Path = hash + "/" + match[index]
+		} else {
 			// It's a hash
 			p.Hash = hash
 			index += 3
 			p.Path = match[index]
-		} else {
-			// It's a fit-in keyword, include it in the path
-			index += 3
-			p.Path = hash + "/" + match[index]
 		}
 	} else {
 		index += 3

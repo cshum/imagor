@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,53 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 )
+
+// fullDimRegex matches a single dimension token: optionally a flip prefix -, then f,
+// optionally followed by a signed integer offset e.g. f, f-20, f+10, -f, -f-20.
+var fullDimRegex = regexp.MustCompile(`^(-?)f([+-]\d+)?$`)
+
+// dimSegmentRegex matches a /‑separated WxH segment where either or both sides
+// may be an f‑token or a plain integer.
+var dimSegmentRegex = regexp.MustCompile(`^(-?(?:f(?:[+-]\d+)?|\d*))x(-?(?:f(?:[+-]\d+)?|\d*))$`)
+
+// resolveFullDim resolves a single dimension token against a parent pixel size.
+// Tokens of the form f, f-NNN, f+NNN (with optional leading - for flip)
+// resolve to parentDim + offset. Any other token is returned unchanged.
+func resolveFullDim(token string, parentDim int) string {
+	m := fullDimRegex.FindStringSubmatch(token)
+	if m == nil {
+		return token
+	}
+	flip := m[1]
+	offset := 0
+	if m[2] != "" {
+		offset, _ = strconv.Atoi(m[2])
+	}
+	return flip + strconv.Itoa(parentDim+offset)
+}
+
+// resolveFullDimensions rewrites f‑tokens in the WxH dimension segment of an
+// imagor path, substituting the parent image's pixel dimensions before the path
+// is parsed. All other path segments are left untouched.
+func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
+	segments := strings.Split(imagorPath, "/")
+	for i, seg := range segments {
+		if !strings.Contains(seg, "f") {
+			continue
+		}
+		m := dimSegmentRegex.FindStringSubmatch(seg)
+		if m == nil {
+			continue
+		}
+		left, right := m[1], m[2]
+		newLeft := resolveFullDim(left, parentW)
+		newRight := resolveFullDim(right, parentH)
+		if newLeft != left || newRight != right {
+			segments[i] = newLeft + "x" + newRight
+		}
+	}
+	return strings.Join(segments, "/")
+}
 
 func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
@@ -24,6 +72,9 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	if unescape, e := url.QueryUnescape(args[0]); e == nil {
 		imagorPath = unescape
 	}
+	// Resolve f-token dimension placeholders (e.g. fxf, f-20xf-20) against the
+	// parent image's pixel dimensions before handing the path to the parser.
+	imagorPath = resolveFullDimensions(imagorPath, img.Width(), img.PageHeight())
 	params := imagorpath.Parse(imagorPath)
 	var blob *imagor.Blob
 	if blob, err = load(params.Image); err != nil {
