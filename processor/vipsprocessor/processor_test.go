@@ -258,6 +258,7 @@ func TestProcessor(t *testing.T) {
 			{name: "image full dim height only", path: "fit-in/500x500/filters:fill(white):image(0xf/gopher-front.png,0,0)/gopher.png"},
 			{name: "image full dim fit-in mode", path: "fit-in/500x500/filters:fill(white):image(fit-in/fxf/gopher-front.png,center,center)/gopher.png"},
 			{name: "image full dim stretch mode", path: "fit-in/500x500/filters:fill(white):image(stretch/fxf/gopher-front.png,0,0)/gopher.png"},
+			{name: "image full dim nested isolation", path: "fit-in/500x500/filters:fill(white):image(fxf/filters:image(f-50xf-50/gopher-front.png,center,center)/gopher.png,0,0)/gopher.png"},
 
 			// Overlay cropping edge cases - tests transformOverlay boundary logic
 			{name: "image overlay crop right edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,250,50)/gopher.png"},
