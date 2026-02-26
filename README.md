@@ -101,23 +101,28 @@ imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
-- `image(imagorpath, x, y[, alpha])` composites a processed image onto the current image with full imagor transformation support, enabling recursive image composition:
+- `image(imagorpath, x, y[, alpha[, blend_mode]])` composites a processed image onto the current image with full imagor transformation support, enabling recursive image composition:
   - `imagorpath` - an imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
     - The nested path supports all imagor operations: resizing, cropping, filters, etc.
     - Enables recursive nesting - images can load other processed images
+    - Use `f` in the `WxH` dimension segment to match the parent image's width or height at request time. `f` means the full parent dimension, `f-NNN` means the parent dimension minus NNN pixels. Examples:
+      - `fxf/overlay.png` — overlay fills the parent canvas exactly
+      - `fit-in/f-20xf-20/overlay.png` — overlay fits within the parent canvas with a 20px inset on each side
+      - `fx200/banner.png` — overlay inherits parent width, fixed 200px height
   - `x` - horizontal position (defaults to 0 if not specified):
     - Positive number indicates position from the left, negative from the right
     - Number followed by `p` e.g. `20p` means percentage of image width
-    - `left`, `right`, `center` for alignment
+    - `left` or `l`, `right` or `r`, `center` for alignment, optionally with pixel offset e.g. `left-20`, `r-10`
     - `repeat` to tile horizontally
     - Float between 0-1 represents percentage e.g. `0.5` for center
   - `y` - vertical position (defaults to 0 if not specified):
     - Positive number indicates position from the top, negative from the bottom
     - Number followed by `p` e.g. `20p` means percentage of image height
-    - `top`, `bottom`, `center` for alignment
+    - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally with pixel offset e.g. `top-10`, `b-20`
     - `repeat` to tile vertically
     - Float between 0-1 represents percentage e.g. `0.5` for center
   - `alpha` - transparency level, 0 (fully opaque) to 100 (fully transparent)
+  - `blend_mode` - compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
 - `label(text, x, y, size, color[, alpha[, font]])` adds a text label to the image. It can be positioned inside the image with the alignment specified, color and transparency support:
   - `text` text label, also support url encoded text.
   - `x` horizontal position that the text label will be in:
