@@ -24,6 +24,9 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	if unescape, e := url.QueryUnescape(args[0]); e == nil {
 		imagorPath = unescape
 	}
+	// Resolve f-token dimension placeholders (e.g. fxf, f-20xf-20) against the
+	// parent image's pixel dimensions before handing the path to the parser.
+	imagorPath = resolveFullDimensions(imagorPath, img.Width(), img.PageHeight())
 	params := imagorpath.Parse(imagorPath)
 	var blob *imagor.Blob
 	if blob, err = load(params.Image); err != nil {
