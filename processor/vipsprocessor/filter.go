@@ -13,7 +13,20 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"go.uber.org/zap"
 )
+
+type watermarkCacheKey struct {
+	Image  string
+	Width  int
+	Height int
+	Alpha  float64
+	N      int
+}
+
+func (k watermarkCacheKey) String() string {
+	return fmt.Sprintf("%s|%d|%d|%.4f|%d", k.Image, k.Width, k.Height, k.Alpha, k.N)
+}
 
 func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
@@ -52,11 +65,9 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 		alpha, _ = strconv.ParseFloat(args[3], 64)
 	}
 	if ln >= 5 {
-		// Parse blend mode (5th parameter)
 		blendMode = getBlendMode(args[4])
 	}
 
-	// Transform and composite overlay onto image
 	return compositeOverlay(img, overlay, xArg, yArg, alpha, blendMode)
 }
 
@@ -72,25 +83,25 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	}
 
 	if strings.HasPrefix(image, "b64:") {
-		// if image URL starts with b64: prefix, Base64 decode it according to "base64url" in RFC 4648 (Section 5).
 		result := make([]byte, base64.RawURLEncoding.DecodedLen(len(image[4:])))
-		// in case decoding fails, use original image URL (possible that filename starts with b64: prefix, but as part of the file name)
 		if _, e := base64.RawURLEncoding.Decode(result, []byte(image[4:])); e == nil {
 			image = string(result)
 		}
 	}
 
-	var blob *imagor.Blob
-	if blob, err = load(image); err != nil {
-		return
-	}
 	var w, h int
 	var overlay *vips.Image
 	var n = 1
 	if isAnimated(img) {
 		n = -1
 	}
-	// w_ratio h_ratio
+
+	var alpha float64 = 1
+	if ln >= 4 {
+		alpha, _ = strconv.ParseFloat(args[3], 64)
+		alpha = 1 - alpha/100
+	}
+
 	if ln >= 6 {
 		w = img.Width()
 		h = img.PageHeight()
@@ -102,33 +113,92 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 			h, _ = strconv.Atoi(args[5])
 			h = img.PageHeight() * h / 100
 		}
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
-		); err != nil {
+	} else {
+		w = v.MaxWidth
+		h = v.MaxHeight
+	}
+
+	cacheKey := watermarkCacheKey{Image: image, Width: w, Height: h, Alpha: alpha, N: n}
+	var cacheHit bool
+
+	if v.watermarkCache != nil {
+		if cached, found := v.watermarkCache.Get(cacheKey.String()); found {
+			if cachedImg, ok := cached.(*vips.Image); ok {
+				overlay, err = cachedImg.Copy(nil)
+				if err != nil {
+					return
+				}
+				cacheHit = true
+				if v.Debug {
+					v.Logger.Debug("watermark cache hit", zap.String("image", image))
+				}
+			}
+		}
+	}
+
+	if !cacheHit {
+		var blob *imagor.Blob
+		if blob, err = load(image); err != nil {
 			return
 		}
-	} else {
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0,
-		); err != nil {
-			return
+
+		if ln >= 6 {
+			if overlay, err = v.NewThumbnail(
+				ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
+			); err != nil {
+				return
+			}
+		} else {
+			if overlay, err = v.NewThumbnail(
+				ctx, blob, w, h, vips.InterestingNone, vips.SizeDown, n, 1, 0,
+			); err != nil {
+				return
+			}
+		}
+
+		if overlay.Bands() < 3 {
+			if err = overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+				overlay.Close()
+				return
+			}
+		}
+		if !overlay.HasAlpha() {
+			if err = overlay.Addalpha(); err != nil {
+				overlay.Close()
+				return
+			}
+		}
+
+		if alpha != 1 {
+			if err = overlay.Linear([]float64{1, 1, 1, alpha}, []float64{0, 0, 0, 0}, nil); err != nil {
+				overlay.Close()
+				return
+			}
+		}
+
+		if v.watermarkCache != nil {
+			cachedImg, copyErr := overlay.Copy(nil)
+			if copyErr == nil {
+				cost := int64(cachedImg.Width() * cachedImg.Height() * cachedImg.Bands())
+				v.watermarkCache.Set(cacheKey.String(), cachedImg, cost)
+				if v.Debug {
+					v.Logger.Debug("watermark cache store", zap.String("image", image), zap.Int64("cost", cost))
+				}
+			}
 		}
 	}
 	contextDefer(ctx, overlay.Close)
 
-	// Parse arguments
+	// Parse position arguments
 	var xArg, yArg string
-	var alpha float64
 	if ln >= 3 {
 		xArg = args[1]
 		yArg = args[2]
 	}
-	if ln >= 4 {
-		alpha, _ = strconv.ParseFloat(args[3], 64)
-	}
 
-	// Transform and composite overlay onto image
-	return compositeOverlay(img, overlay, xArg, yArg, alpha, vips.BlendModeOver)
+	// Use upstream compositeOverlay for positioning, embed, and composite
+	// Pass alpha=0 since we already applied alpha above (before caching)
+	return compositeOverlay(img, overlay, xArg, yArg, 0, vips.BlendModeOver)
 }
 
 func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
