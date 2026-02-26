@@ -35,14 +35,11 @@ func resolveFullDim(token string, parentDim int) string {
 
 // resolveFullDimensions rewrites f‑tokens in the WxH dimension segment of an
 // imagor path, substituting the parent image's pixel dimensions before the path
-// is parsed. All other path segments are left untouched.
-//
-// Splitting is parenthesis-depth-aware: slashes inside filter arguments
-// (e.g. the nested path inside filters:image(...)) are not treated as segment
-// boundaries, preventing inner f-tokens from being resolved against the wrong
-// parent dimensions.
+// is parsed. Only the first matching segment is resolved — the dimension segment
+// always appears before filters: in a valid imagor path, so any subsequent
+// matches are inner nested layer paths that belong to a different resolution scope.
 func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
-	segments := splitTopLevelSlashes(imagorPath)
+	segments := strings.Split(imagorPath, "/")
 	for i, seg := range segments {
 		if !strings.Contains(seg, "f") {
 			continue
@@ -57,33 +54,9 @@ func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
 		if newLeft != left || newRight != right {
 			segments[i] = newLeft + "x" + newRight
 		}
+		break // only the first WxH segment belongs to this layer
 	}
 	return strings.Join(segments, "/")
-}
-
-// splitTopLevelSlashes splits s on '/' characters that are not enclosed within
-// parentheses, leaving nested filter arguments (e.g. inside filters:image(...))
-// intact as a single segment.
-func splitTopLevelSlashes(s string) []string {
-	var segments []string
-	depth := 0
-	start := 0
-	for i := 0; i < len(s); i++ {
-		switch s[i] {
-		case '(':
-			depth++
-		case ')':
-			if depth > 0 {
-				depth--
-			}
-		case '/':
-			if depth == 0 {
-				segments = append(segments, s[start:i])
-				start = i + 1
-			}
-		}
-	}
-	return append(segments, s[start:])
 }
 
 // blendModeMap maps blend mode names to vips.BlendMode constants
