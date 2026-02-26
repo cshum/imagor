@@ -13,7 +13,7 @@ var pathRegex = regexp.MustCompile(
 		// params
 		"(params/)?" +
 		// hash
-		"((unsafe/)|([A-Za-z0-9-_=]{18,})/)?"+
+		"((unsafe/)|([A-Za-z0-9-_=]{18,})/)?" +
 		// path
 		"(.+)?",
 )
@@ -47,7 +47,7 @@ var paramsRegex = regexp.MustCompile(
 // fullDimTokenRegex matches a raw f-token WxH segment that may be incorrectly
 // captured as a URL signature by pathRegex when both dimensions use the f-token
 // syntax with large numbers (≥6 digits) and flip prefixes.
-var fullDimTokenRegex = regexp.MustCompile(`^-?f([+-]\d+)?x-?f([+-]\d+)?$`)
+var fullDimTokenRegex = regexp.MustCompile(`^-?f(-\d+)?x-?f(-\d+)?$`)
 
 // isFullDimToken reports whether s looks like an f-token dimension segment
 // (e.g. fxf, f-20xf-20, -fxf) rather than a real URL signature.

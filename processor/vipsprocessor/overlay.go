@@ -1,12 +1,60 @@
 package vipsprocessor
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/vipsgen/vips"
 )
+
+// fullDimRegex matches a single dimension token: optionally a flip prefix -, then f,
+// optionally followed by a negative integer offset e.g. f, f-20, -f, -f-20.
+var fullDimRegex = regexp.MustCompile(`^(-?)f(-\d+)?$`)
+
+// dimSegmentRegex matches a /‑separated WxH segment where either or both sides
+// may be an f‑token or a plain integer.
+var dimSegmentRegex = regexp.MustCompile(`^(-?(?:f(?:-\d+)?|\d*))x(-?(?:f(?:-\d+)?|\d*))$`)
+
+// resolveFullDim resolves a single dimension token against a parent pixel size.
+// Tokens of the form f or f-NNN (with optional leading - for flip)
+// resolve to parentDim - NNN. Any other token is returned unchanged.
+func resolveFullDim(token string, parentDim int) string {
+	m := fullDimRegex.FindStringSubmatch(token)
+	if m == nil {
+		return token
+	}
+	flip := m[1]
+	offset := 0
+	if m[2] != "" {
+		offset, _ = strconv.Atoi(m[2])
+	}
+	return flip + strconv.Itoa(parentDim+offset)
+}
+
+// resolveFullDimensions rewrites f‑tokens in the WxH dimension segment of an
+// imagor path, substituting the parent image's pixel dimensions before the path
+// is parsed. All other path segments are left untouched.
+func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
+	segments := strings.Split(imagorPath, "/")
+	for i, seg := range segments {
+		if !strings.Contains(seg, "f") {
+			continue
+		}
+		m := dimSegmentRegex.FindStringSubmatch(seg)
+		if m == nil {
+			continue
+		}
+		left, right := m[1], m[2]
+		newLeft := resolveFullDim(left, parentW)
+		newRight := resolveFullDim(right, parentH)
+		if newLeft != left || newRight != right {
+			segments[i] = newLeft + "x" + newRight
+		}
+	}
+	return strings.Join(segments, "/")
+}
 
 // blendModeMap maps blend mode names to vips.BlendMode constants
 var blendModeMap = map[string]vips.BlendMode{
