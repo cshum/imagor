@@ -35,25 +35,29 @@ func resolveFullDim(token string, parentDim int) string {
 
 // resolveFullDimensions rewrites f‑tokens in the WxH dimension segment of an
 // imagor path, substituting the parent image's pixel dimensions before the path
-// is parsed. All other path segments are left untouched.
+// is parsed. Only the first matching segment is resolved — the dimension segment
+// always appears before filters: in a valid imagor path, so any subsequent
+// matches are inner nested layer paths that belong to a different resolution scope.
 func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
-	segments := strings.Split(imagorPath, "/")
-	for i, seg := range segments {
-		if !strings.Contains(seg, "f") {
+	start := 0
+	for i := 0; i <= len(imagorPath); i++ {
+		if i < len(imagorPath) && imagorPath[i] != '/' {
 			continue
 		}
-		m := dimSegmentRegex.FindStringSubmatch(seg)
-		if m == nil {
-			continue
+		seg := imagorPath[start:i]
+		if strings.Contains(seg, "f") {
+			if m := dimSegmentRegex.FindStringSubmatch(seg); m != nil {
+				newLeft := resolveFullDim(m[1], parentW)
+				newRight := resolveFullDim(m[2], parentH)
+				if newLeft != m[1] || newRight != m[2] {
+					return imagorPath[:start] + newLeft + "x" + newRight + imagorPath[i:]
+				}
+				return imagorPath
+			}
 		}
-		left, right := m[1], m[2]
-		newLeft := resolveFullDim(left, parentW)
-		newRight := resolveFullDim(right, parentH)
-		if newLeft != left || newRight != right {
-			segments[i] = newLeft + "x" + newRight
-		}
+		start = i + 1
 	}
-	return strings.Join(segments, "/")
+	return imagorPath
 }
 
 // blendModeMap maps blend mode names to vips.BlendMode constants
