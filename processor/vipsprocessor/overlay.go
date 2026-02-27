@@ -52,7 +52,7 @@ func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
 				if newLeft != m[1] || newRight != m[2] {
 					return imagorPath[:start] + newLeft + "x" + newRight + imagorPath[i:]
 				}
-				return imagorPath // f-tokens present but resolved to same value
+				return imagorPath
 			}
 		}
 		start = i + 1
