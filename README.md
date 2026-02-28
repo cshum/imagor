@@ -105,10 +105,10 @@ imagor supports the following filters:
   - `imagorpath` - an imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
     - The nested path supports all imagor operations: resizing, cropping, filters, etc.
     - Enables recursive nesting - images can load other processed images
-    - Use `f` in the `WxH` dimension segment to match the parent image's width or height at request time. `f` means the full parent dimension, `f-NNN` means the parent dimension minus NNN pixels. Examples:
-      - `fxf/overlay.png` — overlay fills the parent canvas exactly
-      - `fit-in/f-20xf-20/overlay.png` — overlay fits within the parent canvas with a 20px inset on each side
-      - `fx200/banner.png` — overlay inherits parent width, fixed 200px height
+    - Use `full` (or `f`) in the `WxH` dimension segment to inherit the parent image's width or height. `full` means the full parent dimension; `full-NNN` means the parent dimension minus NNN pixels. Examples:
+      - `fullxfull/overlay.png` (or `fxf`) — overlay fills the parent canvas exactly
+      - `fit-in/full-20xfull-20/overlay.png` (or `fit-in/f-20xf-20`) — overlay fits within the parent canvas with a 20px inset on each side
+      - `fullx200/banner.png` — overlay inherits parent width, fixed 200px height
   - `x` - horizontal position (defaults to 0 if not specified):
     - Positive number indicates position from the left, negative from the right
     - Number followed by `p` e.g. `20p` means percentage of image width

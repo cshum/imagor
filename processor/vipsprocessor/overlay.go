@@ -9,13 +9,14 @@ import (
 	"github.com/cshum/vipsgen/vips"
 )
 
-// fullDimRegex matches a single dimension token: optionally a flip prefix -, then f,
-// optionally followed by a negative integer offset e.g. f, f-20, -f, -f-20.
-var fullDimRegex = regexp.MustCompile(`^(-?)f(-\d+)?$`)
+// fullDimRegex matches a single dimension token: optionally a flip prefix -,
+// then f or full, optionally followed by a negative integer offset
+// e.g. f, f-20, full, full-20, -f, -full-20.
+var fullDimRegex = regexp.MustCompile(`^(-?)(?:full|f)(-\d+)?$`)
 
 // dimSegmentRegex matches a /‑separated WxH segment where either or both sides
-// may be an f‑token or a plain integer.
-var dimSegmentRegex = regexp.MustCompile(`^(-?(?:f(?:-\d+)?|\d*))x(-?(?:f(?:-\d+)?|\d*))$`)
+// may be an f/full‑token or a plain integer.
+var dimSegmentRegex = regexp.MustCompile(`^(-?(?:(?:full|f)(?:-\d+)?|\d*))x(-?(?:(?:full|f)(?:-\d+)?|\d*))$`)
 
 // resolveFullDim resolves a single dimension token against a parent pixel size.
 // Tokens of the form f or f-NNN (with optional leading - for flip)
