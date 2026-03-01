@@ -74,6 +74,15 @@ func (v *Processor) Process(
 		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif)), nil
 	}
 
+	// Strip ICC profile before export when strip_metadata is requested.
+	// This ensures proper colour conversion to sRGB before the ICC profile
+	// is removed, matching the behaviour of the strip_icc filter.
+	if params.stripMetadata {
+		if err := stripIcc(ctx, img, load); err != nil {
+			return nil, WrapErr(err)
+		}
+	}
+
 	// Export with max_bytes retry loop
 	params.format = supportedSaveFormat(params.format)
 	for {
