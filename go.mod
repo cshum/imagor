@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.9
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
 	github.com/aws/smithy-go v1.24.1
-	github.com/cshum/vipsgen v1.3.1
+	github.com/cshum/vipsgen v1.3.2
 	github.com/fsouza/fake-gcs-server v1.54.0
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20260208201424-4c385a1f6a73
