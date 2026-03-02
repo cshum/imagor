@@ -57,9 +57,8 @@ jobs:
             imagor-test \
             go test -coverprofile=profile.cov ./...
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./profile.cov
-          fail_ci_if_error: true
+          name: coverage
+          path: ./profile.cov
