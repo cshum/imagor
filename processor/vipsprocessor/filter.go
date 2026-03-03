@@ -267,15 +267,38 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 	return nil
 }
 
+// decodeTextArg decodes a text/label content argument. It first attempts
+// URL query-unescape, then if the result has a "b64:" prefix it base64url-
+// decodes the payload (RFC 4648 §5, no padding), allowing arbitrary unicode
+// to be passed without URL encoding issues.
+func decodeTextArg(s string) string {
+	if a, e := url.QueryUnescape(s); e == nil {
+		s = a
+	}
+	if strings.HasPrefix(s, "b64:") {
+		if decoded, e := base64.RawURLEncoding.DecodeString(s[4:]); e == nil {
+			s = string(decoded)
+		}
+	}
+	return s
+}
+
+// parseFontArg decodes a Pango font string from a filter argument.
+// After URL query-unescaping, hyphens are replaced with spaces so callers
+// can write e.g. "sans-bold-24" or "monospace-18" without percent-encoding.
+func parseFontArg(s string) string {
+	if a, e := url.QueryUnescape(s); e == nil {
+		s = a
+	}
+	return strings.ReplaceAll(s, "-", " ")
+}
+
 func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
 	}
-	if a, e := url.QueryUnescape(args[0]); e == nil {
-		args[0] = a
-	}
-	text := args[0]
+	text := decodeTextArg(args[0])
 	font := "sans"
 	size := 20
 	c := []float64{0, 0, 0}
@@ -297,11 +320,7 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		alpha, _ = strconv.ParseFloat(args[5], 64)
 	}
 	if ln > 6 {
-		if a, e := url.QueryUnescape(args[6]); e == nil {
-			font = a
-		} else {
-			font = args[6]
-		}
+		font = parseFontArg(args[6])
 	}
 	// Render text as RGBA: white text on transparent background.
 	// rgba:true makes libvips/Pango emit a proper 4-band sRGB image so
@@ -349,11 +368,8 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 	if ln == 0 {
 		return
 	}
-	if a, e := url.QueryUnescape(args[0]); e == nil {
-		args[0] = a
-	}
 	var (
-		textStr = args[0]
+		textStr = decodeTextArg(args[0])
 		xArg    string
 		yArg    string
 		font    = "sans 20"
@@ -373,11 +389,7 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 		yArg = args[2]
 	}
 	if ln > 3 {
-		if a, e := url.QueryUnescape(args[3]); e == nil {
-			font = a
-		} else {
-			font = args[3]
-		}
+		font = parseFontArg(args[3])
 	}
 	if ln > 4 {
 		c = getColor(img, args[4])
