@@ -64,6 +64,7 @@ func NewProcessor(options ...Option) *Processor {
 		"round_corner":     roundCorner,
 		"rotate":           rotate,
 		"label":            label,
+		"text":             text,
 		"grayscale":        grayscale,
 		"brightness":       brightness,
 		"background_color": backgroundColor,

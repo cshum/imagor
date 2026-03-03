@@ -342,6 +342,130 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
+func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
+	// text(text,x,y,font,color,alpha,width,align,justify,wrap,spacing,dpi)
+	// font includes size e.g. "sans bold 24", "monospace 18"
+	ln := len(args)
+	if ln == 0 {
+		return
+	}
+	if a, e := url.QueryUnescape(args[0]); e == nil {
+		args[0] = a
+	}
+	var (
+		textStr = args[0]
+		xArg    string
+		yArg    string
+		font    = "sans 20"
+		c       = []float64{0, 0, 0}
+		alpha   float64
+		width   int
+		align   = vips.AlignLow
+		justy   = false
+		wrap    = vips.TextWrapWord
+		spacing int
+		dpi     int
+	)
+	if ln > 1 {
+		xArg = args[1]
+	}
+	if ln > 2 {
+		yArg = args[2]
+	}
+	if ln > 3 {
+		if a, e := url.QueryUnescape(args[3]); e == nil {
+			font = a
+		} else {
+			font = args[3]
+		}
+	}
+	if ln > 4 {
+		c = getColor(img, args[4])
+	}
+	if ln > 5 {
+		alpha, _ = strconv.ParseFloat(args[5], 64)
+	}
+	if ln > 6 {
+		width, _ = strconv.Atoi(args[6])
+	}
+	if ln > 7 {
+		switch strings.ToLower(args[7]) {
+		case "centre", "center":
+			align = vips.AlignCentre
+		case "high", "right":
+			align = vips.AlignHigh
+		default:
+			align = vips.AlignLow
+		}
+	}
+	if ln > 8 {
+		justy = args[8] == "true" || args[8] == "1"
+	}
+	if ln > 9 {
+		switch strings.ToLower(args[9]) {
+		case "char":
+			wrap = vips.TextWrapChar
+		case "wordchar", "word_char":
+			wrap = vips.TextWrapWordChar
+		case "none":
+			wrap = vips.TextWrapNone
+		default:
+			wrap = vips.TextWrapWord
+		}
+	}
+	if ln > 10 {
+		spacing, _ = strconv.Atoi(args[10])
+	}
+	if ln > 11 {
+		dpi, _ = strconv.Atoi(args[11])
+	}
+
+	opts := &vips.TextOptions{
+		Font:    font,
+		Width:   width,
+		Align:   align,
+		Justify: justy,
+		Wrap:    wrap,
+		Rgba:    true,
+	}
+	if spacing > 0 {
+		opts.Spacing = spacing
+	}
+	if dpi > 0 {
+		opts.Dpi = dpi
+	}
+
+	textImg, err := vips.NewText(textStr, opts)
+	if err != nil {
+		return
+	}
+	defer textImg.Close()
+
+	// Colorize: Pango renders black [0,0,0,A]; zero the RGB and offset to target color
+	if err = textImg.Linear(
+		[]float64{0, 0, 0, 1},
+		[]float64{c[0], c[1], c[2], 0},
+		nil,
+	); err != nil {
+		return
+	}
+	if err = textImg.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+
+	if img.Bands() < 3 {
+		if err = img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+			return
+		}
+	}
+	if !img.HasAlpha() {
+		if err = img.Addalpha(); err != nil {
+			return
+		}
+	}
+	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
+}
+
 func (v *Processor) padding(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
 	ln := len(args)
 	if ln < 2 {
