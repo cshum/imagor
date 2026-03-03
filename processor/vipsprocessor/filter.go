@@ -303,7 +303,6 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			font = args[6]
 		}
 	}
-
 	// Render text as RGBA: white text on transparent background.
 	// rgba:true makes libvips/Pango emit a proper 4-band sRGB image so
 	// HasAlpha() is true with no extra fixups needed.
@@ -312,11 +311,9 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		return
 	}
 	defer textImg.Close()
-
 	// Colorize: replace RGB channels with the target color (multiplier=0 zeros out
 	// the original black text color, offset=c sets the target color), while
 	// preserving the alpha channel exactly (coverage stays as Pango rendered it).
-	// Background pixels [0,0,0,0] become [c0,c1,c2,0] — still fully transparent.
 	if err = textImg.Linear(
 		[]float64{0, 0, 0, 1},
 		[]float64{c[0], c[1], c[2], 0},
@@ -327,16 +324,11 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 	if err = textImg.Cast(vips.BandFormatUchar, nil); err != nil {
 		return
 	}
-
-	// Pad height to exactly `size` so y-positioning (bottom/center/negative)
-	// uses a consistent overlay height, matching the old behaviour.
 	if textImg.Height() < size {
 		if err = textImg.Embed(0, 0, textImg.Width(), size, nil); err != nil {
 			return
 		}
 	}
-
-	// Ensure base image is sRGB with alpha before compositing.
 	if img.Bands() < 3 {
 		if err = img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
 			return
@@ -347,8 +339,6 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			return
 		}
 	}
-
-	// compositeOverlay handles positioning, animation frame replication, and Composite2.
 	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
