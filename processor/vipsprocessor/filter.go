@@ -293,6 +293,42 @@ func parseFontArg(s string) string {
 	return strings.ReplaceAll(s, "-", " ")
 }
 
+// parseTextWidth resolves the wrap-width argument against the canvas width.
+// Supports the same conventions as overlay x/y positions:
+//
+//	0 or ""           → 0 (unconstrained, Pango wraps only on explicit newlines)
+//	plain int         → pixel count
+//	Np  (e.g. 80p)   → N% of canvas width
+//	0.N (e.g. 0.8)   → fraction of canvas width
+//	f or full         → full canvas width
+//	f-N / full-N      → canvas width minus N pixels
+func parseTextWidth(arg string, canvasWidth int) int {
+	if arg == "" {
+		return 0
+	}
+	// full / f / full-N / f-N  (reuses fullDimRegex from overlay.go)
+	if m := fullDimRegex.FindStringSubmatch(arg); m != nil {
+		offset := 0
+		if m[2] != "" {
+			offset, _ = strconv.Atoi(m[2]) // already negative e.g. "-20"
+		}
+		return canvasWidth + offset
+	}
+	// percentage: e.g. 80p
+	if strings.HasSuffix(arg, "p") {
+		val, _ := strconv.Atoi(strings.TrimSuffix(arg, "p"))
+		return val * canvasWidth / 100
+	}
+	// float fraction: e.g. 0.8
+	if strings.HasPrefix(strings.TrimPrefix(arg, "-"), "0.") {
+		frac, _ := strconv.ParseFloat(arg, 64)
+		return int(frac * float64(canvasWidth))
+	}
+	// plain integer pixels
+	v, _ := strconv.Atoi(arg)
+	return v
+}
+
 func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	ln := len(args)
 	if ln == 0 {
@@ -398,7 +434,7 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 		alpha, _ = strconv.ParseFloat(args[5], 64)
 	}
 	if ln > 6 {
-		width, _ = strconv.Atoi(args[6])
+		width = parseTextWidth(args[6], img.Width())
 	}
 	if ln > 7 {
 		switch strings.ToLower(args[7]) {

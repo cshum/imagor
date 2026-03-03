@@ -325,6 +325,8 @@ func TestProcessor(t *testing.T) {
 			{name: "text right bottom", path: "fit-in/300x200/10x10/filters:fill(yellow):text(IMAGOR,right,bottom,sans-20,green,30)/gopher-front.png", arm64Golden: true},
 			{name: "text multiline wrap", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,20,20,sans-18,black,80,120)/gopher-front.png", arm64Golden: true},
 			{name: "text multiline center align", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,center,40,sans-18,red,80,120,centre)/gopher-front.png", arm64Golden: true},
+			{name: "text multiline wrap percent", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,20,20,sans-18,black,80,60p)/gopher-front.png", arm64Golden: true},
+			{name: "text multiline wrap full", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,0,20,sans-18,black,80,f-40)/gopher-front.png", arm64Golden: true},
 			{name: "text animated", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):text(GO,center,-30,sans-bold-18,white,0)/dancing-banana.gif", arm64Golden: true},
 			{name: "text grayscale", path: "fit-in/filters:text(imagor,-1,0,sans-30)/2bands.png", checkTypeOnly: true},
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
