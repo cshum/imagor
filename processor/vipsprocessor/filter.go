@@ -319,19 +319,22 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		}
 	}
 
-	// Build solid RGB color layer of same dimensions as text mask
+	// Build solid RGB color layer of same dimensions as text mask.
+	// Start as 1-band black, promote to 3-band sRGB via Colourspace (mirrors the
+	// original C code: vips_black → vips_linear(n=3) → vips_cast → vips_copy(interpretation)),
+	// then apply target color via Linear (a=1, b=color → out = color).
 	colorImg, err := vips.NewBlack(textMask.Width(), textMask.Height(), nil)
 	if err != nil {
 		return
 	}
 	defer colorImg.Close()
+	if err = colorImg.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+		return
+	}
 	if err = colorImg.Linear([]float64{1, 1, 1}, c, nil); err != nil {
 		return
 	}
 	if err = colorImg.Cast(vips.BandFormatUchar, nil); err != nil {
-		return
-	}
-	if err = colorImg.Colourspace(vips.InterpretationSrgb, nil); err != nil {
 		return
 	}
 
