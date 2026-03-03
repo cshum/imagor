@@ -272,94 +272,54 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 	if ln == 0 {
 		return
 	}
-	if a, e := url.QueryUnescape(args[0]); e == nil {
-		args[0] = a
-	}
-	var text = args[0]
-	var font = "tahoma"
-	var x, y int
-	var c []float64
+	text := decodeTextArg(args[0])
+	font := "sans"
+	size := 20
+	c := []float64{0, 0, 0}
 	var alpha float64
-	var align = vips.AlignLow
-	var size = 20
-	var width = img.Width()
-	if ln > 3 {
-		size, _ = strconv.Atoi(args[3])
-	}
+	var xArg, yArg string
 	if ln > 1 {
-		// Check for alignment keyword with negative offset (e.g., left-20, l-20, right-30, r-30)
-		if strings.HasPrefix(args[1], "left-") || strings.HasPrefix(args[1], "l-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[1], "left-"), "l-"))
-			x = -offset
-		} else if strings.HasPrefix(args[1], "right-") || strings.HasPrefix(args[1], "r-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[1], "right-"), "r-"))
-			align = vips.AlignHigh
-			x = width + offset
-		} else if args[1] == "center" {
-			align = vips.AlignCentre
-			x = width / 2
-		} else if args[1] == imagorpath.HAlignRight {
-			align = vips.AlignHigh
-			x = width
-		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[1], 64)
-			x = int(pec * float64(width))
-		} else if strings.HasSuffix(args[1], "p") {
-			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
-			x = x * width / 100
-		} else {
-			x, _ = strconv.Atoi(args[1])
-		}
-		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
-		if x < 0 &&
-			!strings.HasPrefix(args[1], "left-") && !strings.HasPrefix(args[1], "l-") &&
-			!strings.HasPrefix(args[1], "right-") && !strings.HasPrefix(args[1], "r-") {
-			align = vips.AlignHigh
-			x += width
-		}
+		xArg = args[1]
 	}
 	if ln > 2 {
-		// Check for alignment keyword with negative offset (e.g., top-20, t-20, bottom-20, b-20)
-		if strings.HasPrefix(args[2], "top-") || strings.HasPrefix(args[2], "t-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[2], "top-"), "t-"))
-			y = -offset
-		} else if strings.HasPrefix(args[2], "bottom-") || strings.HasPrefix(args[2], "b-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[2], "bottom-"), "b-"))
-			y = img.PageHeight() - size + offset
-		} else if args[2] == "center" {
-			y = (img.PageHeight() - size) / 2
-		} else if args[2] == imagorpath.VAlignTop {
-			y = 0
-		} else if args[2] == imagorpath.VAlignBottom {
-			y = img.PageHeight() - size
-		} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[2], 64)
-			y = int(pec * float64(img.PageHeight()))
-		} else if strings.HasSuffix(args[2], "p") {
-			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
-			y = y * img.PageHeight() / 100
-		} else {
-			y, _ = strconv.Atoi(args[2])
-		}
-		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
-		if y < 0 &&
-			!strings.HasPrefix(args[2], "top-") && !strings.HasPrefix(args[2], "t-") &&
-			!strings.HasPrefix(args[2], "bottom-") && !strings.HasPrefix(args[2], "b-") {
-			y += img.PageHeight() - size
-		}
+		yArg = args[2]
+	}
+	if ln > 3 {
+		size, _ = strconv.Atoi(args[3])
 	}
 	if ln > 4 {
 		c = getColor(img, args[4])
 	}
 	if ln > 5 {
 		alpha, _ = strconv.ParseFloat(args[5], 64)
-		alpha /= 100
 	}
 	if ln > 6 {
-		if a, e := url.QueryUnescape(args[6]); e == nil {
-			font = a
-		} else {
-			font = args[6]
+		font = parseFontArg(args[6])
+	}
+	// Render text as RGBA: white text on transparent background.
+	// rgba:true makes libvips/Pango emit a proper 4-band sRGB image so
+	// HasAlpha() is true with no extra fixups needed.
+	textImg, err := vips.NewText(text, &vips.TextOptions{Font: font, Width: 9999, Height: size, Rgba: true})
+	if err != nil {
+		return
+	}
+	defer textImg.Close()
+	// Colorize: replace RGB channels with the target color (multiplier=0 zeros out
+	// the original black text color, offset=c sets the target color), while
+	// preserving the alpha channel exactly (coverage stays as Pango rendered it).
+	if err = textImg.Linear(
+		[]float64{0, 0, 0, 1},
+		[]float64{c[0], c[1], c[2], 0},
+		nil,
+	); err != nil {
+		return
+	}
+	if err = textImg.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+	if textImg.Height() < size {
+		if err = textImg.Embed(0, 0, textImg.Width(), size, nil); err != nil {
+			return
 		}
 	}
 	if img.Bands() < 3 {
@@ -372,13 +332,124 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			return
 		}
 	}
-	return img.Label(text, x, y, &vips.LabelOptions{
+	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
+}
+
+func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
+	// text(text,x,y,font,color,alpha,width,align,justify,wrap,spacing,dpi)
+	// font includes size e.g. "sans bold 24", "monospace 18"
+	ln := len(args)
+	if ln == 0 {
+		return
+	}
+	var (
+		textStr = decodeTextArg(args[0])
+		xArg    string
+		yArg    string
+		font    = "sans 20"
+		c       = []float64{0, 0, 0}
+		alpha   float64
+		width   int
+		align   = vips.AlignLow
+		justy   = false
+		wrap    = vips.TextWrapWord
+		spacing int
+		dpi     int
+	)
+	if ln > 1 {
+		xArg = args[1]
+	}
+	if ln > 2 {
+		yArg = args[2]
+	}
+	if ln > 3 {
+		font = parseFontArg(args[3])
+	}
+	if ln > 4 {
+		c = getColor(img, args[4])
+	}
+	if ln > 5 {
+		alpha, _ = strconv.ParseFloat(args[5], 64)
+	}
+	if ln > 6 {
+		width = parseTextWidth(args[6], img.Width())
+	}
+	if ln > 7 {
+		switch strings.ToLower(args[7]) {
+		case "centre", "center":
+			align = vips.AlignCentre
+		case "high", "right":
+			align = vips.AlignHigh
+		default:
+			align = vips.AlignLow
+		}
+	}
+	if ln > 8 {
+		justy = args[8] == "true" || args[8] == "1"
+	}
+	if ln > 9 {
+		switch strings.ToLower(args[9]) {
+		case "char":
+			wrap = vips.TextWrapChar
+		case "wordchar", "word_char":
+			wrap = vips.TextWrapWordChar
+		case "none":
+			wrap = vips.TextWrapNone
+		default:
+			wrap = vips.TextWrapWord
+		}
+	}
+	if ln > 10 {
+		spacing, _ = strconv.Atoi(args[10])
+	}
+	if ln > 11 {
+		dpi, _ = strconv.Atoi(args[11])
+	}
+
+	opts := &vips.TextOptions{
 		Font:    font,
-		Size:    size,
+		Width:   width,
 		Align:   align,
-		Opacity: 1 - alpha,
-		Color:   c,
-	})
+		Justify: justy,
+		Wrap:    wrap,
+		Rgba:    true,
+	}
+	if spacing > 0 {
+		opts.Spacing = spacing
+	}
+	if dpi > 0 {
+		opts.Dpi = dpi
+	}
+
+	textImg, err := vips.NewText(textStr, opts)
+	if err != nil {
+		return
+	}
+	defer textImg.Close()
+
+	// Colorize: Pango renders black [0,0,0,A]; zero the RGB and offset to target color
+	if err = textImg.Linear(
+		[]float64{0, 0, 0, 1},
+		[]float64{c[0], c[1], c[2], 0},
+		nil,
+	); err != nil {
+		return
+	}
+	if err = textImg.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+
+	if img.Bands() < 3 {
+		if err = img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+			return
+		}
+	}
+	if !img.HasAlpha() {
+		if err = img.Addalpha(); err != nil {
+			return
+		}
+	}
+	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
 func (v *Processor) padding(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
