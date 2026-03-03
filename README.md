@@ -123,20 +123,6 @@ imagor supports the following filters:
     - Float between 0-1 represents percentage e.g. `0.5` for center
   - `alpha` - transparency level, 0 (fully opaque) to 100 (fully transparent)
   - `blend_mode` - compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
-- `label(text, x, y, size, color[, alpha[, font]])` adds a text label to the image. It can be positioned inside the image with the alignment specified, color and transparency support:
-  - `text` text label, also support url encoded text.
-  - `x` horizontal position that the text label will be in:
-    - Positive number indicate position from the left, negative number from the right.
-    - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
-    - `left`,`right`,`center` align left, right or centered respectively
-  - `y` vertical position that the text label will be in:
-    - Positive number indicate position from the top, negative number from the bottom.
-    - Number followed by a `p` e.g. 20p means calculating the value from the image height as percentage
-    - `top`,`bottom`,`center` vertical align top, bottom or centered respectively
-  - `size` - text label font size
-  - `color` - color name or hexadecimal rgb expression without the “#” character
-  - `alpha` - text label transparency, a number between 0 (fully opaque) and 100 (fully transparent).
-  - `font` - text label font type
 - `max_bytes(amount)` automatically degrades the quality of the image until the image is under the specified `amount` of bytes
 - `max_frames(n)` limit maximum number of animation frames `n` to be loaded
 - `no_upscale()` prevents the image from being upscaled beyond its original dimensions
@@ -159,6 +145,32 @@ imagor supports the following filters:
 - `strip_exif()` removes Exif metadata from the resulting image
 - `strip_icc()` removes ICC profile information from the resulting image. The image is first converted to sRGB color space to preserve correct colors before the profile is removed.
 - `strip_metadata()` removes all metadata from the resulting image
+- `text(text, x, y, font[, color[, alpha[, width[, align[, justify[, wrap[, spacing[, dpi]]]]]]]]]])` renders a text overlay onto the image with full multi-line and Pango font support:
+  - `text` the text to render. Supports URL query-encoding and `b64:` prefix for [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding to safely pass arbitrary unicode or multi-word strings.
+  - `font` Pango font description including size, e.g. `sans-bold-24`, `monospace-18`. Hyphens are treated as spaces so font names and styles can be written without percent-encoding. Font size is in points; at the default 72 DPI, 1pt = 1px.
+  - `x` horizontal position:
+    - Positive number indicates position from the left, negative from the right
+    - Number followed by `p` e.g. `20p` means percentage of image width
+    - `left` or `l`, `right` or `r`, `center` for alignment, optionally with pixel offset e.g. `left-20`, `r-10`
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `y` vertical position:
+    - Positive number indicates position from the top, negative from the bottom
+    - Number followed by `p` e.g. `20p` means percentage of image height
+    - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally with pixel offset e.g. `top-10`, `b-20`
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `color` color name or hexadecimal rgb expression without the `#` character, defaults to black
+  - `alpha` transparency, 0 (fully opaque) to 100 (fully transparent), defaults to 0
+  - `width` wrap width — text wraps when a line exceeds this width. Supports the same conventions as image dimensions:
+    - Plain integer for pixel count, e.g. `300`
+    - Number followed by `p` for percentage of canvas width, e.g. `80p`
+    - Float between 0-1 as fraction of canvas width, e.g. `0.75`
+    - `f` or `full` for full canvas width; `f-N` / `full-N` for canvas width minus N pixels
+    - `0` or omitted means unconstrained (Pango wraps only on explicit newlines)
+  - `align` horizontal alignment of lines within the text box: `low` (default, left), `centre` / `center`, `high` / `right`
+  - `justify` justify text: `true` or `1`
+  - `wrap` line wrapping mode: `word` (default), `char`, `wordchar`, `none`
+  - `spacing` additional line spacing in pixels
+  - `dpi` render DPI, defaults to 72 (where 1pt = 1px)
 - `to_colorspace(profile)` converts the image to the specified ICC color profile
   - `profile` the target color profile, defaults to `srgb` if not specified. Common values: `srgb`, `p3`, `cmyk`
 - `upscale()` enables upscaling for `fit-in` and `adaptive-fit-in` modes
