@@ -313,11 +313,13 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 	}
 	defer textImg.Close()
 
-	// Colorize: scale each RGB channel by the target color (0-255 → 0-1 multiplier),
-	// leave alpha unchanged. Background pixels stay [0,0,0,0] (transparent).
+	// Colorize: replace RGB channels with the target color (multiplier=0 zeros out
+	// the original black text color, offset=c sets the target color), while
+	// preserving the alpha channel exactly (coverage stays as Pango rendered it).
+	// Background pixels [0,0,0,0] become [c0,c1,c2,0] — still fully transparent.
 	if err = textImg.Linear(
-		[]float64{c[0] / 255, c[1] / 255, c[2] / 255, 1},
-		[]float64{0, 0, 0, 0},
+		[]float64{0, 0, 0, 1},
+		[]float64{c[0], c[1], c[2], 0},
 		nil,
 	); err != nil {
 		return
