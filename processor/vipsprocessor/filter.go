@@ -276,7 +276,7 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		args[0] = a
 	}
 	text := args[0]
-	font := "tahoma"
+	font := "sans"
 	size := 20
 	c := []float64{0, 0, 0}
 	var alpha float64
@@ -304,48 +304,37 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		}
 	}
 
-	// Render text as grayscale mask (1-band, values = opacity)
-	textMask, err := vips.NewText(text, &vips.TextOptions{Font: font, Height: size})
-	if err != nil {
-		return
-	}
-	defer textMask.Close()
-
-	// Pad height to exactly `size` so y-positioning (bottom/center/negative)
-	// behaves identically to the old code which used size directly.
-	if textMask.Height() < size {
-		if err = textMask.Embed(0, 0, textMask.Width(), size, nil); err != nil {
-			return
-		}
-	}
-
-	// Build solid RGB color layer of same dimensions as text mask.
-	// Start as 1-band black, promote to 3-band sRGB via Colourspace (mirrors the
-	// original C code: vips_black → vips_linear(n=3) → vips_cast → vips_copy(interpretation)),
-	// then apply target color via Linear (a=1, b=color → out = color).
-	colorImg, err := vips.NewBlack(textMask.Width(), textMask.Height(), nil)
-	if err != nil {
-		return
-	}
-	defer colorImg.Close()
-	if err = colorImg.Colourspace(vips.InterpretationSrgb, nil); err != nil {
-		return
-	}
-	if err = colorImg.Linear([]float64{1, 1, 1}, c, nil); err != nil {
-		return
-	}
-	if err = colorImg.Cast(vips.BandFormatUchar, nil); err != nil {
-		return
-	}
-
-	// Join color (RGB) + text mask (A) → RGBA text overlay
-	textImg, err := vips.NewBandjoin([]*vips.Image{colorImg, textMask})
+	// Render text as RGBA: white text on transparent background.
+	// rgba:true makes libvips/Pango emit a proper 4-band sRGB image so
+	// HasAlpha() is true with no extra fixups needed.
+	textImg, err := vips.NewText(text, &vips.TextOptions{Font: font, Width: 9999, Height: size, Rgba: true})
 	if err != nil {
 		return
 	}
 	defer textImg.Close()
 
-	// Ensure base image is sRGB with alpha before compositing
+	// Colorize: scale each RGB channel by the target color (0-255 → 0-1 multiplier),
+	// leave alpha unchanged. Background pixels stay [0,0,0,0] (transparent).
+	if err = textImg.Linear(
+		[]float64{c[0] / 255, c[1] / 255, c[2] / 255, 1},
+		[]float64{0, 0, 0, 0},
+		nil,
+	); err != nil {
+		return
+	}
+	if err = textImg.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+
+	// Pad height to exactly `size` so y-positioning (bottom/center/negative)
+	// uses a consistent overlay height, matching the old behaviour.
+	if textImg.Height() < size {
+		if err = textImg.Embed(0, 0, textImg.Width(), size, nil); err != nil {
+			return
+		}
+	}
+
+	// Ensure base image is sRGB with alpha before compositing.
 	if img.Bands() < 3 {
 		if err = img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
 			return
@@ -357,7 +346,7 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		}
 	}
 
-	// compositeOverlay handles positioning, animation frame replication, and Composite2
+	// compositeOverlay handles positioning, animation frame replication, and Composite2.
 	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
