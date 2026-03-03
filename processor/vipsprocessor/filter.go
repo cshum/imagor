@@ -275,85 +275,26 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 	if a, e := url.QueryUnescape(args[0]); e == nil {
 		args[0] = a
 	}
-	var text = args[0]
-	var font = "tahoma"
-	var x, y int
-	var c []float64
+	text := args[0]
+	font := "tahoma"
+	size := 20
+	c := []float64{0, 0, 0}
 	var alpha float64
-	var align = vips.AlignLow
-	var size = 20
-	var width = img.Width()
-	if ln > 3 {
-		size, _ = strconv.Atoi(args[3])
-	}
+	var xArg, yArg string
 	if ln > 1 {
-		// Check for alignment keyword with negative offset (e.g., left-20, l-20, right-30, r-30)
-		if strings.HasPrefix(args[1], "left-") || strings.HasPrefix(args[1], "l-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[1], "left-"), "l-"))
-			x = -offset
-		} else if strings.HasPrefix(args[1], "right-") || strings.HasPrefix(args[1], "r-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[1], "right-"), "r-"))
-			align = vips.AlignHigh
-			x = width + offset
-		} else if args[1] == "center" {
-			align = vips.AlignCentre
-			x = width / 2
-		} else if args[1] == imagorpath.HAlignRight {
-			align = vips.AlignHigh
-			x = width
-		} else if strings.HasPrefix(strings.TrimPrefix(args[1], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[1], 64)
-			x = int(pec * float64(width))
-		} else if strings.HasSuffix(args[1], "p") {
-			x, _ = strconv.Atoi(strings.TrimSuffix(args[1], "p"))
-			x = x * width / 100
-		} else {
-			x, _ = strconv.Atoi(args[1])
-		}
-		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
-		if x < 0 &&
-			!strings.HasPrefix(args[1], "left-") && !strings.HasPrefix(args[1], "l-") &&
-			!strings.HasPrefix(args[1], "right-") && !strings.HasPrefix(args[1], "r-") {
-			align = vips.AlignHigh
-			x += width
-		}
+		xArg = args[1]
 	}
 	if ln > 2 {
-		// Check for alignment keyword with negative offset (e.g., top-20, t-20, bottom-20, b-20)
-		if strings.HasPrefix(args[2], "top-") || strings.HasPrefix(args[2], "t-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[2], "top-"), "t-"))
-			y = -offset
-		} else if strings.HasPrefix(args[2], "bottom-") || strings.HasPrefix(args[2], "b-") {
-			offset, _ := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(args[2], "bottom-"), "b-"))
-			y = img.PageHeight() - size + offset
-		} else if args[2] == "center" {
-			y = (img.PageHeight() - size) / 2
-		} else if args[2] == imagorpath.VAlignTop {
-			y = 0
-		} else if args[2] == imagorpath.VAlignBottom {
-			y = img.PageHeight() - size
-		} else if strings.HasPrefix(strings.TrimPrefix(args[2], "-"), "0.") {
-			pec, _ := strconv.ParseFloat(args[2], 64)
-			y = int(pec * float64(img.PageHeight()))
-		} else if strings.HasSuffix(args[2], "p") {
-			y, _ = strconv.Atoi(strings.TrimSuffix(args[2], "p"))
-			y = y * img.PageHeight() / 100
-		} else {
-			y, _ = strconv.Atoi(args[2])
-		}
-		// Apply negative adjustment for plain numeric values only (not prefixed keywords)
-		if y < 0 &&
-			!strings.HasPrefix(args[2], "top-") && !strings.HasPrefix(args[2], "t-") &&
-			!strings.HasPrefix(args[2], "bottom-") && !strings.HasPrefix(args[2], "b-") {
-			y += img.PageHeight() - size
-		}
+		yArg = args[2]
+	}
+	if ln > 3 {
+		size, _ = strconv.Atoi(args[3])
 	}
 	if ln > 4 {
 		c = getColor(img, args[4])
 	}
 	if ln > 5 {
 		alpha, _ = strconv.ParseFloat(args[5], 64)
-		alpha /= 100
 	}
 	if ln > 6 {
 		if a, e := url.QueryUnescape(args[6]); e == nil {
@@ -362,6 +303,46 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			font = args[6]
 		}
 	}
+
+	// Render text as grayscale mask (1-band, values = opacity)
+	textMask, err := vips.NewText(text, &vips.TextOptions{Font: font, Height: size})
+	if err != nil {
+		return
+	}
+	defer textMask.Close()
+
+	// Pad height to exactly `size` so y-positioning (bottom/center/negative)
+	// behaves identically to the old code which used size directly.
+	if textMask.Height() < size {
+		if err = textMask.Embed(0, 0, textMask.Width(), size, nil); err != nil {
+			return
+		}
+	}
+
+	// Build solid RGB color layer of same dimensions as text mask
+	colorImg, err := vips.NewBlack(textMask.Width(), textMask.Height(), nil)
+	if err != nil {
+		return
+	}
+	defer colorImg.Close()
+	if err = colorImg.Linear([]float64{1, 1, 1}, c, nil); err != nil {
+		return
+	}
+	if err = colorImg.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+	if err = colorImg.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+		return
+	}
+
+	// Join color (RGB) + text mask (A) → RGBA text overlay
+	textImg, err := vips.NewBandjoin([]*vips.Image{colorImg, textMask})
+	if err != nil {
+		return
+	}
+	defer textImg.Close()
+
+	// Ensure base image is sRGB with alpha before compositing
 	if img.Bands() < 3 {
 		if err = img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
 			return
@@ -372,13 +353,9 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			return
 		}
 	}
-	return img.Label(text, x, y, &vips.LabelOptions{
-		Font:    font,
-		Size:    size,
-		Align:   align,
-		Opacity: 1 - alpha,
-		Color:   c,
-	})
+
+	// compositeOverlay handles positioning, animation frame replication, and Composite2
+	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
 func (v *Processor) padding(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
