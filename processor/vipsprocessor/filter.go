@@ -336,25 +336,26 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 }
 
 func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
-	// text(text,x,y,font,color,alpha,width,align,justify,wrap,spacing,dpi)
+	// text(text,x,y,font,color,alpha,blend_mode,width,align,justify,wrap,spacing,dpi)
 	// font includes size e.g. "sans bold 24", "monospace 18"
 	ln := len(args)
 	if ln == 0 {
 		return
 	}
 	var (
-		textStr = decodeTextArg(args[0])
-		xArg    string
-		yArg    string
-		font    = "sans 20"
-		c       = []float64{0, 0, 0}
-		alpha   float64
-		width   int
-		align   = vips.AlignLow
-		justy   = false
-		wrap    = vips.TextWrapWord
-		spacing int
-		dpi     int
+		textStr   = decodeTextArg(args[0])
+		xArg      string
+		yArg      string
+		font      = "sans 20"
+		c         = []float64{0, 0, 0}
+		alpha     float64
+		blendMode = vips.BlendModeOver
+		width     int
+		align     = vips.AlignLow
+		justy     = false
+		wrap      = vips.TextWrapWord
+		spacing   int
+		dpi       int
 	)
 	if ln > 1 {
 		xArg = args[1]
@@ -372,10 +373,13 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 		alpha, _ = strconv.ParseFloat(args[5], 64)
 	}
 	if ln > 6 {
-		width = parseTextWidth(args[6], img.Width())
+		blendMode = getBlendMode(args[6])
 	}
 	if ln > 7 {
-		switch strings.ToLower(args[7]) {
+		width = parseTextWidth(args[7], img.Width())
+	}
+	if ln > 8 {
+		switch strings.ToLower(args[8]) {
 		case "centre", "center":
 			align = vips.AlignCentre
 		case "high", "right":
@@ -384,11 +388,11 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 			align = vips.AlignLow
 		}
 	}
-	if ln > 8 {
-		justy = args[8] == "true" || args[8] == "1"
-	}
 	if ln > 9 {
-		switch strings.ToLower(args[9]) {
+		justy = args[9] == "true" || args[9] == "1"
+	}
+	if ln > 10 {
+		switch strings.ToLower(args[10]) {
 		case "char":
 			wrap = vips.TextWrapChar
 		case "wordchar", "word_char":
@@ -399,11 +403,11 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 			wrap = vips.TextWrapWord
 		}
 	}
-	if ln > 10 {
-		spacing, _ = strconv.Atoi(args[10])
-	}
 	if ln > 11 {
-		dpi, _ = strconv.Atoi(args[11])
+		spacing, _ = strconv.Atoi(args[11])
+	}
+	if ln > 12 {
+		dpi, _ = strconv.Atoi(args[12])
 	}
 
 	opts := &vips.TextOptions{
@@ -449,7 +453,7 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 			return
 		}
 	}
-	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
+	return compositeOverlay(img, textImg, xArg, yArg, alpha, blendMode)
 }
 
 func (v *Processor) padding(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) error {
