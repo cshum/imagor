@@ -145,8 +145,7 @@ imagor supports the following filters:
 - `sharpen(sigma)` sharpens the image
 - `strip_exif()` removes Exif metadata from the resulting image
 - `strip_icc()` removes ICC profile information from the resulting image. The image is first converted to sRGB color space to preserve correct colors before the profile is removed.
-- `strip_metadata()` removes all metadata from the resulting image
-- `text(text, x, y, font[, color[, alpha[, width[, align[, justify[, wrap[, spacing[, dpi]]]]]]]]]])` renders a text overlay onto the image with full multi-line and Pango font support:
+- `text(text, x, y[, font[, color[, alpha[, width[, align[, justify[, wrap[, spacing[, dpi]]]]]]]]])` renders a text overlay onto the image with full multi-line and Pango font support:
   - `text` the text to render. Supports URL query-encoding and `b64:` prefix for [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding to safely pass arbitrary unicode or multi-word strings.
   - `font` Pango font description with hyphens as space separators, e.g. `sans-bold-24` for `sans bold 24`, `monospace-18` for `monospace 18`. Font size is in points; at the default 72 DPI, 1pt = 1px.
   - `x` horizontal position:
