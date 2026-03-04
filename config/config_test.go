@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -12,6 +14,8 @@ import (
 	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestDefault(t *testing.T) {
@@ -383,4 +387,37 @@ func TestResponseRawOnError(t *testing.T) {
 	})
 	app := srv.App.(*imagor.Imagor)
 	assert.True(t, app.ResponseRawOnError)
+}
+
+func TestLogECSFormat(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newECSLogger(false, zapcore.AddSync(&buf))
+	logger.Info("test-message", zap.String("status", "200"))
+
+	var entry map[string]interface{}
+	err := json.Unmarshal(buf.Bytes(), &entry)
+	assert.NoError(t, err)
+
+	assert.Contains(t, entry, "@timestamp")
+	assert.Contains(t, entry, "log.level")
+	assert.Contains(t, entry, "log.origin")
+	assert.Equal(t, "info", entry["log.level"])
+	assert.Equal(t, "test-message", entry["message"])
+	assert.Equal(t, "200", entry["status"])
+}
+
+func TestLogECSDebugLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newECSLogger(true, zapcore.AddSync(&buf))
+	logger.Debug("captured-debug-message")
+
+	assert.Contains(t, buf.String(), "captured-debug-message")
+}
+
+func TestLogECSInfoIgnoresDebug(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newECSLogger(false, zapcore.AddSync(&buf))
+	logger.Debug("lost-debug-message")
+
+	assert.Empty(t, buf.String())
 }

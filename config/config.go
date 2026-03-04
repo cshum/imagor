@@ -6,6 +6,7 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/cshum/imagor/server"
 	"github.com/getsentry/sentry-go"
 	"github.com/peterbourgon/ff/v3"
+	"go.elastic.co/ecszap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -139,6 +141,7 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		app    *imagor.Imagor
 
 		debug        = fs.Bool("debug", false, "Debug mode")
+		logECS       = fs.Bool("log-ecs", false, "Enable Elastic Common Schema log format")
 		version      = fs.Bool("version", false, "imagor version")
 		port         = fs.Int("port", 8000, "Server port")
 		goMaxProcess = fs.Int("gomaxprocs", 0, "GOMAXPROCS")
@@ -175,7 +178,10 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		); err != nil {
 			panic(err)
 		}
-		if *debug {
+
+		if *logECS {
+			logger = newECSLogger(*debug, os.Stdout)
+		} else if *debug {
 			logger = zap.Must(zap.NewDevelopment())
 		} else {
 			logger = zap.Must(zap.NewProduction())
@@ -237,4 +243,12 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		server.WithMetrics(pm),
 		server.WithSentry(*sentryDsn),
 	)
+}
+
+func newECSLogger(debug bool, w zapcore.WriteSyncer) *zap.Logger {
+	level := zap.InfoLevel
+	if debug {
+		level = zap.DebugLevel
+	}
+	return zap.New(ecszap.NewCore(ecszap.NewDefaultEncoderConfig(), w, level), zap.AddCaller())
 }

@@ -1043,4 +1043,7 @@ Usage of imagor:
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
+        
+  -log-ecs
+        Enable ECS (Elastic Common Schema) log format
 ```
