@@ -273,6 +273,9 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 		return
 	}
 	text := decodeTextArg(args[0])
+	if strings.TrimSpace(text) == "" {
+		return
+	}
 	font := "sans"
 	size := 20
 	c := []float64{0, 0, 0}
@@ -343,8 +346,13 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 		return
 	}
 	var (
-		textStr   = decodeTextArg(args[0])
-		xArg      string
+		textStr = decodeTextArg(args[0])
+		xArg    string
+	)
+	if strings.TrimSpace(textStr) == "" {
+		return
+	}
+	var (
 		yArg      string
 		font      = "sans 20"
 		c         = []float64{0, 0, 0}
