@@ -168,7 +168,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 
 	// Determine format if not specified
 	if format == vips.ImageTypeUnknown {
-		if blob.BlobType() == imagor.BlobTypeAVIF {
+		if blob != nil && blob.BlobType() == imagor.BlobTypeAVIF {
 			format = vips.ImageTypeAvif
 		} else {
 			format = img.Format()
@@ -186,10 +186,174 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 	}
 }
 
+// newColorImage creates a solid color vips.Image with the given RGBA color and dimensions.
+func newColorImage(width, height int, c []float64) (*vips.Image, error) {
+	hasAlpha := len(c) >= 4 && c[3] < 255
+
+	// Create a 3-band black image using vips native operations
+	img, err := vips.NewBlack(width, height, &vips.BlackOptions{Bands: 3})
+	if err != nil {
+		return nil, err
+	}
+
+	// Cast to uchar interpretation sRGB
+	if err := img.Cast(vips.BandFormatUchar, nil); err != nil {
+		img.Close()
+		return nil, err
+	}
+
+	// Add color using Linear: pixel = pixel * 1 + offset
+	if err := img.Linear([]float64{1, 1, 1}, []float64{c[0], c[1], c[2]}, nil); err != nil {
+		img.Close()
+		return nil, err
+	}
+
+	// Cast back to uchar after Linear (which produces float output)
+	if err := img.Cast(vips.BandFormatUchar, nil); err != nil {
+		img.Close()
+		return nil, err
+	}
+
+	// Copy with sRGB interpretation to ensure proper export
+	copied, err := img.Copy(&vips.CopyOptions{Interpretation: vips.InterpretationSrgb})
+	if err != nil {
+		img.Close()
+		return nil, err
+	}
+	img.Close()
+	img = copied
+
+	// Add alpha channel if needed
+	if hasAlpha {
+		alpha, err := vips.NewBlack(width, height, nil)
+		if err != nil {
+			img.Close()
+			return nil, err
+		}
+		if err := alpha.Cast(vips.BandFormatUchar, nil); err != nil {
+			img.Close()
+			alpha.Close()
+			return nil, err
+		}
+		if err := alpha.Linear([]float64{1}, []float64{c[3]}, nil); err != nil {
+			img.Close()
+			alpha.Close()
+			return nil, err
+		}
+		joined, err := vips.NewBandjoin([]*vips.Image{img, alpha})
+		if err != nil {
+			img.Close()
+			alpha.Close()
+			return nil, err
+		}
+		img.Close()
+		alpha.Close()
+		img = joined
+	}
+
+	return img, nil
+}
+
+// colorImageAndProcess creates a solid color image and applies filters.
+// The image is created at the exact requested dimensions, bypassing
+// the normal resize/thumbnail pipeline.
+func (v *Processor) colorImageAndProcess(
+	ctx context.Context, p imagorpath.Params, load imagor.LoadFunc, c []float64,
+) (*vips.Image, error) {
+	w := p.Width
+	h := p.Height
+	if w <= 0 && h <= 0 {
+		w, h = 1, 1
+	} else if w <= 0 {
+		w = h
+	} else if h <= 0 {
+		h = w
+	}
+	if !v.Unlimited && w*h > v.MaxResolution {
+		return nil, imagor.ErrMaxResolutionExceeded
+	}
+	if w > v.MaxWidth {
+		w = v.MaxWidth
+	}
+	if h > v.MaxHeight {
+		h = v.MaxHeight
+	}
+
+	img, err := newColorImage(w, h, c)
+	if err != nil {
+		return nil, WrapErr(err)
+	}
+
+	if v.Debug {
+		v.Logger.Debug("color-image",
+			zap.Int("width", w),
+			zap.Int("height", h),
+			zap.Any("color", c))
+	}
+
+	// Apply only filters (skip resize/crop/thumbnail — image is already at target size)
+	for i, filter := range p.Filters {
+		if err := ctx.Err(); err != nil {
+			img.Close()
+			return nil, err
+		}
+		if v.disableFilters[filter.Name] {
+			continue
+		}
+		if v.MaxFilterOps > 0 && i >= v.MaxFilterOps {
+			break
+		}
+		start := time.Now()
+		var args []string
+		if filter.Args != "" {
+			args = imagorpath.SplitArgs(filter.Args)
+		}
+		if fn := v.Filters[filter.Name]; fn != nil {
+			if err := fn(ctx, img, load, args...); err != nil {
+				img.Close()
+				return nil, WrapErr(err)
+			}
+		} else if filter.Name == "fill" {
+			if err := v.fill(ctx, img, w, h,
+				p.PaddingLeft, p.PaddingTop, p.PaddingRight, p.PaddingBottom,
+				filter.Args); err != nil {
+				img.Close()
+				return nil, WrapErr(err)
+			}
+		}
+		if v.Debug {
+			v.Logger.Debug("filter",
+				zap.String("name", filter.Name), zap.String("args", filter.Args),
+				zap.Duration("took", time.Since(start)))
+		}
+	}
+
+	// Apply flip
+	if p.HFlip {
+		if err := img.Flip(vips.DirectionHorizontal); err != nil {
+			img.Close()
+			return nil, WrapErr(err)
+		}
+	}
+	if p.VFlip {
+		if err := img.Flip(vips.DirectionVertical); err != nil {
+			img.Close()
+			return nil, WrapErr(err)
+		}
+	}
+
+	return img, nil
+}
+
 // loadAndProcess loads the image from blob and applies all transformations
 func (v *Processor) loadAndProcess(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*vips.Image, error) {
+	// Check if image path is a color image specification
+	if c, ok := parseColorImage(p.Image); ok {
+		return v.colorImageAndProcess(ctx, p, load, c)
+	}
+
 	var (
 		thumbnailNotSupported bool
 		upscale               = true

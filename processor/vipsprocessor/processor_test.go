@@ -341,6 +341,18 @@ func TestProcessor(t *testing.T) {
 			{name: "crop with fill", path: "400x400/filters:fill(yellow):crop(50,50,300,300)/gopher.png"},
 			{name: "strip icc", path: "200x200/filters:strip_icc():to_colorspace()/jpg-24bit-icc-adobe-rgb.jpg"},
 			{name: "to colorspace", path: "200x200/filters:to_colorspace(cmyk)/jpg-24bit-icc-adobe-rgb.jpg"},
+
+			// color image
+			{name: "color red", path: "200x200/color:red", checkTypeOnly: true},
+			{name: "color hex blue", path: "100x50/color:0000ff", checkTypeOnly: true},
+			{name: "color transparent png", path: "300x200/filters:format(png)/color:transparent", checkTypeOnly: true},
+			{name: "color rgba hex", path: "50x50/filters:format(png)/color:ff000080", checkTypeOnly: true},
+			{name: "color white 3char", path: "10x10/color:fff", checkTypeOnly: true},
+			{name: "color green default size", path: "color:green", checkTypeOnly: true},
+			{name: "color format png", path: "100x100/filters:format(png)/color:red", checkTypeOnly: true},
+			{name: "color round_corner", path: "200x200/filters:round_corner(20):format(png)/color:ff6600", checkTypeOnly: true},
+			{name: "color grayscale", path: "50x50/filters:grayscale()/color:red", checkTypeOnly: true},
+			{name: "color flip", path: "-100x-50/color:blue", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()), WithForceBmpFallback())
 	})
 	t.Run("max frames", func(t *testing.T) {
@@ -634,6 +646,67 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			buf2, err := img2.WebpsaveBuffer(nil)
 			require.NoError(t, err)
 			require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
+		})
+	}
+}
+
+func TestParseColorImage(t *testing.T) {
+	tests := []struct {
+		image  string
+		wantC  []float64
+		wantOk bool
+	}{
+		{"color:red", []float64{255, 0, 0, 255}, true},
+		{"color:transparent", []float64{0, 0, 0, 0}, true},
+		{"color:none", []float64{0, 0, 0, 0}, true},
+		{"color:ff0000", []float64{255, 0, 0, 255}, true},
+		{"color:ff000080", []float64{255, 0, 0, 128}, true},
+		{"color:fff", []float64{255, 255, 255, 255}, true},
+		{"color:000", []float64{0, 0, 0, 255}, true},
+		{"Color:RED", []float64{255, 0, 0, 255}, true},
+		{"notcolor:red", nil, false},
+		{"my-image.jpg", nil, false},
+		{"color:", nil, false},
+		{"color:invalidcolor", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.image, func(t *testing.T) {
+			c, ok := parseColorImage(tt.image)
+			assert.Equal(t, tt.wantOk, ok)
+			if ok {
+				assert.Equal(t, tt.wantC, c)
+			}
+		})
+	}
+}
+
+func TestParseHexColorRGBA(t *testing.T) {
+	tests := []struct {
+		hex        string
+		r, g, b, a byte
+		ok         bool
+	}{
+		{"ff0000", 255, 0, 0, 255, true},
+		{"00ff00", 0, 255, 0, 255, true},
+		{"0000ff", 0, 0, 255, 255, true},
+		{"ff000080", 255, 0, 0, 128, true},
+		{"00000000", 0, 0, 0, 0, true},
+		{"ffffffff", 255, 255, 255, 255, true},
+		{"fff", 255, 255, 255, 255, true},
+		{"000", 0, 0, 0, 255, true},
+		{"ff00", 0, 0, 0, 0, false}, // 4 chars not supported
+		{"ff", 0, 0, 0, 0, false},   // 2 chars not supported
+	}
+	for _, tt := range tests {
+		t.Run(tt.hex, func(t *testing.T) {
+			c, ok := parseHexColor(tt.hex)
+			assert.Equal(t, tt.ok, ok)
+			if ok {
+				assert.Equal(t, tt.r, c.R)
+				assert.Equal(t, tt.g, c.G)
+				assert.Equal(t, tt.b, c.B)
+				assert.Equal(t, tt.a, c.A)
+			}
 		})
 	}
 }

@@ -387,7 +387,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			defer app.sema.Release(1)
 		}
 		var shouldSave bool
-		if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
+		if isColorImage(p.Image) {
+			// color image — skip storage/loader, processor will generate it
+		} else if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
 			if app.Debug {
 				app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
 			}
@@ -407,7 +409,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				close(doneSave)
 			}(blob)
 		}
-		if isBlobEmpty(blob) {
+		if isBlobEmpty(blob) && !isColorImage(p.Image) {
 			return blob, err
 		}
 		if !isRaw {
@@ -1003,6 +1005,11 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 		}
 	}
 	return "inline"
+}
+
+// isColorImage checks if the image path is a color image specification (color:xxx)
+func isColorImage(image string) bool {
+	return strings.HasPrefix(strings.ToLower(image), "color:")
 }
 
 func getType(v interface{}) string {
