@@ -622,7 +622,7 @@ Supported color values:
 | Format | Example | Description |
 |--------|---------|-------------|
 | Named color | `color:red`, `color:blue` | CSS named colors |
-| Transparent | `color:transparent`, `color:none` | Fully transparent (RGBA) |
+| Transparent | `color:none` | Fully transparent (RGBA) |
 | 3-char hex | `color:fff` | Short hex (expanded to 6-char) |
 | 6-char hex | `color:ff0000` | Standard RGB hex |
 | 8-char hex | `color:ff000080` | RGBA hex with alpha channel |
