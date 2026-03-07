@@ -8,6 +8,74 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+// newColorImage creates a solid color vips.Image with the given RGBA color and dimensions.
+func newColorImage(width, height int, c []float64) (*vips.Image, error) {
+	hasAlpha := len(c) >= 4 && c[3] < 255
+
+	// Create a 3-band black image using vips native operations
+	img, err := vips.NewBlack(width, height, &vips.BlackOptions{Bands: 3})
+	if err != nil {
+		return nil, err
+	}
+
+	// Cast to uchar interpretation sRGB
+	if err := img.Cast(vips.BandFormatUchar, nil); err != nil {
+		img.Close()
+		return nil, err
+	}
+
+	// Add color using Linear: pixel = pixel * 1 + offset
+	if err := img.Linear([]float64{1, 1, 1}, []float64{c[0], c[1], c[2]}, nil); err != nil {
+		img.Close()
+		return nil, err
+	}
+
+	// Cast back to uchar after Linear (which produces float output)
+	if err := img.Cast(vips.BandFormatUchar, nil); err != nil {
+		img.Close()
+		return nil, err
+	}
+
+	// Copy with sRGB interpretation to ensure proper export
+	copied, err := img.Copy(&vips.CopyOptions{Interpretation: vips.InterpretationSrgb})
+	if err != nil {
+		img.Close()
+		return nil, err
+	}
+	img.Close()
+	img = copied
+
+	// Add alpha channel if needed
+	if hasAlpha {
+		alpha, err := vips.NewBlack(width, height, nil)
+		if err != nil {
+			img.Close()
+			return nil, err
+		}
+		if err := alpha.Cast(vips.BandFormatUchar, nil); err != nil {
+			img.Close()
+			alpha.Close()
+			return nil, err
+		}
+		if err := alpha.Linear([]float64{1}, []float64{c[3]}, nil); err != nil {
+			img.Close()
+			alpha.Close()
+			return nil, err
+		}
+		joined, err := vips.NewBandjoin([]*vips.Image{img, alpha})
+		if err != nil {
+			img.Close()
+			alpha.Close()
+			return nil, err
+		}
+		img.Close()
+		alpha.Close()
+		img = joined
+	}
+
+	return img, nil
+}
+
 // getColor parses a color string and returns RGB values as float64 slice
 // Supports: color names (e.g., "red"), hex codes (e.g., "#ff0000" or "ff0000"),
 // and "auto" which samples the image at top-left or bottom-right
