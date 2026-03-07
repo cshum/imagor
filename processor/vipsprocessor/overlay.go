@@ -36,9 +36,10 @@ func resolveFullDim(token string, parentDim int) string {
 
 // resolveFullDimensions rewrites f‑tokens in the WxH dimension segment of an
 // imagor path, substituting the parent image's pixel dimensions before the path
-// is parsed. Only the first matching segment is resolved — the dimension segment
-// always appears before filters: in a valid imagor path, so any subsequent
-// matches are inner nested layer paths that belong to a different resolution scope.
+// is parsed. Only the first WxH dimension segment is considered — it always
+// appears before filters: in a valid imagor path. The function stops at the
+// first dimSegmentRegex match or at a filters: prefix, ensuring nested layer
+// paths inside filter arguments are not accidentally resolved at this level.
 func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
 	start := 0
 	for i := 0; i <= len(imagorPath); i++ {
@@ -46,15 +47,19 @@ func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
 			continue
 		}
 		seg := imagorPath[start:i]
-		if strings.Contains(seg, "f") {
-			if m := dimSegmentRegex.FindStringSubmatch(seg); m != nil {
-				newLeft := resolveFullDim(m[1], parentW)
-				newRight := resolveFullDim(m[2], parentH)
-				if newLeft != m[1] || newRight != m[2] {
-					return imagorPath[:start] + newLeft + "x" + newRight + imagorPath[i:]
-				}
-				return imagorPath
+		// Stop before filters — nested layer paths inside filter arguments
+		// must be resolved at their own processing level, not here.
+		if strings.HasPrefix(seg, "filters:") {
+			return imagorPath
+		}
+		if m := dimSegmentRegex.FindStringSubmatch(seg); m != nil {
+			// Found the dimension segment. Resolve f-tokens if present.
+			newLeft := resolveFullDim(m[1], parentW)
+			newRight := resolveFullDim(m[2], parentH)
+			if newLeft != m[1] || newRight != m[2] {
+				return imagorPath[:start] + newLeft + "x" + newRight + imagorPath[i:]
 			}
+			return imagorPath
 		}
 		start = i + 1
 	}
