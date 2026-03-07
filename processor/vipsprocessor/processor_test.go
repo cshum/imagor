@@ -353,6 +353,7 @@ func TestProcessor(t *testing.T) {
 			{name: "color round_corner", path: "200x200/filters:round_corner(20):format(png)/color:ff6600", checkTypeOnly: true},
 			{name: "color grayscale", path: "50x50/filters:grayscale()/color:red", checkTypeOnly: true},
 			{name: "color flip", path: "-100x-50/color:blue", checkTypeOnly: true},
+			{name: "image color overlay", path: "600x600/filters:format(png):image(/300x300/color:red,center,center)/color:none", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()), WithForceBmpFallback())
 	})
 	t.Run("max frames", func(t *testing.T) {

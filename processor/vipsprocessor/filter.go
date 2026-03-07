@@ -29,8 +29,11 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	imagorPath = resolveFullDimensions(imagorPath, img.Width(), img.PageHeight())
 	params := imagorpath.Parse(imagorPath)
 	var blob *imagor.Blob
-	if blob, err = load(params.Image); err != nil {
-		return
+	// Skip loader for color: image paths — they are generated in-process
+	if _, isColor := parseColorImage(params.Image); !isColor {
+		if blob, err = load(params.Image); err != nil {
+			return
+		}
 	}
 	var overlay *vips.Image
 	// create fresh context for this processing level
