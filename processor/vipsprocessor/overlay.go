@@ -36,9 +36,10 @@ func resolveFullDim(token string, parentDim int) string {
 
 // resolveFullDimensions rewrites f‑tokens in the WxH dimension segment of an
 // imagor path, substituting the parent image's pixel dimensions before the path
-// is parsed. Only the first matching segment is resolved — the dimension segment
-// always appears before filters: in a valid imagor path, so any subsequent
-// matches are inner nested layer paths that belong to a different resolution scope.
+// is parsed. Only the first WxH dimension segment is considered — it always
+// appears before filters: in a valid imagor path. The function stops at the
+// first dimSegmentRegex match or at a filters: prefix, ensuring nested layer
+// paths inside filter arguments are not accidentally resolved at this level.
 func resolveFullDimensions(imagorPath string, parentW, parentH int) string {
 	start := 0
 	for i := 0; i <= len(imagorPath); i++ {
