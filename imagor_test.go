@@ -2008,6 +2008,133 @@ func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 	assert.Equal(t, 1, resultStore.SaveCnt["test-image"])
 }
 
+func TestColorImagePath(t *testing.T) {
+	t.Run("color image skips loader", func(t *testing.T) {
+		loaderCalled := false
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				loaderCalled = true
+				return nil, ErrNotFound
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob, "blob should be nil for color image")
+				assert.Equal(t, "color:red", p.Image)
+				return NewBlobFromBytes([]byte("processed")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/color:red", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "processed", w.Body.String())
+		assert.False(t, loaderCalled, "loader should not be called for color image")
+	})
+
+	t.Run("color image with filters", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob)
+				assert.Equal(t, "color:ff0000", p.Image)
+				assert.Equal(t, 100, p.Width)
+				assert.Equal(t, 100, p.Height)
+				assert.Len(t, p.Filters, 1)
+				assert.Equal(t, "format", p.Filters[0].Name)
+				assert.Equal(t, "png", p.Filters[0].Args)
+				return NewBlobFromBytes([]byte("color-png")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/100x100/filters:format(png)/color:ff0000", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "color-png", w.Body.String())
+	})
+
+	t.Run("color image does not save to storage", func(t *testing.T) {
+		store := newMapStore()
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithStorages(store),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobFromBytes([]byte("color-result")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/50x50/color:blue", nil))
+		time.Sleep(time.Millisecond * 10)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, 0, store.SaveCnt["color:blue"], "should not save color image to storage")
+	})
+
+	t.Run("color transparent", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob)
+				assert.Equal(t, "color:transparent", p.Image)
+				return NewBlobFromBytes([]byte("transparent")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/100x100/color:transparent", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "transparent", w.Body.String())
+	})
+
+	t.Run("color image with signer", func(t *testing.T) {
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithSigner(imagorpath.NewDefaultSigner("1234")),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob)
+				return NewBlobFromBytes([]byte("signed-color")), nil
+			})),
+		)
+		path := "100x100/color:red"
+		signed := imagorpath.NewDefaultSigner("1234").Sign(path)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, fmt.Sprintf("https://example.com/%s/%s", signed, path), nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "signed-color", w.Body.String())
+	})
+
+	t.Run("non-color image still uses loader", func(t *testing.T) {
+		loaderCalled := false
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				loaderCalled = true
+				return NewBlobFromBytes([]byte("loaded")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.NotNil(t, blob)
+				return blob, nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.True(t, loaderCalled, "loader should be called for regular image")
+	})
+}
+
 type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
 
 func (f processorFunc) Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {

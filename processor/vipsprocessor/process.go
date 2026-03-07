@@ -168,7 +168,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 
 	// Determine format if not specified
 	if format == vips.ImageTypeUnknown {
-		if blob.BlobType() == imagor.BlobTypeAVIF {
+		if blob != nil && blob.BlobType() == imagor.BlobTypeAVIF {
 			format = vips.ImageTypeAvif
 		} else {
 			format = img.Format()
@@ -190,6 +190,43 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 func (v *Processor) loadAndProcess(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*vips.Image, error) {
+	// Check if image path is a color image specification
+	if c, ok := parseColorImage(p.Image); ok {
+		w, h := p.Width, p.Height
+		if w <= 0 && h <= 0 {
+			w, h = 1, 1
+		} else if w <= 0 {
+			w = h
+		} else if h <= 0 {
+			h = w
+		}
+		if !v.Unlimited && w*h > v.MaxResolution {
+			return nil, imagor.ErrMaxResolutionExceeded
+		}
+		if w > v.MaxWidth {
+			w = v.MaxWidth
+		}
+		if h > v.MaxHeight {
+			h = v.MaxHeight
+		}
+		img, err := newColorImage(w, h, c)
+		if err != nil {
+			return nil, WrapErr(err)
+		}
+		if v.Debug {
+			v.Logger.Debug("color-image",
+				zap.Int("width", w),
+				zap.Int("height", h),
+				zap.Any("color", c))
+		}
+		// thumbnail=true skips resize/crop — image is already at target size
+		if err := v.applyTransformations(ctx, img, p, load, true, false, false, nil); err != nil {
+			img.Close()
+			return nil, WrapErr(err)
+		}
+		return img, nil
+	}
+
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
