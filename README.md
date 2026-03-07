@@ -66,6 +66,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - `IMAGE` is the image path or URI
   - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
   - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64). This encoding is  more robust if you have special characters in your image URL, and can fix encoding/signing issues in your setup.
+  - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](#color-image) section below.
 
 ### Filters
 
@@ -543,28 +544,6 @@ The example URL then becomes:
 http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(testdata/gopher-front.png,repeat,bottom,0,40,40)/testdata/dancing-banana.gif
 ```
 
-### ImageMagick Support
-
-imagor uses [libvips](https://github.com/libvips/libvips) which is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than ImageMagick with better memory efficiency and security. However, there are image formats that libvips cannot handle natively, such as PSD, BMP, XCF and other legacy formats.
-
-imagor provides an ImageMagick-enabled variant that includes ImageMagick support through libvips `magickload` operation. This allows processing additional file formats but with performance and security tradeoffs.
-
-**ImageMagick is not recommended for speed, memory and security** but is capable of opening files that libvips won't support natively.
-
-#### Docker build `imagor-magick`
-
-```bash
-docker pull ghcr.io/cshum/imagor-magick
-```
-
-Usage:
-
-```bash
-docker run -p 8000:8000 ghcr.io/cshum/imagor-magick -imagor-unsafe -imagor-auto-webp
-```
-
-We recommend using the standard imagor image for most use cases.
-
 ### MozJPEG Support
 
 By default, imagor uses libjpeg-turbo for JPEG encoding, which provides fast compression. For enhanced JPEG compression at the cost of slower encoding speed, imagor provides a MozJPEG-enabled variant that includes [MozJPEG](https://github.com/mozilla/mozjpeg) support through libvips.
@@ -607,6 +586,57 @@ services:
 ```
 
 When enabled, MozJPEG will be used for JPEG output, providing better compression efficiency for JPEG images.
+
+### ImageMagick Support
+
+imagor uses [libvips](https://github.com/libvips/libvips) which is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than ImageMagick with better memory efficiency and security. However, there are image formats that libvips cannot handle natively, such as PSD, BMP, XCF and other legacy formats.
+
+imagor provides an ImageMagick-enabled variant that includes ImageMagick support through libvips `magickload` operation. This allows processing additional file formats but with performance and security tradeoffs.
+
+**ImageMagick is not recommended for speed, memory and security** but is capable of opening files that libvips won't support natively.
+
+#### Docker build `imagor-magick`
+
+```bash
+docker pull ghcr.io/cshum/imagor-magick
+```
+
+Usage:
+
+```bash
+docker run -p 8000:8000 ghcr.io/cshum/imagor-magick -imagor-unsafe -imagor-auto-webp
+```
+
+We recommend using the standard imagor image for most use cases.
+
+### Color Image
+
+Use `color:<color>` as the image path to generate a solid color or transparent image on-the-fly, without loading from any source. This is useful for creating background canvases, placeholder images, or base layers for further composition.
+
+```
+/unsafe/{width}x{height}/color:{color}
+```
+
+Supported color values:
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| Named color | `color:red`, `color:blue` | CSS named colors |
+| Transparent | `color:transparent`, `color:none` | Fully transparent (RGBA) |
+| 3-char hex | `color:fff` | Short hex (expanded to 6-char) |
+| 6-char hex | `color:ff0000` | Standard RGB hex |
+| 8-char hex | `color:ff000080` | RGBA hex with alpha channel |
+
+Examples:
+
+```
+http://localhost:8000/unsafe/200x200/color:red
+http://localhost:8000/unsafe/100x100/filters:format(png)/color:transparent
+http://localhost:8000/unsafe/300x300/filters:round_corner(20):format(png)/color:ff6600
+http://localhost:8000/unsafe/50x50/filters:format(png)/color:ff000080
+```
+
+All existing filters and transformations work with color images. When no dimensions are specified, defaults to 1×1. When only width or height is specified, the other defaults to the same value.
 
 ### Metadata and Exif
 
