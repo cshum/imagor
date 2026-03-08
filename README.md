@@ -320,7 +320,8 @@ For multi-tenant or multi-bucket setups, you can route image requests to differe
 
 ```yaml
 # Regex pattern with named capture group (?P<bucket>...)
-# Extracts the bucket identifier from the object key
+# Extracts the bucket identifier from the object key.
+# Optionally, add (?P<path>...) to extract the S3 key separately from the routing prefix.
 routing_pattern: "^[a-f0-9]{4}-(?P<bucket>[A-Za-z0-9]+)-"
 
 default_bucket:
@@ -351,11 +352,12 @@ rules:
 
 **Pattern Examples:**
 
-| Use Case | `routing_pattern` | Example Key | Extracted Value |
-|----------|-------------------|-------------|-----------------|
-| Random prefix with bucket code | `^[a-f0-9]{4}-(?P<bucket>[A-Z]{2})-` | `f7a3-SG-image.jpg` | `SG` |
-| Simple prefix routing | `^(?P<bucket>[^/]+)/` | `users/photo.jpg` | `users` |
-| Region-based naming | `(?P<bucket>[a-z]{2}-[a-z]+-\d)` | `eu-west-1-img.jpg` | `eu-west-1` |
+| Use Case | `routing_pattern` | Example Key | Bucket | S3 Key |
+|----------|-------------------|-------------|--------|--------|
+| Random prefix with bucket code | `^[a-f0-9]{4}-(?P<bucket>[A-Z]{2})-` | `f7a3-SG-image.jpg` | `SG` | `f7a3-SG-image.jpg` |
+| Simple prefix routing | `^(?P<bucket>[^/]+)/` | `users/photo.jpg` | `users` | `users/photo.jpg` |
+| Region-based naming | `(?P<bucket>[a-z]{2}-[a-z]+-\d)` | `eu-west-1-img.jpg` | `eu-west-1` | `eu-west-1-img.jpg` |
+| Path-prefix routing (strip prefix) | `^(?P<bucket>mysite-[a-z]+)\/(?P<path>.+)$` | `mysite-test/images/photo.jpg` | `mysite-test` | `images/photo.jpg` |
 
 Then specify the config file path:
 
@@ -377,6 +379,7 @@ Routing behavior:
 - Each bucket config can specify its own `region`, `endpoint`, and credentials
 - If bucket-specific credentials are not provided, global AWS credentials are used
 - If `S3_LOADER_BUCKET` is not set, `default_bucket.name` from the config is used
+- Optionally, add a named capture group `(?P<path>...)` to the pattern to use a sub-match as the S3 key instead of the full image path. This is useful for path-prefix routing where the bucket name is embedded as the first path segment and should not be included in the object key
 
 Docker Compose example with bucket routing:
 

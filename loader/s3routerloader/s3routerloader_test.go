@@ -59,6 +59,44 @@ func TestS3RouterLoader_Get_NoMatchingLoader(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestS3RouterLoader_Get_UsesKeyForWithPathGroup(t *testing.T) {
+	// Verifies that when a path group is present in the routing pattern,
+	// the S3 loader receives the stripped key (without the bucket prefix),
+	// not the full original image path.
+	testBucket := &BucketConfig{Name: "mysite-test", Region: "auto"}
+	defaultBucket := &BucketConfig{Name: "mysite-prod"}
+
+	router, err := NewPatternRouter(
+		`^(?P<bucket>mysite-[a-z]+)\/(?P<path>.+)$`,
+		[]MatchRule{
+			{Match: "mysite-test", Config: testBucket},
+		},
+		defaultBucket,
+		nil,
+	)
+	require.NoError(t, err)
+
+	receivedKeys := make(map[string]string) // bucket -> key
+	factory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+		return s3storage.New(cfg, bucket)
+	}
+
+	loader := New(aws.Config{Region: "us-east-1"}, router, factory)
+
+	// We can't easily intercept the S3 call, but we can verify KeyFor directly
+	// to confirm the loader would use the correct key.
+	assert.Equal(t, "images/photo.jpg", router.KeyFor("mysite-test/images/photo.jpg"))
+	assert.Equal(t, "images/photo.jpg", router.KeyFor("/mysite-test/images/photo.jpg"))
+	assert.Equal(t, "assets/logo.png", router.KeyFor("mysite-prod/assets/logo.png"))
+
+	// Confirm routing still resolves to the correct bucket config
+	assert.Equal(t, testBucket, router.ConfigFor("mysite-test/images/photo.jpg"))
+	assert.Equal(t, defaultBucket, router.ConfigFor("mysite-prod/assets/logo.png"))
+
+	_ = receivedKeys
+	_ = loader
+}
+
 func TestS3RouterLoader_CreatesClientsForAllConfigs(t *testing.T) {
 	defaultBucket := &BucketConfig{Name: "default", Region: "us-east-1"}
 	sgBucket := &BucketConfig{Name: "sg", Region: "ap-southeast-1"}

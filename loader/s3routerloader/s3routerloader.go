@@ -61,7 +61,9 @@ func (l *S3RouterLoader) Get(r *http.Request, image string) (*imagor.Blob, error
 		return nil, imagor.ErrNotFound
 	}
 
-	blob, err := loader.Get(r, image)
+	key := l.router.KeyFor(image)
+
+	blob, err := loader.Get(r, key)
 	if err == nil {
 		return blob, nil
 	}
@@ -74,7 +76,7 @@ func (l *S3RouterLoader) Get(r *http.Request, image string) (*imagor.Blob, error
 		if fb == loader {
 			continue
 		}
-		blob, err = fb.Get(r, image)
+		blob, err = fb.Get(r, key)
 		if err == nil {
 			return blob, nil
 		}

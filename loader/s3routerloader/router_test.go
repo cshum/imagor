@@ -164,3 +164,97 @@ func TestPatternRouter_PrefixPattern(t *testing.T) {
 	assert.Equal(t, bucket1, router.ConfigFor("bucket1/image.jpg"))
 	assert.Equal(t, bucket2, router.ConfigFor("bucket2/photo.png"))
 }
+
+func TestPatternRouter_KeyFor_WithPathGroup(t *testing.T) {
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)/(?P<path>.+)$`,
+		[]MatchRule{
+			{Match: "mysite-test", Config: &BucketConfig{Name: "mysite-test"}},
+		},
+		&BucketConfig{Name: "mysite-prod"},
+		nil,
+	)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		key      string
+		expected string
+	}{
+		{
+			name:     "strips bucket prefix from path",
+			key:      "mysite-test/images/photo.jpg",
+			expected: "images/photo.jpg",
+		},
+		{
+			name:     "strips bucket prefix with leading slash",
+			key:      "/mysite-test/images/photo.jpg",
+			expected: "images/photo.jpg",
+		},
+		{
+			name:     "strips prefix for default bucket",
+			key:      "mysite-prod/assets/logo.png",
+			expected: "assets/logo.png",
+		},
+		{
+			name:     "returns original key when pattern does not match",
+			key:      "no-slash-here",
+			expected: "no-slash-here",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := router.KeyFor(tt.key)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestPatternRouter_KeyFor_WithoutPathGroup(t *testing.T) {
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)/`,
+		[]MatchRule{
+			{Match: "bucket1", Config: &BucketConfig{Name: "bucket1"}},
+		},
+		&BucketConfig{Name: "default"},
+		nil,
+	)
+	require.NoError(t, err)
+
+	// Without a path group, KeyFor returns the original key unchanged
+	assert.Equal(t, "bucket1/image.jpg", router.KeyFor("bucket1/image.jpg"))
+	assert.Equal(t, "/bucket1/image.jpg", router.KeyFor("/bucket1/image.jpg"))
+	assert.Equal(t, "regular-image.jpg", router.KeyFor("regular-image.jpg"))
+}
+
+func TestPatternRouter_KeyFor_IssueExample(t *testing.T) {
+	// Reproduces the exact scenario from GitHub issue #763:
+	// routing_pattern: '^(?P<bucket>mysite-[a-z]+)\/(?P<path>.+)$'
+	// Request: /mysite-test/images/photo.jpg
+	// Expected S3 key: images/photo.jpg (not mysite-test/images/photo.jpg)
+	testBucket := &BucketConfig{Name: "mysite-test", Region: "auto"}
+	devBucket := &BucketConfig{Name: "mysite-dev", Region: "auto"}
+	defaultBucket := &BucketConfig{Name: "mysite-prod"}
+
+	router, err := NewPatternRouter(
+		`^(?P<bucket>mysite-[a-z]+)\/(?P<path>.+)$`,
+		[]MatchRule{
+			{Match: "mysite-test", Config: testBucket},
+			{Match: "mysite-dev", Config: devBucket},
+		},
+		defaultBucket,
+		nil,
+	)
+	require.NoError(t, err)
+
+	// Routing still works correctly
+	assert.Equal(t, testBucket, router.ConfigFor("/mysite-test/images/photo.jpg"))
+	assert.Equal(t, devBucket, router.ConfigFor("/mysite-dev/assets/logo.png"))
+	assert.Equal(t, defaultBucket, router.ConfigFor("/mysite-prod/data/file.txt"))
+
+	// Key is correctly stripped of the bucket prefix
+	assert.Equal(t, "images/photo.jpg", router.KeyFor("/mysite-test/images/photo.jpg"))
+	assert.Equal(t, "assets/logo.png", router.KeyFor("/mysite-dev/assets/logo.png"))
+	assert.Equal(t, "data/file.txt", router.KeyFor("/mysite-prod/data/file.txt"))
+}
