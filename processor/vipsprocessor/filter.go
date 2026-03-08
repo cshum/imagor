@@ -304,25 +304,15 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		return
 	}
 
-	// Use Ifthenelse with blend=true on the mask as condition:
-	//   result = (mask/255)*img + (1-mask/255)*transparent
-	//   = img with alpha = mask value (antialiased edges at rounded corners)
-	// mask.Ifthenelse modifies mask in-place to hold the result.
+	// Use Ifthenelse with blend=true: result = (mask/255)*img + (1-mask/255)*transparent
+	// This gives antialiased rounded corners: mask=255 → fully opaque, mask=0 → transparent.
+	// mask.Ifthenelse stores the result in mask (in-place).
 	if err = mask.Ifthenelse(img, transparent, &vips.IfthenelseOptions{Blend: true}); err != nil {
 		return
 	}
-	// Copy the result from mask back into img using ExtractBand + BandjoinConst trick:
-	// Extract all 4 bands from mask into img by replacing img's content.
-	// Use img.ExtractBand to get RGB, then join with mask's alpha.
-	// Simplest: use img.Linear to zero img, then composite mask over it.
-	// Actually: use img.Composite2(mask, BlendModeOver) with mask as fully opaque source.
-	// Since mask already has the correct RGBA content, composite it over a black background.
-	// Use img as black background: zero all bands.
-	if err = img.Linear(
-		[]float64{0, 0, 0, 0},
-		[]float64{0, 0, 0, 0},
-		nil,
-	); err != nil {
+	// Copy the result from mask back into img: zero img to transparent black,
+	// then composite the masked result over it.
+	if err = img.Linear([]float64{0, 0, 0, 0}, []float64{0, 0, 0, 0}, nil); err != nil {
 		return
 	}
 	if err = img.Cast(vips.BandFormatUchar, nil); err != nil {
