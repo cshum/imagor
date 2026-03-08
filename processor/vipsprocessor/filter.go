@@ -3,7 +3,6 @@ package vipsprocessor
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"math"
 	"net/url"
 	"strconv"
@@ -240,26 +239,96 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 	if len(args) > 1 {
 		ry, _ = strconv.Atoi(args[1])
 	}
+	// Use average of rx/ry as corner radius (SDF uses circular corners)
+	r := float64(rx+ry) / 2.0
 
-	var rounded *vips.Image
 	var w = img.Width()
 	var h = img.PageHeight()
-	if rounded, err = vips.NewSvgloadBuffer([]byte(fmt.Sprintf(`
-		<svg viewBox="0 0 %d %d">
-			<rect rx="%d" ry="%d" 
-			 x="0" y="0" width="%d" height="%d" 
-			 fill="#fff"/>
-		</svg>
-	`, w, h, rx, ry, w, h)), nil); err != nil {
+
+	// Generate a rounded-box SDF: negative inside the shape, positive outside.
+	// For vips_sdf ROUNDED_BOX: A is the top-left corner, B is the bottom-right corner.
+	mask, err := vips.NewSdf(w, h, vips.SdfShapeRoundedBox, &vips.SdfOptions{
+		A:       []float64{0, 0},
+		B:       []float64{float64(w), float64(h)},
+		Corners: []float64{r, r, r, r},
+	})
+	if err != nil {
 		return
 	}
-	contextDefer(ctx, rounded.Close)
+	defer mask.Close()
+
+	// Convert SDF to a uchar alpha mask:
+	//   inside (SDF < 0) → 255 (opaque), outside (SDF > 0) → 0 (transparent).
+	// linear(a=-255, b=255) maps SDF=0 → 255, SDF=1 → 0, then clamp via Cast.
+	if err = mask.Linear([]float64{-255}, []float64{255}, nil); err != nil {
+		return
+	}
+	if err = mask.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+
 	if n := img.Height() / img.PageHeight(); n > 1 {
-		if err = rounded.Replicate(1, n); err != nil {
+		if err = mask.Replicate(1, n); err != nil {
 			return
 		}
 	}
-	if err = img.Composite2(rounded, vips.BlendModeDestIn, nil); err != nil {
+
+	// Ensure the image has an alpha channel.
+	if img.Bands() < 3 {
+		if err = img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+			return
+		}
+	}
+	if !img.HasAlpha() {
+		if err = img.Addalpha(); err != nil {
+			return
+		}
+	}
+
+	// Build a fully-transparent copy of the image (alpha=0).
+	transparent, cpErr := img.Copy(nil)
+	if cpErr != nil {
+		err = cpErr
+		return
+	}
+	defer transparent.Close()
+	// Zero out the alpha band: Linear([1,1,1,0], [0,0,0,0]) keeps RGB, sets alpha=0.
+	if err = transparent.Linear(
+		[]float64{1, 1, 1, 0},
+		[]float64{0, 0, 0, 0},
+		nil,
+	); err != nil {
+		return
+	}
+	if err = transparent.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+
+	// Use Ifthenelse with blend=true on the mask as condition:
+	//   result = (mask/255)*img + (1-mask/255)*transparent
+	//   = img with alpha = mask value (antialiased edges at rounded corners)
+	// mask.Ifthenelse modifies mask in-place to hold the result.
+	if err = mask.Ifthenelse(img, transparent, &vips.IfthenelseOptions{Blend: true}); err != nil {
+		return
+	}
+	// Copy the result from mask back into img using ExtractBand + BandjoinConst trick:
+	// Extract all 4 bands from mask into img by replacing img's content.
+	// Use img.ExtractBand to get RGB, then join with mask's alpha.
+	// Simplest: use img.Linear to zero img, then composite mask over it.
+	// Actually: use img.Composite2(mask, BlendModeOver) with mask as fully opaque source.
+	// Since mask already has the correct RGBA content, composite it over a black background.
+	// Use img as black background: zero all bands.
+	if err = img.Linear(
+		[]float64{0, 0, 0, 0},
+		[]float64{0, 0, 0, 0},
+		nil,
+	); err != nil {
+		return
+	}
+	if err = img.Cast(vips.BandFormatUchar, nil); err != nil {
+		return
+	}
+	if err = img.Composite2(mask, vips.BlendModeOver, nil); err != nil {
 		return
 	}
 	if c != nil {
