@@ -115,6 +115,7 @@ COPY --from=builder /go/bin/imagor /usr/local/bin/imagor
 ENV VIPS_WARNING=0
 ENV MALLOC_ARENA_MAX=2
 ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
+ENV XDG_CACHE_HOME=/tmp
 
 ENV PORT 8000
 
