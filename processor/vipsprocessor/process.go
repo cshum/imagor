@@ -577,6 +577,15 @@ func (v *Processor) applyTransformations(
 				if err := img.ThumbnailImage(w, opts); err != nil {
 					return err
 				}
+				// vips ThumbnailImage may round down by a pixel - extend edge to compensate
+				if p.FullFitIn &&
+					(img.Width() < w || img.PageHeight() < h) {
+					if err := img.Embed(0, 0, w, h, &vips.EmbedOptions{
+						Extend: vips.ExtendCopy,
+					}); err != nil {
+						return err
+					}
+				}
 			}
 		} else if stretch {
 			if upscale || (w < img.Width() && h < img.PageHeight()) {
