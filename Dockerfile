@@ -97,7 +97,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
   libgsf-1-114 libfftw3-bin liborc-0.4-0 librsvg2-2 libcfitsio10t64 libimagequant0 libaom3 \
   libspng0 libcgif0 libheif1 libheif-plugin-x265 libheif-plugin-aomenc libjxl0.11 libraw23t64 \
   fontconfig && \
-  fc-cache -f && \
   if [ "$ENABLE_MAGICK" = "true" ]; then \
     apt-get install --no-install-recommends -y libmagickwand-7.q16-10; \
   fi && \
