@@ -219,6 +219,8 @@ func TestProcessor(t *testing.T) {
 			{name: "fill round_corner", path: "fit-in/0x210/filters:fill(yellow):round_corner(40,60,green)/gopher.png"},
 			{name: "round_corner r only", path: "fit-in/0x210/filters:fill(yellow):round_corner(40)/gopher.png"},
 			{name: "round_corner r color", path: "fit-in/0x210/filters:fill(yellow):round_corner(40,green)/gopher.png"},
+			{name: "round_corner r capped", path: "fit-in/0x210/filters:fill(yellow):round_corner(9999)/gopher.png"},
+			{name: "round_corner hex color", path: "fit-in/0x210/filters:round_corner(40,000000)/gopher.png"},
 			{name: "grayscale fill none", path: "fit-in/100x100/filters:fill(none)/2bands.png", checkTypeOnly: true},
 			{name: "trim alpha", path: "trim/find_trim_alpha.png"},
 			{name: "trim with crop", path: "trim:bottom-right/50x50:0x0/find_trim.png"},

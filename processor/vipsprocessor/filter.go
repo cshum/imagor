@@ -245,6 +245,11 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 	var w = img.Width()
 	var h = img.PageHeight()
 
+	// Cap r to min(w,h)/2 to prevent overlapping corners.
+	if maxR := min(w, h) / 2; r > maxR {
+		r = maxR
+	}
+
 	// Generate a rounded-box SDF: negative inside the shape, positive outside.
 	// A = top-left corner, B = bottom-right corner of the box.
 	mask, err := vips.NewSdf(w, h, vips.SdfShapeRoundedBox, &vips.SdfOptions{
