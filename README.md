@@ -314,6 +314,19 @@ AWS_RESULT_STORAGE_SECRET_ACCESS_KEY
 S3_RESULT_STORAGE_ENDPOINT
 ```
 
+##### S3 Wildcard Bucket (Dynamic Bucket from Path)
+
+For setups where the bucket name is embedded as the first path segment of the image URL, set `S3_LOADER_BUCKET=*`:
+
+```dotenv
+S3_LOADER_BUCKET=*
+AWS_REGION=us-east-1
+```
+
+A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` bucket. A request for `/mysite-prod/assets/logo.png` will load `assets/logo.png` from the `mysite-prod` bucket. The first path segment is always used as the bucket name and the remainder as the object key.
+
+This allows a single imagor instance to serve images from any bucket in the same AWS account without any additional configuration.
+
 ##### S3 Loader Bucket Routing
 
 For multi-tenant or multi-bucket setups, you can route image requests to different S3 buckets based on pattern matching. Each bucket can have its own region, endpoint, and credentials. Create a YAML configuration file:
@@ -358,6 +371,7 @@ rules:
 | Simple prefix routing | `^(?P<bucket>[^/]+)/` | `users/photo.jpg` | `users` | `users/photo.jpg` |
 | Region-based naming | `(?P<bucket>[a-z]{2}-[a-z]+-\d)` | `eu-west-1-img.jpg` | `eu-west-1` | `eu-west-1-img.jpg` |
 | Path-prefix routing (strip prefix) | `^(?P<bucket>mysite-[a-z]+)\/(?P<path>.+)$` | `mysite-test/images/photo.jpg` | `mysite-test` | `images/photo.jpg` |
+| Passthrough (any bucket, no rules) | `^(?P<bucket>[^/]+)\/(?P<path>.+)$` | `any-bucket/images/photo.jpg` | `any-bucket` | `images/photo.jpg` |
 
 Then specify the config file path:
 
@@ -380,6 +394,7 @@ Routing behavior:
 - If bucket-specific credentials are not provided, global AWS credentials are used
 - If `S3_LOADER_BUCKET` is not set, `default_bucket.name` from the config is used
 - Optionally, add a named capture group `(?P<path>...)` to the pattern to use a sub-match as the S3 key instead of the full image path. This is useful for path-prefix routing where the bucket name is embedded as the first path segment and should not be included in the object key
+- **Passthrough mode:** if no `rules` and no `default_bucket` are configured, the router uses the captured `(?P<bucket>...)` value directly as the bucket name, creating S3 clients on demand. This allows routing to any bucket without pre-declaring them in the YAML
 
 Docker Compose example with bucket routing:
 
