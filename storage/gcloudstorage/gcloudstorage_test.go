@@ -286,6 +286,128 @@ func TestContextCancelDuringBlobInit(t *testing.T) {
 	require.Error(t, err3)
 }
 
+func fakeGCSServer(t *testing.T, buckets ...string) (*fakestorage.Server, *storage.Client) {
+	t.Helper()
+	var initialObjects []fakestorage.Object
+	for _, b := range buckets {
+		initialObjects = append(initialObjects, fakestorage.Object{
+			ObjectAttrs: fakestorage.ObjectAttrs{BucketName: b, Name: "placeholder"},
+			Content:     []byte(""),
+		})
+	}
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: initialObjects,
+		NoListener:     true,
+	})
+	require.NoError(t, err)
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	t.Cleanup(func() { srv.Stop(); client.Close() })
+	return srv, client
+}
+
+func TestWildcardBucket_Path(t *testing.T) {
+	tests := []struct {
+		name           string
+		image          string
+		expectedBucket string
+		expectedKey    string
+		expectedOk     bool
+	}{
+		{
+			name:           "extracts bucket and key from path",
+			image:          "mysite-test/images/photo.jpg",
+			expectedBucket: "mysite-test",
+			expectedKey:    "images/photo.jpg",
+			expectedOk:     true,
+		},
+		{
+			name:           "strips leading slash",
+			image:          "/mysite-prod/assets/logo.png",
+			expectedBucket: "mysite-prod",
+			expectedKey:    "assets/logo.png",
+			expectedOk:     true,
+		},
+		{
+			name:           "deep nested key",
+			image:          "/my-bucket/a/b/c/image.jpg",
+			expectedBucket: "my-bucket",
+			expectedKey:    "a/b/c/image.jpg",
+			expectedOk:     true,
+		},
+		{
+			name:       "no slash — invalid",
+			image:      "no-slash-here",
+			expectedOk: false,
+		},
+		{
+			name:       "empty bucket segment — invalid",
+			image:      "//photo.jpg",
+			expectedOk: false,
+		},
+	}
+	s := New(nil, "*")
+	assert.Equal(t, "*", s.Bucket)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bucket, key, ok := s.resolve(tt.image)
+			assert.Equal(t, tt.expectedOk, ok)
+			if tt.expectedOk {
+				assert.Equal(t, tt.expectedBucket, bucket)
+				assert.Equal(t, tt.expectedKey, key)
+			}
+		})
+	}
+}
+
+func TestWildcardBucket_CRUD(t *testing.T) {
+	_, client := fakeGCSServer(t, "bucket-a", "bucket-b")
+
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+	s := New(client, "*")
+	assert.Equal(t, "*", s.Bucket)
+
+	// Invalid: no slash
+	_, err := s.Get(r, "no-slash")
+	assert.Equal(t, imagor.ErrInvalid, err)
+
+	// Not found in bucket-a
+	_, err = s.Get(r, "/bucket-a/images/photo.jpg")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
+	// Put into bucket-a
+	require.NoError(t, s.Put(ctx, "/bucket-a/images/photo.jpg", imagor.NewBlobFromBytes([]byte("hello-a"))))
+
+	// Get from bucket-a
+	b, err := s.Get(r, "/bucket-a/images/photo.jpg")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "hello-a", string(buf))
+
+	// Put into bucket-b
+	require.NoError(t, s.Put(ctx, "/bucket-b/images/photo.jpg", imagor.NewBlobFromBytes([]byte("hello-b"))))
+
+	// Get from bucket-b — different bucket, different content
+	b, err = s.Get(r, "/bucket-b/images/photo.jpg")
+	require.NoError(t, err)
+	buf, err = b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "hello-b", string(buf))
+
+	// Stat bucket-a
+	stat, err := s.Stat(ctx, "/bucket-a/images/photo.jpg")
+	require.NoError(t, err)
+	assert.NotEmpty(t, stat.ETag)
+
+	// Delete from bucket-a
+	require.NoError(t, s.Delete(ctx, "/bucket-a/images/photo.jpg"))
+	_, err = s.Get(r, "/bucket-a/images/photo.jpg")
+	assert.Equal(t, imagor.ErrNotFound, err)
+}
+
 func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
 	// Test that gzip-compressed objects don't cause fanout buffer size issues
 
