@@ -138,8 +138,8 @@ imagor supports the following filters:
 - `rgb(r,g,b)` amount of color in each of the rgb channels in %. Can range from -100 to 100
 - `rotate(angle)` rotates the given image according to the angle value
   - `angle` accepts 0, 90, 180, 270
-- `round_corner(rx [, ry [, color]])` adds rounded corners to the image with the specified color as background
-  - `rx`, `ry` amount of pixel to use as radius. ry = rx if ry is not provided
+- `round_corner(r [, color])` adds rounded corners to the image with the specified color as background
+  - `r` corner radius in pixels
   - `color` the color name or hexadecimal rgb expression without the "#" character
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation

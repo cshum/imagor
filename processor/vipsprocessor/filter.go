@@ -229,12 +229,18 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 	if a, e := url.QueryUnescape(args[0]); e == nil {
 		args[0] = a
 	}
-	if len(args) == 3 {
-		// r,r,color — third arg is color (backward compat with rx,ry,color)
-		c = getColor(img, args[2])
-		args = args[:2]
-	}
 	r, _ = strconv.Atoi(args[0])
+	if len(args) == 2 {
+		// 2-arg form: round_corner(r, X)
+		// If X is all decimal digits with length ≤ 4, treat as legacy ry (ignored).
+		// Otherwise treat as color (e.g. "green", "ff0000", "000000").
+		if !isShortDecimal(args[1]) {
+			c = getColor(img, args[1])
+		}
+	} else if len(args) >= 3 {
+		// 3-arg form: round_corner(r, ry, color) — ry ignored
+		c = getColor(img, args[2])
+	}
 
 	var w = img.Width()
 	var h = img.PageHeight()

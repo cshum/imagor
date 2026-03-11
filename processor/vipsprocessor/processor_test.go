@@ -217,6 +217,8 @@ func TestProcessor(t *testing.T) {
 			{name: "crop-percent stretch top flip", path: "0.006120x0.008993:1.0x1.0/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
 			{name: "padding rotation fill blur grayscale", path: "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
 			{name: "fill round_corner", path: "fit-in/0x210/filters:fill(yellow):round_corner(40,60,green)/gopher.png"},
+			{name: "round_corner r only", path: "fit-in/0x210/filters:fill(yellow):round_corner(40)/gopher.png"},
+			{name: "round_corner r color", path: "fit-in/0x210/filters:fill(yellow):round_corner(40,green)/gopher.png"},
 			{name: "grayscale fill none", path: "fit-in/100x100/filters:fill(none)/2bands.png", checkTypeOnly: true},
 			{name: "trim alpha", path: "trim/find_trim_alpha.png"},
 			{name: "trim with crop", path: "trim:bottom-right/50x50:0x0/find_trim.png"},

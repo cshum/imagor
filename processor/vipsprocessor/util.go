@@ -99,3 +99,18 @@ func getAngle(angle int) vips.Angle {
 		return vips.AngleD0
 	}
 }
+
+// isShortDecimal reports whether s consists entirely of decimal digits and has
+// length ≤ 4. Used to distinguish a legacy ry argument (e.g. "60", "100")
+// from a color argument (e.g. "green", "ff0000", "000000") in round_corner.
+func isShortDecimal(s string) bool {
+	if len(s) == 0 || len(s) > 4 {
+		return false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
