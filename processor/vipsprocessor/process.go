@@ -565,10 +565,12 @@ func (v *Processor) applyTransformations(
 
 				if imgAspect < boxAspect {
 					// Image is taller (portrait) - use width as constraint, height will exceed box
-					h = int(math.Round(float64(w) / imgAspect))
+					// Use Ceil to ensure output is always >= requested box (full-fit-in guarantee)
+					h = int(math.Ceil(float64(w) / imgAspect))
 				} else {
 					// Image is wider (landscape) - use height as constraint, width will exceed box
-					w = int(math.Round(float64(h) * imgAspect))
+					// Use Ceil to ensure output is always >= requested box (full-fit-in guarantee)
+					w = int(math.Ceil(float64(h) * imgAspect))
 				}
 			}
 
