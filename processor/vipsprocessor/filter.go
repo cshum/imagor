@@ -285,33 +285,20 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		}
 	}
 
-	// Build a fully-transparent copy of the image (alpha=0).
-	transparent, cpErr := img.Copy(nil)
-	if cpErr != nil {
-		err = cpErr
+	// Create a transparent black image of the same size as img.
+	// Ifthenelse(blend=true): result = (mask/255)*img + (1-mask/255)*black
+	// → inside corners: img pixels (mask=255), outside: transparent (mask=0).
+	black, blackErr := vips.NewBlack(w, img.Height(), &vips.BlackOptions{Bands: img.Bands()})
+	if blackErr != nil {
+		err = blackErr
 		return
 	}
-	defer transparent.Close()
-	// Zero out the alpha band: Linear([1,1,1,0], [0,0,0,0]) keeps RGB, sets alpha=0.
-	if err = transparent.Linear(
-		[]float64{1, 1, 1, 0},
-		[]float64{0, 0, 0, 0},
-		nil,
-	); err != nil {
-		return
-	}
-	if err = transparent.Cast(vips.BandFormatUchar, nil); err != nil {
-		return
-	}
+	defer black.Close()
 
-	// Use Ifthenelse with blend=true: result = (mask/255)*img + (1-mask/255)*transparent
-	// This gives antialiased rounded corners: mask=255 → fully opaque, mask=0 → transparent.
-	// mask.Ifthenelse stores the result in mask (in-place).
-	if err = mask.Ifthenelse(img, transparent, &vips.IfthenelseOptions{Blend: true}); err != nil {
+	if err = mask.Ifthenelse(img, black, &vips.IfthenelseOptions{Blend: true}); err != nil {
 		return
 	}
-	// Copy the result from mask back into img: zero img to transparent black,
-	// then composite the masked result over it.
+	// Copy result from mask back into img via BlendModeOver on a zeroed img.
 	if err = img.Linear([]float64{0, 0, 0, 0}, []float64{0, 0, 0, 0}, nil); err != nil {
 		return
 	}
