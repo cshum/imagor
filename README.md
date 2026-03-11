@@ -316,16 +316,19 @@ S3_RESULT_STORAGE_ENDPOINT
 
 ##### S3 Wildcard Bucket (Dynamic Bucket from Path)
 
-For setups where the bucket name is embedded as the first path segment of the image URL, set `S3_LOADER_BUCKET=*`:
+For setups where the bucket name is embedded as the first path segment of the image URL, set the bucket to `*`:
 
 ```dotenv
-S3_LOADER_BUCKET=*
 AWS_REGION=us-east-1
+
+S3_LOADER_BUCKET=*          # enable S3 loader with dynamic bucket from path
+S3_STORAGE_BUCKET=*         # enable S3 storage with dynamic bucket from path
+S3_RESULT_STORAGE_BUCKET=*  # enable S3 result storage with dynamic bucket from path
 ```
 
 A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` bucket. A request for `/mysite-prod/assets/logo.png` will load `assets/logo.png` from the `mysite-prod` bucket. The first path segment is always used as the bucket name and the remainder as the object key.
 
-This allows a single imagor instance to serve images from any bucket in the same AWS account without any additional configuration.
+This works identically for loader, storage, and result storage — all three use the same `S3Storage` implementation. This allows a single imagor instance to serve images from any bucket in the same AWS account without any additional configuration.
 
 ##### S3 Loader Bucket Routing
 
