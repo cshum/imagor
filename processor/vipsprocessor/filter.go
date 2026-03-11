@@ -221,7 +221,7 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 }
 
 func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
-	var rx, ry int
+	var r int
 	var c []float64
 	if len(args) == 0 {
 		return
@@ -230,27 +230,22 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		args[0] = a
 	}
 	if len(args) == 3 {
-		// rx,ry,color
+		// r,r,color — third arg is color (backward compat with rx,ry,color)
 		c = getColor(img, args[2])
 		args = args[:2]
 	}
-	rx, _ = strconv.Atoi(args[0])
-	ry = rx
-	if len(args) > 1 {
-		ry, _ = strconv.Atoi(args[1])
-	}
-	// Use average of rx/ry as corner radius (SDF uses circular corners)
-	r := float64(rx+ry) / 2.0
+	r, _ = strconv.Atoi(args[0])
+	// args[1] (ry) is accepted for backward compat but ignored — SDF uses circular corners
 
 	var w = img.Width()
 	var h = img.PageHeight()
 
 	// Generate a rounded-box SDF: negative inside the shape, positive outside.
-	// For vips_sdf ROUNDED_BOX: A is the top-left corner, B is the bottom-right corner.
+	// A = top-left corner, B = bottom-right corner of the box.
 	mask, err := vips.NewSdf(w, h, vips.SdfShapeRoundedBox, &vips.SdfOptions{
 		A:       []float64{0, 0},
 		B:       []float64{float64(w), float64(h)},
-		Corners: []float64{r, r, r, r},
+		Corners: []float64{float64(r), float64(r), float64(r), float64(r)},
 	})
 	if err != nil {
 		return
@@ -285,9 +280,9 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		}
 	}
 
-	// Create a transparent black image of the same size as img.
+	// Create a transparent black image (all zeros) matching img's band count.
 	// Ifthenelse(blend=true): result = (mask/255)*img + (1-mask/255)*black
-	// → inside corners: img pixels (mask=255), outside: transparent (mask=0).
+	// → smooth antialiased corners.
 	black, blackErr := vips.NewBlack(w, img.Height(), &vips.BlackOptions{Bands: img.Bands()})
 	if blackErr != nil {
 		err = blackErr
