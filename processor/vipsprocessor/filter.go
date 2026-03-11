@@ -235,7 +235,6 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		args = args[:2]
 	}
 	r, _ = strconv.Atoi(args[0])
-	// args[1] (ry) is accepted for backward compat but ignored — SDF uses circular corners
 
 	var w = img.Width()
 	var h = img.PageHeight()
