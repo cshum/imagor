@@ -428,6 +428,18 @@ services:
       - "8000:8000"
 ```
 
+##### Google Cloud Storage Wildcard Bucket (Dynamic Bucket from Path)
+
+Google Cloud Storage supports the same `*` bucket paradigm as S3:
+
+```dotenv
+GCLOUD_LOADER_BUCKET=*          # enable GCS loader with dynamic bucket from path
+GCLOUD_STORAGE_BUCKET=*         # enable GCS storage with dynamic bucket from path
+GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket from path
+```
+
+A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
+
 #### Storage and Result Storage Path Style
 
 `Storage` and `Result Storage` path style enables additional hashing rules to the storage path when loading and saving images:
