@@ -419,6 +419,122 @@ func TestWithForcePathStyleDefault(t *testing.T) {
 	assert.True(t, s2.ForcePathStyle)
 }
 
+func TestWildcardBucket_Path(t *testing.T) {
+	tests := []struct {
+		name           string
+		image          string
+		expectedBucket string
+		expectedKey    string
+		expectedOk     bool
+	}{
+		{
+			name:           "extracts bucket and key from path",
+			image:          "mysite-test/images/photo.jpg",
+			expectedBucket: "mysite-test",
+			expectedKey:    "images/photo.jpg",
+			expectedOk:     true,
+		},
+		{
+			name:           "strips leading slash",
+			image:          "/mysite-prod/assets/logo.png",
+			expectedBucket: "mysite-prod",
+			expectedKey:    "assets/logo.png",
+			expectedOk:     true,
+		},
+		{
+			name:           "deep nested key",
+			image:          "/my-bucket/a/b/c/image.jpg",
+			expectedBucket: "my-bucket",
+			expectedKey:    "a/b/c/image.jpg",
+			expectedOk:     true,
+		},
+		{
+			name:       "no slash — invalid",
+			image:      "no-slash-here",
+			expectedOk: false,
+		},
+		{
+			name:       "empty bucket segment — invalid",
+			image:      "//photo.jpg",
+			expectedOk: false,
+		},
+	}
+	cfg := aws.Config{Region: "us-east-1"}
+	s := New(cfg, "*")
+	assert.Equal(t, "*", s.Bucket)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bucket, key, ok := s.resolve(tt.image)
+			assert.Equal(t, tt.expectedOk, ok)
+			if tt.expectedOk {
+				assert.Equal(t, tt.expectedBucket, bucket)
+				assert.Equal(t, tt.expectedKey, key)
+			}
+		})
+	}
+}
+
+func TestWildcardBucket_CRUD(t *testing.T) {
+	ts := fakeS3Server()
+	defer ts.Close()
+
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+
+	cfg := fakeS3Config(ts, "bucket-a")
+	// Also create bucket-b in the same fake server
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(ts.URL)
+		o.UsePathStyle = true
+	})
+	_, err := client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String("bucket-b")})
+	require.NoError(t, err)
+
+	s := New(cfg, "*", WithEndpoint(ts.URL), WithForcePathStyle(true))
+	assert.Equal(t, "*", s.Bucket)
+
+	// Invalid: no slash
+	_, err = s.Get(r, "no-slash")
+	assert.Equal(t, imagor.ErrInvalid, err)
+
+	// Not found in bucket-a
+	b, _ := s.Get(r, "/bucket-a/images/photo.jpg")
+	_, err = b.ReadAll()
+	assert.Equal(t, imagor.ErrNotFound, err)
+
+	// Put into bucket-a
+	require.NoError(t, s.Put(ctx, "/bucket-a/images/photo.jpg", imagor.NewBlobFromBytes([]byte("hello-a"))))
+
+	// Get from bucket-a
+	b, err = s.Get(r, "/bucket-a/images/photo.jpg")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "hello-a", string(buf))
+
+	// Put into bucket-b
+	require.NoError(t, s.Put(ctx, "/bucket-b/images/photo.jpg", imagor.NewBlobFromBytes([]byte("hello-b"))))
+
+	// Get from bucket-b — different bucket, different content
+	b, err = s.Get(r, "/bucket-b/images/photo.jpg")
+	require.NoError(t, err)
+	buf, err = b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "hello-b", string(buf))
+
+	// Stat bucket-a
+	stat, err := s.Stat(ctx, "/bucket-a/images/photo.jpg")
+	require.NoError(t, err)
+	assert.NotEmpty(t, stat.ETag)
+
+	// Delete from bucket-a
+	require.NoError(t, s.Delete(ctx, "/bucket-a/images/photo.jpg"))
+	b, _ = s.Get(r, "/bucket-a/images/photo.jpg")
+	_, err = b.ReadAll()
+	assert.Equal(t, imagor.ErrNotFound, err)
+}
+
 func TestLocalstackCompatibility(t *testing.T) {
 	cfg := aws.Config{
 		Region: "us-east-1",

@@ -17,6 +17,8 @@ type BucketConfig struct {
 
 type BucketRouter interface {
 	ConfigFor(key string) *BucketConfig
+	KeyFor(key string) string
+	BucketNameFor(key string) string
 	Fallbacks() []*BucketConfig
 	DefaultConfig() *BucketConfig
 	AllConfigs() []*BucketConfig
@@ -30,6 +32,7 @@ type MatchRule struct {
 type PatternRouter struct {
 	pattern       *regexp.Regexp
 	bucketGroup   int
+	pathGroup     int
 	rules         map[string]*BucketConfig
 	defaultConfig *BucketConfig
 	fallbacks     []*BucketConfig
@@ -42,10 +45,13 @@ func NewPatternRouter(pattern string, rules []MatchRule, defaultConfig *BucketCo
 	}
 
 	bucketGroup := -1
+	pathGroup := -1
 	for i, name := range re.SubexpNames() {
-		if name == "bucket" {
+		switch name {
+		case "bucket":
 			bucketGroup = i
-			break
+		case "path":
+			pathGroup = i
 		}
 	}
 	if bucketGroup == -1 {
@@ -64,6 +70,7 @@ func NewPatternRouter(pattern string, rules []MatchRule, defaultConfig *BucketCo
 	return &PatternRouter{
 		pattern:       re,
 		bucketGroup:   bucketGroup,
+		pathGroup:     pathGroup,
 		rules:         rulesMap,
 		defaultConfig: defaultConfig,
 		fallbacks:     fallbacks,
@@ -84,6 +91,30 @@ func (r *PatternRouter) ConfigFor(key string) *BucketConfig {
 	}
 
 	return r.defaultConfig
+}
+
+// BucketNameFor returns the raw bucket identifier captured by the (?P<bucket>...)
+// group for the given key, or an empty string if the pattern does not match.
+// This is used for passthrough/wildcard routing when no rules or default are configured.
+func (r *PatternRouter) BucketNameFor(key string) string {
+	trimmed := strings.TrimPrefix(key, "/")
+	matches := r.pattern.FindStringSubmatch(trimmed)
+	if matches == nil || len(matches) <= r.bucketGroup {
+		return ""
+	}
+	return matches[r.bucketGroup]
+}
+
+func (r *PatternRouter) KeyFor(key string) string {
+	if r.pathGroup == -1 {
+		return key
+	}
+	trimmed := strings.TrimPrefix(key, "/")
+	matches := r.pattern.FindStringSubmatch(trimmed)
+	if matches == nil || len(matches) <= r.pathGroup || matches[r.pathGroup] == "" {
+		return key
+	}
+	return matches[r.pathGroup]
 }
 
 func (r *PatternRouter) Fallbacks() []*BucketConfig {
