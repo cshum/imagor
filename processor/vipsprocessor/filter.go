@@ -619,13 +619,13 @@ func blur(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 	var sigma float64
 	switch len(args) {
 	case 2:
+		// explicit sigma provided — use directly
 		sigma, _ = strconv.ParseFloat(args[1], 64)
-		break
 	case 1:
+		// only radius provided — convert to sigma
 		sigma, _ = strconv.ParseFloat(args[0], 64)
-		break
+		sigma /= 2
 	}
-	sigma /= 2
 	if sigma > 0 {
 		return img.Gaussblur(sigma, nil)
 	}
