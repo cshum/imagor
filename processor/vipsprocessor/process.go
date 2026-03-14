@@ -58,7 +58,8 @@ func (v *Processor) Process(
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0
 			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight &&
-				!imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") {
+				!imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") &&
+				blob.BlobType() != imagor.BlobTypeMemory {
 				if memBlob, cacheErr := v.loadOrCache(ctx, blob, p.Image, 1); cacheErr == nil && memBlob != nil {
 					blob = memBlob
 				}
