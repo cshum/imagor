@@ -2317,6 +2317,51 @@ func TestWithCacher(t *testing.T) {
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
 		assert.Equal(t, 0, proc.called)
 	})
+
+	t.Run("cache bypass — crop coordinates — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// 30x20:100x150/200x200/cached.jpg → CropLeft=30, CropTop=20, CropRight=100, CropBottom=150
+		// Even though image is cached and size is within max dims, crop must bypass HasCache
+		// because the cache stores a downscaled copy and crop pixel coords would be wrong.
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/30x20:100x150/200x200/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "crop request must bypass HasCache")
+	})
+
+	t.Run("cache bypass — focal filter — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// filters:focal(0.5x0.5) present → must bypass HasCache
+		// because focal smart-crop runs on the cached downscaled image, giving wrong results.
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:focal(0.5x0.5)/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "focal filter must bypass HasCache")
+	})
+
+	t.Run("no crop no focal — cache still used", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// Same image, same size, no crop/focal → cache hit (regression guard)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called, "no-crop/focal request should still use cache")
+	})
 }
 
 type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
