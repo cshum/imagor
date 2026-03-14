@@ -150,7 +150,11 @@ func (v *Processor) loadOverlayImage(
 	}
 
 	// Animated source — loadOrCacheBlob returns nil; fall back to direct load.
+	// Use the requested size when known, otherwise load at maxW×maxH with SizeDown.
 	if memBlob == nil {
+		if sizeKnown {
+			return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
+		}
 		return v.NewThumbnail(ctx, blob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
 			vips.InterestingNone, vips.SizeDown, n, 1, 0)
 	}
@@ -184,8 +188,9 @@ func (v *Processor) loadAndCacheImageFilter(
 ) (*vips.Image, error) {
 	sizeKnown := params.Width > 0 && params.Height > 0
 
-	// Bypass: cache disabled or requested output size exceeds cache max dims.
-	if v.overlayCache == nil ||
+	// Bypass: cache disabled, blob is nil (e.g. color: image paths generated in-process),
+	// or requested output size exceeds cache max dims.
+	if v.overlayCache == nil || blob == nil ||
 		(sizeKnown && (params.Width > v.OverlayCacheMaxWidth || params.Height > v.OverlayCacheMaxHeight)) {
 		return v.loadAndProcess(ctx, blob, params, load)
 	}
