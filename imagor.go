@@ -396,12 +396,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			defer app.sema.Release(1)
 		}
 		var shouldSave bool
+		var hasCached bool
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
 		} else {
 			// Check if any processor has the base image cached at the requested size.
 			// If so, skip loadStorage entirely — no I/O, no network.
-			var hasCached bool
 			for _, processor := range app.Processors {
 				if c, ok := processor.(Cacher); ok && c.HasCache(p.Image, p.Width, p.Height) {
 					hasCached = true
@@ -431,7 +431,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				close(doneSave)
 			}(blob)
 		}
-		if isBlobEmpty(blob) && !isColorImage(p.Image) {
+		if isBlobEmpty(blob) && !isColorImage(p.Image) && !hasCached {
 			return blob, err
 		}
 		if !isRaw {
