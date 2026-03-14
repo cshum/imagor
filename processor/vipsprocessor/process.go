@@ -78,6 +78,15 @@ func (v *Processor) Process(
 			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight && !hasCrop && !hasFocal {
 				if memBlob, cacheErr := v.loadOrCache(ctx, blob, p.Image, 1); cacheErr == nil && memBlob != nil {
 					blob = memBlob
+				} else if blob == nil {
+					// blob=nil means HasCache returned true in imagor.Do() but the cache entry
+					// was evicted by ristretto before Process() ran (TOCTOU race).
+					// Fall back to reloading from storage via the load function so the request
+					// doesn't fail with ErrNotFound. If reload also fails, blob stays nil and
+					// loadAndProcess will return ErrNotFound (correct behaviour).
+					if reloaded, reloadErr := load(p.Image); reloadErr == nil {
+						blob = reloaded
+					}
 				}
 			}
 		}

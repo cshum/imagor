@@ -554,6 +554,59 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("pixel cache TOCTOU — eviction between HasCache and Process", func(t *testing.T) {
+		// Simulate the race where HasCache returns true (cache populated) but ristretto
+		// evicts the entry before Process() runs. Process() receives blob=nil and must
+		// fall back to reloading via load() rather than returning ErrNotFound.
+		fileLoader := filestorage.New(testDataDir)
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024), // 100 MB
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+			WithDebug(true),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() {
+			require.NoError(t, proc.Shutdown(context.Background()))
+		})
+
+		// Step 1: warm the cache by processing the image normally.
+		blobPath, _ := fileLoader.Path("gopher-front.png")
+		blob := imagor.NewBlobFromFile(blobPath)
+		load := func(image string) (*imagor.Blob, error) {
+			p, _ := fileLoader.Path(image)
+			return imagor.NewBlobFromFile(p), nil
+		}
+		params := imagorpath.Params{
+			Image:  "gopher-front.png",
+			Width:  100,
+			Height: 100,
+		}
+		result, err := proc.Process(context.Background(), blob, params, load)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		// Verify the cache was populated.
+		require.True(t, proc.HasCache("gopher-front.png", 100, 100),
+			"cache should be populated after first Process call")
+
+		// Step 2: simulate ristretto eviction by clearing the cache.
+		proc.cache.Clear()
+		proc.cache.Wait()
+		require.False(t, proc.HasCache("gopher-front.png", 100, 100),
+			"cache should be empty after Clear()")
+
+		// Step 3: call Process with blob=nil (as imagor.Do() would after HasCache returned true).
+		// The TOCTOU fix in process.go should detect blob=nil + loadOrCache miss and
+		// fall back to calling load("gopher-front.png") to reload the blob.
+		result2, err := proc.Process(context.Background(), nil, params, load)
+		require.NoError(t, err, "Process must not return ErrNotFound when blob=nil and cache evicted — fallback reload should succeed")
+		require.NotNil(t, result2)
+		buf, err := result2.ReadAll()
+		require.NoError(t, err)
+		require.NotEmpty(t, buf, "result should be a valid image")
+	})
+
 	t.Run("invalid BMP", func(t *testing.T) {
 		ctx := context.Background()
 		blob := imagor.NewBlobFromBytes([]byte("BMabcdasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"))

@@ -49,6 +49,13 @@ func (v *Processor) loadOrCache(
 			return memBlob, nil
 		}
 
+		// blob=nil means the caller came from the HasCache path (imagor.Do skipped
+		// loadStorage) but the cache entry was evicted before we got here.
+		// Signal the caller to fall back to reloading from storage.
+		if blob == nil {
+			return nil, nil
+		}
+
 		// Decode at maxW×maxH with SizeDown. Fresh context so the VipsSource
 		// is released immediately after WriteToMemory.
 		decodeCtx := withContext(context.Background())
