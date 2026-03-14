@@ -10,11 +10,7 @@ import (
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/vipsgen/vips"
 	"github.com/dgraph-io/ristretto/v2"
-	"golang.org/x/sync/singleflight"
 )
-
-// singleflightGroup is an alias for singleflight.Group used for overlay cache coalescing.
-type singleflightGroup = singleflight.Group
 
 // overlayRistrettoCache is a type alias for the ristretto cache used for overlay images.
 type overlayRistrettoCache = ristretto.Cache[string, *overlayCacheEntry]
@@ -41,90 +37,156 @@ func newOverlayCache(maxCost int64) (*overlayRistrettoCache, error) {
 	})
 }
 
-// loadOverlayImage loads an overlay image, using the overlay cache when possible.
+// loadOverlayImage loads a watermark overlay image, using the overlay cache when possible.
+//
+// The cache key is the URL only — n is not included because the cache only ever
+// stores single-page (non-animated) results. Animated overlay sources are detected
+// after decode (img.Height() != img.PageHeight()) and returned directly without
+// caching — WriteToMemory/NewImageFromMemory cannot preserve multi-page structure.
 //
 // Two cases:
 //
 //  1. Size known (w > 0 && h > 0):
 //     - If w > OverlayCacheMaxWidth || h > OverlayCacheMaxHeight: skip cache, load directly.
-//     - Otherwise: load at max cache dims with SizeDown, WriteToMemory → cache.
+//     - Otherwise: load at OverlayCacheMaxWidth×OverlayCacheMaxHeight with SizeDown → cache.
 //     - On hit: NewImageFromMemory + ThumbnailImage(w, h, size).
 //
 //  2. Size unknown (w == 0 || h == 0):
-//     - Load normally at MaxWidth×MaxHeight with SizeDown (existing behaviour).
-//     - After loading, if result fits within cache max dims: WriteToMemory → cache opportunistically.
-//     - On hit: NewImageFromMemory, return as-is (already at SizeDown result).
+//     - Load at OverlayCacheMaxWidth×OverlayCacheMaxHeight with SizeDown → cache.
+//     - On hit: NewImageFromMemory, return as-is.
 func (v *Processor) loadOverlayImage(
 	ctx context.Context, load imagor.LoadFunc,
 	url string, w, h, n int, size vips.Size,
 ) (*vips.Image, error) {
-	// Cache disabled or requested size exceeds max — load directly, no caching.
+	sizeKnown := w > 0 && h > 0
+
+	// Cache disabled or explicit size exceeds max dims — load directly, no caching.
 	if v.overlayCache == nil ||
-		(w > 0 && w > v.OverlayCacheMaxWidth) ||
-		(h > 0 && h > v.OverlayCacheMaxHeight) {
+		(sizeKnown && (w > v.OverlayCacheMaxWidth || h > v.OverlayCacheMaxHeight)) {
 		blob, err := load(url)
 		if err != nil {
 			return nil, err
 		}
-		// For unknown size (w==0 || h==0), use MaxWidth/MaxHeight with SizeDown
-		// to match the original watermark behaviour.
-		if w == 0 || h == 0 {
-			return v.NewThumbnail(ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0)
+		if sizeKnown {
+			return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
 		}
-		return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
+		return v.NewThumbnail(ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0)
 	}
 
-	sizeKnown := w > 0 && h > 0
-
-	// Cache hit path
+	// Cache hit — URL is the key; cached entries are always single-page.
 	if entry, ok := v.overlayCache.Get(url); ok {
 		return overlayFromCacheEntry(entry, w, h, size, sizeKnown)
 	}
 
-	// Cache miss — use singleflight to coalesce concurrent loads for the same URL.
-	// Use context.Background() for the decode so that cancellation of the
-	// caller's request context does not race with libvips source cleanup
-	// (contextDefer registers src.Close on the ctx passed to NewThumbnail).
-	result, err, _ := v.overlaySF.Do(url, func() (interface{}, error) {
-		// Double-check after acquiring the singleflight slot.
-		if entry, ok := v.overlayCache.Get(url); ok {
-			return entry, nil
-		}
-		blob, err := load(url)
-		if err != nil {
-			return nil, err
-		}
-		// Use a fresh background context so that the source reader registered
-		// via contextDefer is not closed by the caller's request context
-		// cancellation while libvips is still decoding.
-		decodeCtx := context.Background()
-		if sizeKnown {
-			// Load at max cache dims with SizeDown so one entry serves all sizes.
-			return v.loadAndCacheOverlay(decodeCtx, blob, n, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight, url)
-		}
-		// Unknown size: load at processor MaxWidth/MaxHeight with SizeDown (existing behaviour).
-		return v.loadAndCacheOverlay(decodeCtx, blob, n, v.MaxWidth, v.MaxHeight, url)
-	})
+	// Cache miss: load, decode, check animated, cache if static.
+	blob, err := load(url)
 	if err != nil {
 		return nil, err
 	}
-	return overlayFromCacheEntry(result.(*overlayCacheEntry), w, h, size, sizeKnown)
+	return v.loadAndCacheOverlay(ctx, blob, url, w, h, n, size, sizeKnown)
 }
 
-// loadAndCacheOverlay loads the overlay at the given max dimensions, writes raw pixels
-// to a Go-owned []byte via WriteToMemory, and stores the entry in the ristretto cache.
-// The loaded *vips.Image is closed after WriteToMemory — the caller reconstructs from
-// the cache entry via NewImageFromMemory.
-// No OnEvict callback is needed: []byte is GC'd automatically when ristretto evicts the entry.
+// loadAndCacheOverlay decodes the overlay blob at OverlayCacheMaxWidth×OverlayCacheMaxHeight.
+//   - Animated (img.Height() != img.PageHeight()): returned directly to caller; not cached.
+//     WriteToMemory/NewImageFromMemory cannot preserve multi-page structure.
+//   - Static: WriteToMemory → Go-owned []byte → ristretto cache → overlayFromCacheEntry.
+//     img.Close() is called immediately after WriteToMemory; the returned image is
+//     reconstructed from the cached buf, independent of any libvips source lifetime.
+//
+// A fresh decode context (withContext(context.Background())) is used so that
+// the VipsSource registered via contextDefer is released immediately after
+// WriteToMemory, not tied to the request context lifetime. This prevents
+// source leaks when the caller's context never cancels (e.g. context.Background()).
+// For animated overlays the caller's ctx is used so the source stays alive
+// for the duration of the compositing operation.
+// No OnEvict callback needed: []byte is GC'd automatically when ristretto evicts the entry.
 func (v *Processor) loadAndCacheOverlay(
-	ctx context.Context, blob *imagor.Blob, n, maxW, maxH int, url string,
-) (*overlayCacheEntry, error) {
-	img, err := v.NewThumbnail(ctx, blob, maxW, maxH, vips.InterestingNone, vips.SizeDown, n, 1, 0)
+	ctx context.Context, blob *imagor.Blob, cacheKey string,
+	w, h, n int, size vips.Size, sizeKnown bool,
+) (*vips.Image, error) {
+	// Use a fresh decode context so the VipsSource is released immediately
+	// after WriteToMemory (not tied to the request context lifetime).
+	decodeCtx := withContext(context.Background())
+
+	img, err := v.NewThumbnail(decodeCtx, blob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
+		vips.InterestingNone, vips.SizeDown, n, 1, 0)
+	if err != nil {
+		contextDone(decodeCtx)
+		return nil, err
+	}
+
+	// Animated overlay: return directly using the caller's ctx so the source
+	// stays alive for the compositing operation. Release the decode context
+	// source first since we're switching to the caller's context.
+	if img.Height() != img.PageHeight() {
+		contextDone(decodeCtx)
+		// Re-load using the caller's context so the source lifetime is tied
+		// to the request and cleaned up via contextDefer on ctx.
+		return v.NewThumbnail(ctx, blob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
+			vips.InterestingNone, vips.SizeDown, n, 1, 0)
+	}
+
+	// Capture dimensions before closing.
+	imgW, imgH, imgBands := img.Width(), img.PageHeight(), img.Bands()
+	buf, err := img.WriteToMemory()
+	img.Close()
+	// Release the VipsSource now that WriteToMemory is done.
+	contextDone(decodeCtx)
 	if err != nil {
 		return nil, err
 	}
-	defer img.Close()
+	entry := &overlayCacheEntry{
+		buf:    buf,
+		width:  imgW,
+		height: imgH,
+		bands:  imgBands,
+	}
+	// Cache if within max dims (result may be smaller than max due to SizeDown).
+	if entry.width <= v.OverlayCacheMaxWidth && entry.height <= v.OverlayCacheMaxHeight {
+		v.overlayCache.Set(cacheKey, entry, int64(len(buf)))
+		v.overlayCache.Wait()
+	}
+	// Reconstruct from the cached buf — independent of the now-closed img.
+	return overlayFromCacheEntry(entry, w, h, size, sizeKnown)
+}
 
+// loadAndCacheImageFilter runs the full imagor processing pipeline for an image()
+// filter overlay, caching the result keyed by the resolved imagor path.
+//
+// The resolved path (after f-token substitution) is the cache key, so:
+//   - Preview at 1920×1080: key "1920x1080/logo.png" → cached at ≤ max dims ✓
+//   - Export at 4000×3000: key "4000x3000/logo.png" → result exceeds max dims → not cached ✓
+//
+// Animated results and results exceeding OverlayCacheMaxWidth×OverlayCacheMaxHeight
+// are returned directly without caching.
+func (v *Processor) loadAndCacheImageFilter(
+	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
+	resolvedPath string,
+) (*vips.Image, error) {
+	if v.overlayCache == nil {
+		return v.loadAndProcess(ctx, blob, params, load)
+	}
+
+	// Cache hit.
+	if entry, ok := v.overlayCache.Get(resolvedPath); ok {
+		return overlayFromCacheEntry(entry, 0, 0, 0, false)
+	}
+
+	// Cache miss: run pipeline, check animated/size, cache if eligible.
+	img, err := v.loadAndProcess(ctx, blob, params, load)
+	if err != nil || img == nil {
+		return img, err
+	}
+
+	// Animated or exceeds max dims — return directly, not cached.
+	if img.Height() != img.PageHeight() ||
+		img.Width() > v.OverlayCacheMaxWidth ||
+		img.PageHeight() > v.OverlayCacheMaxHeight {
+		return img, nil
+	}
+
+	// Static and within max dims — WriteToMemory → cache → return from entry.
+	defer img.Close()
 	buf, err := img.WriteToMemory()
 	if err != nil {
 		return nil, err
@@ -135,15 +197,9 @@ func (v *Processor) loadAndCacheOverlay(
 		height: img.PageHeight(),
 		bands:  img.Bands(),
 	}
-
-	// Only cache if the result fits within the configured max dims.
-	// This handles Case 2C: SizeDown result still exceeds OverlayCacheMaxWidth/Height.
-	if img.Width() <= v.OverlayCacheMaxWidth && img.PageHeight() <= v.OverlayCacheMaxHeight {
-		// cost = bytes used; ristretto enforces MaxCost (OverlayCacheSize) via LRU eviction.
-		v.overlayCache.Set(url, entry, int64(len(buf)))
-		v.overlayCache.Wait()
-	}
-	return entry, nil
+	v.overlayCache.Set(resolvedPath, entry, int64(len(buf)))
+	v.overlayCache.Wait()
+	return overlayFromCacheEntry(entry, 0, 0, 0, false)
 }
 
 // overlayFromCacheEntry reconstructs a *vips.Image from a cache entry.

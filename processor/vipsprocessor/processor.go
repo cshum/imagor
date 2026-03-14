@@ -50,7 +50,6 @@ type Processor struct {
 
 	disableFilters map[string]bool
 	overlayCache   *overlayRistrettoCache
-	overlaySF      singleflightGroup
 }
 
 // NewProcessor create Processor
