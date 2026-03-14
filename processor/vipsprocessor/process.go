@@ -57,10 +57,25 @@ func (v *Processor) Process(
 	// may need native resolution which exceeds the cache cap.
 	// On cache hit (blob==nil from Do()), loadOrCache returns the cached memBlob.
 	// On cache miss, loadOrCache decodes and caches, then returns the memBlob.
+	// Skip cache when there's a crop or focal filter: the cache stores a downscaled
+	// copy (≤ CacheMaxWidth×CacheMaxHeight), so absolute pixel crop coordinates and
+	// focal points from the original image space would be applied incorrectly to the
+	// smaller cached image. Percentage crops also fail when the crop region of the
+	// cached image is smaller than the requested output size.
 	if p.Image != "" {
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0
-			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight {
+			hasCrop := p.CropLeft > 0 || p.CropTop > 0 || p.CropRight > 0 || p.CropBottom > 0
+			hasFocal := false
+			if !hasCrop {
+				for _, f := range p.Filters {
+					if f.Name == "focal" {
+						hasFocal = true
+						break
+					}
+				}
+			}
+			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight && !hasCrop && !hasFocal {
 				if memBlob, cacheErr := v.loadOrCache(ctx, blob, p.Image, 1); cacheErr == nil && memBlob != nil {
 					blob = memBlob
 				}
