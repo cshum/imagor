@@ -752,6 +752,23 @@ VIPS_MAX_CACHE_FILES=0          # Max number of file descriptors to cache
 
 See [libvips operation cache documentation](https://github.com/libvips/libvips/issues/1585) for more details.
 
+#### Overlay Image Cache
+
+The overlay image cache reduces repeated I/O and decode overhead for `watermark` and `image` filters that reuse the same overlay URL across many requests (e.g. a company logo applied to every image).
+
+When enabled, decoded overlay pixels are stored as raw byte buffers (via libvips `WriteToMemory`) keyed by URL. This is safe for concurrent use: each request reconstructs a fresh `*vips.Image` from the cached bytes via `NewImageFromMemory`, so there is no shared mutable libvips state between requests. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
+
+```dotenv
+VIPS_OVERLAY_CACHE_SIZE=52428800      # Overlay cache byte budget (e.g. 50 MiB). Default 0 = disabled
+VIPS_OVERLAY_CACHE_MAX_WIDTH=2400     # Max overlay width to cache (default 2400px)
+VIPS_OVERLAY_CACHE_MAX_HEIGHT=1800    # Max overlay height to cache (default 1800px)
+```
+
+**When to use:**
+- Enable when the same watermark or overlay image is applied to many different source images (e.g. a logo on every processed image).
+- Overlays larger than `VIPS_OVERLAY_CACHE_MAX_WIDTH` × `VIPS_OVERLAY_CACHE_MAX_HEIGHT` are served normally but not cached.
+- Leave disabled (default) if overlay URLs are highly varied or user-supplied, as caching provides no benefit.
+
 
 ### POST Upload Endpoint
 
@@ -1115,6 +1132,12 @@ Usage of imagor:
         VIPS strips all metadata from the resulting image
   -vips-unlimited
     	VIPS bypass image max resolution check and remove all denial of service limits
+  -vips-overlay-cache-size int
+        VIPS overlay image cache size in bytes. Set 0 to disable (default). Caches decoded overlay pixels keyed by URL to avoid repeated I/O and decode on watermark/image filters
+  -vips-overlay-cache-max-width int
+        VIPS overlay cache maximum image width. Overlays wider than this are not cached (default 2400)
+  -vips-overlay-cache-max-height int
+        VIPS overlay cache maximum image height. Overlays taller than this are not cached (default 1800)
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
