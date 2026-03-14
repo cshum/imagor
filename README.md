@@ -736,9 +736,9 @@ For high-traffic deployments, it's generally better to scale horizontally (more 
 
 #### Image Cache
 
-Imagor maintains an in-memory cache of decoded image pixels, keyed by URL. This avoids repeated I/O and decode for the same source image across different requests — base images, `watermark()` and `image()` filter overlays all share the same cache.
+Imagor maintains an in-memory cache of decoded image pixels, keyed by image path. This avoids repeated I/O and decode for the same source image across different requests — base images, `watermark()` and `image()` filter overlays all share the same cache.
 
-The cache stores raw pixel buffers keyed by URL. Each request gets its own independent image object reconstructed from the cached bytes, so concurrent requests are fully safe with no shared mutable state. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
+The cache stores raw pixel buffers keyed by image path. Each request gets its own independent image object reconstructed from the cached bytes, so concurrent requests are fully safe with no shared mutable state. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
 
 ```dotenv
 VIPS_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = disabled
@@ -749,11 +749,11 @@ VIPS_CACHE_TTL=1h             # Cache entry TTL. Default 0 = no expiry (LRU evic
 
 **When to use:**
 - Enable in image editor or preview contexts where the same source image is requested at multiple sizes (e.g. `800x600`, `400x300`, `200x150`). The first request decodes and caches; subsequent requests skip I/O entirely.
-- Enable when the same `watermark()` or `image()` URL is reused across many requests (e.g. a logo watermark on every image).
+- Enable when the same `watermark()` or `image()` image path is reused across many requests (e.g. a logo watermark on every image).
 - Images larger than `VIPS_CACHE_MAX_WIDTH` × `VIPS_CACHE_MAX_HEIGHT` are still served normally, just not cached.
 - Only known-size requests (explicit width × height) are served from cache. Unknown-size (0×0) and oversized requests always load from source to ensure correct native resolution.
-- Leave disabled (default) if source URLs are highly varied or user-supplied, as caching provides no benefit.
-- Set `VIPS_CACHE_TTL` if source images may change at the same URL (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
+- Leave disabled (default) if source image paths are highly varied or user-supplied, as caching provides no benefit.
+- Set `VIPS_CACHE_TTL` if source images may change at the same image path (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
 
 #### Operation Cache
 
@@ -1136,7 +1136,7 @@ Usage of imagor:
   -vips-unlimited
     	VIPS bypass image max resolution check and remove all denial of service limits
   -vips-cache-size int
-        VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by URL to avoid repeated I/O and decode for base images, watermark() and image() filters
+        VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by image path to avoid repeated I/O and decode for base images, watermark() and image() filters
   -vips-cache-max-width int
         VIPS image cache maximum width. Images wider than this are not cached (default 2400)
   -vips-cache-max-height int

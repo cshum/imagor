@@ -12,7 +12,7 @@ import (
 	"github.com/dgraph-io/ristretto/v2"
 )
 
-// pixelCache is a ristretto cache storing BlobTypeMemory blobs keyed by URL.
+// pixelCache is a ristretto cache storing BlobTypeMemory blobs keyed by image path.
 // Values are Go-owned raw pixel buffers from WriteToMemory — no libvips lifecycle,
 // no request context dependency, safe for concurrent reads and GC cleanup.
 type pixelCache = ristretto.Cache[string, *imagor.Blob]
@@ -26,26 +26,26 @@ func newPixelCache(maxCost int64) (*pixelCache, error) {
 	})
 }
 
-// loadOrCache returns a BlobTypeMemory blob for the given URL, using the pixel cache.
-// Cache key is URL only, so the same source serves all requested sizes.
+// loadOrCache returns a BlobTypeMemory blob for the given image path, using the pixel cache.
+// Cache key is image path only, so the same source serves all requested sizes.
 // Returns (nil, nil) if cache is disabled or the source is animated
 // (WriteToMemory cannot preserve multi-page structure).
 func (v *Processor) loadOrCache(
-	ctx context.Context, blob *imagor.Blob, url string, n int,
+	ctx context.Context, blob *imagor.Blob, imagePath string, n int,
 ) (*imagor.Blob, error) {
 	if v.cache == nil {
 		return nil, nil
 	}
 
 	// Fast path: cache hit — return immediately without singleflight overhead.
-	if memBlob, ok := v.cache.Get(url); ok {
+	if memBlob, ok := v.cache.Get(imagePath); ok {
 		return memBlob, nil
 	}
 
-	// Deduplicate concurrent cache misses for the same URL.
-	result, err, _ := v.cacheSF.Do(url, func() (any, error) {
+	// Deduplicate concurrent cache misses for the same image path.
+	result, err, _ := v.cacheSF.Do(imagePath, func() (any, error) {
 		// Re-check after acquiring the singleflight group.
-		if memBlob, ok := v.cache.Get(url); ok {
+		if memBlob, ok := v.cache.Get(imagePath); ok {
 			return memBlob, nil
 		}
 
@@ -83,9 +83,9 @@ func (v *Processor) loadOrCache(
 		if w <= v.CacheMaxWidth && h <= v.CacheMaxHeight {
 			cost := int64(len(buf))
 			if v.CacheTTL > 0 {
-				v.cache.SetWithTTL(url, memBlob, cost, v.CacheTTL)
+				v.cache.SetWithTTL(imagePath, memBlob, cost, v.CacheTTL)
 			} else {
-				v.cache.Set(url, memBlob, cost)
+				v.cache.Set(imagePath, memBlob, cost)
 			}
 			v.cache.Wait()
 		}
@@ -101,7 +101,7 @@ func (v *Processor) loadOrCache(
 }
 
 // loadOverlayImage loads a watermark overlay image using the pixel cache.
-// Cache key is URL only. Size must be known (w > 0 && h > 0) to use the cache;
+// Cache key is image path only. Size must be known (w > 0 && h > 0) to use the cache;
 // unknown size or size exceeding cache max dims bypasses the cache.
 func (v *Processor) loadOverlayImage(
 	ctx context.Context, load imagor.LoadFunc,
@@ -156,7 +156,7 @@ func (v *Processor) loadOverlayImage(
 }
 
 // loadFilterImage runs the imagor pipeline for an image() filter using the pixel cache.
-// Cache key is URL only, so the same source serves all requested sizes and filter combos.
+// Cache key is image path only, so the same source serves all requested sizes and filter combos.
 // Bypasses cache when disabled, blob is nil, size is unknown, or output exceeds max dims.
 func (v *Processor) loadFilterImage(
 	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
