@@ -45,13 +45,13 @@ type Processor struct {
 	Debug              bool
 
 	// Overlay cache settings
-	OverlayCacheSize      int64
-	OverlayCacheMaxWidth  int
-	OverlayCacheMaxHeight int
+	CacheSize      int64
+	CacheMaxWidth  int
+	CacheMaxHeight int
 
 	disableFilters map[string]bool
-	overlayCache   *overlayRistrettoCache
-	overlaySF      singleflight.Group
+	cache   *ristrettoCache
+	cacheSF      singleflight.Group
 }
 
 // NewProcessor create Processor
@@ -65,8 +65,8 @@ func NewProcessor(options ...Option) *Processor {
 		MaxAnimationFrames:    -1,
 		Logger:                zap.NewNop(),
 		disableFilters:        map[string]bool{},
-		OverlayCacheMaxWidth:  2400,
-		OverlayCacheMaxHeight: 1800,
+		CacheMaxWidth:  2400,
+		CacheMaxHeight: 1800,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,
@@ -111,15 +111,15 @@ func NewProcessor(options ...Option) *Processor {
 // HasCache implements imagor.Cacher. Returns true only for known-size requests
 // (w > 0 && h > 0) within cache max dims where the URL is cached in memory.
 // Unknown-size requests always return false — the cached blob is capped at
-// OverlayCacheMaxWidth×OverlayCacheMaxHeight, which may be smaller than native.
+// CacheMaxWidth×CacheMaxHeight, which may be smaller than native.
 func (v *Processor) HasCache(key string, w, h int) bool {
-	if v.overlayCache == nil || w <= 0 || h <= 0 {
+	if v.cache == nil || w <= 0 || h <= 0 {
 		return false
 	}
-	if w > v.OverlayCacheMaxWidth || h > v.OverlayCacheMaxHeight {
+	if w > v.CacheMaxWidth || h > v.CacheMaxHeight {
 		return false
 	}
-	_, ok := v.overlayCache.Get(key)
+	_, ok := v.cache.Get(key)
 	return ok
 }
 
@@ -161,12 +161,12 @@ func (v *Processor) Startup(_ context.Context) error {
 			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 		}
 	}
-	if v.OverlayCacheSize > 0 && v.overlayCache == nil {
-		cache, err := newOverlayCache(v.OverlayCacheSize)
+	if v.CacheSize > 0 && v.cache == nil {
+		cache, err := newCache(v.CacheSize)
 		if err != nil {
 			return err
 		}
-		v.overlayCache = cache
+		v.cache = cache
 	}
 	return nil
 }

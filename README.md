@@ -734,6 +734,25 @@ VIPS_CONCURRENCY=4    # Use 4 threads
 
 For high-traffic deployments, it's generally better to scale horizontally (more imagor instances) rather than increasing `VIPS_CONCURRENCY`.
 
+#### Image Cache
+
+Imagor maintains an in-memory cache of decoded image pixels, keyed by URL. This avoids repeated I/O and decode for the same source image across different requests — base images, `watermark()` and `image()` filter overlays all share the same cache.
+
+The cache stores raw pixel buffers keyed by URL. Each request gets its own independent image object reconstructed from the cached bytes, so concurrent requests are fully safe with no shared mutable state. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
+
+```dotenv
+VIPS_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = disabled
+VIPS_CACHE_MAX_WIDTH=2400     # Max image width to cache (default 2400px)
+VIPS_CACHE_MAX_HEIGHT=1800    # Max image height to cache (default 1800px)
+```
+
+**When to use:**
+- Enable in image editor or preview contexts where the same source image is requested at multiple sizes (e.g. `800x600`, `400x300`, `200x150`). The first request decodes and caches; subsequent requests skip I/O entirely.
+- Enable when the same `watermark()` or `image()` URL is reused across many requests (e.g. a logo watermark on every image).
+- Images larger than `VIPS_CACHE_MAX_WIDTH` × `VIPS_CACHE_MAX_HEIGHT` are still served normally, just not cached.
+- Only known-size requests (explicit width × height) are served from cache. Unknown-size (0×0) and oversized requests always load from source to ensure correct native resolution.
+- Leave disabled (default) if source URLs are highly varied or user-supplied, as caching provides no benefit.
+
 #### Operation Cache
 
 libvips caches recently used operations to improve performance when processing similar images. These settings control the cache behavior:
@@ -751,24 +770,6 @@ VIPS_MAX_CACHE_FILES=0          # Max number of file descriptors to cache
 **Default behavior:** libvips uses small cache limits suitable for web serving. For most imagor deployments, the defaults are appropriate.
 
 See [libvips operation cache documentation](https://github.com/libvips/libvips/issues/1585) for more details.
-
-#### `watermark` and `image` Filter Cache
-
-When the same URL is used repeatedly in `watermark()` or `image()` filters (e.g. a company logo applied to every processed image), imagor can cache the decoded pixels in memory to avoid repeated network I/O and image decoding on every request.
-
-The cache stores raw pixel buffers keyed by URL. Each request gets its own independent image object reconstructed from the cached bytes, so concurrent requests are fully safe with no shared mutable state. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
-
-```dotenv
-VIPS_OVERLAY_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = disabled
-VIPS_OVERLAY_CACHE_MAX_WIDTH=2400     # Max image width to cache (default 2400px)
-VIPS_OVERLAY_CACHE_MAX_HEIGHT=1800    # Max image height to cache (default 1800px)
-```
-
-**When to use:**
-- Enable when the same `watermark()` or `image()` URL is reused across many requests (e.g. a logo watermark on every image).
-- Images larger than `VIPS_OVERLAY_CACHE_MAX_WIDTH` × `VIPS_OVERLAY_CACHE_MAX_HEIGHT` are still served normally, just not cached.
-- Leave disabled (default) if the URLs passed to `watermark()` or `image()` are highly varied or user-supplied, as caching provides no benefit.
-
 
 ### POST Upload Endpoint
 
@@ -1132,12 +1133,12 @@ Usage of imagor:
         VIPS strips all metadata from the resulting image
   -vips-unlimited
     	VIPS bypass image max resolution check and remove all denial of service limits
-  -vips-overlay-cache-size int
-        VIPS overlay image cache size in bytes. Set 0 to disable (default). Caches decoded overlay pixels keyed by URL to avoid repeated I/O and decode on watermark/image filters
-  -vips-overlay-cache-max-width int
-        VIPS overlay cache maximum image width. Overlays wider than this are not cached (default 2400)
-  -vips-overlay-cache-max-height int
-        VIPS overlay cache maximum image height. Overlays taller than this are not cached (default 1800)
+  -vips-cache-size int
+        VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by URL to avoid repeated I/O and decode for base images, watermark() and image() filters
+  -vips-cache-max-width int
+        VIPS image cache maximum width. Images wider than this are not cached (default 2400)
+  -vips-cache-max-height int
+        VIPS image cache maximum height. Images taller than this are not cached (default 1800)
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry

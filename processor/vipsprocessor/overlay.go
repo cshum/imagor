@@ -12,13 +12,13 @@ import (
 	"github.com/dgraph-io/ristretto/v2"
 )
 
-// overlayRistrettoCache is a type alias for the ristretto cache used for overlay images.
+// ristrettoCache is a type alias for the ristretto cache used for overlay images.
 // Values are BlobTypeMemory blobs — Go-owned raw pixel buffers from WriteToMemory,
 // independent of any libvips lifecycle or request context, safe to cache indefinitely.
-type overlayRistrettoCache = ristretto.Cache[string, *imagor.Blob]
+type ristrettoCache = ristretto.Cache[string, *imagor.Blob]
 
-// newOverlayCache creates a new ristretto cache for overlay images with the given byte budget.
-func newOverlayCache(maxCost int64) (*overlayRistrettoCache, error) {
+// newCache creates a new ristretto cache for overlay images with the given byte budget.
+func newCache(maxCost int64) (*ristrettoCache, error) {
 	return ristretto.NewCache[string, *imagor.Blob](&ristretto.Config[string, *imagor.Blob]{
 		// NumCounters: 10x the expected number of unique items for accurate frequency tracking.
 		// For overlay images, 1000 unique URLs is generous; 10000 counters is fine.
@@ -28,29 +28,29 @@ func newOverlayCache(maxCost int64) (*overlayRistrettoCache, error) {
 	})
 }
 
-// loadOrCacheBlob returns a BlobTypeMemory blob for the given URL, loading and
+// loadOrCache returns a BlobTypeMemory blob for the given URL, loading and
 // caching it on a cache miss. The cache key is the URL only — not the full
 // imagor path — so that the same source image cached once can be reused across
 // different sizes and filter combinations (e.g. image(1920x1080/logo.png) and
 // image(4000x3000/logo.png) both hit the same entry for "logo.png").
 //
 // Returns (nil, nil) in two cases:
-//   - Cache is disabled (overlayCache == nil)
+//   - Cache is disabled (cache == nil)
 //   - Source is animated (img.Height() != img.PageHeight()) — WriteToMemory
 //     cannot preserve multi-page structure; caller must handle directly.
 //
-// On cache miss, the blob is decoded at OverlayCacheMaxWidth×OverlayCacheMaxHeight
+// On cache miss, the blob is decoded at CacheMaxWidth×CacheMaxHeight
 // with SizeDown (no upscale). A fresh decode context is used so the VipsSource
 // is released immediately after WriteToMemory, not tied to the request context.
-func (v *Processor) loadOrCacheBlob(
+func (v *Processor) loadOrCache(
 	ctx context.Context, blob *imagor.Blob, url string, n int,
 ) (*imagor.Blob, error) {
-	if v.overlayCache == nil {
+	if v.cache == nil {
 		return nil, nil
 	}
 
 	// Fast path: cache hit — return immediately without singleflight overhead.
-	if memBlob, ok := v.overlayCache.Get(url); ok {
+	if memBlob, ok := v.cache.Get(url); ok {
 		return memBlob, nil
 	}
 
@@ -58,10 +58,10 @@ func (v *Processor) loadOrCacheBlob(
 	// The singleflight result is *imagor.Blob (Go-owned memory) — safe to share
 	// across goroutines. Each caller independently calls NewThumbnail(memBlob, ...)
 	// to create its own *vips.Image, so there are no ownership hazards.
-	result, err, _ := v.overlaySF.Do(url, func() (any, error) {
+	result, err, _ := v.cacheSF.Do(url, func() (any, error) {
 		// Re-check cache inside singleflight: a previous call may have populated
 		// it while we were waiting to enter the group.
-		if memBlob, ok := v.overlayCache.Get(url); ok {
+		if memBlob, ok := v.cache.Get(url); ok {
 			return memBlob, nil
 		}
 
@@ -70,7 +70,7 @@ func (v *Processor) loadOrCacheBlob(
 		// after WriteToMemory (not tied to the request context lifetime).
 		decodeCtx := withContext(context.Background())
 
-		img, err := v.NewThumbnail(decodeCtx, blob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
+		img, err := v.NewThumbnail(decodeCtx, blob, v.CacheMaxWidth, v.CacheMaxHeight,
 			vips.InterestingNone, vips.SizeDown, n, 1, 0)
 		if err != nil {
 			contextDone(decodeCtx)
@@ -97,9 +97,9 @@ func (v *Processor) loadOrCacheBlob(
 		memBlob := imagor.NewBlobFromMemory(buf, imgW, imgH, imgBands)
 
 		// Cache if within max dims (result may be smaller than max due to SizeDown).
-		if imgW <= v.OverlayCacheMaxWidth && imgH <= v.OverlayCacheMaxHeight {
-			v.overlayCache.Set(url, memBlob, int64(len(buf)))
-			v.overlayCache.Wait()
+		if imgW <= v.CacheMaxWidth && imgH <= v.CacheMaxHeight {
+			v.cache.Set(url, memBlob, int64(len(buf)))
+			v.cache.Wait()
 		}
 		return memBlob, nil
 	})
@@ -122,12 +122,12 @@ func (v *Processor) loadOrCacheBlob(
 // Two cases:
 //
 //  1. Size known (w > 0 && h > 0):
-//     - If w > OverlayCacheMaxWidth || h > OverlayCacheMaxHeight: skip cache, load directly.
-//     - Otherwise: load at OverlayCacheMaxWidth×OverlayCacheMaxHeight with SizeDown → cache.
+//     - If w > CacheMaxWidth || h > CacheMaxHeight: skip cache, load directly.
+//     - Otherwise: load at CacheMaxWidth×CacheMaxHeight with SizeDown → cache.
 //     - On hit: NewThumbnail(memBlob, w, h, size).
 //
 //  2. Size unknown (w == 0 || h == 0):
-//     - Load at OverlayCacheMaxWidth×OverlayCacheMaxHeight with SizeDown → cache.
+//     - Load at CacheMaxWidth×CacheMaxHeight with SizeDown → cache.
 //     - On hit: NewThumbnail(memBlob, maxW, maxH, SizeDown) — no-op since already ≤ max.
 func (v *Processor) loadOverlayImage(
 	ctx context.Context, load imagor.LoadFunc,
@@ -136,10 +136,10 @@ func (v *Processor) loadOverlayImage(
 	sizeKnown := w > 0 && h > 0
 
 	// Unknown size OR cache disabled: load directly at MaxWidth×MaxHeight with SizeDown.
-	// Unknown-size cannot use cache — the cached blob is capped at OverlayCacheMaxWidth×
-	// OverlayCacheMaxHeight, which may be smaller than the native image size. Serving from
+	// Unknown-size cannot use cache — the cached blob is capped at CacheMaxWidth×
+	// CacheMaxHeight, which may be smaller than the native image size. Serving from
 	// cache would return the wrong (smaller) dimensions.
-	if !sizeKnown || v.overlayCache == nil {
+	if !sizeKnown || v.cache == nil {
 		blob, err := load(url)
 		if err != nil {
 			return nil, err
@@ -154,7 +154,7 @@ func (v *Processor) loadOverlayImage(
 	// From here: sizeKnown=true AND cache enabled.
 
 	// 1A: explicit size exceeds cache max dims — bypass cache, load directly.
-	if w > v.OverlayCacheMaxWidth || h > v.OverlayCacheMaxHeight {
+	if w > v.CacheMaxWidth || h > v.CacheMaxHeight {
 		blob, err := load(url)
 		if err != nil {
 			return nil, err
@@ -163,7 +163,7 @@ func (v *Processor) loadOverlayImage(
 	}
 
 	// Cache hit — serve from cached memory blob without loading.
-	if memBlob, ok := v.overlayCache.Get(url); ok {
+	if memBlob, ok := v.cache.Get(url); ok {
 		return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
 	}
 
@@ -173,12 +173,12 @@ func (v *Processor) loadOverlayImage(
 		return nil, err
 	}
 
-	memBlob, err := v.loadOrCacheBlob(ctx, blob, url, n)
+	memBlob, err := v.loadOrCache(ctx, blob, url, n)
 	if err != nil {
 		return nil, err
 	}
 
-	// Animated source — loadOrCacheBlob returns nil; fall back to direct load at w×h.
+	// Animated source — loadOrCache returns nil; fall back to direct load at w×h.
 	if memBlob == nil {
 		return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
 	}
@@ -197,7 +197,7 @@ func (v *Processor) loadOverlayImage(
 //     cached memory blob — no I/O, no decode.
 //
 // Bypass conditions (cache skipped, pipeline runs on original blob):
-//   - Cache disabled (overlayCache == nil)
+//   - Cache disabled (cache == nil)
 //   - Requested output size (params.Width × params.Height) exceeds max dims
 //   - Source is animated
 func (v *Processor) loadAndCacheImageFilter(
@@ -208,15 +208,15 @@ func (v *Processor) loadAndCacheImageFilter(
 
 	// Bypass: cache disabled, blob is nil (e.g. color: image paths generated in-process),
 	// unknown size (cached blob may be smaller than native), or output size exceeds max dims.
-	// Unknown-size cannot use cache — the cached blob is capped at OverlayCacheMaxWidth×
-	// OverlayCacheMaxHeight, which may be smaller than native. Serving from cache would
+	// Unknown-size cannot use cache — the cached blob is capped at CacheMaxWidth×
+	// CacheMaxHeight, which may be smaller than native. Serving from cache would
 	// return the wrong (smaller) dimensions.
-	if v.overlayCache == nil || blob == nil || !sizeKnown ||
-		params.Width > v.OverlayCacheMaxWidth || params.Height > v.OverlayCacheMaxHeight {
+	if v.cache == nil || blob == nil || !sizeKnown ||
+		params.Width > v.CacheMaxWidth || params.Height > v.CacheMaxHeight {
 		return v.loadAndProcess(ctx, blob, params, load)
 	}
 
-	memBlob, err := v.loadOrCacheBlob(ctx, blob, url, 1)
+	memBlob, err := v.loadOrCache(ctx, blob, url, 1)
 	if err != nil {
 		return nil, err
 	}
