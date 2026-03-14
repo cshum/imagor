@@ -65,17 +65,8 @@ func (v *Processor) Process(
 	if p.Image != "" {
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0
-			hasCrop := p.CropLeft > 0 || p.CropTop > 0 || p.CropRight > 0 || p.CropBottom > 0
-			hasFocal := false
-			if !hasCrop {
-				for _, f := range p.Filters {
-					if f.Name == "focal" {
-						hasFocal = true
-						break
-					}
-				}
-			}
-			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight && !hasCrop && !hasFocal {
+			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight &&
+				!imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") {
 				if memBlob, cacheErr := v.loadOrCache(ctx, blob, p.Image, 1); cacheErr == nil && memBlob != nil {
 					blob = memBlob
 				} else if blob == nil {
@@ -104,13 +95,7 @@ func (v *Processor) Process(
 
 	// Handle metadata response
 	if p.Meta {
-		stripExif := false
-		for _, f := range p.Filters {
-			if f.Name == "strip_exif" {
-				stripExif = true
-				break
-			}
-		}
+		stripExif := imagorpath.HasFilter(p, "strip_exif")
 		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif)), nil
 	}
 

@@ -176,17 +176,7 @@ func (v *Processor) loadFilterImage(
 	// Also bypass when there's a crop or focal filter: the cache stores a downscaled copy
 	// (≤ CacheMaxWidth×CacheMaxHeight), so crop coordinates and focal points from the
 	// original image space would be applied incorrectly to the smaller cached image.
-	hasCrop := params.CropLeft > 0 || params.CropTop > 0 || params.CropRight > 0 || params.CropBottom > 0
-	hasFocal := false
-	if !hasCrop {
-		for _, f := range params.Filters {
-			if f.Name == "focal" {
-				hasFocal = true
-				break
-			}
-		}
-	}
-	if v.cache == nil || blob == nil || !sizeKnown || hasCrop || hasFocal ||
+	if v.cache == nil || blob == nil || !sizeKnown || imagorpath.HasCrop(params) || imagorpath.HasFilter(params, "focal") ||
 		params.Width > v.CacheMaxWidth || params.Height > v.CacheMaxHeight {
 		return v.loadAndProcess(ctx, blob, params, load)
 	}

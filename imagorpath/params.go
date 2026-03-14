@@ -57,3 +57,19 @@ type Filter struct {
 	Name string `json:"name,omitempty"`
 	Args string `json:"args,omitempty"`
 }
+
+// HasCrop reports whether the params specify a crop region.
+// Any non-zero crop coordinate (left, top, right, or bottom) counts as a crop.
+func HasCrop(p Params) bool {
+	return p.CropLeft > 0 || p.CropTop > 0 || p.CropRight > 0 || p.CropBottom > 0
+}
+
+// HasFilter reports whether the params include at least one filter with the given name.
+func HasFilter(p Params, name string) bool {
+	for _, f := range p.Filters {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
+}

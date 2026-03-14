@@ -406,17 +406,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			// downscaled copy (≤ CacheMaxWidth×CacheMaxHeight), so absolute pixel
 			// crop coordinates and focal points from the original image space would
 			// be applied incorrectly to the smaller cached image.
-			hasCrop := p.CropLeft > 0 || p.CropTop > 0 || p.CropRight > 0 || p.CropBottom > 0
-			hasFocal := false
-			if !hasCrop {
-				for _, f := range p.Filters {
-					if f.Name == "focal" {
-						hasFocal = true
-						break
-					}
-				}
-			}
-			if !hasCrop && !hasFocal {
+			if !imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") {
 				for _, processor := range app.Processors {
 					if c, ok := processor.(Cacher); ok && c.HasCache(p.Image, p.Width, p.Height) {
 						hasCached = true
