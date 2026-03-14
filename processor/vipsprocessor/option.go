@@ -171,3 +171,12 @@ func WithUnlimited(unlimited bool) Option {
 		v.Unlimited = unlimited
 	}
 }
+
+// WithWatermarkCacheSize with watermark cache max size in bytes
+func WithWatermarkCacheSize(size int64) Option {
+	return func(v *Processor) {
+		if size > 0 {
+			v.WatermarkCacheSize = size
+		}
+	}
+}

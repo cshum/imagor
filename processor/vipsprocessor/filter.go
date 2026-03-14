@@ -86,13 +86,10 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		}
 	}
 
-	var blob *imagor.Blob
-	if blob, err = load(image); err != nil {
-		return
-	}
 	var w, h int
 	var overlay *vips.Image
 	var n = 1
+	var size = vips.SizeDown
 	if isAnimated(img) {
 		n = -1
 	}
@@ -108,16 +105,39 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 			h, _ = strconv.Atoi(args[5])
 			h = img.PageHeight() * h / 100
 		}
+		size = vips.SizeBoth
+	} else {
+		w = v.MaxWidth
+		h = v.MaxHeight
+	}
+
+	// try watermark cache
+	var cached bool
+	cacheKey := fmt.Sprintf("wm:%s:%d:%d:%d:%d", image, w, h, n, size)
+	if v.watermarkCache != nil {
+		if val, ok := v.watermarkCache.Get(cacheKey); ok {
+			if cachedImg, ok := val.(*vips.Image); ok {
+				if overlay, err = cachedImg.Copy(nil); err == nil {
+					cached = true
+				}
+			}
+		}
+	}
+	if !cached {
+		var blob *imagor.Blob
+		if blob, err = load(image); err != nil {
+			return
+		}
 		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
+			ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0,
 		); err != nil {
 			return
 		}
-	} else {
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0,
-		); err != nil {
-			return
+		if v.watermarkCache != nil {
+			if cachedImg, copyErr := overlay.Copy(nil); copyErr == nil {
+				cost := int64(cachedImg.Width() * cachedImg.Height() * cachedImg.Bands())
+				v.watermarkCache.Set(cacheKey, cachedImg, cost)
+			}
 		}
 	}
 	contextDefer(ctx, overlay.Close)

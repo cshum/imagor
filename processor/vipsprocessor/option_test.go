@@ -29,6 +29,7 @@ func TestWithOption(t *testing.T) {
 			WithDisableFilters("rgb", "fill, watermark"),
 			WithUnlimited(true),
 			WithForceBmpFallback(),
+			WithWatermarkCacheSize(104857600),
 			WithFilter("noop", func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 				return nil
 			}),
@@ -47,6 +48,7 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, true, v.Unlimited)
 		assert.Equal(t, 9, v.AvifSpeed)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, v.DisableFilters)
+		assert.Equal(t, int64(104857600), v.WatermarkCacheSize)
 		assert.NotNil(t, v.FallbackFunc)
 
 	})
