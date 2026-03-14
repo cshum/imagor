@@ -12,36 +12,24 @@ import (
 	"github.com/dgraph-io/ristretto/v2"
 )
 
-// pixelCache is a type alias for the ristretto cache used for pixel blobs.
-// Values are BlobTypeMemory blobs — Go-owned raw pixel buffers from WriteToMemory,
-// independent of any libvips lifecycle or request context, safe to cache indefinitely.
+// pixelCache is a ristretto cache storing BlobTypeMemory blobs keyed by URL.
+// Values are Go-owned raw pixel buffers from WriteToMemory — no libvips lifecycle,
+// no request context dependency, safe for concurrent reads and GC cleanup.
 type pixelCache = ristretto.Cache[string, *imagor.Blob]
 
 // newPixelCache creates a new ristretto pixel cache with the given byte budget.
 func newPixelCache(maxCost int64) (*pixelCache, error) {
 	return ristretto.NewCache[string, *imagor.Blob](&ristretto.Config[string, *imagor.Blob]{
-		// NumCounters: 10x the expected number of unique items for accurate frequency tracking.
-		// For overlay images, 1000 unique URLs is generous; 10000 counters is fine.
 		NumCounters: 10000,
 		MaxCost:     maxCost,
 		BufferItems: 64,
 	})
 }
 
-// loadOrCache returns a BlobTypeMemory blob for the given URL, loading and
-// caching it on a cache miss. The cache key is the URL only — not the full
-// imagor path — so that the same source image cached once can be reused across
-// different sizes and filter combinations (e.g. image(1920x1080/logo.png) and
-// image(4000x3000/logo.png) both hit the same entry for "logo.png").
-//
-// Returns (nil, nil) in two cases:
-//   - Cache is disabled (cache == nil)
-//   - Source is animated (img.Height() != img.PageHeight()) — WriteToMemory
-//     cannot preserve multi-page structure; caller must handle directly.
-//
-// On cache miss, the blob is decoded at CacheMaxWidth×CacheMaxHeight
-// with SizeDown (no upscale). A fresh decode context is used so the VipsSource
-// is released immediately after WriteToMemory, not tied to the request context.
+// loadOrCache returns a BlobTypeMemory blob for the given URL, using the pixel cache.
+// Cache key is URL only, so the same source serves all requested sizes.
+// Returns (nil, nil) if cache is disabled or the source is animated
+// (WriteToMemory cannot preserve multi-page structure).
 func (v *Processor) loadOrCache(
 	ctx context.Context, blob *imagor.Blob, url string, n int,
 ) (*imagor.Blob, error) {
@@ -54,20 +42,15 @@ func (v *Processor) loadOrCache(
 		return memBlob, nil
 	}
 
-	// Slow path: deduplicate concurrent cache misses for the same URL.
-	// The singleflight result is *imagor.Blob (Go-owned memory) — safe to share
-	// across goroutines. Each caller independently calls NewThumbnail(memBlob, ...)
-	// to create its own *vips.Image, so there are no ownership hazards.
+	// Deduplicate concurrent cache misses for the same URL.
 	result, err, _ := v.cacheSF.Do(url, func() (any, error) {
-		// Re-check cache inside singleflight: a previous call may have populated
-		// it while we were waiting to enter the group.
+		// Re-check after acquiring the singleflight group.
 		if memBlob, ok := v.cache.Get(url); ok {
 			return memBlob, nil
 		}
 
-		// Cache miss: decode at maxW×maxH with SizeDown.
-		// Use a fresh decode context so the VipsSource is released immediately
-		// after WriteToMemory (not tied to the request context lifetime).
+		// Decode at maxW×maxH with SizeDown. Fresh context so the VipsSource
+		// is released immediately after WriteToMemory.
 		decodeCtx := withContext(context.Background())
 
 		img, err := v.NewThumbnail(decodeCtx, blob, v.CacheMaxWidth, v.CacheMaxHeight,
@@ -117,48 +100,28 @@ func (v *Processor) loadOrCache(
 	return result.(*imagor.Blob), nil
 }
 
-// loadOverlayImage loads a watermark overlay image, using the overlay cache when possible.
-//
-// The cache key is the URL only — n is not included because the cache only ever
-// stores single-page (non-animated) results. Animated overlay sources are detected
-// after decode (img.Height() != img.PageHeight()) and returned directly without
-// caching — WriteToMemory/NewImageFromMemory cannot preserve multi-page structure.
-//
-// Two cases:
-//
-//  1. Size known (w > 0 && h > 0):
-//     - If w > CacheMaxWidth || h > CacheMaxHeight: skip cache, load directly.
-//     - Otherwise: load at CacheMaxWidth×CacheMaxHeight with SizeDown → cache.
-//     - On hit: NewThumbnail(memBlob, w, h, size).
-//
-//  2. Size unknown (w == 0 || h == 0):
-//     - Load at CacheMaxWidth×CacheMaxHeight with SizeDown → cache.
-//     - On hit: NewThumbnail(memBlob, maxW, maxH, SizeDown) — no-op since already ≤ max.
+// loadOverlayImage loads a watermark overlay image using the pixel cache.
+// Cache key is URL only. Size must be known (w > 0 && h > 0) to use the cache;
+// unknown size or size exceeding cache max dims bypasses the cache.
 func (v *Processor) loadOverlayImage(
 	ctx context.Context, load imagor.LoadFunc,
 	url string, w, h, n int, size vips.Size,
 ) (*vips.Image, error) {
 	sizeKnown := w > 0 && h > 0
 
-	// Unknown size OR cache disabled: load directly at MaxWidth×MaxHeight with SizeDown.
-	// Unknown-size cannot use cache — the cached blob is capped at CacheMaxWidth×
-	// CacheMaxHeight, which may be smaller than the native image size. Serving from
-	// cache would return the wrong (smaller) dimensions.
+	// Unknown size or cache disabled: load directly.
 	if !sizeKnown || v.cache == nil {
 		blob, err := load(url)
 		if err != nil {
 			return nil, err
 		}
 		if sizeKnown {
-			// cache disabled + known size
 			return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
 		}
 		return v.NewThumbnail(ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0)
 	}
 
-	// From here: sizeKnown=true AND cache enabled.
-
-	// 1A: explicit size exceeds cache max dims — bypass cache, load directly.
+	// Size exceeds cache max dims — bypass cache, load directly at requested size.
 	if w > v.CacheMaxWidth || h > v.CacheMaxHeight {
 		blob, err := load(url)
 		if err != nil {
@@ -192,30 +155,16 @@ func (v *Processor) loadOverlayImage(
 	return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
 }
 
-// loadFilterImage runs the full imagor processing pipeline for an image()
-// filter, using a URL-only cache key with raw pixel caching.
-//
-// Cache key = URL only (params.Image), so that the same source image cached once
-// can be reused across different sizes and filter combinations:
-//   - image(1920x1080/logo.png) and image(4000x3000/logo.png) both hit the same
-//     cache entry for "logo.png". The pipeline (resize + filters) runs from the
-//     cached memory blob — no I/O, no decode.
-//
-// Bypass conditions (cache skipped, pipeline runs on original blob):
-//   - Cache disabled (cache == nil)
-//   - Requested output size (params.Width × params.Height) exceeds max dims
-//   - Source is animated
+// loadFilterImage runs the imagor pipeline for an image() filter using the pixel cache.
+// Cache key is URL only, so the same source serves all requested sizes and filter combos.
+// Bypasses cache when disabled, blob is nil, size is unknown, or output exceeds max dims.
 func (v *Processor) loadFilterImage(
 	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
 	url string,
 ) (*vips.Image, error) {
 	sizeKnown := params.Width > 0 && params.Height > 0
 
-	// Bypass: cache disabled, blob is nil (e.g. color: image paths generated in-process),
-	// unknown size (cached blob may be smaller than native), or output size exceeds max dims.
-	// Unknown-size cannot use cache — the cached blob is capped at CacheMaxWidth×
-	// CacheMaxHeight, which may be smaller than native. Serving from cache would
-	// return the wrong (smaller) dimensions.
+	// Bypass cache: disabled, nil blob (e.g. color: paths), unknown size, or output exceeds max dims.
 	if v.cache == nil || blob == nil || !sizeKnown ||
 		params.Width > v.CacheMaxWidth || params.Height > v.CacheMaxHeight {
 		return v.loadAndProcess(ctx, blob, params, load)
@@ -226,12 +175,10 @@ func (v *Processor) loadFilterImage(
 		return nil, err
 	}
 
-	// Animated source or cache disabled — run pipeline on original blob.
 	if memBlob == nil {
+		// Animated source — run pipeline on original blob.
 		return v.loadAndProcess(ctx, blob, params, load)
 	}
-
-	// Cache hit or miss — run pipeline from memory blob (no I/O, no decode).
 	return v.loadAndProcess(ctx, memBlob, params, load)
 }
 
