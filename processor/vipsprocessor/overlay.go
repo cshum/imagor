@@ -98,7 +98,12 @@ func (v *Processor) loadOrCache(
 
 		// Cache if within max dims (result may be smaller than max due to SizeDown).
 		if imgW <= v.CacheMaxWidth && imgH <= v.CacheMaxHeight {
-			v.cache.Set(url, memBlob, int64(len(buf)))
+			cost := int64(len(buf))
+			if v.CacheTTL > 0 {
+				v.cache.SetWithTTL(url, memBlob, cost, v.CacheTTL)
+			} else {
+				v.cache.Set(url, memBlob, cost)
+			}
 			v.cache.Wait()
 		}
 		return memBlob, nil

@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
@@ -44,29 +45,30 @@ type Processor struct {
 	Unlimited          bool
 	Debug              bool
 
-	// Overlay cache settings
+	// Image cache settings
 	CacheSize      int64
 	CacheMaxWidth  int
 	CacheMaxHeight int
+	CacheTTL       time.Duration
 
 	disableFilters map[string]bool
-	cache   *ristrettoCache
-	cacheSF      singleflight.Group
+	cache          *ristrettoCache
+	cacheSF        singleflight.Group
 }
 
 // NewProcessor create Processor
 func NewProcessor(options ...Option) *Processor {
 	v := &Processor{
-		MaxWidth:              9999,
-		MaxHeight:             9999,
-		MaxResolution:         81000000,
-		Concurrency:           1,
-		MaxFilterOps:          -1,
-		MaxAnimationFrames:    -1,
-		Logger:                zap.NewNop(),
-		disableFilters:        map[string]bool{},
-		CacheMaxWidth:  2400,
-		CacheMaxHeight: 1800,
+		MaxWidth:           9999,
+		MaxHeight:          9999,
+		MaxResolution:      81000000,
+		Concurrency:        1,
+		MaxFilterOps:       -1,
+		MaxAnimationFrames: -1,
+		Logger:             zap.NewNop(),
+		disableFilters:     map[string]bool{},
+		CacheMaxWidth:      2400,
+		CacheMaxHeight:     1800,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,

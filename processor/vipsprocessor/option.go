@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -198,6 +199,18 @@ func WithCacheMaxHeight(height int) Option {
 	return func(v *Processor) {
 		if height > 0 {
 			v.CacheMaxHeight = height
+		}
+	}
+}
+
+// WithCacheTTL sets the TTL for image cache entries.
+// After the TTL expires, the entry is evicted and the image is re-fetched from source.
+// Set to 0 (default) for no expiry — entries are evicted only by memory pressure (LRU).
+// Use this when source images may change at the same URL (e.g. mutable assets).
+func WithCacheTTL(ttl time.Duration) Option {
+	return func(v *Processor) {
+		if ttl > 0 {
+			v.CacheTTL = ttl
 		}
 	}
 }

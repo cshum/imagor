@@ -744,6 +744,7 @@ The cache stores raw pixel buffers keyed by URL. Each request gets its own indep
 VIPS_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = disabled
 VIPS_CACHE_MAX_WIDTH=2400     # Max image width to cache (default 2400px)
 VIPS_CACHE_MAX_HEIGHT=1800    # Max image height to cache (default 1800px)
+VIPS_CACHE_TTL=1h             # Cache entry TTL. Default 0 = no expiry (LRU eviction only)
 ```
 
 **When to use:**
@@ -752,6 +753,7 @@ VIPS_CACHE_MAX_HEIGHT=1800    # Max image height to cache (default 1800px)
 - Images larger than `VIPS_CACHE_MAX_WIDTH` × `VIPS_CACHE_MAX_HEIGHT` are still served normally, just not cached.
 - Only known-size requests (explicit width × height) are served from cache. Unknown-size (0×0) and oversized requests always load from source to ensure correct native resolution.
 - Leave disabled (default) if source URLs are highly varied or user-supplied, as caching provides no benefit.
+- Set `VIPS_CACHE_TTL` if source images may change at the same URL (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
 
 #### Operation Cache
 
@@ -1139,6 +1141,8 @@ Usage of imagor:
         VIPS image cache maximum width. Images wider than this are not cached (default 2400)
   -vips-cache-max-height int
         VIPS image cache maximum height. Images taller than this are not cached (default 1800)
+  -vips-cache-ttl duration
+        VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
