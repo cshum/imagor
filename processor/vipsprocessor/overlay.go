@@ -135,26 +135,36 @@ func (v *Processor) loadOverlayImage(
 ) (*vips.Image, error) {
 	sizeKnown := w > 0 && h > 0
 
-	// Cache disabled or explicit size exceeds max dims — load directly, no caching.
-	if v.overlayCache == nil ||
-		(sizeKnown && (w > v.OverlayCacheMaxWidth || h > v.OverlayCacheMaxHeight)) {
+	// Unknown size OR cache disabled: load directly at MaxWidth×MaxHeight with SizeDown.
+	// Unknown-size cannot use cache — the cached blob is capped at OverlayCacheMaxWidth×
+	// OverlayCacheMaxHeight, which may be smaller than the native image size. Serving from
+	// cache would return the wrong (smaller) dimensions.
+	if !sizeKnown || v.overlayCache == nil {
 		blob, err := load(url)
 		if err != nil {
 			return nil, err
 		}
 		if sizeKnown {
+			// cache disabled + known size
 			return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
 		}
 		return v.NewThumbnail(ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0)
 	}
 
+	// From here: sizeKnown=true AND cache enabled.
+
+	// 1A: explicit size exceeds cache max dims — bypass cache, load directly.
+	if w > v.OverlayCacheMaxWidth || h > v.OverlayCacheMaxHeight {
+		blob, err := load(url)
+		if err != nil {
+			return nil, err
+		}
+		return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
+	}
+
 	// Cache hit — serve from cached memory blob without loading.
 	if memBlob, ok := v.overlayCache.Get(url); ok {
-		if sizeKnown {
-			return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
-		}
-		return v.NewThumbnail(ctx, memBlob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
-			vips.InterestingNone, vips.SizeDown, 1, 1, 0)
+		return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
 	}
 
 	// Cache miss: load the blob, then decode and cache.
@@ -168,24 +178,13 @@ func (v *Processor) loadOverlayImage(
 		return nil, err
 	}
 
-	// Animated source — loadOrCacheBlob returns nil; fall back to direct load.
-	// Use the requested size when known, otherwise load at maxW×maxH with SizeDown.
+	// Animated source — loadOrCacheBlob returns nil; fall back to direct load at w×h.
 	if memBlob == nil {
-		if sizeKnown {
-			return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
-		}
-		return v.NewThumbnail(ctx, blob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
-			vips.InterestingNone, vips.SizeDown, n, 1, 0)
+		return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
 	}
 
-	// Static: serve from memory blob.
-	// For known size: resize to w×h. For unknown size: load at maxW×maxH with
-	// SizeDown — the blob is already ≤ maxW×maxH so this is effectively a no-op.
-	if sizeKnown {
-		return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
-	}
-	return v.NewThumbnail(ctx, memBlob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
-		vips.InterestingNone, vips.SizeDown, 1, 1, 0)
+	// Static: resize from cached memory blob to requested w×h.
+	return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
 }
 
 // loadAndCacheImageFilter runs the full imagor processing pipeline for an image()
@@ -208,9 +207,12 @@ func (v *Processor) loadAndCacheImageFilter(
 	sizeKnown := params.Width > 0 && params.Height > 0
 
 	// Bypass: cache disabled, blob is nil (e.g. color: image paths generated in-process),
-	// or requested output size exceeds cache max dims.
-	if v.overlayCache == nil || blob == nil ||
-		(sizeKnown && (params.Width > v.OverlayCacheMaxWidth || params.Height > v.OverlayCacheMaxHeight)) {
+	// unknown size (cached blob may be smaller than native), or output size exceeds max dims.
+	// Unknown-size cannot use cache — the cached blob is capped at OverlayCacheMaxWidth×
+	// OverlayCacheMaxHeight, which may be smaller than native. Serving from cache would
+	// return the wrong (smaller) dimensions.
+	if v.overlayCache == nil || blob == nil || !sizeKnown ||
+		params.Width > v.OverlayCacheMaxWidth || params.Height > v.OverlayCacheMaxHeight {
 		return v.loadAndProcess(ctx, blob, params, load)
 	}
 
