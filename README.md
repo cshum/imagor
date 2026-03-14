@@ -752,22 +752,22 @@ VIPS_MAX_CACHE_FILES=0          # Max number of file descriptors to cache
 
 See [libvips operation cache documentation](https://github.com/libvips/libvips/issues/1585) for more details.
 
-#### Overlay Image Cache
+#### `watermark` and `image` Filter Cache
 
-The overlay image cache reduces repeated I/O and decode overhead for `watermark` and `image` filters that reuse the same overlay URL across many requests (e.g. a company logo applied to every image).
+When the same URL is used repeatedly in `watermark()` or `image()` filters (e.g. a company logo applied to every processed image), imagor can cache the decoded pixels in memory to avoid repeated network I/O and image decoding on every request.
 
-When enabled, decoded overlay pixels are stored as raw byte buffers (via libvips `WriteToMemory`) keyed by URL. This is safe for concurrent use: each request reconstructs a fresh `*vips.Image` from the cached bytes via `NewImageFromMemory`, so there is no shared mutable libvips state between requests. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
+The cache stores raw pixel buffers keyed by URL. Each request gets its own independent image object reconstructed from the cached bytes, so concurrent requests are fully safe with no shared mutable state. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
 
 ```dotenv
-VIPS_OVERLAY_CACHE_SIZE=52428800      # Overlay cache byte budget (e.g. 50 MiB). Default 0 = disabled
-VIPS_OVERLAY_CACHE_MAX_WIDTH=2400     # Max overlay width to cache (default 2400px)
-VIPS_OVERLAY_CACHE_MAX_HEIGHT=1800    # Max overlay height to cache (default 1800px)
+VIPS_OVERLAY_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = disabled
+VIPS_OVERLAY_CACHE_MAX_WIDTH=2400     # Max image width to cache (default 2400px)
+VIPS_OVERLAY_CACHE_MAX_HEIGHT=1800    # Max image height to cache (default 1800px)
 ```
 
 **When to use:**
-- Enable when the same watermark or overlay image is applied to many different source images (e.g. a logo on every processed image).
-- Overlays larger than `VIPS_OVERLAY_CACHE_MAX_WIDTH` × `VIPS_OVERLAY_CACHE_MAX_HEIGHT` are served normally but not cached.
-- Leave disabled (default) if overlay URLs are highly varied or user-supplied, as caching provides no benefit.
+- Enable when the same `watermark()` or `image()` URL is reused across many requests (e.g. a logo watermark on every image).
+- Images larger than `VIPS_OVERLAY_CACHE_MAX_WIDTH` × `VIPS_OVERLAY_CACHE_MAX_HEIGHT` are still served normally, just not cached.
+- Leave disabled (default) if the URLs passed to `watermark()` or `image()` are highly varied or user-supplied, as caching provides no benefit.
 
 
 ### POST Upload Endpoint
