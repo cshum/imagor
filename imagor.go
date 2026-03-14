@@ -49,6 +49,15 @@ type Stater interface {
 	Stat(ctx context.Context, key string) (*Stat, error)
 }
 
+// Cacher optional interface for processors that maintain an in-memory pixel cache.
+// HasCache returns true when the processor has the image for the given key cached
+// at a size sufficient to serve a request of width w × height h.
+// imagor.Do() checks this before calling loadStorage — if true, the loader/storage
+// I/O is skipped and Process is called with nil blob (processor serves from cache).
+type Cacher interface {
+	HasCache(key string, w, h int) bool
+}
+
 // LoadFunc function handler for Processor to call loader
 type LoadFunc func(string) (*Blob, error)
 
@@ -389,11 +398,24 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var shouldSave bool
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
-		} else if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
-			if app.Debug {
-				app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+		} else {
+			// Check if any processor has the base image cached at the requested size.
+			// If so, skip loadStorage entirely — no I/O, no network.
+			var hasCached bool
+			for _, processor := range app.Processors {
+				if c, ok := processor.(Cacher); ok && c.HasCache(p.Image, p.Width, p.Height) {
+					hasCached = true
+					break
+				}
 			}
-			return blob, err
+			if !hasCached {
+				if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
+					if app.Debug {
+						app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+					}
+					return blob, err
+				}
+			}
 		}
 
 		sourceBlob := blob

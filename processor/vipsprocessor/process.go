@@ -52,6 +52,22 @@ func (v *Processor) Process(
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
 
+	// Cache base image raw pixels at OverlayCacheMaxWidth×OverlayCacheMaxHeight.
+	// Only for known-size requests within cache max dims — unknown-size requests
+	// may need native resolution which exceeds the cache cap.
+	// On cache hit (blob==nil from Do()), loadOrCacheBlob returns the cached memBlob.
+	// On cache miss, loadOrCacheBlob decodes and caches, then returns the memBlob.
+	if p.Image != "" {
+		if _, isColor := parseColorImage(p.Image); !isColor {
+			sizeKnown := p.Width > 0 && p.Height > 0
+			if sizeKnown && p.Width <= v.OverlayCacheMaxWidth && p.Height <= v.OverlayCacheMaxHeight {
+				if memBlob, cacheErr := v.loadOrCacheBlob(ctx, blob, p.Image, 1); cacheErr == nil && memBlob != nil {
+					blob = memBlob
+				}
+			}
+		}
+	}
+
 	// Load and process the image
 	img, err := v.loadAndProcess(ctx, blob, p, load)
 	if err != nil {

@@ -108,6 +108,21 @@ func NewProcessor(options ...Option) *Processor {
 	return v
 }
 
+// HasCache implements imagor.Cacher. Returns true only for known-size requests
+// (w > 0 && h > 0) within cache max dims where the URL is cached in memory.
+// Unknown-size requests always return false — the cached blob is capped at
+// OverlayCacheMaxWidth×OverlayCacheMaxHeight, which may be smaller than native.
+func (v *Processor) HasCache(key string, w, h int) bool {
+	if v.overlayCache == nil || w <= 0 || h <= 0 {
+		return false
+	}
+	if w > v.OverlayCacheMaxWidth || h > v.OverlayCacheMaxHeight {
+		return false
+	}
+	_, ok := v.overlayCache.Get(key)
+	return ok
+}
+
 // Startup implements imagor.Processor interface
 func (v *Processor) Startup(_ context.Context) error {
 	processorLock.Lock()
