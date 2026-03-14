@@ -607,6 +607,62 @@ func TestProcessor(t *testing.T) {
 		require.NotEmpty(t, buf, "result should be a valid image")
 	})
 
+	t.Run("pixel cache TOCTOU — reload failure returns error not panic", func(t *testing.T) {
+		// Simulate TOCTOU where cache is evicted and the fallback reload also fails.
+		// Process() must return the reload error, not panic with a nil blob.
+		fileLoader := filestorage.New(testDataDir)
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024),
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() {
+			require.NoError(t, proc.Shutdown(context.Background()))
+		})
+
+		// Warm the cache.
+		blobPath, _ := fileLoader.Path("gopher-front.png")
+		blob := imagor.NewBlobFromFile(blobPath)
+		load := func(image string) (*imagor.Blob, error) {
+			p, _ := fileLoader.Path(image)
+			return imagor.NewBlobFromFile(p), nil
+		}
+		params := imagorpath.Params{Image: "gopher-front.png", Width: 100, Height: 100}
+		_, err := proc.Process(context.Background(), blob, params, load)
+		require.NoError(t, err)
+
+		// Evict the cache entry.
+		proc.cache.Clear()
+		proc.cache.Wait()
+
+		// Reload fails — Process must return the error, not panic.
+		loadFail := func(image string) (*imagor.Blob, error) {
+			return nil, imagor.ErrNotFound
+		}
+		result, err := proc.Process(context.Background(), nil, params, loadFail)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, imagor.ErrNotFound)
+	})
+
+	t.Run("nil blob with no cache returns ErrNotFound not panic", func(t *testing.T) {
+		// When no cache is configured and blob=nil reaches loadAndProcess,
+		// the nil guard must return ErrNotFound instead of panicking.
+		proc := NewProcessor() // no cache
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() {
+			require.NoError(t, proc.Shutdown(context.Background()))
+		})
+
+		loadFail := func(image string) (*imagor.Blob, error) {
+			return nil, imagor.ErrNotFound
+		}
+		params := imagorpath.Params{Image: "gopher-front.png", Width: 100, Height: 100}
+		result, err := proc.Process(context.Background(), nil, params, loadFail)
+		assert.Nil(t, result)
+		assert.ErrorIs(t, err, imagor.ErrNotFound)
+	})
+
 	t.Run("invalid BMP", func(t *testing.T) {
 		ctx := context.Background()
 		blob := imagor.NewBlobFromBytes([]byte("BMabcdasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"))

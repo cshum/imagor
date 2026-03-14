@@ -63,9 +63,11 @@ func (v *Processor) Process(
 					blob = memBlob
 				} else if blob == nil {
 					// Cache evicted between HasCache and Process (TOCTOU) — reload from storage.
-					if reloaded, reloadErr := load(p.Image); reloadErr == nil {
-						blob = reloaded
+					reloaded, reloadErr := load(p.Image)
+					if reloadErr != nil {
+						return nil, reloadErr
 					}
+					blob = reloaded
 				}
 			}
 		}
@@ -234,6 +236,10 @@ func (v *Processor) loadAndProcess(
 			return nil, WrapErr(err)
 		}
 		return img, nil
+	}
+
+	if blob == nil {
+		return nil, imagor.ErrNotFound
 	}
 
 	var (
