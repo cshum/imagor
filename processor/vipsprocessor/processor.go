@@ -110,19 +110,18 @@ func NewProcessor(options ...Option) *Processor {
 	return v
 }
 
-// HasCache implements imagor.Cacher. Returns true only for known-size requests
-// (w > 0 && h > 0) within cache max dims where the URL is cached in memory.
-// Unknown-size requests always return false — the cached blob is capped at
-// CacheMaxWidth×CacheMaxHeight, which may be smaller than native.
-func (v *Processor) HasCache(key string, w, h int) bool {
+// LoadFromCache implements imagor.Cacher. Returns the cached blob for known-size requests
+// (w > 0 && h > 0) within cache max dims, or (nil, false) on miss.
+// Unknown-size and oversized requests always return (nil, false) — the cached blob is capped
+// at CacheMaxWidth×CacheMaxHeight, which may be smaller than the original.
+func (v *Processor) LoadFromCache(key string, w, h int) (*imagor.Blob, bool) {
 	if v.cache == nil || w <= 0 || h <= 0 {
-		return false
+		return nil, false
 	}
 	if w > v.CacheMaxWidth || h > v.CacheMaxHeight {
-		return false
+		return nil, false
 	}
-	_, ok := v.cache.Get(key)
-	return ok
+	return v.cache.Get(key)
 }
 
 // Startup implements imagor.Processor interface

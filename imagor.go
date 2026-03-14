@@ -49,13 +49,12 @@ type Stater interface {
 	Stat(ctx context.Context, key string) (*Stat, error)
 }
 
-// Cacher optional interface for processors that maintain an in-memory pixel cache.
-// HasCache returns true when the processor has the image for the given key cached
-// at a size sufficient to serve a request of width w × height h.
-// imagor.Do() checks this before calling loadStorage — if true, the loader/storage
-// I/O is skipped and Process is called with nil blob (processor serves from cache).
+// Cacher is an optional Processor interface for pixel-level blob caching.
+// LoadFromCache returns the cached blob for the given key and dimensions, or (nil, false) on miss.
+// imagor.Do() calls this before loadStorage — on hit, the returned blob is passed directly to
+// Process(), skipping loader/storage I/O entirely.
 type Cacher interface {
-	HasCache(key string, w, h int) bool
+	LoadFromCache(key string, w, h int) (*Blob, bool)
 }
 
 // LoadFunc function handler for Processor to call loader
@@ -396,7 +395,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			defer app.sema.Release(1)
 		}
 		var shouldSave bool
-		var hasCached bool
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
 		} else {
@@ -404,13 +402,15 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			// coordinates would be applied incorrectly to the smaller cached image.
 			if !imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") {
 				for _, processor := range app.Processors {
-					if c, ok := processor.(Cacher); ok && c.HasCache(p.Image, p.Width, p.Height) {
-						hasCached = true
-						break
+					if c, ok := processor.(Cacher); ok {
+						if cachedBlob, ok := c.LoadFromCache(p.Image, p.Width, p.Height); ok {
+							blob = cachedBlob
+							break
+						}
 					}
 				}
 			}
-			if !hasCached {
+			if isBlobEmpty(blob) {
 				if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
 					if app.Debug {
 						app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
@@ -433,7 +433,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				close(doneSave)
 			}(blob)
 		}
-		if isBlobEmpty(blob) && !isColorImage(p.Image) && !hasCached {
+		if isBlobEmpty(blob) && !isColorImage(p.Image) {
 			return blob, err
 		}
 		if !isRaw {

@@ -61,13 +61,6 @@ func (v *Processor) Process(
 				!imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") {
 				if memBlob, cacheErr := v.loadOrCache(ctx, blob, p.Image, 1); cacheErr == nil && memBlob != nil {
 					blob = memBlob
-				} else if blob == nil {
-					// Cache evicted between HasCache and Process (TOCTOU) — reload from storage.
-					reloaded, reloadErr := load(p.Image)
-					if reloadErr != nil {
-						return nil, reloadErr
-					}
-					blob = reloaded
 				}
 			}
 		}
@@ -236,10 +229,6 @@ func (v *Processor) loadAndProcess(
 			return nil, WrapErr(err)
 		}
 		return img, nil
-	}
-
-	if blob == nil {
-		return nil, imagor.ErrNotFound
 	}
 
 	var (

@@ -2137,13 +2137,13 @@ func TestColorImagePath(t *testing.T) {
 
 // cacherProcessor is a mock processor that implements both Processor and Cacher.
 // It simulates an in-memory pixel cache keyed by image URL.
-// HasCache returns true only when the key is in the cache AND the requested
+// LoadFromCache returns the cached blob only when the key is in the cache AND the requested
 // size (w×h) is both known (>0) and within the configured max dimensions.
 type cacherProcessor struct {
 	cache  map[string][]byte // key → cached content
 	maxW   int
 	maxH   int
-	called int // number of times Process was called with nil blob (cache hit)
+	called int // number of times Process was called with a cached blob (cache hit)
 }
 
 func newCacherProcessor(maxW, maxH int) *cacherProcessor {
@@ -2153,34 +2153,35 @@ func newCacherProcessor(maxW, maxH int) *cacherProcessor {
 func (c *cacherProcessor) Startup(_ context.Context) error  { return nil }
 func (c *cacherProcessor) Shutdown(_ context.Context) error { return nil }
 
-// HasCache returns true when:
+// LoadFromCache returns the cached blob when:
 //   - key is in the cache
 //   - w and h are both known (>0) — unknown size must bypass cache
 //   - w <= maxW and h <= maxH — oversized requests must bypass cache
-func (c *cacherProcessor) HasCache(key string, w, h int) bool {
-	if _, ok := c.cache[key]; !ok {
-		return false
+func (c *cacherProcessor) LoadFromCache(key string, w, h int) (*Blob, bool) {
+	data, ok := c.cache[key]
+	if !ok {
+		return nil, false
 	}
 	if w <= 0 || h <= 0 {
-		return false // unknown size — cannot guarantee cache is sufficient
+		return nil, false // unknown size — cannot guarantee cache is sufficient
 	}
 	if w > c.maxW || h > c.maxH {
-		return false // requested size exceeds cache max — must load original
+		return nil, false // requested size exceeds cache max — must load original
 	}
-	return true
+	return NewBlobFromBytes(data), true
 }
 
 func (c *cacherProcessor) Process(_ context.Context, blob *Blob, p imagorpath.Params, _ LoadFunc) (*Blob, error) {
 	if blob == nil {
-		// Cache hit path: blob is nil, serve from internal cache
-		c.called++
-		if data, ok := c.cache[p.Image]; ok {
-			return NewBlobFromBytes(data), nil
-		}
 		return nil, ErrNotFound
 	}
-	// Cache miss path: blob provided by loader, read and "cache" it
 	data, _ := blob.ReadAll()
+	// Cache hit path: blob came from LoadFromCache — content matches cached data
+	if cached, ok := c.cache[p.Image]; ok && string(data) == string(cached) {
+		c.called++
+		return NewBlobFromBytes(data), nil
+	}
+	// Cache miss path: blob provided by loader, read and "cache" it
 	c.cache[p.Image] = data
 	return NewBlobFromBytes(data), nil
 }
@@ -2211,7 +2212,7 @@ func TestWithCacher(t *testing.T) {
 			http.MethodGet, "https://example.com/unsafe/200x200/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "from-cache", w.Body.String())
-		assert.Equal(t, 1, proc.called, "Process should be called with nil blob on cache hit")
+		assert.Equal(t, 1, proc.called, "Process should be called with cached blob on cache hit")
 	})
 
 	t.Run("cache miss — unknown size (0x0) — loader called", func(t *testing.T) {
@@ -2226,7 +2227,7 @@ func TestWithCacher(t *testing.T) {
 		assert.Equal(t, 200, w.Code)
 		// Loader was called, processor got the loaded blob
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
-		assert.Equal(t, 0, proc.called, "Process should NOT be called with nil blob when size unknown")
+		assert.Equal(t, 0, proc.called, "Process should NOT be called with cached blob when size unknown")
 	})
 
 	t.Run("cache miss — width only (0 height) — loader called", func(t *testing.T) {
