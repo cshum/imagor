@@ -119,51 +119,53 @@ func TestResolveFullDimensions(t *testing.T) {
 
 // ---------------------------------------------------------------------------
 // Overlay cache unit tests
-// These tests exercise the cache logic without libvips by working directly
-// with overlayCacheEntry and the ristretto cache, bypassing NewThumbnail.
+// These tests exercise the cache logic using the ristretto cache with
+// *imagor.Blob (BlobTypeMemory) values.
 // ---------------------------------------------------------------------------
 
-// makeTestEntry creates a minimal overlayCacheEntry with a synthetic pixel buf.
-func makeTestEntry(w, h, bands int) *overlayCacheEntry {
+// makeTestMemBlob creates a minimal BlobTypeMemory blob with a synthetic pixel buf.
+func makeTestMemBlob(w, h, bands int) *imagor.Blob {
 	buf := make([]byte, w*h*bands)
 	for i := range buf {
 		buf[i] = byte(i % 256)
 	}
-	return &overlayCacheEntry{buf: buf, width: w, height: h, bands: bands}
+	return imagor.NewBlobFromMemory(buf, w, h, bands)
 }
 
 // TestOverlayCacheNewAndGet verifies that newOverlayCache creates a working
-// ristretto cache and that Set/Get round-trip correctly.
+// ristretto cache and that Set/Get round-trip correctly with *imagor.Blob values.
 func TestOverlayCacheNewAndGet(t *testing.T) {
 	cache, err := newOverlayCache(10 * 1024 * 1024) // 10 MiB
 	require.NoError(t, err)
 
-	entry := makeTestEntry(100, 100, 4)
-	cost := int64(len(entry.buf))
+	blob := makeTestMemBlob(100, 100, 4)
+	data, _, _, _, _ := blob.Memory()
+	cost := int64(len(data))
 
-	ok := cache.Set("logo.png", entry, cost)
+	ok := cache.Set("logo.png", blob, cost)
 	assert.True(t, ok, "Set should succeed within budget")
 	cache.Wait()
 
 	got, found := cache.Get("logo.png")
 	assert.True(t, found, "entry should be found after Set+Wait")
-	assert.Equal(t, entry, got, "retrieved entry should be identical")
+	assert.Equal(t, blob, got, "retrieved blob should be identical")
 }
 
 // TestOverlayCacheEviction verifies that ristretto evicts entries when the
 // byte budget is exceeded. We store two entries whose combined cost exceeds
 // MaxCost and confirm that at least one is evicted.
 func TestOverlayCacheEviction(t *testing.T) {
-	// Budget: 1000 bytes — just enough for one 10×10×4 entry (400 bytes) but
-	// not two.
+	// Budget: 500 bytes — just enough for one 10×10×4 entry (400 bytes) but not two.
 	cache, err := newOverlayCache(500)
 	require.NoError(t, err)
 
-	e1 := makeTestEntry(10, 10, 4) // 400 bytes
-	e2 := makeTestEntry(10, 10, 4) // 400 bytes
+	b1 := makeTestMemBlob(10, 10, 4) // 400 bytes
+	b2 := makeTestMemBlob(10, 10, 4) // 400 bytes
+	d1, _, _, _, _ := b1.Memory()
+	d2, _, _, _, _ := b2.Memory()
 
-	cache.Set("a.png", e1, int64(len(e1.buf)))
-	cache.Set("b.png", e2, int64(len(e2.buf)))
+	cache.Set("a.png", b1, int64(len(d1)))
+	cache.Set("b.png", b2, int64(len(d2)))
 	cache.Wait()
 
 	_, found1 := cache.Get("a.png")
@@ -282,21 +284,20 @@ func TestOverlayCacheSizeExceedsMaxDims(t *testing.T) {
 		"loader must be called each time when explicit overlay size exceeds cache max dims")
 }
 
-// TestOverlayCacheURLKey verifies that the cache key is the URL only (n is not
-// included), and that a cached static entry is correctly retrieved by URL.
-// Animated sources are never cached, so there is no collision risk between
-// n=1 and n=-1 for the same URL.
+// TestOverlayCacheURLKey verifies that the cache key is the URL only, and that
+// a cached memory blob is correctly retrieved by URL.
 func TestOverlayCacheURLKey(t *testing.T) {
 	cache, err := newOverlayCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 
-	entry := makeTestEntry(100, 100, 4)
-	cache.Set("logo.png", entry, int64(len(entry.buf)))
+	blob := makeTestMemBlob(100, 100, 4)
+	data, _, _, _, _ := blob.Memory()
+	cache.Set("logo.png", blob, int64(len(data)))
 	cache.Wait()
 
 	got, found := cache.Get("logo.png")
-	assert.True(t, found, "entry should be found by URL key")
-	assert.Equal(t, entry, got, "retrieved entry should match stored entry")
+	assert.True(t, found, "blob should be found by URL key")
+	assert.Equal(t, blob, got, "retrieved blob should match stored blob")
 
 	// A different URL must not collide.
 	_, found2 := cache.Get("other.png")
@@ -376,8 +377,8 @@ func TestOverlayCacheUnknownSizeUsesMaxDims(t *testing.T) {
 }
 
 // TestOverlayCacheImageFilterConcurrent verifies that concurrent image() filter
-// calls with the same resolved path are safe: all callers get a valid image,
-// and after the calls complete the result is cached.
+// calls with the same URL are safe: all callers get a valid image,
+// and after the calls complete the result is cached by URL key.
 func TestOverlayCacheImageFilterConcurrent(t *testing.T) {
 	cache, err := newOverlayCache(50 * 1024 * 1024)
 	require.NoError(t, err)
@@ -397,7 +398,7 @@ func TestOverlayCacheImageFilterConcurrent(t *testing.T) {
 	ctx := withContext(context.Background())
 	blob := imagor.NewBlobFromFile("../../testdata/gopher.png")
 	params := imagorpath.Parse("200x200/gopher.png")
-	resolvedPath := "200x200/gopher.png"
+	url := "gopher.png"
 
 	const goroutines = 10
 	var wg sync.WaitGroup
@@ -408,7 +409,7 @@ func TestOverlayCacheImageFilterConcurrent(t *testing.T) {
 		i := i
 		go func() {
 			defer wg.Done()
-			img, err := v.loadAndCacheImageFilter(ctx, blob, params, load, resolvedPath)
+			img, err := v.loadAndCacheImageFilter(ctx, blob, params, load, url)
 			errs[i] = err
 			if img != nil {
 				img.Close()
@@ -421,73 +422,121 @@ func TestOverlayCacheImageFilterConcurrent(t *testing.T) {
 		assert.NoError(t, err, "goroutine %d should not error", i)
 	}
 	t.Logf("loader called %d times for %d concurrent image() filter requests", loadCount.Load(), goroutines)
-	// After all goroutines complete, the result should be in cache.
-	_, found := v.overlayCache.Get(resolvedPath)
-	assert.True(t, found, "image() filter result should be cached after first successful load")
+	// After all goroutines complete, the result should be cached by URL key.
+	_, found := v.overlayCache.Get(url)
+	assert.True(t, found, "image() filter result should be cached by URL key after first successful load")
 }
 
-// TestOverlayCacheImageFilterExportBypass verifies that image() filter results
-// exceeding OverlayCacheMaxWidth×OverlayCacheMaxHeight are not cached.
-// The loader must be called on every request.
+// TestOverlayCacheImageFilterExportBypass verifies that image() filter requests
+// with params.Width/Height exceeding OverlayCacheMaxWidth×OverlayCacheMaxHeight
+// bypass the cache entirely — the URL is never stored in the cache.
 func TestOverlayCacheImageFilterExportBypass(t *testing.T) {
 	cache, err := newOverlayCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithOverlayCacheSize(50*1024*1024),
-		WithOverlayCacheMaxWidth(10), // tiny — real images will exceed this
-		WithOverlayCacheMaxHeight(10),
+		WithOverlayCacheMaxWidth(100), // max 100px
+		WithOverlayCacheMaxHeight(100),
 	)
 	v.overlayCache = cache
 
-	var loadCount atomic.Int64
 	load := func(image string) (*imagor.Blob, error) {
-		loadCount.Add(1)
 		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
 	}
 
 	ctx := withContext(context.Background())
-	blob := imagor.NewBlobFromFile("../../testdata/gopher.png")
-	params := imagorpath.Parse("200x200/gopher.png")
-	resolvedPath := "200x200/gopher.png"
+	url := "gopher.png"
 
-	img1, err := v.loadAndCacheImageFilter(ctx, blob, params, load, resolvedPath)
+	// params.Width=200, params.Height=200 > max 100×100 — must bypass cache.
+	params := imagorpath.Parse("200x200/gopher.png")
+
+	blob1 := imagor.NewBlobFromFile("../../testdata/gopher.png")
+	img1, err := v.loadAndCacheImageFilter(ctx, blob1, params, load, url)
 	require.NoError(t, err)
 	if img1 != nil {
 		img1.Close()
 	}
 
 	blob2 := imagor.NewBlobFromFile("../../testdata/gopher.png")
-	img2, err := v.loadAndCacheImageFilter(ctx, blob2, params, load, resolvedPath)
+	img2, err := v.loadAndCacheImageFilter(ctx, blob2, params, load, url)
 	require.NoError(t, err)
 	if img2 != nil {
 		img2.Close()
 	}
 
-	_, found := v.overlayCache.Get(resolvedPath)
-	assert.False(t, found, "image() filter result exceeding max dims must not be cached")
+	// The URL must not be in the cache — bypass means no caching.
+	_, found := v.overlayCache.Get(url)
+	assert.False(t, found, "image() filter result must not be cached when params size exceeds max dims")
 }
 
-// TestOverlayCacheEntryBufLifetime verifies the key safety property:
-// the []byte in a cache entry remains valid after the *vips.Image derived
-// from it is closed. This is the core correctness guarantee — the cached buf
-// is a Go-owned allocation independent of any libvips object.
-func TestOverlayCacheEntryBufLifetime(t *testing.T) {
-	entry := makeTestEntry(50, 50, 4)
-	original := make([]byte, len(entry.buf))
-	copy(original, entry.buf)
+// TestOverlayCacheImageFilterURLOnlyKey verifies the core cache-hit maximization:
+// two calls with different params (different sizes) but the same source URL
+// both hit the same cache entry. After the first call populates the cache,
+// the second call runs the pipeline from the cached memory blob — no I/O.
+func TestOverlayCacheImageFilterURLOnlyKey(t *testing.T) {
+	cache, err := newOverlayCache(50 * 1024 * 1024)
+	require.NoError(t, err)
+	v := NewProcessor(
+		WithOverlayCacheSize(50*1024*1024),
+		WithOverlayCacheMaxWidth(2400),
+		WithOverlayCacheMaxHeight(1800),
+	)
+	v.overlayCache = cache
 
-	// Simulate what overlayFromCacheEntry does: wrap buf in a vips.Image,
-	// use it, close it — then verify buf is unchanged.
-	// We can't call vips.NewImageFromMemory without libvips, so we just
-	// verify the buf pointer and content are stable after the entry is
-	// "used" (simulated by reading it).
-	assert.Equal(t, original, entry.buf,
-		"entry.buf must be unchanged after simulated image use and close")
+	load := func(image string) (*imagor.Blob, error) {
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
 
-	// Simulate eviction: set entry to nil (as ristretto would do on evict).
+	ctx := withContext(context.Background())
+	url := "gopher.png"
+
+	// First call: image(200x200/gopher.png) — cache miss, decodes and caches "gopher.png".
+	blob1 := imagor.NewBlobFromFile("../../testdata/gopher.png")
+	params1 := imagorpath.Parse("200x200/gopher.png")
+	img1, err := v.loadAndCacheImageFilter(ctx, blob1, params1, load, url)
+	require.NoError(t, err)
+	require.NotNil(t, img1)
+	assert.Equal(t, 200, img1.Width(), "first call result width should match params1")
+	assert.Equal(t, 200, img1.PageHeight(), "first call result height should match params1")
+	img1.Close()
+
+	// Verify the URL is now cached.
+	_, found := v.overlayCache.Get(url)
+	assert.True(t, found, "URL should be cached after first call")
+
+	// Second call: image(100x100/gopher.png) — different size, same URL → cache hit.
+	// blob2 is provided but loadOrCacheBlob will return the cached memBlob immediately.
+	blob2 := imagor.NewBlobFromFile("../../testdata/gopher.png")
+	params2 := imagorpath.Parse("100x100/gopher.png")
+	img2, err := v.loadAndCacheImageFilter(ctx, blob2, params2, load, url)
+	require.NoError(t, err)
+	require.NotNil(t, img2)
+	// Pipeline ran from cached memory blob: result should be 100×100 (params2 size).
+	assert.Equal(t, 100, img2.Width(), "second call result width should match params2")
+	assert.Equal(t, 100, img2.PageHeight(), "second call result height should match params2")
+	img2.Close()
+}
+
+// TestOverlayCacheBlobLifetime verifies the key safety property:
+// the []byte in a cached memory blob remains valid after the *vips.Image
+// derived from it is closed. This is the core correctness guarantee — the
+// cached buf is a Go-owned allocation independent of any libvips object.
+func TestOverlayCacheBlobLifetime(t *testing.T) {
+	blob := makeTestMemBlob(50, 50, 4)
+	data, w, h, bands, ok := blob.Memory()
+	require.True(t, ok, "blob must be BlobTypeMemory")
+	original := make([]byte, len(data))
+	copy(original, data)
+
+	// Verify dimensions are preserved.
+	assert.Equal(t, 50, w)
+	assert.Equal(t, 50, h)
+	assert.Equal(t, 4, bands)
+
+	// Simulate eviction: set blob to nil (as ristretto would do on evict).
 	// The buf slice should still be reachable via our local reference.
-	localBuf := entry.buf
-	entry = nil //nolint:ineffassign // intentional: simulate eviction
-	assert.Equal(t, original, localBuf,
-		"buf must remain valid after entry pointer is cleared (GC safety)")
+	localData := data
+	blob = nil //nolint:ineffassign // intentional: simulate eviction
+	assert.Equal(t, original, localData,
+		"buf must remain valid after blob pointer is cleared (GC safety)")
 }
