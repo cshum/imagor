@@ -49,48 +49,67 @@ func (v *Processor) loadOrCacheBlob(
 		return nil, nil
 	}
 
-	// Cache hit — return the cached memory blob directly.
+	// Fast path: cache hit — return immediately without singleflight overhead.
 	if memBlob, ok := v.overlayCache.Get(url); ok {
 		return memBlob, nil
 	}
 
-	// Cache miss: decode at maxW×maxH with SizeDown.
-	// Use a fresh decode context so the VipsSource is released immediately
-	// after WriteToMemory (not tied to the request context lifetime).
-	decodeCtx := withContext(context.Background())
+	// Slow path: deduplicate concurrent cache misses for the same URL.
+	// The singleflight result is *imagor.Blob (Go-owned memory) — safe to share
+	// across goroutines. Each caller independently calls NewThumbnail(memBlob, ...)
+	// to create its own *vips.Image, so there are no ownership hazards.
+	result, err, _ := v.overlaySF.Do(url, func() (any, error) {
+		// Re-check cache inside singleflight: a previous call may have populated
+		// it while we were waiting to enter the group.
+		if memBlob, ok := v.overlayCache.Get(url); ok {
+			return memBlob, nil
+		}
 
-	img, err := v.NewThumbnail(decodeCtx, blob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
-		vips.InterestingNone, vips.SizeDown, n, 1, 0)
-	if err != nil {
-		contextDone(decodeCtx)
-		return nil, err
-	}
+		// Cache miss: decode at maxW×maxH with SizeDown.
+		// Use a fresh decode context so the VipsSource is released immediately
+		// after WriteToMemory (not tied to the request context lifetime).
+		decodeCtx := withContext(context.Background())
 
-	// Animated source: WriteToMemory cannot preserve multi-page structure.
-	// Signal caller to handle animated directly with the original blob.
-	if img.Height() != img.PageHeight() {
+		img, err := v.NewThumbnail(decodeCtx, blob, v.OverlayCacheMaxWidth, v.OverlayCacheMaxHeight,
+			vips.InterestingNone, vips.SizeDown, n, 1, 0)
+		if err != nil {
+			contextDone(decodeCtx)
+			return nil, err
+		}
+
+		// Animated source: WriteToMemory cannot preserve multi-page structure.
+		// Return nil to signal caller to handle animated directly with the original blob.
+		if img.Height() != img.PageHeight() {
+			img.Close()
+			contextDone(decodeCtx)
+			return nil, nil
+		}
+
+		// Static image: serialize to Go-owned []byte, release libvips resources.
+		imgW, imgH, imgBands := img.Width(), img.PageHeight(), img.Bands()
+		buf, err := img.WriteToMemory()
 		img.Close()
 		contextDone(decodeCtx)
-		return nil, nil
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	// Static image: serialize to Go-owned []byte, release libvips resources.
-	imgW, imgH, imgBands := img.Width(), img.PageHeight(), img.Bands()
-	buf, err := img.WriteToMemory()
-	img.Close()
-	contextDone(decodeCtx)
+		memBlob := imagor.NewBlobFromMemory(buf, imgW, imgH, imgBands)
+
+		// Cache if within max dims (result may be smaller than max due to SizeDown).
+		if imgW <= v.OverlayCacheMaxWidth && imgH <= v.OverlayCacheMaxHeight {
+			v.overlayCache.Set(url, memBlob, int64(len(buf)))
+			v.overlayCache.Wait()
+		}
+		return memBlob, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	memBlob := imagor.NewBlobFromMemory(buf, imgW, imgH, imgBands)
-
-	// Cache if within max dims (result may be smaller than max due to SizeDown).
-	if imgW <= v.OverlayCacheMaxWidth && imgH <= v.OverlayCacheMaxHeight {
-		v.overlayCache.Set(url, memBlob, int64(len(buf)))
-		v.overlayCache.Wait()
+	if result == nil {
+		return nil, nil // animated source
 	}
-	return memBlob, nil
+	return result.(*imagor.Blob), nil
 }
 
 // loadOverlayImage loads a watermark overlay image, using the overlay cache when possible.

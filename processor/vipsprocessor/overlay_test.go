@@ -241,11 +241,15 @@ func TestOverlayCacheConcurrentSafety(t *testing.T) {
 	for i, err := range errs {
 		assert.NoError(t, err, "goroutine %d should not error", i)
 	}
-	// Without singleflight, concurrent goroutines may all race to load before
-	// the first one caches the result. All calls are safe; the loader may be
-	// called up to goroutines times in the worst case, but typically far fewer.
+	// loadOverlayImage calls load(url) before loadOrCacheBlob, so all goroutines
+	// that miss the cache will call load(). Singleflight deduplicates the decode
+	// (NewThumbnail + WriteToMemory), not the load() call itself.
+	// All calls are safe; the loader may be called up to goroutines times.
 	assert.LessOrEqual(t, loadCount.Load(), int64(goroutines),
 		"loader should not be called more than goroutine count")
+	// After all goroutines complete, the result must be cached.
+	_, found := v.overlayCache.Get("logo.png")
+	assert.True(t, found, "result must be cached after concurrent loads")
 	t.Logf("loader called %d times for %d concurrent requests", loadCount.Load(), goroutines)
 }
 

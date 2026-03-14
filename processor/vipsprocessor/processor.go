@@ -10,6 +10,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 // FilterFunc filter handler function
@@ -50,6 +51,7 @@ type Processor struct {
 
 	disableFilters map[string]bool
 	overlayCache   *overlayRistrettoCache
+	overlaySF      singleflight.Group
 }
 
 // NewProcessor create Processor
