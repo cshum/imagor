@@ -12,13 +12,13 @@ import (
 	"github.com/dgraph-io/ristretto/v2"
 )
 
-// ristrettoCache is a type alias for the ristretto cache used for overlay images.
+// pixelCache is a type alias for the ristretto cache used for pixel blobs.
 // Values are BlobTypeMemory blobs — Go-owned raw pixel buffers from WriteToMemory,
 // independent of any libvips lifecycle or request context, safe to cache indefinitely.
-type ristrettoCache = ristretto.Cache[string, *imagor.Blob]
+type pixelCache = ristretto.Cache[string, *imagor.Blob]
 
-// newCache creates a new ristretto cache for overlay images with the given byte budget.
-func newCache(maxCost int64) (*ristrettoCache, error) {
+// newPixelCache creates a new ristretto pixel cache with the given byte budget.
+func newPixelCache(maxCost int64) (*pixelCache, error) {
 	return ristretto.NewCache[string, *imagor.Blob](&ristretto.Config[string, *imagor.Blob]{
 		// NumCounters: 10x the expected number of unique items for accurate frequency tracking.
 		// For overlay images, 1000 unique URLs is generous; 10000 counters is fine.
@@ -86,7 +86,7 @@ func (v *Processor) loadOrCache(
 		}
 
 		// Static image: serialize to Go-owned []byte, release libvips resources.
-		imgW, imgH, imgBands := img.Width(), img.PageHeight(), img.Bands()
+		w, h, bands := img.Width(), img.PageHeight(), img.Bands()
 		buf, err := img.WriteToMemory()
 		img.Close()
 		contextDone(decodeCtx)
@@ -94,10 +94,10 @@ func (v *Processor) loadOrCache(
 			return nil, err
 		}
 
-		memBlob := imagor.NewBlobFromMemory(buf, imgW, imgH, imgBands)
+		memBlob := imagor.NewBlobFromMemory(buf, w, h, bands)
 
 		// Cache if within max dims (result may be smaller than max due to SizeDown).
-		if imgW <= v.CacheMaxWidth && imgH <= v.CacheMaxHeight {
+		if w <= v.CacheMaxWidth && h <= v.CacheMaxHeight {
 			cost := int64(len(buf))
 			if v.CacheTTL > 0 {
 				v.cache.SetWithTTL(url, memBlob, cost, v.CacheTTL)
@@ -192,8 +192,8 @@ func (v *Processor) loadOverlayImage(
 	return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
 }
 
-// loadAndCacheImageFilter runs the full imagor processing pipeline for an image()
-// filter overlay, using a URL-only cache key with raw pixel caching.
+// loadFilterImage runs the full imagor processing pipeline for an image()
+// filter, using a URL-only cache key with raw pixel caching.
 //
 // Cache key = URL only (params.Image), so that the same source image cached once
 // can be reused across different sizes and filter combinations:
@@ -205,7 +205,7 @@ func (v *Processor) loadOverlayImage(
 //   - Cache disabled (cache == nil)
 //   - Requested output size (params.Width × params.Height) exceeds max dims
 //   - Source is animated
-func (v *Processor) loadAndCacheImageFilter(
+func (v *Processor) loadFilterImage(
 	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
 	url string,
 ) (*vips.Image, error) {

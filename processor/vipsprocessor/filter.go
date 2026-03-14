@@ -39,7 +39,7 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	// create fresh context for this processing level
 	// while preserving parent resource tracking context
 	ctx = withContext(ctx)
-	if overlay, err = v.loadAndCacheImageFilter(ctx, blob, params, load, params.Image); err != nil || overlay == nil {
+	if overlay, err = v.loadFilterImage(ctx, blob, params, load, params.Image); err != nil || overlay == nil {
 		return
 	}
 	contextDefer(ctx, overlay.Close)

@@ -52,7 +52,7 @@ type Processor struct {
 	CacheTTL       time.Duration
 
 	disableFilters map[string]bool
-	cache          *ristrettoCache
+	cache          *pixelCache
 	cacheSF        singleflight.Group
 }
 
@@ -164,7 +164,7 @@ func (v *Processor) Startup(_ context.Context) error {
 		}
 	}
 	if v.CacheSize > 0 && v.cache == nil {
-		cache, err := newCache(v.CacheSize)
+		cache, err := newPixelCache(v.CacheSize)
 		if err != nil {
 			return err
 		}
