@@ -517,6 +517,73 @@ func TestOverlayCacheImageFilterURLOnlyKey(t *testing.T) {
 	img2.Close()
 }
 
+// TestOverlayCacheImageFilterNilBlob verifies that loadAndCacheImageFilter does not
+// error when blob is nil (e.g. color: image paths generated in-process).
+// The cache must be bypassed and loadAndProcess called directly with nil blob.
+func TestOverlayCacheImageFilterNilBlob(t *testing.T) {
+	cache, err := newOverlayCache(50 * 1024 * 1024)
+	require.NoError(t, err)
+	v := NewProcessor(
+		WithOverlayCacheSize(50*1024*1024),
+		WithOverlayCacheMaxWidth(2400),
+		WithOverlayCacheMaxHeight(1800),
+	)
+	v.overlayCache = cache
+
+	load := func(image string) (*imagor.Blob, error) {
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
+
+	ctx := withContext(context.Background())
+	// color: paths produce nil blob — loadAndCacheImageFilter must not error.
+	params := imagorpath.Parse("100x100/color:red")
+
+	img, err := v.loadAndCacheImageFilter(ctx, nil, params, load, "color:red")
+	// loadAndProcess with nil blob + color: path should succeed (returns a solid color image).
+	require.NoError(t, err)
+	if img != nil {
+		img.Close()
+	}
+
+	// The URL must not be cached (nil blob bypasses cache entirely).
+	_, found := v.overlayCache.Get("color:red")
+	assert.False(t, found, "nil blob path must not be cached")
+}
+
+// TestOverlayCacheAnimatedSizeKnown verifies that animated overlays with a known
+// requested size (sizeKnown=true) are returned at the requested size, not at
+// maxW×maxH. This was a pre-existing bug: the animated fallback always used
+// maxW×maxH regardless of sizeKnown.
+func TestOverlayCacheAnimatedSizeKnown(t *testing.T) {
+	cache, err := newOverlayCache(50 * 1024 * 1024)
+	require.NoError(t, err)
+	v := NewProcessor(
+		WithOverlayCacheSize(50*1024*1024),
+		WithOverlayCacheMaxWidth(2400),
+		WithOverlayCacheMaxHeight(1800),
+	)
+	v.overlayCache = cache
+
+	load := func(image string) (*imagor.Blob, error) {
+		return imagor.NewBlobFromFile("../../testdata/dancing-banana.gif"), nil
+	}
+
+	ctx := context.Background()
+
+	// Request explicit size 100×80 for an animated GIF.
+	// The result must be at most 100×80, not 2400×1800.
+	// Use size=0 (SizeDown) — with SizeBoth the GIF would be upscaled; SizeDown
+	// ensures the result is ≤ 100×80 which is what we want to verify.
+	img, err := v.loadOverlayImage(ctx, load, "anim.gif", 100, 80, -1, 0)
+	require.NoError(t, err)
+	require.NotNil(t, img)
+	assert.LessOrEqual(t, img.Width(), 100,
+		"animated overlay with sizeKnown must be ≤ requested width, not maxW")
+	assert.LessOrEqual(t, img.PageHeight(), 80,
+		"animated overlay with sizeKnown must be ≤ requested height, not maxH")
+	img.Close()
+}
+
 // TestOverlayCacheBlobLifetime verifies the key safety property:
 // the []byte in a cached memory blob remains valid after the *vips.Image
 // derived from it is closed. This is the core correctness guarantee — the
