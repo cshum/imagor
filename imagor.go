@@ -400,12 +400,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
 		} else {
-			// Check if any processor has the base image cached at the requested size.
-			// If so, skip loadStorage entirely — no I/O, no network.
-			// Skip cache when there's a crop or focal filter: the cache stores a
-			// downscaled copy (≤ CacheMaxWidth×CacheMaxHeight), so absolute pixel
-			// crop coordinates and focal points from the original image space would
-			// be applied incorrectly to the smaller cached image.
+			// Skip cache for crop/focal: cache stores a downscaled copy, so original-space
+			// coordinates would be applied incorrectly to the smaller cached image.
 			if !imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") {
 				for _, processor := range app.Processors {
 					if c, ok := processor.(Cacher); ok && c.HasCache(p.Image, p.Width, p.Height) {

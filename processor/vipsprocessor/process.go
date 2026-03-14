@@ -52,16 +52,8 @@ func (v *Processor) Process(
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
 
-	// Cache base image raw pixels at CacheMaxWidth×CacheMaxHeight.
-	// Only for known-size requests within cache max dims — unknown-size requests
-	// may need native resolution which exceeds the cache cap.
-	// On cache hit (blob==nil from Do()), loadOrCache returns the cached memBlob.
-	// On cache miss, loadOrCache decodes and caches, then returns the memBlob.
-	// Skip cache when there's a crop or focal filter: the cache stores a downscaled
-	// copy (≤ CacheMaxWidth×CacheMaxHeight), so absolute pixel crop coordinates and
-	// focal points from the original image space would be applied incorrectly to the
-	// smaller cached image. Percentage crops also fail when the crop region of the
-	// cached image is smaller than the requested output size.
+	// Use pixel cache for known-size, non-crop/focal requests within cache max dims.
+	// Skip for crop/focal: cache stores a downscaled copy, so original-space coordinates apply incorrectly.
 	if p.Image != "" {
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0
@@ -70,11 +62,7 @@ func (v *Processor) Process(
 				if memBlob, cacheErr := v.loadOrCache(ctx, blob, p.Image, 1); cacheErr == nil && memBlob != nil {
 					blob = memBlob
 				} else if blob == nil {
-					// blob=nil means HasCache returned true in imagor.Do() but the cache entry
-					// was evicted by ristretto before Process() ran (TOCTOU race).
-					// Fall back to reloading from storage via the load function so the request
-					// doesn't fail with ErrNotFound. If reload also fails, blob stays nil and
-					// loadAndProcess will return ErrNotFound (correct behaviour).
+					// Cache evicted between HasCache and Process (TOCTOU) — reload from storage.
 					if reloaded, reloadErr := load(p.Image); reloadErr == nil {
 						blob = reloaded
 					}
@@ -83,14 +71,12 @@ func (v *Processor) Process(
 		}
 	}
 
-	// Load and process the image
 	img, err := v.loadAndProcess(ctx, blob, p, load)
 	if err != nil {
 		return nil, err
 	}
 	defer img.Close()
 
-	// Extract export parameters
 	params := v.extractExportParams(p, blob, img)
 
 	// Handle metadata response
@@ -162,7 +148,6 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		format        = vips.ImageTypeUnknown
 	)
 
-	// Extract export parameters from filters
 	for _, f := range p.Filters {
 		if v.disableFilters[f.Name] {
 			continue
@@ -191,7 +176,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		}
 	}
 
-	// Determine format if not specified
+	// Default format from blob/image type
 	if format == vips.ImageTypeUnknown {
 		if blob != nil && blob.BlobType() == imagor.BlobTypeAVIF {
 			format = vips.ImageTypeAvif
@@ -215,7 +200,6 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 func (v *Processor) loadAndProcess(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*vips.Image, error) {
-	// Check if image path is a color image specification
 	if c, ok := parseColorImage(p.Image); ok {
 		w, h := p.Width, p.Height
 		if w <= 0 && h <= 0 {
@@ -244,7 +228,7 @@ func (v *Processor) loadAndProcess(
 				zap.Int("height", h),
 				zap.Any("color", c))
 		}
-		// thumbnail=true skips resize/crop — image is already at target size
+		// thumbnail=true: image is already at target size, skip resize/crop
 		if err := v.applyTransformations(ctx, img, p, load, true, false, false, nil); err != nil {
 			img.Close()
 			return nil, WrapErr(err)
@@ -450,7 +434,6 @@ func (v *Processor) loadAndProcess(
 			zap.Int("page_height", img.PageHeight()))
 	}
 
-	// Extract focal points for transformation
 	var focalRects []focal
 	for _, f := range p.Filters {
 		if v.disableFilters[f.Name] {
@@ -488,7 +471,6 @@ func (v *Processor) loadAndProcess(
 			}
 		}
 	}
-	// Apply transformations
 	if err := v.applyTransformations(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
@@ -509,7 +491,6 @@ func (v *Processor) applyTransformations(
 		cropBottom float64
 	)
 	if p.CropRight > 0 || p.CropLeft > 0 || p.CropBottom > 0 || p.CropTop > 0 {
-		// percentage
 		cropLeft = math.Max(p.CropLeft, 0)
 		cropTop = math.Max(p.CropTop, 0)
 		cropRight = p.CropRight
@@ -583,7 +564,6 @@ func (v *Processor) applyTransformations(
 	}
 	if !thumbnail {
 		if p.FitIn {
-			// Calculate dimensions for full-fit-in
 			if p.FullFitIn && w > 0 && h > 0 {
 				imgAspect := float64(img.Width()) / float64(img.PageHeight())
 				boxAspect := float64(w) / float64(h)
@@ -746,7 +726,6 @@ func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 func (v *Processor) export(
 	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
-	// check resolution before export
 	if _, err := v.CheckResolution(image, nil); err != nil {
 		return nil, err
 	}

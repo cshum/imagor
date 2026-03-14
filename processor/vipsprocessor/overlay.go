@@ -49,9 +49,7 @@ func (v *Processor) loadOrCache(
 			return memBlob, nil
 		}
 
-		// blob=nil means the caller came from the HasCache path (imagor.Do skipped
-		// loadStorage) but the cache entry was evicted before we got here.
-		// Signal the caller to fall back to reloading from storage.
+		// Cache evicted before we got here — signal caller to fall back.
 		if blob == nil {
 			return nil, nil
 		}
@@ -163,19 +161,14 @@ func (v *Processor) loadOverlayImage(
 }
 
 // loadFilterImage runs the imagor pipeline for an image() filter using the pixel cache.
-// Cache key is image path only, so the same source serves all requested sizes and filter combos.
-// Bypasses cache when disabled, blob is nil, size is unknown, output exceeds max dims,
-// or the nested path has a crop or focal filter (which depend on original image coordinates).
+// Bypasses cache for unknown size, exceeds max dims, or crop/focal filters
+// (which depend on original image coordinates, not the downscaled cached copy).
 func (v *Processor) loadFilterImage(
 	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
 	url string,
 ) (*vips.Image, error) {
 	sizeKnown := params.Width > 0 && params.Height > 0
 
-	// Bypass cache: disabled, nil blob (e.g. color: paths), unknown size, or output exceeds max dims.
-	// Also bypass when there's a crop or focal filter: the cache stores a downscaled copy
-	// (≤ CacheMaxWidth×CacheMaxHeight), so crop coordinates and focal points from the
-	// original image space would be applied incorrectly to the smaller cached image.
 	if v.cache == nil || blob == nil || !sizeKnown || imagorpath.HasCrop(params) || imagorpath.HasFilter(params, "focal") ||
 		params.Width > v.CacheMaxWidth || params.Height > v.CacheMaxHeight {
 		return v.loadAndProcess(ctx, blob, params, load)
