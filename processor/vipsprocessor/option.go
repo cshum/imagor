@@ -171,3 +171,33 @@ func WithUnlimited(unlimited bool) Option {
 		v.Unlimited = unlimited
 	}
 }
+
+// WithOverlayCacheSize sets the overlay cache memory budget in bytes.
+// Set to 0 (default) to disable the overlay cache.
+// The cache stores decoded raw pixel data (via WriteToMemory) keyed by overlay URL,
+// so one entry serves all requested sizes within OverlayCacheMaxWidth/Height.
+func WithOverlayCacheSize(size int64) Option {
+	return func(v *Processor) {
+		v.OverlayCacheSize = size
+	}
+}
+
+// WithOverlayCacheMaxWidth sets the maximum width for cached overlay images.
+// Overlays wider than this are not cached. Defaults to 2400.
+func WithOverlayCacheMaxWidth(width int) Option {
+	return func(v *Processor) {
+		if width > 0 {
+			v.OverlayCacheMaxWidth = width
+		}
+	}
+}
+
+// WithOverlayCacheMaxHeight sets the maximum height for cached overlay images.
+// Overlays taller than this are not cached. Defaults to 1800.
+func WithOverlayCacheMaxHeight(height int) Option {
+	return func(v *Processor) {
+		if height > 0 {
+			v.OverlayCacheMaxHeight = height
+		}
+	}
+}

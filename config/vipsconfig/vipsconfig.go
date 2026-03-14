@@ -41,6 +41,12 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS strips all metadata from the resulting image")
 		vipsUnlimited = fs.Bool("vips-unlimited", false,
 			"VIPS bypass image max resolution check and remove all denial of service limits")
+		vipsOverlayCacheSize = fs.Int64("vips-overlay-cache-size", 0,
+			"VIPS overlay image cache size in bytes. Set 0 to disable (default). Caches decoded overlay pixels keyed by URL to avoid repeated I/O and decode on watermark/image filters")
+		vipsOverlayCacheMaxWidth = fs.Int("vips-overlay-cache-max-width", 2400,
+			"VIPS overlay cache maximum image width. Overlays wider than this are not cached (default 2400)")
+		vipsOverlayCacheMaxHeight = fs.Int("vips-overlay-cache-max-height", 1800,
+			"VIPS overlay cache maximum image height. Overlays taller than this are not cached (default 1800)")
 
 		logger, isDebug = cb()
 	)
@@ -61,6 +67,9 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
 			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
 			vipsprocessor.WithUnlimited(*vipsUnlimited),
+			vipsprocessor.WithOverlayCacheSize(*vipsOverlayCacheSize),
+			vipsprocessor.WithOverlayCacheMaxWidth(*vipsOverlayCacheMaxWidth),
+			vipsprocessor.WithOverlayCacheMaxHeight(*vipsOverlayCacheMaxHeight),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
 		),

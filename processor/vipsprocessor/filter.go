@@ -86,10 +86,6 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		}
 	}
 
-	var blob *imagor.Blob
-	if blob, err = load(image); err != nil {
-		return
-	}
 	var w, h int
 	var overlay *vips.Image
 	var n = 1
@@ -98,8 +94,6 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	}
 	// w_ratio h_ratio
 	if ln >= 6 {
-		w = img.Width()
-		h = img.PageHeight()
 		if args[4] != "none" {
 			w, _ = strconv.Atoi(args[4])
 			w = img.Width() * w / 100
@@ -108,15 +102,11 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 			h, _ = strconv.Atoi(args[5])
 			h = img.PageHeight() * h / 100
 		}
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
-		); err != nil {
+		if overlay, err = v.loadOverlayImage(ctx, load, image, w, h, n, vips.SizeBoth); err != nil {
 			return
 		}
 	} else {
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0,
-		); err != nil {
+		if overlay, err = v.loadOverlayImage(ctx, load, image, 0, 0, n, vips.SizeDown); err != nil {
 			return
 		}
 	}

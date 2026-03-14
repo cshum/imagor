@@ -43,20 +43,29 @@ type Processor struct {
 	Unlimited          bool
 	Debug              bool
 
+	// Overlay cache settings
+	OverlayCacheSize      int64
+	OverlayCacheMaxWidth  int
+	OverlayCacheMaxHeight int
+
 	disableFilters map[string]bool
+	overlayCache   *overlayRistrettoCache
+	overlaySF      singleflightGroup
 }
 
 // NewProcessor create Processor
 func NewProcessor(options ...Option) *Processor {
 	v := &Processor{
-		MaxWidth:           9999,
-		MaxHeight:          9999,
-		MaxResolution:      81000000,
-		Concurrency:        1,
-		MaxFilterOps:       -1,
-		MaxAnimationFrames: -1,
-		Logger:             zap.NewNop(),
-		disableFilters:     map[string]bool{},
+		MaxWidth:              9999,
+		MaxHeight:             9999,
+		MaxResolution:         81000000,
+		Concurrency:           1,
+		MaxFilterOps:          -1,
+		MaxAnimationFrames:    -1,
+		Logger:                zap.NewNop(),
+		disableFilters:        map[string]bool{},
+		OverlayCacheMaxWidth:  2400,
+		OverlayCacheMaxHeight: 1800,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,
@@ -135,6 +144,13 @@ func (v *Processor) Startup(_ context.Context) error {
 			v.FallbackFunc = v.bmpFallbackFunc
 			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 		}
+	}
+	if v.OverlayCacheSize > 0 && v.overlayCache == nil {
+		cache, err := newOverlayCache(v.OverlayCacheSize)
+		if err != nil {
+			return err
+		}
+		v.overlayCache = cache
 	}
 	return nil
 }
