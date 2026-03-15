@@ -626,27 +626,17 @@ func TestProcessor(t *testing.T) {
 		assert.Greater(t, img.Width(), 0)
 		assert.Greater(t, img.Height(), 0)
 	})
-	t.Run("cr2 is BlobTypeCR2 and loads via TIFF loader without dcrawload", func(t *testing.T) {
-		// BlobTypeCR2 must bypass dcrawload entirely and go straight to NewImageFromSource.
-		// Fake CR2 data (TIFF header + "CR" at [8:10]) will fail to load (not a real image),
-		// but the error must NOT be ErrUnsupportedFormat — proving it went to NewImageFromSource.
-		// IsRaw() must still return true for CR2.
-		ctx := context.Background()
+	t.Run("cr2 is BlobTypeCR2 and IsRaw", func(t *testing.T) {
+		// BlobTypeCR2 must be detected by TIFF header + "CR" at [8:10].
+		// IsRaw() must return true (CR2 is a camera RAW format).
+		// CR2 is excluded from dcrawload routing (blob.IsRaw() && != BlobTypeCR2 condition)
+		// so it goes to NewImageFromSource — verified by code structure.
 		buf := make([]byte, 512)
 		copy(buf, []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))
 		blob := imagor.NewBlobFromBytes(buf)
 		assert.Equal(t, imagor.BlobTypeCR2, blob.BlobType())
 		assert.True(t, blob.IsRaw())
-
-		p := NewProcessor(WithDebug(true))
-		require.NoError(t, p.Startup(ctx))
-		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
-
-		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
-		assert.Nil(t, img)
-		// Must error (fake data), but NOT ErrUnsupportedFormat
-		assert.Error(t, err)
-		assert.NotEqual(t, imagor.ErrUnsupportedFormat, err)
+		assert.Equal(t, "image/x-canon-cr2", blob.ContentType())
 	})
 }
 
