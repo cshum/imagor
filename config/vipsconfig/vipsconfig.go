@@ -49,6 +49,8 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS image cache maximum height. Images taller than this are not cached (default 1800)")
 		vipsCacheTTL = fs.Duration("vips-cache-ttl", 0,
 			"VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry")
+		vipsCacheFormat = fs.String("vips-cache-format", "pixel",
+			"VIPS image cache storage format: pixel (default, raw pixels — fastest hit), png (lossless, ~6.6x smaller, pixel-identical), webp (lossy, ~17x smaller, slight quality difference)")
 
 		logger, isDebug = cb()
 	)
@@ -73,8 +75,23 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithCacheMaxWidth(*vipsCacheMaxWidth),
 			vipsprocessor.WithCacheMaxHeight(*vipsCacheMaxHeight),
 			vipsprocessor.WithCacheTTL(*vipsCacheTTL),
+			vipsprocessor.WithCacheFormat(parseCacheFormat(*vipsCacheFormat)),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
 		),
 	)
+}
+
+// parseCacheFormat maps a cache format string to the corresponding imagor.BlobType.
+// "png" → BlobTypePNG (lossless), "webp" → BlobTypeWEBP (lossy),
+// "pixel" or "" → BlobTypeMemory (raw pixels, default).
+func parseCacheFormat(s string) imagor.BlobType {
+	switch s {
+	case "png":
+		return imagor.BlobTypePNG
+	case "webp":
+		return imagor.BlobTypeWEBP
+	default: // "pixel" or ""
+		return imagor.BlobTypeMemory
+	}
 }

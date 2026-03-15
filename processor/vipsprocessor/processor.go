@@ -50,6 +50,7 @@ type Processor struct {
 	CacheMaxWidth  int
 	CacheMaxHeight int
 	CacheTTL       time.Duration
+	CacheFormat    imagor.BlobType // BlobTypeMemory (default, raw pixels), BlobTypeWEBP, BlobTypePNG
 
 	disableFilters map[string]bool
 	cache          *pixelCache

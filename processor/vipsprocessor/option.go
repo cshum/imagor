@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cshum/imagor"
 	"go.uber.org/zap"
 )
 
@@ -200,6 +201,19 @@ func WithCacheMaxHeight(height int) Option {
 		if height > 0 {
 			v.CacheMaxHeight = height
 		}
+	}
+}
+
+// WithCacheFormat sets the storage format for cached image entries.
+// BlobTypeMemory (default, zero value): raw pixels via WriteToMemory — fastest cache-hit,
+// most memory per entry (~68 KB for a 117×150 RGBA image).
+// BlobTypePNG: lossless PNG compression — ~6.6× smaller, pixel-identical quality, slightly slower hit.
+// BlobTypeWEBP: lossy WebP compression — ~17× smaller, slight generation loss vs no-cache, slightly slower hit.
+// Use BlobTypePNG for lossless compression with more cache capacity.
+// Use BlobTypeWEBP for maximum cache density when slight quality difference is acceptable.
+func WithCacheFormat(format imagor.BlobType) Option {
+	return func(v *Processor) {
+		v.CacheFormat = format
 	}
 }
 

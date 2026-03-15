@@ -1083,6 +1083,118 @@ func TestWatermarkWithRatioSizing(t *testing.T) {
 	img.Close()
 }
 
+// ---------------------------------------------------------------------------
+// CacheFormat tests
+// ---------------------------------------------------------------------------
+
+// TestOverlayCacheFormatPixelDefault verifies that the default cache format
+// (CacheFormat == 0, i.e. BlobTypeUnknown treated as raw pixels) stores
+// BlobTypeMemory blobs in the cache — identical to the explicit pixel path.
+func TestOverlayCacheFormatPixelDefault(t *testing.T) {
+	cache, err := newPixelCache(50 * 1024 * 1024)
+	require.NoError(t, err)
+	// No WithCacheFormat — default is raw pixels (BlobTypeMemory).
+	v := NewProcessor(WithCacheSize(50 * 1024 * 1024))
+	v.cache = cache
+
+	load := func(image string) (*imagor.Blob, error) {
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
+
+	ctx := context.Background()
+	img, err := v.loadOverlayImage(ctx, load, "gopher.png", 100, 100, 1, 0)
+	require.NoError(t, err)
+	require.NotNil(t, img)
+	img.Close()
+
+	cached, found := v.cache.Get("gopher.png")
+	require.True(t, found, "entry must be cached after first call")
+	assert.Equal(t, imagor.BlobTypeMemory, cached.BlobType(),
+		"default cache format must store BlobTypeMemory (raw pixels)")
+}
+
+// TestOverlayCacheFormatPNG verifies that WithCacheFormat(BlobTypePNG) stores
+// lossless PNG bytes in the cache and that subsequent calls return valid images.
+func TestOverlayCacheFormatPNG(t *testing.T) {
+	cache, err := newPixelCache(50 * 1024 * 1024)
+	require.NoError(t, err)
+	v := NewProcessor(
+		WithCacheSize(50*1024*1024),
+		WithCacheFormat(imagor.BlobTypePNG),
+	)
+	v.cache = cache
+
+	var loadCount atomic.Int64
+	load := func(image string) (*imagor.Blob, error) {
+		loadCount.Add(1)
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
+
+	ctx := context.Background()
+
+	// First call — cache miss, loads and encodes to PNG.
+	img1, err := v.loadOverlayImage(ctx, load, "gopher.png", 100, 100, 1, 0)
+	require.NoError(t, err)
+	require.NotNil(t, img1)
+	img1.Close()
+
+	// Verify cache entry is BlobTypePNG.
+	cached, found := v.cache.Get("gopher.png")
+	require.True(t, found, "entry must be cached after first call")
+	assert.Equal(t, imagor.BlobTypePNG, cached.BlobType(),
+		"PNG cache format must store BlobTypePNG bytes")
+
+	// Second call — cache hit, must return a valid image without calling load again.
+	img2, err := v.loadOverlayImage(ctx, load, "gopher.png", 80, 80, 1, 0)
+	require.NoError(t, err)
+	require.NotNil(t, img2)
+	img2.Close()
+
+	assert.Equal(t, int64(1), loadCount.Load(),
+		"loader must be called only once — second call served from PNG cache")
+}
+
+// TestOverlayCacheFormatWebP verifies that WithCacheFormat(BlobTypeWEBP) stores
+// lossy WebP bytes in the cache and that subsequent calls return valid images.
+func TestOverlayCacheFormatWebP(t *testing.T) {
+	cache, err := newPixelCache(50 * 1024 * 1024)
+	require.NoError(t, err)
+	v := NewProcessor(
+		WithCacheSize(50*1024*1024),
+		WithCacheFormat(imagor.BlobTypeWEBP),
+	)
+	v.cache = cache
+
+	var loadCount atomic.Int64
+	load := func(image string) (*imagor.Blob, error) {
+		loadCount.Add(1)
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
+
+	ctx := context.Background()
+
+	// First call — cache miss, loads and encodes to WebP.
+	img1, err := v.loadOverlayImage(ctx, load, "gopher.png", 100, 100, 1, 0)
+	require.NoError(t, err)
+	require.NotNil(t, img1)
+	img1.Close()
+
+	// Verify cache entry is BlobTypeWEBP.
+	cached, found := v.cache.Get("gopher.png")
+	require.True(t, found, "entry must be cached after first call")
+	assert.Equal(t, imagor.BlobTypeWEBP, cached.BlobType(),
+		"WebP cache format must store BlobTypeWEBP bytes")
+
+	// Second call — cache hit, must return a valid image without calling load again.
+	img2, err := v.loadOverlayImage(ctx, load, "gopher.png", 80, 80, 1, 0)
+	require.NoError(t, err)
+	require.NotNil(t, img2)
+	img2.Close()
+
+	assert.Equal(t, int64(1), loadCount.Load(),
+		"loader must be called only once — second call served from WebP cache")
+}
+
 // TestBaseImageCacheNoCropStillCaches verifies that the crop/focal bypass does
 // not break the happy path: Process() still uses the cache for no-crop requests.
 func TestBaseImageCacheNoCropStillCaches(t *testing.T) {

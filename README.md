@@ -745,6 +745,7 @@ VIPS_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = dis
 VIPS_CACHE_MAX_WIDTH=2400     # Max image width to cache (default 2400px)
 VIPS_CACHE_MAX_HEIGHT=1800    # Max image height to cache (default 1800px)
 VIPS_CACHE_TTL=1h             # Cache entry TTL. Default 0 = no expiry (LRU eviction only)
+VIPS_CACHE_FORMAT=pixel       # Cache storage format: pixel (default), png, webp
 ```
 
 **When to use:**
@@ -755,6 +756,7 @@ VIPS_CACHE_TTL=1h             # Cache entry TTL. Default 0 = no expiry (LRU evic
 - Requests with crop coordinates or `focal()` filters always bypass the cache, even with `preview()`, because the cache stores a downscaled copy and pixel coordinates from the original image space would be incorrect.
 - Leave disabled (default) if source image paths are highly varied or user-supplied, as caching provides no benefit.
 - Set `VIPS_CACHE_TTL` if source images may change at the same image path (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
+- `VIPS_CACHE_FORMAT` controls how cached pixels are stored in memory. `pixel` (default) stores raw uncompressed pixels — fastest cache-hit but uses the most memory. `png` uses lossless compression — smaller memory footprint with pixel-identical quality. `webp` uses lossy compression — smallest memory footprint at the cost of slight quality difference.
 
 libvips also has a built-in operation cache (`VIPS_MAX_CACHE_MEM`, `VIPS_MAX_CACHE_SIZE`, `VIPS_MAX_CACHE_FILES`) that reuses recently computed operations. For imagor's typical workload, each request processes a different source image so this cache rarely gets hits — the defaults (0 = disabled) are appropriate. See [libvips documentation](https://github.com/libvips/libvips/issues/1585) for details.
 
@@ -1128,6 +1130,8 @@ Usage of imagor:
         VIPS image cache maximum height. Images taller than this are not cached (default 1800)
   -vips-cache-ttl duration
         VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry
+  -vips-cache-format string
+        VIPS image cache storage format: pixel (default, raw pixels — fastest hit, most memory), png (lossless compression — smaller memory, pixel-identical), webp (lossy compression — smallest memory, slight quality difference) (default "pixel")
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry

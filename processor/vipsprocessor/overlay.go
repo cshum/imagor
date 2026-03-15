@@ -91,19 +91,49 @@ func (v *Processor) loadOrCache(
 			return &loadOrCacheResult{origBlob: blob}, nil
 		}
 
-		// Static image: serialize to Go-owned []byte, release libvips resources.
-		w, h, bands := img.Width(), img.PageHeight(), img.Bands()
-		buf, err := img.WriteToMemory()
-		img.Close()
-		contextDone(decodeCtx)
-		if err != nil {
-			return nil, err
+		// Static image: serialize to Go-owned bytes, release libvips resources.
+		// Storage format is controlled by CacheFormat:
+		//   BlobTypeWEBP → WebpsaveBuffer (lossy, ~17× smaller, slight generation loss)
+		//   BlobTypePNG  → PngsaveBuffer (lossless, ~6.6× smaller, pixel-identical)
+		//   default      → WriteToMemory (raw pixels, fastest hit, most memory)
+		// Capture dimensions before closing img.
+		imgW, imgH := img.Width(), img.PageHeight()
+
+		var (
+			buf     []byte
+			memBlob *imagor.Blob
+		)
+		switch v.CacheFormat {
+		case imagor.BlobTypeWEBP:
+			buf, err = img.WebpsaveBuffer(nil)
+			img.Close()
+			contextDone(decodeCtx)
+			if err != nil {
+				return nil, err
+			}
+			memBlob = imagor.NewBlobFromBytes(buf)
+		case imagor.BlobTypePNG:
+			buf, err = img.PngsaveBuffer(nil)
+			img.Close()
+			contextDone(decodeCtx)
+			if err != nil {
+				return nil, err
+			}
+			memBlob = imagor.NewBlobFromBytes(buf)
+		default:
+			// Raw pixels (BlobTypeMemory) — fastest cache-hit path.
+			bands := img.Bands()
+			buf, err = img.WriteToMemory()
+			img.Close()
+			contextDone(decodeCtx)
+			if err != nil {
+				return nil, err
+			}
+			memBlob = imagor.NewBlobFromMemory(buf, imgW, imgH, bands)
 		}
 
-		memBlob := imagor.NewBlobFromMemory(buf, w, h, bands)
-
 		// Cache if within max dims (result may be smaller than max due to SizeDown).
-		if w <= v.CacheMaxWidth && h <= v.CacheMaxHeight {
+		if imgW <= v.CacheMaxWidth && imgH <= v.CacheMaxHeight {
 			cost := int64(len(buf))
 			if v.CacheTTL > 0 {
 				v.cache.SetWithTTL(imagePath, memBlob, cost, v.CacheTTL)
