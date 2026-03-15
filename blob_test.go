@@ -333,6 +333,64 @@ func TestBlobCreateError(t *testing.T) {
 	assert.Equal(t, e, err)
 }
 
+func TestBlobTypeRAW(t *testing.T) {
+	tests := []struct {
+		name   string
+		header []byte
+	}{
+		{
+			name:   "fuji_raf",
+			header: []byte("FUJIFILMCCD-RAW\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+		},
+		{
+			name:   "olympus_orf_le",
+			header: []byte("\x49\x49\x52\x4F\x08\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+		},
+		{
+			name:   "olympus_orf_be",
+			header: []byte("\x4D\x4D\x4F\x52\x00\x08\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+		},
+		{
+			name:   "panasonic_rw2",
+			header: []byte("\x49\x49\x55\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+		},
+		{
+			name:   "sigma_x3f",
+			header: []byte("\x46\x4F\x56\x62\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+		},
+		{
+			name: "canon_cr3",
+			// ftyp at [4:8], crx  at [8:12]
+			header: []byte("\x00\x00\x00\x18\x66\x74\x79\x70\x63\x72\x78\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Pad to 512 bytes so sniffing works
+			buf := make([]byte, 512)
+			copy(buf, tt.header)
+
+			b := NewBlobFromBytes(buf)
+			assert.Equal(t, BlobTypeRAW, b.BlobType(), "expected BlobTypeRAW for %s", tt.name)
+			assert.Equal(t, "image/x-dcraw", b.ContentType())
+			assert.Equal(t, ".raw", getExtension(b.BlobType()))
+			assert.False(t, b.IsEmpty())
+			assert.False(t, b.SupportsAnimation())
+		})
+	}
+
+	// Canon CR2 uses a TIFF-based format that crashes dcrawload_source.
+	// It must be detected as BlobTypeTIFF and loaded via the normal TIFF loader.
+	t.Run("canon_cr2_is_tiff", func(t *testing.T) {
+		buf := make([]byte, 512)
+		// TIFF LE header + "CR" at [8:10] — Canon CR2 signature
+		copy(buf, []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))
+		b := NewBlobFromBytes(buf)
+		assert.Equal(t, BlobTypeTIFF, b.BlobType(), "CR2 must be BlobTypeTIFF to avoid dcrawload_source crash")
+		assert.Equal(t, "image/tiff", b.ContentType())
+	})
+}
+
 func TestBlobReaderError(t *testing.T) {
 	e := errors.New("some error")
 	buf, err := os.ReadFile("testdata/demo1.jpg")

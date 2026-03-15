@@ -44,6 +44,7 @@ type Processor struct {
 	Debug              bool
 
 	disableFilters map[string]bool
+	hasDcrawload   bool
 }
 
 // NewProcessor create Processor
@@ -127,6 +128,10 @@ func (v *Processor) Startup(_ context.Context) error {
 			ConcurrencyLevel: v.Concurrency,
 		})
 	}
+	v.hasDcrawload = vips.HasOperation("dcrawload_source")
+	if v.hasDcrawload {
+		v.Logger.Debug("dcrawload support enabled")
+	}
 	if v.FallbackFunc == nil {
 		if vips.HasOperation("magickload_buffer") {
 			v.FallbackFunc = bufferFallbackFunc
@@ -163,18 +168,54 @@ func (v *Processor) newImageFromBlob(
 		buf, width, height, bands, _ := blob.Memory()
 		return vips.NewImageFromMemory(buf, width, height, bands)
 	}
+	// RAW camera files must use dcrawload explicitly — generic source loader
+	// does not support them (or may fall through to ImageMagick undesirably).
+	if blob.BlobType() == imagor.BlobTypeRAW {
+		if !v.hasDcrawload {
+			return nil, imagor.ErrUnsupportedFormat
+		}
+		return v.dcrawloadFromBlob(ctx, blob)
+	}
 	reader, _, err := blob.NewReader()
 	if err != nil {
 		return nil, err
 	}
 	src := vips.NewSource(reader)
 	contextDefer(ctx, src.Close)
+	// For TIFF blobs, try dcrawload first when available — this handles
+	// TIFF-based RAW formats (ARW, NEF, DNG, PEF, SRW, NRW, etc.) that
+	// share the TIFF magic bytes but cannot be loaded by the generic TIFF loader.
+	// LibRaw rejects non-RAW TIFFs quickly (header check only), so the
+	// overhead for real TIFF files is negligible.
+	if blob.BlobType() == imagor.BlobTypeTIFF && v.hasDcrawload {
+		img, err := v.dcrawloadFromBlob(ctx, blob)
+		if err == nil {
+			return img, nil
+		}
+		// dcrawload failed — it's a real TIFF, proceed with normal loading
+	}
 	img, err := vips.NewImageFromSource(src, options)
 	if err != nil && v.FallbackFunc != nil {
 		src.Close()
 		return v.FallbackFunc(blob, options)
 	}
 	return img, err
+}
+
+// dcrawloadFromBlob loads a RAW camera image using vips_dcrawload_source.
+func (v *Processor) dcrawloadFromBlob(ctx context.Context, blob *imagor.Blob) (*vips.Image, error) {
+	reader, _, err := blob.NewReader()
+	if err != nil {
+		return nil, err
+	}
+	src := vips.NewSource(reader)
+	contextDefer(ctx, src.Close)
+	img, err := vips.NewDcrawloadSource(src, vips.DefaultDcrawloadSourceOptions())
+	if err != nil {
+		src.Close()
+		return nil, err
+	}
+	return img, nil
 }
 
 func newThumbnailFromBlob(

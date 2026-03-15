@@ -38,6 +38,7 @@ const (
 	BlobTypeBMP
 	BlobTypePDF
 	BlobTypeSVG
+	BlobTypeRAW
 )
 
 // Blob imagor data blob abstraction
@@ -177,6 +178,14 @@ var jpm = []byte{0x6a, 0x70, 0x6D, 0x20}
 
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
+
+// RAW camera format magic bytes
+var rafHeader = []byte("FUJIFILMCCD-RAW")    // Fuji RAF
+var orfHeaderII = []byte("\x49\x49\x52\x4F") // Olympus ORF (little-endian)
+var orfHeaderMM = []byte("\x4D\x4D\x4F\x52") // Olympus ORF (big-endian)
+var rw2Header = []byte("\x49\x49\x55\x00")   // Panasonic RW2
+var x3fHeader = []byte("\x46\x4F\x56\x62")   // Sigma X3F (FOVb)
+var cr3Brand = []byte("crx ")                // Canon CR3 ftyp brand
 
 // JXL headers
 var jxlHeader = []byte("\xff\x0a")
@@ -332,6 +341,16 @@ func (b *Blob) doInit() {
 			bytes.Equal(b.sniffBuf[8:12], mif1) ||
 			bytes.Equal(b.sniffBuf[8:12], msf1)) {
 			b.blobType = BlobTypeHEIF
+		} else if len(b.sniffBuf) >= 15 && bytes.Equal(b.sniffBuf[:15], rafHeader) {
+			b.blobType = BlobTypeRAW
+		} else if bytes.Equal(b.sniffBuf[:4], orfHeaderII) || bytes.Equal(b.sniffBuf[:4], orfHeaderMM) {
+			b.blobType = BlobTypeRAW
+		} else if bytes.Equal(b.sniffBuf[:4], rw2Header) {
+			b.blobType = BlobTypeRAW
+		} else if bytes.Equal(b.sniffBuf[:4], x3fHeader) {
+			b.blobType = BlobTypeRAW
+		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], cr3Brand) {
+			b.blobType = BlobTypeRAW
 		} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 			b.blobType = BlobTypeTIFF
 		} else if (bytes.Equal(b.sniffBuf[4:8], []byte{0x6A, 0x50, 0x20, 0x20}) ||
@@ -373,6 +392,8 @@ func (b *Blob) doInit() {
 			b.contentType = "image/bmp"
 		case BlobTypeSVG:
 			b.contentType = "image/svg+xml"
+		case BlobTypeRAW:
+			b.contentType = "image/x-dcraw"
 		default:
 			b.contentType = http.DetectContentType(b.sniffBuf)
 		}
@@ -580,6 +601,8 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".json"
 	case BlobTypeSVG:
 		ext = ".svg"
+	case BlobTypeRAW:
+		ext = ".raw"
 	}
 	return
 }

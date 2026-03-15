@@ -565,6 +565,66 @@ func TestProcessor(t *testing.T) {
 		assert.Empty(t, img)
 		assert.Error(t, err)
 	})
+	t.Run("raw unsupported when no dcrawload", func(t *testing.T) {
+		// BlobTypeRAW with hasDcrawload=false must return ErrUnsupportedFormat
+		ctx := context.Background()
+		buf := make([]byte, 512)
+		copy(buf, []byte("FUJIFILMCCD-RAW")) // Fuji RAF magic bytes
+		blob := imagor.NewBlobFromBytes(buf)
+		assert.Equal(t, imagor.BlobTypeRAW, blob.BlobType())
+
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+		p.hasDcrawload = false // force no dcrawload support
+
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		assert.Nil(t, img)
+		assert.Equal(t, imagor.ErrUnsupportedFormat, err)
+	})
+	t.Run("raw routed to dcrawload when available", func(t *testing.T) {
+		// BlobTypeRAW with hasDcrawload=true must be routed to dcrawload,
+		// not fall through to ImageMagick. Fake data causes a dcrawload parse
+		// error — but NOT ErrUnsupportedFormat, proving routing went to dcrawload.
+		ctx := context.Background()
+		buf := make([]byte, 512)
+		copy(buf, []byte("FUJIFILMCCD-RAW")) // Fuji RAF magic bytes, fake data
+		blob := imagor.NewBlobFromBytes(buf)
+		assert.Equal(t, imagor.BlobTypeRAW, blob.BlobType())
+
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		if !p.hasDcrawload {
+			t.Skip("dcrawload not available in this libvips build")
+		}
+
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		assert.Nil(t, img)
+		// Must be a dcrawload error, not ErrUnsupportedFormat
+		assert.Error(t, err)
+		assert.NotEqual(t, imagor.ErrUnsupportedFormat, err)
+	})
+	t.Run("tiff loads correctly when dcrawload enabled", func(t *testing.T) {
+		// Real TIFF must still load fine when hasDcrawload=true.
+		// dcrawload rejects non-RAW TIFFs quickly, then falls back to normal TIFF loader.
+		ctx := context.Background()
+		blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "gopher.tiff"))
+		assert.Equal(t, imagor.BlobTypeTIFF, blob.BlobType())
+
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+		p.hasDcrawload = true // force dcrawload path for TIFF
+
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		require.NoError(t, err)
+		require.NotNil(t, img)
+		defer img.Close()
+		assert.Greater(t, img.Width(), 0)
+		assert.Greater(t, img.Height(), 0)
+	})
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
