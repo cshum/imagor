@@ -183,6 +183,10 @@ func (v *Processor) Shutdown(_ context.Context) error {
 	if processorCount == 0 {
 		vips.Shutdown()
 	}
+	if v.cache != nil {
+		v.cache.Close()
+		v.cache = nil
+	}
 	return nil
 }
 

@@ -94,6 +94,8 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	}
 	// w_ratio h_ratio
 	if ln >= 6 {
+		w = img.Width()
+		h = img.PageHeight()
 		if args[4] != "none" {
 			w, _ = strconv.Atoi(args[4])
 			w = img.Width() * w / 100
