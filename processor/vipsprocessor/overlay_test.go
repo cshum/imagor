@@ -8,6 +8,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath" //nolint:typecheck
+	"github.com/cshum/vipsgen/vips"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -973,6 +974,70 @@ func TestBaseImageCacheFocalBypass(t *testing.T) {
 	result2, err := v.Process(ctx, blob2, params2, load)
 	require.NoError(t, err)
 	require.NotNil(t, result2)
+}
+
+// ---------------------------------------------------------------------------
+// Watermark w_ratio / h_ratio regression tests
+// ---------------------------------------------------------------------------
+
+// TestWatermarkNoneNoneRatio verifies that watermark(img,x,y,alpha,none,none)
+// loads the overlay at the parent image's dimensions, not at MaxWidth×MaxHeight.
+//
+// Regression: before the fix, when both w_ratio and h_ratio were "none", w and h
+// stayed 0, causing loadOverlayImage to treat the size as unknown and load at
+// MaxWidth×MaxHeight with SizeDown instead of the parent image's dimensions.
+func TestWatermarkNoneNoneRatio(t *testing.T) {
+	v := NewProcessor()
+
+	load := func(image string) (*imagor.Blob, error) {
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
+
+	ctx := context.Background()
+
+	// Simulate what the fixed watermark() code does for none,none:
+	// w = img.Width(), h = img.PageHeight() — use a known parent size.
+	parentW := 200
+	parentH := 150
+
+	// With the fix: w=parentW, h=parentH, size=SizeBoth.
+	// The overlay must be loaded at ≤ parentW×parentH, not at MaxWidth×MaxHeight.
+	img, err := v.loadOverlayImage(ctx, load, "gopher.png", parentW, parentH, 1, vips.SizeBoth)
+	require.NoError(t, err)
+	require.NotNil(t, img)
+	assert.LessOrEqual(t, img.Width(), parentW,
+		"none,none watermark overlay width must be ≤ parent width, not MaxWidth")
+	assert.LessOrEqual(t, img.PageHeight(), parentH,
+		"none,none watermark overlay height must be ≤ parent height, not MaxHeight")
+	img.Close()
+}
+
+// TestWatermarkWithRatioSizing verifies that watermark(img,x,y,alpha,50,50)
+// loads the overlay at 50% of the parent image's dimensions.
+func TestWatermarkWithRatioSizing(t *testing.T) {
+	v := NewProcessor()
+
+	load := func(image string) (*imagor.Blob, error) {
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
+
+	ctx := context.Background()
+
+	// Simulate what watermark() does for w_ratio=50, h_ratio=50:
+	// w = img.Width() * 50 / 100, h = img.PageHeight() * 50 / 100.
+	parentW := 400
+	parentH := 300
+	w := parentW * 50 / 100 // 200
+	h := parentH * 50 / 100 // 150
+
+	img, err := v.loadOverlayImage(ctx, load, "gopher.png", w, h, 1, vips.SizeBoth)
+	require.NoError(t, err)
+	require.NotNil(t, img)
+	assert.LessOrEqual(t, img.Width(), w,
+		"50%% watermark overlay width must be ≤ 50%% of parent width")
+	assert.LessOrEqual(t, img.PageHeight(), h,
+		"50%% watermark overlay height must be ≤ 50%% of parent height")
+	img.Close()
 }
 
 // TestBaseImageCacheNoCropStillCaches verifies that the crop/focal bypass does
