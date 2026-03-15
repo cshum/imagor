@@ -38,6 +38,12 @@ const (
 	BlobTypeBMP
 	BlobTypePDF
 	BlobTypeSVG
+	BlobTypeRAF
+	BlobTypeORF
+	BlobTypeRW2
+	BlobTypeX3F
+	BlobTypeCR3
+	BlobTypeCR2
 )
 
 // Blob imagor data blob abstraction
@@ -177,6 +183,15 @@ var jpm = []byte{0x6a, 0x70, 0x6D, 0x20}
 
 var tifII = []byte("\x49\x49\x2A\x00")
 var tifMM = []byte("\x4D\x4D\x00\x2A")
+
+// RAW camera format magic bytes
+var rafHeader = []byte("FUJIFILMCCD-RAW")    // Fuji RAF
+var orfHeaderII = []byte("\x49\x49\x52\x4F") // Olympus ORF (little-endian)
+var orfHeaderMM = []byte("\x4D\x4D\x4F\x52") // Olympus ORF (big-endian)
+var rw2Header = []byte("\x49\x49\x55\x00")   // Panasonic RW2
+var x3fHeader = []byte("\x46\x4F\x56\x62")   // Sigma X3F (FOVb)
+var cr3Brand = []byte("crx ")                // Canon CR3 ftyp brand (ISO BMFF)
+var cr2Magic = []byte("\x43\x52")            // Canon CR2: "CR" at offset 8 (TIFF-based)
 
 // JXL headers
 var jxlHeader = []byte("\xff\x0a")
@@ -332,6 +347,19 @@ func (b *Blob) doInit() {
 			bytes.Equal(b.sniffBuf[8:12], mif1) ||
 			bytes.Equal(b.sniffBuf[8:12], msf1)) {
 			b.blobType = BlobTypeHEIF
+		} else if len(b.sniffBuf) >= 15 && bytes.Equal(b.sniffBuf[:15], rafHeader) {
+			b.blobType = BlobTypeRAF
+		} else if bytes.Equal(b.sniffBuf[:4], orfHeaderII) || bytes.Equal(b.sniffBuf[:4], orfHeaderMM) {
+			b.blobType = BlobTypeORF
+		} else if bytes.Equal(b.sniffBuf[:4], rw2Header) {
+			b.blobType = BlobTypeRW2
+		} else if bytes.Equal(b.sniffBuf[:4], x3fHeader) {
+			b.blobType = BlobTypeX3F
+		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], cr3Brand) {
+			b.blobType = BlobTypeCR3
+		} else if (bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM)) &&
+			len(b.sniffBuf) >= 10 && bytes.Equal(b.sniffBuf[8:10], cr2Magic) {
+			b.blobType = BlobTypeCR2
 		} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 			b.blobType = BlobTypeTIFF
 		} else if (bytes.Equal(b.sniffBuf[4:8], []byte{0x6A, 0x50, 0x20, 0x20}) ||
@@ -373,6 +401,18 @@ func (b *Blob) doInit() {
 			b.contentType = "image/bmp"
 		case BlobTypeSVG:
 			b.contentType = "image/svg+xml"
+		case BlobTypeRAF:
+			b.contentType = "image/x-fuji-raf"
+		case BlobTypeORF:
+			b.contentType = "image/x-olympus-orf"
+		case BlobTypeRW2:
+			b.contentType = "image/x-panasonic-rw2"
+		case BlobTypeX3F:
+			b.contentType = "image/x-sigma-x3f"
+		case BlobTypeCR3:
+			b.contentType = "image/x-canon-cr3"
+		case BlobTypeCR2:
+			b.contentType = "image/x-canon-cr2"
 		default:
 			b.contentType = http.DetectContentType(b.sniffBuf)
 		}
@@ -409,6 +449,16 @@ func (b *Blob) IsEmpty() bool {
 func (b *Blob) SupportsAnimation() bool {
 	b.init()
 	return b.blobType == BlobTypeGIF || b.blobType == BlobTypeWEBP
+}
+
+// IsRaw check if blob is a camera RAW image format
+func (b *Blob) IsRaw() bool {
+	b.init()
+	switch b.blobType {
+	case BlobTypeRAF, BlobTypeORF, BlobTypeRW2, BlobTypeX3F, BlobTypeCR3, BlobTypeCR2:
+		return true
+	}
+	return false
 }
 
 // BlobType returns BlobType
@@ -580,6 +630,18 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".json"
 	case BlobTypeSVG:
 		ext = ".svg"
+	case BlobTypeRAF:
+		ext = ".raf"
+	case BlobTypeORF:
+		ext = ".orf"
+	case BlobTypeRW2:
+		ext = ".rw2"
+	case BlobTypeX3F:
+		ext = ".x3f"
+	case BlobTypeCR3:
+		ext = ".cr3"
+	case BlobTypeCR2:
+		ext = ".cr2"
 	}
 	return
 }
