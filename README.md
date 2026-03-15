@@ -756,23 +756,7 @@ VIPS_CACHE_TTL=1h             # Cache entry TTL. Default 0 = no expiry (LRU evic
 - Leave disabled (default) if source image paths are highly varied or user-supplied, as caching provides no benefit.
 - Set `VIPS_CACHE_TTL` if source images may change at the same image path (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
 
-#### Operation Cache
-
-libvips caches recently used operations to improve performance when processing similar images. These settings control the cache behavior:
-
-```dotenv
-VIPS_MAX_CACHE_MEM=50000000     # Max memory for operation cache (bytes)
-VIPS_MAX_CACHE_SIZE=100         # Max number of operations to cache
-VIPS_MAX_CACHE_FILES=0          # Max number of file descriptors to cache
-```
-
-**When to adjust:**
-- **Web servers** (many different images, few operations each): Keep defaults low or disable caching entirely (set to 0). The operation cache is less useful when each request processes a unique image.
-- **Batch processing** (few images, many operations): Increase cache limits to reuse operations across multiple transformations of the same images.
-
-**Default behavior:** libvips uses small cache limits suitable for web serving. For most imagor deployments, the defaults are appropriate.
-
-See [libvips operation cache documentation](https://github.com/libvips/libvips/issues/1585) for more details.
+libvips also has a built-in operation cache (`VIPS_MAX_CACHE_MEM`, `VIPS_MAX_CACHE_SIZE`, `VIPS_MAX_CACHE_FILES`) that reuses recently computed operations. For imagor's typical workload, each request processes a different source image so this cache rarely gets hits — the defaults (0 = disabled) are appropriate. See [libvips documentation](https://github.com/libvips/libvips/issues/1585) for details.
 
 ### POST Upload Endpoint
 
