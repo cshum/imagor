@@ -379,15 +379,19 @@ func TestBlobTypeRAW(t *testing.T) {
 		})
 	}
 
-	// Canon CR2 uses a TIFF-based format that crashes dcrawload_source.
-	// It must be detected as BlobTypeTIFF and loaded via the normal TIFF loader.
-	t.Run("canon_cr2_is_tiff", func(t *testing.T) {
+	// Canon CR2 is precisely detected by "CR" at bytes [8:10] — unique to CR2.
+	// It gets its own BlobTypeCR2 so it bypasses dcrawload_source (which crashes on CR2)
+	// and goes straight to the normal TIFF loader.
+	t.Run("canon_cr2", func(t *testing.T) {
 		buf := make([]byte, 512)
 		// TIFF LE header + "CR" at [8:10] — Canon CR2 signature
 		copy(buf, []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))
 		b := NewBlobFromBytes(buf)
-		assert.Equal(t, BlobTypeTIFF, b.BlobType(), "CR2 must be BlobTypeTIFF to avoid dcrawload_source crash")
-		assert.Equal(t, "image/tiff", b.ContentType())
+		assert.Equal(t, BlobTypeCR2, b.BlobType(), "CR2 must be BlobTypeCR2")
+		assert.Equal(t, "image/x-canon-cr2", b.ContentType())
+		assert.Equal(t, ".cr2", getExtension(b.BlobType()))
+		assert.False(t, b.IsEmpty())
+		assert.False(t, b.SupportsAnimation())
 	})
 }
 

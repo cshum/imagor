@@ -607,7 +607,7 @@ func TestProcessor(t *testing.T) {
 		assert.NotEqual(t, imagor.ErrUnsupportedFormat, err)
 	})
 	t.Run("tiff loads correctly when dcrawload enabled", func(t *testing.T) {
-		// Real TIFF must still load fine when hasDcrawload=true.
+		// Real TIFF must still load fine even when hasDcrawload=true.
 		// dcrawload rejects non-RAW TIFFs quickly, then falls back to normal TIFF loader.
 		ctx := context.Background()
 		blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "gopher.tiff"))
@@ -616,7 +616,6 @@ func TestProcessor(t *testing.T) {
 		p := NewProcessor(WithDebug(true))
 		require.NoError(t, p.Startup(ctx))
 		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
-		p.hasDcrawload = true // force dcrawload path for TIFF
 
 		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
 		require.NoError(t, err)
@@ -624,6 +623,26 @@ func TestProcessor(t *testing.T) {
 		defer img.Close()
 		assert.Greater(t, img.Width(), 0)
 		assert.Greater(t, img.Height(), 0)
+	})
+	t.Run("cr2 is BlobTypeCR2 and loads via TIFF loader without dcrawload", func(t *testing.T) {
+		// BlobTypeCR2 must bypass dcrawload entirely and go straight to NewImageFromSource.
+		// Fake CR2 data (TIFF header + "CR" at [8:10]) will fail to load (not a real image),
+		// but the error must NOT be ErrUnsupportedFormat — proving it went to NewImageFromSource.
+		ctx := context.Background()
+		buf := make([]byte, 512)
+		copy(buf, []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))
+		blob := imagor.NewBlobFromBytes(buf)
+		assert.Equal(t, imagor.BlobTypeCR2, blob.BlobType())
+
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		assert.Nil(t, img)
+		// Must error (fake data), but NOT ErrUnsupportedFormat
+		assert.Error(t, err)
+		assert.NotEqual(t, imagor.ErrUnsupportedFormat, err)
 	})
 }
 

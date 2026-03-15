@@ -176,24 +176,23 @@ func (v *Processor) newImageFromBlob(
 		}
 		return v.dcrawloadFromBlob(ctx, blob)
 	}
+	// Canon CR2 is TIFF-based but crashes dcrawload_source — load via normal TIFF loader.
+	// For other TIFF blobs (ARW, NEF, DNG, PEF, SRW, NRW), try dcrawload first when
+	// available since they share TIFF magic bytes but cannot be loaded by the generic
+	// TIFF loader. LibRaw rejects non-RAW TIFFs quickly (header check only).
+	if blob.BlobType() == imagor.BlobTypeTIFF && v.hasDcrawload {
+		img, err := v.dcrawloadFromBlob(ctx, blob)
+		if err == nil {
+			return img, nil
+		}
+		// dcrawload failed — it's a real TIFF or unsupported, proceed with normal loading
+	}
 	reader, _, err := blob.NewReader()
 	if err != nil {
 		return nil, err
 	}
 	src := vips.NewSource(reader)
 	contextDefer(ctx, src.Close)
-	// For TIFF blobs, try dcrawload first when available — this handles
-	// TIFF-based RAW formats (ARW, NEF, DNG, PEF, SRW, NRW, etc.) that
-	// share the TIFF magic bytes but cannot be loaded by the generic TIFF loader.
-	// LibRaw rejects non-RAW TIFFs quickly (header check only), so the
-	// overhead for real TIFF files is negligible.
-	if blob.BlobType() == imagor.BlobTypeTIFF && v.hasDcrawload {
-		img, err := v.dcrawloadFromBlob(ctx, blob)
-		if err == nil {
-			return img, nil
-		}
-		// dcrawload failed — it's a real TIFF, proceed with normal loading
-	}
 	img, err := vips.NewImageFromSource(src, options)
 	if err != nil && v.FallbackFunc != nil {
 		src.Close()

@@ -39,6 +39,7 @@ const (
 	BlobTypePDF
 	BlobTypeSVG
 	BlobTypeRAW
+	BlobTypeCR2
 )
 
 // Blob imagor data blob abstraction
@@ -186,6 +187,7 @@ var orfHeaderMM = []byte("\x4D\x4D\x4F\x52") // Olympus ORF (big-endian)
 var rw2Header = []byte("\x49\x49\x55\x00")   // Panasonic RW2
 var x3fHeader = []byte("\x46\x4F\x56\x62")   // Sigma X3F (FOVb)
 var cr3Brand = []byte("crx ")                // Canon CR3 ftyp brand
+var cr2Magic = []byte("\x43\x52")            // Canon CR2: "CR" at offset 8
 
 // JXL headers
 var jxlHeader = []byte("\xff\x0a")
@@ -351,6 +353,9 @@ func (b *Blob) doInit() {
 			b.blobType = BlobTypeRAW
 		} else if bytes.Equal(b.sniffBuf[4:8], ftyp) && bytes.Equal(b.sniffBuf[8:12], cr3Brand) {
 			b.blobType = BlobTypeRAW
+		} else if (bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM)) &&
+			len(b.sniffBuf) >= 10 && bytes.Equal(b.sniffBuf[8:10], cr2Magic) {
+			b.blobType = BlobTypeCR2
 		} else if bytes.Equal(b.sniffBuf[:4], tifII) || bytes.Equal(b.sniffBuf[:4], tifMM) {
 			b.blobType = BlobTypeTIFF
 		} else if (bytes.Equal(b.sniffBuf[4:8], []byte{0x6A, 0x50, 0x20, 0x20}) ||
@@ -394,6 +399,8 @@ func (b *Blob) doInit() {
 			b.contentType = "image/svg+xml"
 		case BlobTypeRAW:
 			b.contentType = "image/x-dcraw"
+		case BlobTypeCR2:
+			b.contentType = "image/x-canon-cr2"
 		default:
 			b.contentType = http.DetectContentType(b.sniffBuf)
 		}
@@ -603,6 +610,8 @@ func getExtension(typ BlobType) (ext string) {
 		ext = ".svg"
 	case BlobTypeRAW:
 		ext = ".raw"
+	case BlobTypeCR2:
+		ext = ".cr2"
 	}
 	return
 }
