@@ -30,10 +30,10 @@ type loadOrCacheResult struct {
 	origBlob *imagor.Blob
 }
 
-// LoadFromCache implements imagor.Cacher. Returns the cached blob for known-size requests
-// (w > 0 && h > 0) within cache max dims, or (nil, false) on miss.
-// Unknown-size and oversized requests always return (nil, false) — the cached blob is capped
-// at CacheMaxWidth×CacheMaxHeight, which may be smaller than the original.
+// LoadFromCache implements imagor.Cacher. w and h are the requested output dimensions
+// used to determine cache eligibility, not to select a blob of that size.
+// Returns (nil, false) when w or h is zero (unknown size) or exceeds CacheMaxWidth×CacheMaxHeight
+// — the cache holds a downscaled copy and cannot safely serve those requests.
 func (v *Processor) LoadFromCache(key string, w, h int) (*imagor.Blob, bool) {
 	if v.cache == nil || w <= 0 || h <= 0 {
 		return nil, false

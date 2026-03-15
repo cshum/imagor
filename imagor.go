@@ -49,10 +49,14 @@ type Stater interface {
 	Stat(ctx context.Context, key string) (*Stat, error)
 }
 
-// Cacher is an optional Processor interface for pixel-level blob caching.
-// LoadFromCache returns the cached blob for the given key and dimensions, or (nil, false) on miss.
-// imagor.Do() calls this before loadStorage — on hit, the returned blob is passed directly to
-// Process(), skipping loader/storage I/O entirely.
+// Cacher is an optional Processor interface for in-memory blob caching.
+// LoadFromCache is called by imagor.Do() before loadStorage; on a hit the cached
+// blob is passed directly to Process(), skipping loader/storage I/O entirely.
+//
+// w and h are the requested output dimensions used to determine cache eligibility,
+// not to select a blob of that size. Return (nil, false) when w or h is zero
+// (unknown size) or exceeds the cache budget — the cache holds a single downscaled
+// copy per image path and cannot safely serve those requests.
 type Cacher interface {
 	LoadFromCache(key string, w, h int) (*Blob, bool)
 }

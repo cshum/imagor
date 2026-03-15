@@ -2138,7 +2138,8 @@ func TestColorImagePath(t *testing.T) {
 // cacherProcessor is a mock processor that implements both Processor and Cacher.
 // It simulates an in-memory image cache keyed by image URL.
 // LoadFromCache returns the cached blob only when the key is in the cache AND the requested
-// size (w×h) is both known (>0) and within the configured max dimensions.
+// dimensions (w×h) are both known (>0) and within the configured max — w and h determine
+// cache eligibility, not the size of the returned blob.
 type cacherProcessor struct {
 	cache  map[string][]byte // key → cached content
 	maxW   int
