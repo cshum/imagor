@@ -49,6 +49,18 @@ type Stater interface {
 	Stat(ctx context.Context, key string) (*Stat, error)
 }
 
+// Cacher is an optional Processor interface for in-memory blob caching.
+// LoadFromCache is called by imagor.Do() before loadStorage; on a hit the cached
+// blob is passed directly to Process(), skipping loader/storage I/O entirely.
+//
+// w and h are the requested output dimensions used to determine cache eligibility,
+// not to select a blob of that size. Return (nil, false) when w or h is zero
+// (unknown size) or exceeds the cache budget — the cache holds a single downscaled
+// copy per image path and cannot safely serve those requests.
+type Cacher interface {
+	LoadFromCache(key string, w, h int) (*Blob, bool)
+}
+
 // LoadFunc function handler for Processor to call loader
 type LoadFunc func(string) (*Blob, error)
 
@@ -389,11 +401,28 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var shouldSave bool
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
-		} else if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
-			if app.Debug {
-				app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+		} else {
+			// Base image cache is opt-in via filters:preview().
+			// Skip cache for requests that depend on original-space coordinates or
+			// per-request decode parameters (crop, focal, page>1, dpi).
+			if hasPreview && !imagorpath.HasCacheBypass(p) {
+				for _, processor := range app.Processors {
+					if c, ok := processor.(Cacher); ok {
+						if cachedBlob, ok := c.LoadFromCache(p.Image, p.Width, p.Height); ok {
+							blob = cachedBlob
+							break
+						}
+					}
+				}
 			}
-			return blob, err
+			if isBlobEmpty(blob) {
+				if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
+					if app.Debug {
+						app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+					}
+					return blob, err
+				}
+			}
 		}
 
 		sourceBlob := blob

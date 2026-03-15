@@ -1,13 +1,97 @@
 package vipsprocessor
 
 import (
+	"context"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/vipsgen/vips"
 )
+
+// loadOverlayImage loads a watermark overlay image using the image cache.
+// Cache key is image path only. Size must be known (w > 0 && h > 0) to use the cache;
+// unknown size or size exceeding cache max dims bypasses the cache.
+func (v *Processor) loadOverlayImage(
+	ctx context.Context, load imagor.LoadFunc,
+	url string, w, h, n int, size vips.Size,
+) (*vips.Image, error) {
+	sizeKnown := w > 0 && h > 0
+
+	// Unknown size or cache disabled: load directly.
+	if !sizeKnown || v.cache == nil {
+		blob, err := load(url)
+		if err != nil {
+			return nil, err
+		}
+		if sizeKnown {
+			return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
+		}
+		return v.NewThumbnail(ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0)
+	}
+
+	// Size exceeds cache max dims — bypass cache, load directly at requested size.
+	if w > v.CacheMaxWidth || h > v.CacheMaxHeight {
+		blob, err := load(url)
+		if err != nil {
+			return nil, err
+		}
+		return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
+	}
+
+	// Cache hit — serve from cached memory blob without loading.
+	if memBlob, ok := v.cache.Get(url); ok {
+		return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
+	}
+
+	// Cache miss: fetch and decode inside the singleflight to deduplicate concurrent
+	// network requests. load is passed so loadOrCache can call it inside the singleflight.
+	memBlob, origBlob, err := v.loadOrCache(nil, url, n, load)
+	if err != nil {
+		return nil, err
+	}
+
+	// Animated source — origBlob is set; fall back to direct thumbnail at w×h.
+	if origBlob != nil {
+		return v.NewThumbnail(ctx, origBlob, w, h, vips.InterestingNone, size, n, 1, 0)
+	}
+
+	if memBlob == nil {
+		// Cache disabled or blob could not be loaded — should not happen here.
+		return nil, imagor.ErrNotFound
+	}
+
+	// Static: resize from cached memory blob to requested w×h.
+	return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
+}
+
+// loadFilterImage runs the imagor pipeline for an image() filter using the image cache.
+// Bypasses cache for unknown size, exceeds max dims, or requests that depend on
+// original-space coordinates or per-request decode parameters (crop, focal, page, dpi).
+func (v *Processor) loadFilterImage(
+	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
+	url string,
+) (*vips.Image, error) {
+	sizeKnown := params.Width > 0 && params.Height > 0
+
+	if v.cache == nil || blob == nil || !sizeKnown || imagorpath.HasCacheBypass(params) ||
+		params.Width > v.CacheMaxWidth || params.Height > v.CacheMaxHeight {
+		return v.loadAndProcess(ctx, blob, params, load)
+	}
+
+	memBlob, origBlob, err := v.loadOrCache(blob, url, 1, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if origBlob != nil || memBlob == nil {
+		// Animated source or cache miss — run pipeline on original blob.
+		return v.loadAndProcess(ctx, blob, params, load)
+	}
+	return v.loadAndProcess(ctx, memBlob, params, load)
+}
 
 // fullDimRegex matches a single dimension token: optionally a flip prefix -,
 // then f or full, optionally followed by a negative integer offset

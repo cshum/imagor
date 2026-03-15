@@ -554,6 +554,74 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("image cache — LoadFromCache returns cached blob", func(t *testing.T) {
+		// Verify that LoadFromCache returns the cached blob after Process populates the cache,
+		// and that Process can use it directly (no nil blob, no TOCTOU).
+		fileLoader := filestorage.New(testDataDir)
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024),
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+			WithDebug(true),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() {
+			require.NoError(t, proc.Shutdown(context.Background()))
+		})
+
+		blobPath, _ := fileLoader.Path("gopher-front.png")
+		blob := imagor.NewBlobFromFile(blobPath)
+		load := func(image string) (*imagor.Blob, error) {
+			p, _ := fileLoader.Path(image)
+			return imagor.NewBlobFromFile(p), nil
+		}
+		params := imagorpath.Params{
+			Image: "gopher-front.png", Width: 100, Height: 100,
+			Filters: []imagorpath.Filter{{Name: "preview"}},
+		}
+
+		// First call: cache miss — populates cache.
+		result, err := proc.Process(context.Background(), blob, params, load)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		// LoadFromCache should now return the cached blob directly.
+		cachedBlob, ok := proc.LoadFromCache("gopher-front.png", 100, 100)
+		require.True(t, ok, "cache should be populated after first Process call")
+		require.NotNil(t, cachedBlob)
+		require.Equal(t, imagor.BlobTypeMemory, cachedBlob.BlobType())
+
+		// Second call: pass the cached blob directly (as imagor.Do() now does).
+		result2, err := proc.Process(context.Background(), cachedBlob, params, load)
+		require.NoError(t, err)
+		require.NotNil(t, result2)
+		buf, err := result2.ReadAll()
+		require.NoError(t, err)
+		require.NotEmpty(t, buf)
+	})
+
+	t.Run("image cache — LoadFromCache miss on unknown size", func(t *testing.T) {
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024),
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() {
+			require.NoError(t, proc.Shutdown(context.Background()))
+		})
+
+		// Unknown size (w=0 or h=0) must always return miss.
+		_, ok := proc.LoadFromCache("gopher-front.png", 0, 100)
+		assert.False(t, ok, "w=0 should be a cache miss")
+		_, ok = proc.LoadFromCache("gopher-front.png", 100, 0)
+		assert.False(t, ok, "h=0 should be a cache miss")
+
+		// Oversized must also return miss.
+		_, ok = proc.LoadFromCache("gopher-front.png", 9999, 9999)
+		assert.False(t, ok, "oversized should be a cache miss")
+	})
+
 	t.Run("invalid BMP", func(t *testing.T) {
 		ctx := context.Background()
 		blob := imagor.NewBlobFromBytes([]byte("BMabcdasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"))

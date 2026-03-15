@@ -52,25 +52,33 @@ func (v *Processor) Process(
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
 
-	// Load and process the image
+	// Use image cache for preview() requests: known-size, within cache max dims, no bypass conditions.
+	// preview() opts in to base image caching for interactive editing workflows.
+	// Skip for crop/focal/page/dpi: cache stores a downscaled single-page copy at default DPI.
+	if p.Image != "" && imagorpath.HasFilter(p, "preview") {
+		if _, isColor := parseColorImage(p.Image); !isColor {
+			sizeKnown := p.Width > 0 && p.Height > 0
+			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight &&
+				!imagorpath.HasCacheBypass(p) &&
+				blob.BlobType() != imagor.BlobTypeMemory {
+				if memBlob, _, cacheErr := v.loadOrCache(blob, p.Image, 1, nil); cacheErr == nil && memBlob != nil {
+					blob = memBlob
+				}
+			}
+		}
+	}
+
 	img, err := v.loadAndProcess(ctx, blob, p, load)
 	if err != nil {
 		return nil, err
 	}
 	defer img.Close()
 
-	// Extract export parameters
 	params := v.extractExportParams(p, blob, img)
 
 	// Handle metadata response
 	if p.Meta {
-		stripExif := false
-		for _, f := range p.Filters {
-			if f.Name == "strip_exif" {
-				stripExif = true
-				break
-			}
-		}
+		stripExif := imagorpath.HasFilter(p, "strip_exif")
 		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif)), nil
 	}
 
@@ -137,7 +145,6 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		format        = vips.ImageTypeUnknown
 	)
 
-	// Extract export parameters from filters
 	for _, f := range p.Filters {
 		if v.disableFilters[f.Name] {
 			continue
@@ -166,7 +173,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		}
 	}
 
-	// Determine format if not specified
+	// Default format from blob/image type
 	if format == vips.ImageTypeUnknown {
 		if blob != nil && blob.BlobType() == imagor.BlobTypeAVIF {
 			format = vips.ImageTypeAvif
@@ -190,7 +197,6 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 func (v *Processor) loadAndProcess(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*vips.Image, error) {
-	// Check if image path is a color image specification
 	if c, ok := parseColorImage(p.Image); ok {
 		w, h := p.Width, p.Height
 		if w <= 0 && h <= 0 {
@@ -219,7 +225,7 @@ func (v *Processor) loadAndProcess(
 				zap.Int("height", h),
 				zap.Any("color", c))
 		}
-		// thumbnail=true skips resize/crop — image is already at target size
+		// thumbnail=true: image is already at target size, skip resize/crop
 		if err := v.applyTransformations(ctx, img, p, load, true, false, false, nil); err != nil {
 			img.Close()
 			return nil, WrapErr(err)
@@ -425,7 +431,6 @@ func (v *Processor) loadAndProcess(
 			zap.Int("page_height", img.PageHeight()))
 	}
 
-	// Extract focal points for transformation
 	var focalRects []focal
 	for _, f := range p.Filters {
 		if v.disableFilters[f.Name] {
@@ -463,7 +468,6 @@ func (v *Processor) loadAndProcess(
 			}
 		}
 	}
-	// Apply transformations
 	if err := v.applyTransformations(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
@@ -484,7 +488,6 @@ func (v *Processor) applyTransformations(
 		cropBottom float64
 	)
 	if p.CropRight > 0 || p.CropLeft > 0 || p.CropBottom > 0 || p.CropTop > 0 {
-		// percentage
 		cropLeft = math.Max(p.CropLeft, 0)
 		cropTop = math.Max(p.CropTop, 0)
 		cropRight = p.CropRight
@@ -558,7 +561,6 @@ func (v *Processor) applyTransformations(
 	}
 	if !thumbnail {
 		if p.FitIn {
-			// Calculate dimensions for full-fit-in
 			if p.FullFitIn && w > 0 && h > 0 {
 				imgAspect := float64(img.Width()) / float64(img.PageHeight())
 				boxAspect := float64(w) / float64(h)
@@ -721,7 +723,6 @@ func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 func (v *Processor) export(
 	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
-	// check resolution before export
 	if _, err := v.CheckResolution(image, nil); err != nil {
 		return nil, err
 	}

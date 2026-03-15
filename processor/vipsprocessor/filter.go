@@ -39,7 +39,7 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	// create fresh context for this processing level
 	// while preserving parent resource tracking context
 	ctx = withContext(ctx)
-	if overlay, err = v.loadAndProcess(ctx, blob, params, load); err != nil || overlay == nil {
+	if overlay, err = v.loadFilterImage(ctx, blob, params, load, params.Image); err != nil || overlay == nil {
 		return
 	}
 	contextDefer(ctx, overlay.Close)
@@ -86,10 +86,6 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 		}
 	}
 
-	var blob *imagor.Blob
-	if blob, err = load(image); err != nil {
-		return
-	}
 	var w, h int
 	var overlay *vips.Image
 	var n = 1
@@ -108,15 +104,11 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 			h, _ = strconv.Atoi(args[5])
 			h = img.PageHeight() * h / 100
 		}
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, w, h, vips.InterestingNone, vips.SizeBoth, n, 1, 0,
-		); err != nil {
+		if overlay, err = v.loadOverlayImage(ctx, load, image, w, h, n, vips.SizeBoth); err != nil {
 			return
 		}
 	} else {
-		if overlay, err = v.NewThumbnail(
-			ctx, blob, v.MaxWidth, v.MaxHeight, vips.InterestingNone, vips.SizeDown, n, 1, 0,
-		); err != nil {
+		if overlay, err = v.loadOverlayImage(ctx, load, image, 0, 0, n, vips.SizeDown); err != nil {
 			return
 		}
 	}

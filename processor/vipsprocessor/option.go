@@ -2,7 +2,9 @@ package vipsprocessor
 
 import (
 	"strings"
+	"time"
 
+	"github.com/cshum/imagor"
 	"go.uber.org/zap"
 )
 
@@ -169,5 +171,60 @@ func WithForceBmpFallback() Option {
 func WithUnlimited(unlimited bool) Option {
 	return func(v *Processor) {
 		v.Unlimited = unlimited
+	}
+}
+
+// WithCacheSize sets the overlay cache memory budget in bytes.
+// Set to 0 (default) to disable the overlay cache.
+// The cache stores decoded raw pixel data (via WriteToMemory) keyed by overlay URL,
+// so one entry serves all requested sizes within CacheMaxWidth/Height.
+func WithCacheSize(size int64) Option {
+	return func(v *Processor) {
+		v.CacheSize = size
+	}
+}
+
+// WithCacheMaxWidth sets the maximum width for cached overlay images.
+// Overlays wider than this are not cached. Defaults to 2400.
+func WithCacheMaxWidth(width int) Option {
+	return func(v *Processor) {
+		if width > 0 {
+			v.CacheMaxWidth = width
+		}
+	}
+}
+
+// WithCacheMaxHeight sets the maximum height for cached images.
+// Images taller than this bypass the cache. Defaults to 2000.
+func WithCacheMaxHeight(height int) Option {
+	return func(v *Processor) {
+		if height > 0 {
+			v.CacheMaxHeight = height
+		}
+	}
+}
+
+// WithCacheFormat sets the storage format for cached image entries.
+// BlobTypeMemory (default, zero value): raw pixels via WriteToMemory — fastest cache-hit,
+// most memory per entry (~68 KB for a 117×150 RGBA image).
+// BlobTypePNG: lossless PNG compression — ~6.6× smaller, pixel-identical quality, slightly slower hit.
+// BlobTypeWEBP: lossy WebP compression — ~17× smaller, slight generation loss vs no-cache, slightly slower hit.
+// Use BlobTypePNG for lossless compression with more cache capacity.
+// Use BlobTypeWEBP for maximum cache density when slight quality difference is acceptable.
+func WithCacheFormat(format imagor.BlobType) Option {
+	return func(v *Processor) {
+		v.CacheFormat = format
+	}
+}
+
+// WithCacheTTL sets the TTL for image cache entries.
+// After the TTL expires, the entry is evicted and the image is re-fetched from source.
+// Set to 0 (default) for no expiry — entries are evicted only by memory pressure (LRU).
+// Use this when source images may change at the same URL (e.g. mutable assets).
+func WithCacheTTL(ttl time.Duration) Option {
+	return func(v *Processor) {
+		if ttl > 0 {
+			v.CacheTTL = ttl
+		}
 	}
 }

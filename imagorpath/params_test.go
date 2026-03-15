@@ -724,3 +724,90 @@ func TestParseFilters(t *testing.T) {
 	}, filters)
 	assert.Empty(t, img)
 }
+
+func TestHasCrop(t *testing.T) {
+	tests := []struct {
+		name string
+		p    Params
+		want bool
+	}{
+		{"no crop", Params{}, false},
+		{"crop left", Params{CropLeft: 10}, true},
+		{"crop top", Params{CropTop: 5}, true},
+		{"crop right", Params{CropRight: 100}, true},
+		{"crop bottom", Params{CropBottom: 200}, true},
+		{"all four", Params{CropLeft: 10, CropTop: 20, CropRight: 100, CropBottom: 200}, true},
+		{"percentage crop", Params{CropLeft: 0.1, CropTop: 0.2, CropRight: 0.9, CropBottom: 0.8}, true},
+		{"zero values", Params{CropLeft: 0, CropTop: 0, CropRight: 0, CropBottom: 0}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, HasCrop(tt.p))
+		})
+	}
+}
+
+func TestHasFilter(t *testing.T) {
+	tests := []struct {
+		name       string
+		p          Params
+		filterName string
+		want       bool
+	}{
+		{"empty filters", Params{}, "focal", false},
+		{"focal present", Params{Filters: Filters{{"focal", "0.5x0.5"}}}, "focal", true},
+		{"focal absent", Params{Filters: Filters{{"format", "webp"}}}, "focal", false},
+		{"strip_exif present", Params{Filters: Filters{{"strip_exif", ""}}}, "strip_exif", true},
+		{"strip_exif absent", Params{Filters: Filters{{"focal", "0.5x0.5"}}}, "strip_exif", false},
+		{"multiple filters, target present", Params{Filters: Filters{{"format", "webp"}, {"focal", "0.3x0.7"}, {"quality", "80"}}}, "focal", true},
+		{"multiple filters, target absent", Params{Filters: Filters{{"format", "webp"}, {"quality", "80"}}}, "focal", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, HasFilter(tt.p, tt.filterName))
+		})
+	}
+}
+
+func TestHasCacheBypass(t *testing.T) {
+	tests := []struct {
+		name string
+		p    Params
+		want bool
+	}{
+		// no bypass
+		{"no bypass — plain resize", Params{Width: 800, Height: 600}, false},
+		{"no bypass — with preview and format", Params{Filters: Filters{{"preview", ""}, {"format", "webp"}}}, false},
+		{"no bypass — page 1 explicit", Params{Filters: Filters{{"page", "1"}}}, false},
+		{"no bypass — page 0 (default)", Params{Filters: Filters{{"page", "0"}}}, false},
+		{"no bypass — dpi 0", Params{Filters: Filters{{"dpi", "0"}}}, false},
+
+		// crop bypass
+		{"bypass — crop left", Params{CropLeft: 10}, true},
+		{"bypass — crop top", Params{CropTop: 5}, true},
+		{"bypass — crop right", Params{CropRight: 100}, true},
+		{"bypass — crop bottom", Params{CropBottom: 200}, true},
+		{"bypass — percentage crop", Params{CropLeft: 0.1, CropTop: 0.2, CropRight: 0.9, CropBottom: 0.8}, true},
+
+		// focal bypass
+		{"bypass — focal filter", Params{Filters: Filters{{"focal", "0.5x0.5"}}}, true},
+		{"bypass — focal with other filters", Params{Filters: Filters{{"format", "webp"}, {"focal", "100x200:300x400"}}}, true},
+
+		// page bypass
+		{"bypass — page 2", Params{Filters: Filters{{"page", "2"}}}, true},
+		{"bypass — page 10", Params{Filters: Filters{{"page", "10"}}}, true},
+
+		// dpi bypass
+		{"bypass — dpi 72", Params{Filters: Filters{{"dpi", "72"}}}, true},
+		{"bypass — dpi 150", Params{Filters: Filters{{"dpi", "150"}}}, true},
+
+		// combined
+		{"bypass — crop + focal", Params{CropLeft: 10, Filters: Filters{{"focal", "0.5x0.5"}}}, true},
+		{"bypass — page 3 + format", Params{Filters: Filters{{"page", "3"}, {"format", "webp"}}}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, HasCacheBypass(tt.p))
+		})
+	}
+}

@@ -6,10 +6,12 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 // FilterFunc filter handler function
@@ -43,7 +45,16 @@ type Processor struct {
 	Unlimited          bool
 	Debug              bool
 
+	// Image cache settings
+	CacheSize      int64
+	CacheMaxWidth  int
+	CacheMaxHeight int
+	CacheTTL       time.Duration
+	CacheFormat    imagor.BlobType // BlobTypeMemory (default, raw pixels), BlobTypeWEBP, BlobTypePNG
+
 	disableFilters map[string]bool
+	cache          *imageCache
+	cacheSF        singleflight.Group
 	hasDcrawload   bool
 }
 
@@ -58,6 +69,8 @@ func NewProcessor(options ...Option) *Processor {
 		MaxAnimationFrames: -1,
 		Logger:             zap.NewNop(),
 		disableFilters:     map[string]bool{},
+		CacheMaxWidth:      2400,
+		CacheMaxHeight:     2000,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,
@@ -141,6 +154,13 @@ func (v *Processor) Startup(_ context.Context) error {
 			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 		}
 	}
+	if v.CacheSize > 0 && v.cache == nil {
+		cache, err := newImageCache(v.CacheSize)
+		if err != nil {
+			return err
+		}
+		v.cache = cache
+	}
 	return nil
 }
 
@@ -154,6 +174,10 @@ func (v *Processor) Shutdown(_ context.Context) error {
 	processorCount--
 	if processorCount == 0 {
 		vips.Shutdown()
+	}
+	if v.cache != nil {
+		v.cache.Close()
+		v.cache = nil
 	}
 	return nil
 }

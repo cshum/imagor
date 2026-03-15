@@ -1,5 +1,7 @@
 package imagorpath
 
+import "strconv"
+
 const (
 	// TrimByTopLeft trim by top-left keyword
 	TrimByTopLeft = "top-left"
@@ -56,4 +58,49 @@ type Params struct {
 type Filter struct {
 	Name string `json:"name,omitempty"`
 	Args string `json:"args,omitempty"`
+}
+
+// HasCrop reports whether the params specify a crop region.
+// Any non-zero crop coordinate (left, top, right, or bottom) counts as a crop.
+func HasCrop(p Params) bool {
+	return p.CropLeft > 0 || p.CropTop > 0 || p.CropRight > 0 || p.CropBottom > 0
+}
+
+// HasFilter reports whether the params include at least one filter with the given name.
+func HasFilter(p Params, name string) bool {
+	for _, f := range p.Filters {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// HasCacheBypass reports whether the params require bypassing the image cache.
+// The cache stores a downscaled copy keyed by image path only. Requests that
+// depend on original-space coordinates or per-request decode parameters must
+// bypass the cache to avoid incorrect results:
+//   - crop coordinates (absolute or percentage) are in original image space
+//   - focal() filter uses original image coordinates for smart crop
+//   - page(n>1) selects a specific page/frame; cache stores page 1 only
+//   - dpi(n) affects SVG/PDF render resolution; cache stores at default DPI
+func HasCacheBypass(p Params) bool {
+	if HasCrop(p) {
+		return true
+	}
+	for _, f := range p.Filters {
+		switch f.Name {
+		case "focal":
+			return true
+		case "page":
+			if n, _ := strconv.Atoi(f.Args); n > 1 {
+				return true
+			}
+		case "dpi":
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }

@@ -2135,6 +2135,251 @@ func TestColorImagePath(t *testing.T) {
 	})
 }
 
+// cacherProcessor is a mock processor that implements both Processor and Cacher.
+// It simulates an in-memory image cache keyed by image URL.
+// LoadFromCache returns the cached blob only when the key is in the cache AND the requested
+// dimensions (w×h) are both known (>0) and within the configured max — w and h determine
+// cache eligibility, not the size of the returned blob.
+type cacherProcessor struct {
+	cache  map[string][]byte // key → cached content
+	maxW   int
+	maxH   int
+	called int // number of times Process was called with a cached blob (cache hit)
+}
+
+func newCacherProcessor(maxW, maxH int) *cacherProcessor {
+	return &cacherProcessor{cache: map[string][]byte{}, maxW: maxW, maxH: maxH}
+}
+
+func (c *cacherProcessor) Startup(_ context.Context) error  { return nil }
+func (c *cacherProcessor) Shutdown(_ context.Context) error { return nil }
+
+// LoadFromCache returns the cached blob when:
+//   - key is in the cache
+//   - w and h are both known (>0) — unknown size must bypass cache
+//   - w <= maxW and h <= maxH — oversized requests must bypass cache
+func (c *cacherProcessor) LoadFromCache(key string, w, h int) (*Blob, bool) {
+	data, ok := c.cache[key]
+	if !ok {
+		return nil, false
+	}
+	if w <= 0 || h <= 0 {
+		return nil, false // unknown size — cannot guarantee cache is sufficient
+	}
+	if w > c.maxW || h > c.maxH {
+		return nil, false // requested size exceeds cache max — must load original
+	}
+	return NewBlobFromBytes(data), true
+}
+
+func (c *cacherProcessor) Process(_ context.Context, blob *Blob, p imagorpath.Params, _ LoadFunc) (*Blob, error) {
+	if blob == nil {
+		return nil, ErrNotFound
+	}
+	data, _ := blob.ReadAll()
+	// Cache hit path: blob came from LoadFromCache — content matches cached data
+	if cached, ok := c.cache[p.Image]; ok && string(data) == string(cached) {
+		c.called++
+		return NewBlobFromBytes(data), nil
+	}
+	// Cache miss path: blob provided by loader, read and "cache" it
+	c.cache[p.Image] = data
+	return NewBlobFromBytes(data), nil
+}
+
+func TestWithCacher(t *testing.T) {
+	const maxW, maxH = 2400, 1800
+
+	newApp := func(proc *cacherProcessor) *Imagor {
+		return New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				if image == "cached.jpg" || image == "other.jpg" {
+					return NewBlobFromBytes([]byte("loaded:" + image)), nil
+				}
+				return nil, ErrNotFound
+			})),
+			WithProcessors(proc),
+		)
+	}
+
+	t.Run("cache hit — known size within max — loader skipped", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// preview() opts in to base image cache
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called, "Process should be called with cached blob on cache hit")
+	})
+
+	t.Run("cache miss — no preview filter — loader always called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// No preview() filter → cache is NOT used for base image
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "without preview() filter, cache must not be used")
+	})
+
+	t.Run("cache miss — unknown size (0x0) — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// No dimensions in URL → w=0, h=0 → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		// Loader was called, processor got the loaded blob
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "Process should NOT be called with cached blob when size unknown")
+	})
+
+	t.Run("cache miss — width only (0 height) — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// Only width specified → h=0 → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/500x0/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called)
+	})
+
+	t.Run("cache miss — size exceeds max dims — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// Requested size > maxW×maxH → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/5000x4000/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "oversized request must bypass cache")
+	})
+
+	t.Run("cache miss — image not in cache — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		// "other.jpg" is NOT in proc.cache
+		app := newApp(proc)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/other.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:other.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called)
+	})
+
+	t.Run("cache hit — loader would error but is never called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		// Loader always returns error — but cache hit should skip it entirely
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return nil, ErrNotFound // would fail if called
+			})),
+			WithProcessors(proc),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called)
+	})
+
+	t.Run("cache hit — exact max dims boundary — loader skipped", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("boundary-cache")
+		app := newApp(proc)
+
+		// Exactly at max dims → LoadFromCache returns true
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/filters:preview()/cached.jpg", maxW, maxH), nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "boundary-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called)
+	})
+
+	t.Run("cache miss — one pixel over max dims — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// One pixel over max → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/filters:preview()/cached.jpg", maxW+1, maxH), nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called)
+	})
+
+	t.Run("cache bypass — crop coordinates — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// 30x20:100x150/200x200/filters:preview()/cached.jpg → crop present
+		// Even with preview() and cached image, crop must bypass cache
+		// because the cache stores a downscaled copy and crop pixel coords would be wrong.
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/30x20:100x150/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "crop request must bypass cache even with preview()")
+	})
+
+	t.Run("cache bypass — focal filter — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// filters:preview():focal(0.5x0.5) → focal must bypass cache even with preview()
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview():focal(0.5x0.5)/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "focal filter must bypass cache even with preview()")
+	})
+
+	t.Run("preview with no crop no focal — cache used", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// preview() + no crop/focal → cache hit (regression guard)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called, "preview() with no crop/focal should use cache")
+	})
+}
+
 type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
 
 func (f processorFunc) Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
