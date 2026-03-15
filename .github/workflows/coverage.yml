@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-24.04
     if: github.event.workflow_run.conclusion == 'success'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
       - name: Download coverage artifact
         uses: actions/download-artifact@v4
         with:
@@ -24,3 +29,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./profile.cov
           fail_ci_if_error: true
+          override_commit: ${{ github.event.workflow_run.head_sha }}
+          override_branch: ${{ github.event.workflow_run.head_branch }}
+          override_pr: ${{ github.event.workflow_run.pull_requests[0].number }}
