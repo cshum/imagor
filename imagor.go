@@ -398,7 +398,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
 		} else {
-			// Base image pixel cache is opt-in via filters:preview().
+			// Base image cache is opt-in via filters:preview().
 			// Skip cache for requests that depend on original-space coordinates or
 			// per-request decode parameters (crop, focal, page>1, dpi).
 			if hasPreview && !imagorpath.HasCacheBypass(p) {

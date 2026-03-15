@@ -554,7 +554,7 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
 		assert.Equal(t, 422, w.Code)
 	})
-	t.Run("pixel cache — LoadFromCache returns cached blob", func(t *testing.T) {
+	t.Run("image cache — LoadFromCache returns cached blob", func(t *testing.T) {
 		// Verify that LoadFromCache returns the cached blob after Process populates the cache,
 		// and that Process can use it directly (no nil blob, no TOCTOU).
 		fileLoader := filestorage.New(testDataDir)
@@ -600,7 +600,7 @@ func TestProcessor(t *testing.T) {
 		require.NotEmpty(t, buf)
 	})
 
-	t.Run("pixel cache — LoadFromCache miss on unknown size", func(t *testing.T) {
+	t.Run("image cache — LoadFromCache miss on unknown size", func(t *testing.T) {
 		proc := NewProcessor(
 			WithCacheSize(100*1024*1024),
 			WithCacheMaxWidth(2400),

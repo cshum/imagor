@@ -52,9 +52,9 @@ func (v *Processor) Process(
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
 
-	// Use pixel cache for preview() requests: known-size, non-crop/focal, within cache max dims.
+	// Use image cache for preview() requests: known-size, within cache max dims, no bypass conditions.
 	// preview() opts in to base image caching for interactive editing workflows.
-	// Skip for crop/focal: cache stores a downscaled copy, so original-space coordinates apply incorrectly.
+	// Skip for crop/focal/page/dpi: cache stores a downscaled single-page copy at default DPI.
 	if p.Image != "" && imagorpath.HasFilter(p, "preview") {
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0

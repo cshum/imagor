@@ -13,7 +13,7 @@ import (
 // dependency, safe for concurrent reads and GC cleanup.
 type imageCache = ristretto.Cache[string, *imagor.Blob]
 
-// newImageCache creates a new ristretto pixel cache with the given byte budget.
+// newImageCache creates a new ristretto image cache with the given byte budget.
 func newImageCache(maxCost int64) (*imageCache, error) {
 	return ristretto.NewCache[string, *imagor.Blob](&ristretto.Config[string, *imagor.Blob]{
 		NumCounters: 10000,
@@ -44,7 +44,7 @@ func (v *Processor) LoadFromCache(key string, w, h int) (*imagor.Blob, bool) {
 	return v.cache.Get(key)
 }
 
-// loadOrCache returns a cached blob for the given image path, using the pixel cache.
+// loadOrCache returns a cached blob for the given image path, using the image cache.
 // Cache key is image path only, so the same source serves all requested sizes.
 // If load is non-nil and blob is nil, load is called inside the singleflight to fetch the blob,
 // deduplicating network requests across concurrent cache misses.

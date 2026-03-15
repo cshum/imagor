@@ -11,7 +11,7 @@ import (
 	"github.com/cshum/vipsgen/vips"
 )
 
-// loadOverlayImage loads a watermark overlay image using the pixel cache.
+// loadOverlayImage loads a watermark overlay image using the image cache.
 // Cache key is image path only. Size must be known (w > 0 && h > 0) to use the cache;
 // unknown size or size exceeding cache max dims bypasses the cache.
 func (v *Processor) loadOverlayImage(
@@ -67,9 +67,9 @@ func (v *Processor) loadOverlayImage(
 	return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
 }
 
-// loadFilterImage runs the imagor pipeline for an image() filter using the pixel cache.
-// Bypasses cache for unknown size, exceeds max dims, or crop/focal filters
-// (which depend on original image coordinates, not the downscaled cached copy).
+// loadFilterImage runs the imagor pipeline for an image() filter using the image cache.
+// Bypasses cache for unknown size, exceeds max dims, or requests that depend on
+// original-space coordinates or per-request decode parameters (crop, focal, page, dpi).
 func (v *Processor) loadFilterImage(
 	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
 	url string,

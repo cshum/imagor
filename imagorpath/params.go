@@ -76,7 +76,7 @@ func HasFilter(p Params, name string) bool {
 	return false
 }
 
-// HasCacheBypass reports whether the params require bypassing the pixel cache.
+// HasCacheBypass reports whether the params require bypassing the image cache.
 // The cache stores a downscaled copy keyed by image path only. Requests that
 // depend on original-space coordinates or per-request decode parameters must
 // bypass the cache to avoid incorrect results:
