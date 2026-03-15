@@ -244,16 +244,59 @@ func TestOverlayCacheConcurrentSafety(t *testing.T) {
 	for i, err := range errs {
 		assert.NoError(t, err, "goroutine %d should not error", i)
 	}
-	// loadOverlayImage calls load(url) before loadOrCache, so all goroutines
-	// that miss the cache will call load(). Singleflight deduplicates the decode
-	// (NewThumbnail + WriteToMemory), not the load() call itself.
-	// All calls are safe; the loader may be called up to goroutines times.
-	assert.LessOrEqual(t, loadCount.Load(), int64(goroutines),
-		"loader should not be called more than goroutine count")
+	// load() is now called inside the singleflight, so only 1 goroutine fetches
+	// from the network regardless of how many concurrent cache misses there are.
+	assert.Equal(t, int64(1), loadCount.Load(),
+		"loader must be called exactly once — singleflight deduplicates both fetch and decode")
 	// After all goroutines complete, the result must be cached.
 	_, found := v.cache.Get("logo.png")
 	assert.True(t, found, "result must be cached after concurrent loads")
 	t.Logf("loader called %d times for %d concurrent requests", loadCount.Load(), goroutines)
+}
+
+// TestOverlayCacheConcurrentLoadDedup verifies the thundering-herd fix:
+// when many goroutines concurrently miss the cache for the same URL,
+// load() is called exactly once — the singleflight deduplicates both the
+// network fetch and the decode, not just the decode.
+func TestOverlayCacheConcurrentLoadDedup(t *testing.T) {
+	cache, err := newPixelCache(50 * 1024 * 1024)
+	require.NoError(t, err)
+	v := NewProcessor(WithCacheSize(50 * 1024 * 1024))
+	v.cache = cache
+
+	var loadCount atomic.Int64
+	load := func(image string) (*imagor.Blob, error) {
+		loadCount.Add(1)
+		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
+	}
+
+	ctx := context.Background()
+
+	const goroutines = 20
+	var wg sync.WaitGroup
+	errs := make([]error, goroutines)
+
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		i := i
+		go func() {
+			defer wg.Done()
+			img, err := v.loadOverlayImage(ctx, load, "logo.png", 100, 100, 1, 0)
+			errs[i] = err
+			if img != nil {
+				img.Close()
+			}
+		}()
+	}
+	wg.Wait()
+
+	for i, err := range errs {
+		assert.NoError(t, err, "goroutine %d should not error", i)
+	}
+	// The key assertion: load() called exactly once, not once per goroutine.
+	assert.Equal(t, int64(1), loadCount.Load(),
+		"load() must be called exactly once — singleflight deduplicates the network fetch")
+	t.Logf("loader called %d times for %d concurrent requests (expected 1)", loadCount.Load(), goroutines)
 }
 
 // TestCacheSizeExceedsMaxDims verifies that overlays requested at an

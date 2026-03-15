@@ -26,32 +26,50 @@ func newPixelCache(maxCost int64) (*pixelCache, error) {
 	})
 }
 
+// loadOrCacheResult is the singleflight result for loadOrCache.
+// memBlob is non-nil for static images (cached raw pixels).
+// origBlob is non-nil for animated sources that cannot be cached.
+type loadOrCacheResult struct {
+	memBlob  *imagor.Blob
+	origBlob *imagor.Blob
+}
+
 // loadOrCache returns a BlobTypeMemory blob for the given image path, using the pixel cache.
 // Cache key is image path only, so the same source serves all requested sizes.
-// Returns (nil, nil) if cache is disabled or the source is animated
+// If load is non-nil and blob is nil, load is called inside the singleflight to fetch the blob,
+// deduplicating network requests across concurrent cache misses.
+// Returns (nil, nil, nil) if cache is disabled or the source is animated
 // (WriteToMemory cannot preserve multi-page structure).
 func (v *Processor) loadOrCache(
-	ctx context.Context, blob *imagor.Blob, imagePath string, n int,
-) (*imagor.Blob, error) {
+	blob *imagor.Blob, imagePath string, n int, load imagor.LoadFunc,
+) (*imagor.Blob, *imagor.Blob, error) {
 	if v.cache == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// Fast path: cache hit — return immediately without singleflight overhead.
 	if memBlob, ok := v.cache.Get(imagePath); ok {
-		return memBlob, nil
+		return memBlob, nil, nil
 	}
 
 	// Deduplicate concurrent cache misses for the same image path.
 	result, err, _ := v.cacheSF.Do(imagePath, func() (any, error) {
 		// Re-check after acquiring the singleflight group.
 		if memBlob, ok := v.cache.Get(imagePath); ok {
-			return memBlob, nil
+			return &loadOrCacheResult{memBlob: memBlob}, nil
 		}
 
-		// Cache evicted before we got here — signal caller to fall back.
+		// If blob not provided, fetch it inside the singleflight so concurrent
+		// cache misses share a single network request.
 		if blob == nil {
-			return nil, nil
+			if load == nil {
+				return &loadOrCacheResult{}, nil
+			}
+			var err error
+			blob, err = load(imagePath)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Decode at maxW×maxH with SizeDown. Fresh context so the VipsSource
@@ -66,11 +84,11 @@ func (v *Processor) loadOrCache(
 		}
 
 		// Animated source: WriteToMemory cannot preserve multi-page structure.
-		// Return nil to signal caller to handle animated directly with the original blob.
+		// Return the original blob so the caller can serve it directly.
 		if img.Height() != img.PageHeight() {
 			img.Close()
 			contextDone(decodeCtx)
-			return nil, nil
+			return &loadOrCacheResult{origBlob: blob}, nil
 		}
 
 		// Static image: serialize to Go-owned []byte, release libvips resources.
@@ -94,15 +112,13 @@ func (v *Processor) loadOrCache(
 			}
 			v.cache.Wait()
 		}
-		return memBlob, nil
+		return &loadOrCacheResult{memBlob: memBlob}, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if result == nil {
-		return nil, nil // animated source
-	}
-	return result.(*imagor.Blob), nil
+	r := result.(*loadOrCacheResult)
+	return r.memBlob, r.origBlob, nil
 }
 
 // loadOverlayImage loads a watermark overlay image using the pixel cache.
@@ -140,20 +156,21 @@ func (v *Processor) loadOverlayImage(
 		return v.NewThumbnail(ctx, memBlob, w, h, vips.InterestingNone, size, 1, 1, 0)
 	}
 
-	// Cache miss: load the blob, then decode and cache.
-	blob, err := load(url)
+	// Cache miss: fetch and decode inside the singleflight to deduplicate concurrent
+	// network requests. load is passed so loadOrCache can call it inside the singleflight.
+	memBlob, origBlob, err := v.loadOrCache(nil, url, n, load)
 	if err != nil {
 		return nil, err
 	}
 
-	memBlob, err := v.loadOrCache(ctx, blob, url, n)
-	if err != nil {
-		return nil, err
+	// Animated source — origBlob is set; fall back to direct thumbnail at w×h.
+	if origBlob != nil {
+		return v.NewThumbnail(ctx, origBlob, w, h, vips.InterestingNone, size, n, 1, 0)
 	}
 
-	// Animated source — loadOrCache returns nil; fall back to direct load at w×h.
 	if memBlob == nil {
-		return v.NewThumbnail(ctx, blob, w, h, vips.InterestingNone, size, n, 1, 0)
+		// Cache disabled or blob could not be loaded — should not happen here.
+		return nil, imagor.ErrNotFound
 	}
 
 	// Static: resize from cached memory blob to requested w×h.
@@ -174,13 +191,13 @@ func (v *Processor) loadFilterImage(
 		return v.loadAndProcess(ctx, blob, params, load)
 	}
 
-	memBlob, err := v.loadOrCache(ctx, blob, url, 1)
+	memBlob, origBlob, err := v.loadOrCache(blob, url, 1, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if memBlob == nil {
-		// Animated source — run pipeline on original blob.
+	if origBlob != nil || memBlob == nil {
+		// Animated source or cache miss — run pipeline on original blob.
 		return v.loadAndProcess(ctx, blob, params, load)
 	}
 	return v.loadAndProcess(ctx, memBlob, params, load)
