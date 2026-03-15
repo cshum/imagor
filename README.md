@@ -199,7 +199,7 @@ These filters do not manipulate images but provide useful utilities to the imago
 
 - `attachment(filename)` returns attachment in the `Content-Disposition` header, and the browser will open a "Save as" dialog with `filename`. When `filename` not specified, imagor will get the filename from the image source
 - `expire(timestamp)` adds expiration time to the content. `timestamp` is the unix milliseconds timestamp, e.g. if content is valid for 30s then timestamp would be `Date.now() + 30*1000` in JavaScript.
-- `preview()` skips the result storage even if result storage is enabled, and opts the request into the [in-memory cache](#in-memory-cache) when configured. Useful for conditional caching and preview contexts where the same source image is served at multiple sizes.
+- `preview()` skips the result storage even if result storage is enabled, and opts the request into the [in-memory cache](#in-memory-cache) when configured. Useful for preview contexts where the same source image is served at multiple transformations.
 - `raw()` response with a raw unprocessed and unchecked source image. Image still loads from loader and storage but skips the result storage
 
 
@@ -749,14 +749,14 @@ VIPS_CACHE_FORMAT=pixel       # Cache storage format: pixel (default), png, webp
 ```
 
 **When to use:**
-- Enable in image editor or preview contexts where the same source image is requested at multiple sizes (e.g. `800x600`, `400x300`, `200x150`). Add `filters:preview()` to opt base image requests into the in-memory cache — the first request decodes and caches; subsequent requests skip I/O entirely.
-- Enable when the same `watermark()` or `image()` image path is reused across many requests (e.g. a logo watermark on every image). Overlay caching is automatic and does not require `preview()`.
+- Enable in preview contexts where the same source image is requested at multiple sizes (e.g. `800x600`, `400x300`, `200x150`). Add `filters:preview()` to opt base image requests into the in-memory cache — the first request decodes and caches; subsequent requests skip I/O entirely.
+- Enable when the same `watermark()` or `image()` image path is reused across many requests (e.g. a logo watermark on every image).
 - Images larger than `VIPS_CACHE_MAX_WIDTH` × `VIPS_CACHE_MAX_HEIGHT` are still served normally, just not cached.
 - Only known-size requests (explicit width × height) are served from cache. Unknown-size (0×0) and oversized requests always load from source to ensure correct native resolution.
-- Requests with crop coordinates or `focal()` filters always bypass the cache, even with `preview()`, because the cache stores a downscaled copy and pixel coordinates from the original image space would be incorrect.
+- Requests with crop coordinates always bypass the cache, because the cache stores a downscaled copy and pixel coordinates from the original image space would be incorrect.
 - Leave disabled (default) if source image paths are highly varied or user-supplied, as caching provides no benefit.
 - Set `VIPS_CACHE_TTL` if source images may change at the same image path (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
-- `VIPS_CACHE_FORMAT` controls how cached pixels are stored in memory. `pixel` (default) stores raw uncompressed pixels — fastest cache-hit but uses the most memory. `png` uses lossless compression — smaller memory footprint with pixel-identical quality. `webp` uses lossy compression — smallest memory footprint at the cost of slight quality difference.
+- `VIPS_CACHE_FORMAT` controls how cached pixels are stored in memory. `pixel` (default) stores raw uncompressed pixels — fastest cache-hit and pixel-identical, but uses the most memory. `png` uses lossless compression — smaller memory footprint with pixel-identical quality. `webp` uses lossy compression — smallest memory footprint at the cost of slight quality difference.
 
 libvips also has a built-in operation cache (`VIPS_MAX_CACHE_MEM`, `VIPS_MAX_CACHE_SIZE`, `VIPS_MAX_CACHE_FILES`) that reuses recently computed operations. For imagor's typical workload, each request processes a different source image so this cache rarely gets hits — the defaults (0 = disabled) are appropriate. See [libvips documentation](https://github.com/libvips/libvips/issues/1585) for details.
 
@@ -1131,7 +1131,7 @@ Usage of imagor:
   -vips-cache-ttl duration
         VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry
   -vips-cache-format string
-        VIPS image cache storage format: pixel (default, raw pixels — fastest hit, most memory), png (lossless compression — smaller memory, pixel-identical), webp (lossy compression — smallest memory, slight quality difference) (default "pixel")
+        VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
