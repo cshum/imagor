@@ -8,13 +8,13 @@ import (
 	"github.com/dgraph-io/ristretto/v2"
 )
 
-// pixelCache is a ristretto cache storing blobs keyed by image path.
+// imageCache is a ristretto cache storing blobs keyed by image path.
 // Values are Go-owned buffers — no libvips lifecycle, no request context
 // dependency, safe for concurrent reads and GC cleanup.
-type pixelCache = ristretto.Cache[string, *imagor.Blob]
+type imageCache = ristretto.Cache[string, *imagor.Blob]
 
-// newPixelCache creates a new ristretto pixel cache with the given byte budget.
-func newPixelCache(maxCost int64) (*pixelCache, error) {
+// newImageCache creates a new ristretto pixel cache with the given byte budget.
+func newImageCache(maxCost int64) (*imageCache, error) {
 	return ristretto.NewCache[string, *imagor.Blob](&ristretto.Config[string, *imagor.Blob]{
 		NumCounters: 10000,
 		MaxCost:     maxCost,

@@ -136,7 +136,7 @@ func makeTestMemBlob(w, h, bands int) *imagor.Blob {
 // TestOverlayCacheNewAndGet verifies that newCache creates a working
 // ristretto cache and that Set/Get round-trip correctly with *imagor.Blob values.
 func TestOverlayCacheNewAndGet(t *testing.T) {
-	cache, err := newPixelCache(10 * 1024 * 1024) // 10 MiB
+	cache, err := newImageCache(10 * 1024 * 1024) // 10 MiB
 	require.NoError(t, err)
 
 	blob := makeTestMemBlob(100, 100, 4)
@@ -157,7 +157,7 @@ func TestOverlayCacheNewAndGet(t *testing.T) {
 // MaxCost and confirm that at least one is evicted.
 func TestOverlayCacheEviction(t *testing.T) {
 	// Budget: 500 bytes — just enough for one 10×10×4 entry (400 bytes) but not two.
-	cache, err := newPixelCache(500)
+	cache, err := newImageCache(500)
 	require.NoError(t, err)
 
 	b1 := makeTestMemBlob(10, 10, 4) // 400 bytes
@@ -208,7 +208,7 @@ func TestOverlayCacheDisabledWhenSizeZero(t *testing.T) {
 // loadOverlayImage for the same URL are safe: all callers get a valid image,
 // and after the first load the result is cached so subsequent calls are fast.
 func TestOverlayCacheConcurrentSafety(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(WithCacheSize(50 * 1024 * 1024))
 	v.cache = cache
@@ -259,7 +259,7 @@ func TestOverlayCacheConcurrentSafety(t *testing.T) {
 // load() is called exactly once — the singleflight deduplicates both the
 // network fetch and the decode, not just the decode.
 func TestOverlayCacheConcurrentLoadDedup(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(WithCacheSize(50 * 1024 * 1024))
 	v.cache = cache
@@ -303,7 +303,7 @@ func TestOverlayCacheConcurrentLoadDedup(t *testing.T) {
 // explicit size (w > 0 && h > 0) larger than CacheMaxWidth/Height
 // bypass the cache entirely and hit the loader every time.
 func TestCacheSizeExceedsMaxDims(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -337,7 +337,7 @@ func TestCacheSizeExceedsMaxDims(t *testing.T) {
 // TestOverlayCacheURLKey verifies that the cache key is the URL only, and that
 // a cached memory blob is correctly retrieved by URL.
 func TestOverlayCacheURLKey(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 
 	blob := makeTestMemBlob(100, 100, 4)
@@ -358,7 +358,7 @@ func TestOverlayCacheURLKey(t *testing.T) {
 // (img.Height() != img.PageHeight()) are served but not stored in the cache.
 // We use a GIF file which libvips loads as multi-page.
 func TestOverlayCacheAnimatedSkipped(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(WithCacheSize(50 * 1024 * 1024))
 	v.cache = cache
@@ -391,7 +391,7 @@ func TestOverlayCacheAnimatedSkipped(t *testing.T) {
 // This is correct: the cached blob is capped at CacheMaxWidth×CacheMaxHeight,
 // which may be smaller than native. Serving from cache would return the wrong dimensions.
 func TestOverlayCacheUnknownSizeBypassesCache(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -432,7 +432,7 @@ func TestOverlayCacheUnknownSizeBypassesCache(t *testing.T) {
 // cache-capped CacheMaxWidth×CacheMaxHeight.
 // Uses CacheMaxWidth=50 so gopher.png (larger than 50px) simulates native > max.
 func TestOverlayCacheUnknownSizeNativeExceedsMax(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -461,7 +461,7 @@ func TestOverlayCacheUnknownSizeNativeExceedsMax(t *testing.T) {
 // TestOverlayCacheKnownSizeStillCaches verifies that known-size requests (w>0, h>0)
 // within cache max dims DO use the cache — the fix must not break the happy path.
 func TestOverlayCacheKnownSizeStillCaches(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -498,7 +498,7 @@ func TestOverlayCacheKnownSizeStillCaches(t *testing.T) {
 // calls with the same URL are safe: all callers get a valid image,
 // and after the calls complete the result is cached by URL key.
 func TestOverlayCacheImageFilterConcurrent(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -549,7 +549,7 @@ func TestOverlayCacheImageFilterConcurrent(t *testing.T) {
 // with params.Width/Height exceeding CacheMaxWidth×CacheMaxHeight
 // bypass the cache entirely — the URL is never stored in the cache.
 func TestOverlayCacheImageFilterExportBypass(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -592,7 +592,7 @@ func TestOverlayCacheImageFilterExportBypass(t *testing.T) {
 // both hit the same cache entry. After the first call populates the cache,
 // the second call runs the pipeline from the cached memory blob — no I/O.
 func TestOverlayCacheImageFilterURLOnlyKey(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -639,7 +639,7 @@ func TestOverlayCacheImageFilterURLOnlyKey(t *testing.T) {
 // error when blob is nil (e.g. color: image paths generated in-process).
 // The cache must be bypassed and loadAndProcess called directly with nil blob.
 func TestOverlayCacheImageFilterNilBlob(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -673,7 +673,7 @@ func TestOverlayCacheImageFilterNilBlob(t *testing.T) {
 // maxW×maxH. This was a pre-existing bug: the animated fallback always used
 // maxW×maxH regardless of sizeKnown.
 func TestOverlayCacheAnimatedSizeKnown(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -707,7 +707,7 @@ func TestOverlayCacheAnimatedSizeKnown(t *testing.T) {
 // The cached blob is capped at CacheMaxWidth×CacheMaxHeight; serving
 // from cache for an unknown-size request would return the wrong (smaller) dimensions.
 func TestOverlayCacheImageFilterUnknownSizeBypassesCache(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -780,7 +780,7 @@ func TestOverlayCacheBlobLifetime(t *testing.T) {
 // cached memBlob is NOT used: the result is produced from the original blob
 // (which has full resolution), not from the downscaled cached copy.
 func TestOverlayCacheImageFilterCropBypass(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -832,7 +832,7 @@ func TestOverlayCacheImageFilterCropBypass(t *testing.T) {
 // upscaling artifacts. Example: 50% crop of a 2400×1800 cached image yields
 // a 1200×900 region — insufficient for a 1500×1500 output without upscaling.
 func TestOverlayCacheImageFilterPercentageCropBypass(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -877,7 +877,7 @@ func TestOverlayCacheImageFilterPercentageCropBypass(t *testing.T) {
 // Focal points use pixel coordinates from the original image space; applying
 // them to the smaller cached image would focus on the wrong area.
 func TestOverlayCacheImageFilterFocalBypass(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -923,7 +923,7 @@ func TestOverlayCacheImageFilterFocalBypass(t *testing.T) {
 // no-crop request. This prevents crop coordinates from being applied to the
 // downscaled cached image instead of the original.
 func TestBaseImageCacheCropBypass(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -976,7 +976,7 @@ func TestBaseImageCacheCropBypass(t *testing.T) {
 // TestBaseImageCacheFocalBypass verifies that Process() skips loadOrCache when
 // the params contain a focal() filter, even if the image was previously cached.
 func TestBaseImageCacheFocalBypass(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -1091,7 +1091,7 @@ func TestWatermarkWithRatioSizing(t *testing.T) {
 // (CacheFormat == 0, i.e. BlobTypeUnknown treated as raw pixels) stores
 // BlobTypeMemory blobs in the cache — identical to the explicit pixel path.
 func TestOverlayCacheFormatPixelDefault(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	// No WithCacheFormat — default is raw pixels (BlobTypeMemory).
 	v := NewProcessor(WithCacheSize(50 * 1024 * 1024))
@@ -1116,7 +1116,7 @@ func TestOverlayCacheFormatPixelDefault(t *testing.T) {
 // TestOverlayCacheFormatPNG verifies that WithCacheFormat(BlobTypePNG) stores
 // lossless PNG bytes in the cache and that subsequent calls return valid images.
 func TestOverlayCacheFormatPNG(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -1157,7 +1157,7 @@ func TestOverlayCacheFormatPNG(t *testing.T) {
 // TestOverlayCacheFormatWebP verifies that WithCacheFormat(BlobTypeWEBP) stores
 // lossy WebP bytes in the cache and that subsequent calls return valid images.
 func TestOverlayCacheFormatWebP(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),
@@ -1198,7 +1198,7 @@ func TestOverlayCacheFormatWebP(t *testing.T) {
 // TestBaseImageCacheNoCropStillCaches verifies that the crop/focal bypass does
 // not break the happy path: Process() still uses the cache for no-crop requests.
 func TestBaseImageCacheNoCropStillCaches(t *testing.T) {
-	cache, err := newPixelCache(50 * 1024 * 1024)
+	cache, err := newImageCache(50 * 1024 * 1024)
 	require.NoError(t, err)
 	v := NewProcessor(
 		WithCacheSize(50*1024*1024),

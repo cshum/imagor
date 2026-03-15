@@ -53,7 +53,7 @@ type Processor struct {
 	CacheFormat    imagor.BlobType // BlobTypeMemory (default, raw pixels), BlobTypeWEBP, BlobTypePNG
 
 	disableFilters map[string]bool
-	cache          *pixelCache
+	cache          *imageCache
 	cacheSF        singleflight.Group
 }
 
@@ -150,7 +150,7 @@ func (v *Processor) Startup(_ context.Context) error {
 		}
 	}
 	if v.CacheSize > 0 && v.cache == nil {
-		cache, err := newPixelCache(v.CacheSize)
+		cache, err := newImageCache(v.CacheSize)
 		if err != nil {
 			return err
 		}
