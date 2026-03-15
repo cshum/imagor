@@ -735,13 +735,9 @@ VIPS_CACHE_FORMAT=pixel       # Cache storage format: pixel (default), png, webp
 - Set `VIPS_CACHE_TTL` if source images may change at the same image path (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
 - `VIPS_CACHE_FORMAT` controls how cached pixels are stored in memory. `pixel` (default) stores raw uncompressed pixels — fastest cache-hit and pixel-identical, but uses the most memory. `png` uses lossless compression — smaller memory footprint with pixel-identical quality. `webp` uses lossy compression — smallest memory footprint at the cost of slight quality difference.
 
-libvips also has a built-in operation cache (`VIPS_MAX_CACHE_MEM`, `VIPS_MAX_CACHE_SIZE`, `VIPS_MAX_CACHE_FILES`) that reuses recently computed operations. For imagor's typical workload, each request processes a different source image so this cache rarely gets hits — the defaults (0 = disabled) are appropriate. See [libvips documentation](https://github.com/libvips/libvips/issues/1585) for details.
-
 ### VIPS Performance Tuning
 
 imagor uses [libvips](https://github.com/libvips/libvips) for image processing. libvips provides several configuration options to tune performance and resource usage:
-
-#### Concurrency
 
 `VIPS_CONCURRENCY` controls the number of threads libvips uses for image operations:
 
@@ -758,6 +754,8 @@ VIPS_CONCURRENCY=4    # Use 4 threads
 - **Custom value**: Set to a specific number of threads for fine-tuned control.
 
 For high-traffic deployments, it's generally better to scale horizontally (more imagor instances) rather than increasing `VIPS_CONCURRENCY`.
+
+libvips also has a built-in operation cache (`VIPS_MAX_CACHE_MEM`, `VIPS_MAX_CACHE_SIZE`, `VIPS_MAX_CACHE_FILES`) that reuses recently computed operations. For imagor's typical workload, each request processes a different source image so this cache rarely gets hits — the defaults (0 = disabled) are appropriate. See [libvips documentation](https://github.com/libvips/libvips/issues/1585) for details.
 
 ### POST Upload Endpoint
 
