@@ -333,35 +333,66 @@ func TestBlobCreateError(t *testing.T) {
 	assert.Equal(t, e, err)
 }
 
-func TestBlobTypeRAW(t *testing.T) {
+func TestBlobTypeRAWFormats(t *testing.T) {
 	tests := []struct {
-		name   string
-		header []byte
+		name        string
+		header      []byte
+		blobType    BlobType
+		contentType string
+		extension   string
 	}{
 		{
-			name:   "fuji_raf",
-			header: []byte("FUJIFILMCCD-RAW\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			name:        "fuji_raf",
+			header:      []byte("FUJIFILMCCD-RAW\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			blobType:    BlobTypeRAF,
+			contentType: "image/x-fuji-raf",
+			extension:   ".raf",
 		},
 		{
-			name:   "olympus_orf_le",
-			header: []byte("\x49\x49\x52\x4F\x08\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			name:        "olympus_orf_le",
+			header:      []byte("\x49\x49\x52\x4F\x08\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			blobType:    BlobTypeORF,
+			contentType: "image/x-olympus-orf",
+			extension:   ".orf",
 		},
 		{
-			name:   "olympus_orf_be",
-			header: []byte("\x4D\x4D\x4F\x52\x00\x08\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			name:        "olympus_orf_be",
+			header:      []byte("\x4D\x4D\x4F\x52\x00\x08\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			blobType:    BlobTypeORF,
+			contentType: "image/x-olympus-orf",
+			extension:   ".orf",
 		},
 		{
-			name:   "panasonic_rw2",
-			header: []byte("\x49\x49\x55\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			name:        "panasonic_rw2",
+			header:      []byte("\x49\x49\x55\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			blobType:    BlobTypeRW2,
+			contentType: "image/x-panasonic-rw2",
+			extension:   ".rw2",
 		},
 		{
-			name:   "sigma_x3f",
-			header: []byte("\x46\x4F\x56\x62\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			name:        "sigma_x3f",
+			header:      []byte("\x46\x4F\x56\x62\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			blobType:    BlobTypeX3F,
+			contentType: "image/x-sigma-x3f",
+			extension:   ".x3f",
 		},
 		{
 			name: "canon_cr3",
 			// ftyp at [4:8], crx  at [8:12]
-			header: []byte("\x00\x00\x00\x18\x66\x74\x79\x70\x63\x72\x78\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			header:      []byte("\x00\x00\x00\x18\x66\x74\x79\x70\x63\x72\x78\x20\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			blobType:    BlobTypeCR3,
+			contentType: "image/x-canon-cr3",
+			extension:   ".cr3",
+		},
+		{
+			// Canon CR2: TIFF header + "CR" at [8:10] — unique to CR2.
+			// Gets its own BlobTypeCR2 so it bypasses dcrawload_source (which crashes on CR2)
+			// and goes straight to the normal TIFF loader. IsRaw() still returns true.
+			name:        "canon_cr2",
+			header:      []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			blobType:    BlobTypeCR2,
+			contentType: "image/x-canon-cr2",
+			extension:   ".cr2",
 		},
 	}
 	for _, tt := range tests {
@@ -371,28 +402,14 @@ func TestBlobTypeRAW(t *testing.T) {
 			copy(buf, tt.header)
 
 			b := NewBlobFromBytes(buf)
-			assert.Equal(t, BlobTypeRAW, b.BlobType(), "expected BlobTypeRAW for %s", tt.name)
-			assert.Equal(t, "image/x-dcraw", b.ContentType())
-			assert.Equal(t, ".raw", getExtension(b.BlobType()))
+			assert.Equal(t, tt.blobType, b.BlobType(), "expected %v for %s", tt.blobType, tt.name)
+			assert.Equal(t, tt.contentType, b.ContentType())
+			assert.Equal(t, tt.extension, getExtension(b.BlobType()))
+			assert.True(t, b.IsRaw(), "IsRaw() must be true for %s", tt.name)
 			assert.False(t, b.IsEmpty())
 			assert.False(t, b.SupportsAnimation())
 		})
 	}
-
-	// Canon CR2 is precisely detected by "CR" at bytes [8:10] — unique to CR2.
-	// It gets its own BlobTypeCR2 so it bypasses dcrawload_source (which crashes on CR2)
-	// and goes straight to the normal TIFF loader.
-	t.Run("canon_cr2", func(t *testing.T) {
-		buf := make([]byte, 512)
-		// TIFF LE header + "CR" at [8:10] — Canon CR2 signature
-		copy(buf, []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))
-		b := NewBlobFromBytes(buf)
-		assert.Equal(t, BlobTypeCR2, b.BlobType(), "CR2 must be BlobTypeCR2")
-		assert.Equal(t, "image/x-canon-cr2", b.ContentType())
-		assert.Equal(t, ".cr2", getExtension(b.BlobType()))
-		assert.False(t, b.IsEmpty())
-		assert.False(t, b.SupportsAnimation())
-	})
 }
 
 func TestBlobReaderError(t *testing.T) {

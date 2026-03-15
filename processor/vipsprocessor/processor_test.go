@@ -566,12 +566,13 @@ func TestProcessor(t *testing.T) {
 		assert.Error(t, err)
 	})
 	t.Run("raw unsupported when no dcrawload", func(t *testing.T) {
-		// BlobTypeRAW with hasDcrawload=false must return ErrUnsupportedFormat
+		// BlobTypeRAF (Fuji RAF) with hasDcrawload=false must return ErrUnsupportedFormat
 		ctx := context.Background()
 		buf := make([]byte, 512)
 		copy(buf, []byte("FUJIFILMCCD-RAW")) // Fuji RAF magic bytes
 		blob := imagor.NewBlobFromBytes(buf)
-		assert.Equal(t, imagor.BlobTypeRAW, blob.BlobType())
+		assert.Equal(t, imagor.BlobTypeRAF, blob.BlobType())
+		assert.True(t, blob.IsRaw())
 
 		p := NewProcessor(WithDebug(true))
 		require.NoError(t, p.Startup(ctx))
@@ -583,14 +584,15 @@ func TestProcessor(t *testing.T) {
 		assert.Equal(t, imagor.ErrUnsupportedFormat, err)
 	})
 	t.Run("raw routed to dcrawload when available", func(t *testing.T) {
-		// BlobTypeRAW with hasDcrawload=true must be routed to dcrawload,
+		// BlobTypeRAF (Fuji RAF) with hasDcrawload=true must be routed to dcrawload,
 		// not fall through to ImageMagick. Fake data causes a dcrawload parse
 		// error — but NOT ErrUnsupportedFormat, proving routing went to dcrawload.
 		ctx := context.Background()
 		buf := make([]byte, 512)
 		copy(buf, []byte("FUJIFILMCCD-RAW")) // Fuji RAF magic bytes, fake data
 		blob := imagor.NewBlobFromBytes(buf)
-		assert.Equal(t, imagor.BlobTypeRAW, blob.BlobType())
+		assert.Equal(t, imagor.BlobTypeRAF, blob.BlobType())
+		assert.True(t, blob.IsRaw())
 
 		p := NewProcessor(WithDebug(true))
 		require.NoError(t, p.Startup(ctx))
@@ -628,11 +630,13 @@ func TestProcessor(t *testing.T) {
 		// BlobTypeCR2 must bypass dcrawload entirely and go straight to NewImageFromSource.
 		// Fake CR2 data (TIFF header + "CR" at [8:10]) will fail to load (not a real image),
 		// but the error must NOT be ErrUnsupportedFormat — proving it went to NewImageFromSource.
+		// IsRaw() must still return true for CR2.
 		ctx := context.Background()
 		buf := make([]byte, 512)
 		copy(buf, []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))
 		blob := imagor.NewBlobFromBytes(buf)
 		assert.Equal(t, imagor.BlobTypeCR2, blob.BlobType())
+		assert.True(t, blob.IsRaw())
 
 		p := NewProcessor(WithDebug(true))
 		require.NoError(t, p.Startup(ctx))

@@ -168,18 +168,19 @@ func (v *Processor) newImageFromBlob(
 		buf, width, height, bands, _ := blob.Memory()
 		return vips.NewImageFromMemory(buf, width, height, bands)
 	}
-	// RAW camera files must use dcrawload explicitly — generic source loader
-	// does not support them (or may fall through to ImageMagick undesirably).
-	if blob.BlobType() == imagor.BlobTypeRAW {
+	// Camera RAW files (RAF, ORF, RW2, X3F, CR3) must use dcrawload explicitly.
+	// CR2 is excluded: it is TIFF-based and crashes dcrawload_source, so it falls
+	// through to the normal TIFF loader below.
+	if blob.IsRaw() && blob.BlobType() != imagor.BlobTypeCR2 {
 		if !v.hasDcrawload {
 			return nil, imagor.ErrUnsupportedFormat
 		}
 		return v.dcrawloadFromBlob(ctx, blob)
 	}
-	// Canon CR2 is TIFF-based but crashes dcrawload_source — load via normal TIFF loader.
-	// For other TIFF blobs (ARW, NEF, DNG, PEF, SRW, NRW), try dcrawload first when
-	// available since they share TIFF magic bytes but cannot be loaded by the generic
-	// TIFF loader. LibRaw rejects non-RAW TIFFs quickly (header check only).
+	// For TIFF blobs (ARW, NEF, DNG, PEF, SRW, NRW, CR2, regular TIFF), try dcrawload
+	// first when available — it handles TIFF-based RAW formats that share TIFF magic bytes.
+	// CR2 is now BlobTypeCR2 (not BlobTypeTIFF) so it won't hit this branch.
+	// LibRaw rejects non-RAW TIFFs quickly (header check only).
 	if blob.BlobType() == imagor.BlobTypeTIFF && v.hasDcrawload {
 		img, err := v.dcrawloadFromBlob(ctx, blob)
 		if err == nil {
