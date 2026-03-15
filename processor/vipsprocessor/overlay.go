@@ -76,7 +76,7 @@ func (v *Processor) loadFilterImage(
 ) (*vips.Image, error) {
 	sizeKnown := params.Width > 0 && params.Height > 0
 
-	if v.cache == nil || blob == nil || !sizeKnown || imagorpath.HasCrop(params) || imagorpath.HasFilter(params, "focal") ||
+	if v.cache == nil || blob == nil || !sizeKnown || imagorpath.HasCacheBypass(params) ||
 		params.Width > v.CacheMaxWidth || params.Height > v.CacheMaxHeight {
 		return v.loadAndProcess(ctx, blob, params, load)
 	}
