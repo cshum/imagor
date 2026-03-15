@@ -194,8 +194,8 @@ func WithCacheMaxWidth(width int) Option {
 	}
 }
 
-// WithCacheMaxHeight sets the maximum height for cached overlay images.
-// Overlays taller than this are not cached. Defaults to 1800.
+// WithCacheMaxHeight sets the maximum height for cached images.
+// Images taller than this bypass the cache. Defaults to 2000.
 func WithCacheMaxHeight(height int) Option {
 	return func(v *Processor) {
 		if height > 0 {

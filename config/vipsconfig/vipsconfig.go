@@ -45,8 +45,8 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by URL to avoid repeated I/O and decode for base images, watermark() and image() filters")
 		vipsCacheMaxWidth = fs.Int("vips-cache-max-width", 2400,
 			"VIPS image cache maximum width. Images wider than this are not cached (default 2400)")
-		vipsCacheMaxHeight = fs.Int("vips-cache-max-height", 1800,
-			"VIPS image cache maximum height. Images taller than this are not cached (default 1800)")
+		vipsCacheMaxHeight = fs.Int("vips-cache-max-height", 2000,
+			"VIPS image cache maximum height. Images taller than this are not cached (default 2000)")
 		vipsCacheTTL = fs.Duration("vips-cache-ttl", 0,
 			"VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry")
 		vipsCacheFormat = fs.String("vips-cache-format", "pixel",

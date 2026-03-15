@@ -743,7 +743,7 @@ The cache stores raw pixel buffers keyed by image path. Each request gets its ow
 ```dotenv
 VIPS_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = disabled
 VIPS_CACHE_MAX_WIDTH=2400     # Max image width to cache (default 2400px)
-VIPS_CACHE_MAX_HEIGHT=1800    # Max image height to cache (default 1800px)
+VIPS_CACHE_MAX_HEIGHT=2000    # Max image height to cache (default 2000px)
 VIPS_CACHE_TTL=1h             # Cache entry TTL. Default 0 = no expiry (LRU eviction only)
 VIPS_CACHE_FORMAT=pixel       # Cache storage format: pixel (default), png, webp
 ```
@@ -1127,7 +1127,7 @@ Usage of imagor:
   -vips-cache-max-width int
         VIPS image cache maximum width. Images wider than this are not cached (default 2400)
   -vips-cache-max-height int
-        VIPS image cache maximum height. Images taller than this are not cached (default 1800)
+        VIPS image cache maximum height. Images taller than this are not cached (default 2000)
   -vips-cache-ttl duration
         VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry
   -vips-cache-format string

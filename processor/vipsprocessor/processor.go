@@ -69,7 +69,7 @@ func NewProcessor(options ...Option) *Processor {
 		Logger:             zap.NewNop(),
 		disableFilters:     map[string]bool{},
 		CacheMaxWidth:      2400,
-		CacheMaxHeight:     1800,
+		CacheMaxHeight:     2000,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,
