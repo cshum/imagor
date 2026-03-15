@@ -50,7 +50,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		vipsCacheTTL = fs.Duration("vips-cache-ttl", 0,
 			"VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry")
 		vipsCacheFormat = fs.String("vips-cache-format", "pixel",
-			"VIPS image cache storage format: pixel (default, raw pixels — fastest hit), png (lossless, ~6.6x smaller, pixel-identical), webp (lossy, ~17x smaller, slight quality difference)")
+			"VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)")
 
 		logger, isDebug = cb()
 	)

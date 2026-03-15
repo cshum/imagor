@@ -111,20 +111,6 @@ func NewProcessor(options ...Option) *Processor {
 	return v
 }
 
-// LoadFromCache implements imagor.Cacher. Returns the cached blob for known-size requests
-// (w > 0 && h > 0) within cache max dims, or (nil, false) on miss.
-// Unknown-size and oversized requests always return (nil, false) — the cached blob is capped
-// at CacheMaxWidth×CacheMaxHeight, which may be smaller than the original.
-func (v *Processor) LoadFromCache(key string, w, h int) (*imagor.Blob, bool) {
-	if v.cache == nil || w <= 0 || h <= 0 {
-		return nil, false
-	}
-	if w > v.CacheMaxWidth || h > v.CacheMaxHeight {
-		return nil, false
-	}
-	return v.cache.Get(key)
-}
-
 // Startup implements imagor.Processor interface
 func (v *Processor) Startup(_ context.Context) error {
 	processorLock.Lock()
