@@ -57,6 +57,9 @@ jobs:
             imagor-test \
             go test -coverprofile=profile.cov ./...
 
+      - name: Fix coverage paths
+        run: sed -i 's|github.com/cshum/imagor/||g' profile.cov
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
