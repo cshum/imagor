@@ -575,7 +575,10 @@ func TestProcessor(t *testing.T) {
 			p, _ := fileLoader.Path(image)
 			return imagor.NewBlobFromFile(p), nil
 		}
-		params := imagorpath.Params{Image: "gopher-front.png", Width: 100, Height: 100}
+		params := imagorpath.Params{
+			Image: "gopher-front.png", Width: 100, Height: 100,
+			Filters: []imagorpath.Filter{{Name: "preview"}},
+		}
 
 		// First call: cache miss — populates cache.
 		result, err := proc.Process(context.Background(), blob, params, load)

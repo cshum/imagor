@@ -2207,12 +2207,27 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
+		// preview() opts in to base image pixel cache
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called, "Process should be called with cached blob on cache hit")
+	})
+
+	t.Run("cache miss — no preview filter — loader always called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// No preview() filter → cache is NOT used for base image
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/200x200/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, "from-cache", w.Body.String())
-		assert.Equal(t, 1, proc.called, "Process should be called with cached blob on cache hit")
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "without preview() filter, cache must not be used")
 	})
 
 	t.Run("cache miss — unknown size (0x0) — loader called", func(t *testing.T) {
@@ -2220,10 +2235,10 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
-		// No dimensions in URL → w=0, h=0 → HasCache returns false
+		// No dimensions in URL → w=0, h=0 → LoadFromCache returns false
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/cached.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/filters:preview()/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		// Loader was called, processor got the loaded blob
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
@@ -2235,10 +2250,10 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
-		// Only width specified → h=0 → HasCache returns false
+		// Only width specified → h=0 → LoadFromCache returns false
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/500x0/cached.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/500x0/filters:preview()/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
 		assert.Equal(t, 0, proc.called)
@@ -2249,10 +2264,10 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
-		// Requested size > maxW×maxH → HasCache returns false
+		// Requested size > maxW×maxH → LoadFromCache returns false
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/5000x4000/cached.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/5000x4000/filters:preview()/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
 		assert.Equal(t, 0, proc.called, "oversized request must bypass cache")
@@ -2265,7 +2280,7 @@ func TestWithCacher(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/200x200/other.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/other.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "loaded:other.jpg", w.Body.String())
 		assert.Equal(t, 0, proc.called)
@@ -2285,7 +2300,7 @@ func TestWithCacher(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/200x200/cached.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "from-cache", w.Body.String())
 		assert.Equal(t, 1, proc.called)
@@ -2296,10 +2311,10 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("boundary-cache")
 		app := newApp(proc)
 
-		// Exactly at max dims → HasCache returns true
+		// Exactly at max dims → LoadFromCache returns true
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/cached.jpg", maxW, maxH), nil))
+			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/filters:preview()/cached.jpg", maxW, maxH), nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "boundary-cache", w.Body.String())
 		assert.Equal(t, 1, proc.called)
@@ -2310,10 +2325,10 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
-		// One pixel over max → HasCache returns false
+		// One pixel over max → LoadFromCache returns false
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/cached.jpg", maxW+1, maxH), nil))
+			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/filters:preview()/cached.jpg", maxW+1, maxH), nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
 		assert.Equal(t, 0, proc.called)
@@ -2324,15 +2339,15 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
-		// 30x20:100x150/200x200/cached.jpg → CropLeft=30, CropTop=20, CropRight=100, CropBottom=150
-		// Even though image is cached and size is within max dims, crop must bypass HasCache
+		// 30x20:100x150/200x200/filters:preview()/cached.jpg → crop present
+		// Even with preview() and cached image, crop must bypass cache
 		// because the cache stores a downscaled copy and crop pixel coords would be wrong.
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/30x20:100x150/200x200/cached.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/30x20:100x150/200x200/filters:preview()/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
-		assert.Equal(t, 0, proc.called, "crop request must bypass HasCache")
+		assert.Equal(t, 0, proc.called, "crop request must bypass cache even with preview()")
 	})
 
 	t.Run("cache bypass — focal filter — loader called", func(t *testing.T) {
@@ -2340,28 +2355,27 @@ func TestWithCacher(t *testing.T) {
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
-		// filters:focal(0.5x0.5) present → must bypass HasCache
-		// because focal smart-crop runs on the cached downscaled image, giving wrong results.
+		// filters:preview():focal(0.5x0.5) → focal must bypass cache even with preview()
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/200x200/filters:focal(0.5x0.5)/cached.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview():focal(0.5x0.5)/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
-		assert.Equal(t, 0, proc.called, "focal filter must bypass HasCache")
+		assert.Equal(t, 0, proc.called, "focal filter must bypass cache even with preview()")
 	})
 
-	t.Run("no crop no focal — cache still used", func(t *testing.T) {
+	t.Run("preview with no crop no focal — cache used", func(t *testing.T) {
 		proc := newCacherProcessor(maxW, maxH)
 		proc.cache["cached.jpg"] = []byte("from-cache")
 		app := newApp(proc)
 
-		// Same image, same size, no crop/focal → cache hit (regression guard)
+		// preview() + no crop/focal → cache hit (regression guard)
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, httptest.NewRequest(
-			http.MethodGet, "https://example.com/unsafe/200x200/cached.jpg", nil))
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "from-cache", w.Body.String())
-		assert.Equal(t, 1, proc.called, "no-crop/focal request should still use cache")
+		assert.Equal(t, 1, proc.called, "preview() with no crop/focal should use cache")
 	})
 }
 

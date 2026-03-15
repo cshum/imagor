@@ -893,9 +893,12 @@ func TestBaseImageCacheCropBypass(t *testing.T) {
 		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
 	}
 
-	// First call: no crop — populates the cache via loadOrCache.
+	// First call: preview() + no crop — populates the cache via loadOrCache.
 	blob1 := imagor.NewBlobFromFile("../../testdata/gopher.png")
-	params1 := imagorpath.Params{Image: "gopher.png", Width: 200, Height: 200}
+	params1 := imagorpath.Params{
+		Image: "gopher.png", Width: 200, Height: 200,
+		Filters: []imagorpath.Filter{{Name: "preview"}},
+	}
 	result1, err := v.Process(ctx, blob1, params1, load)
 	require.NoError(t, err)
 	require.NotNil(t, result1)
@@ -904,7 +907,7 @@ func TestBaseImageCacheCropBypass(t *testing.T) {
 	_, found := v.cache.Get("gopher.png")
 	assert.True(t, found, "image should be cached after first (no-crop) Process call")
 
-	// Second call: with absolute pixel crop — must NOT use the cached downscaled image.
+	// Second call: preview() + absolute pixel crop — must NOT use the cached downscaled image.
 	// The crop (10,10):(50,50) must be applied to the original image, not the cached copy.
 	blob2 := imagor.NewBlobFromFile("../../testdata/gopher.png")
 	params2 := imagorpath.Params{
@@ -915,6 +918,7 @@ func TestBaseImageCacheCropBypass(t *testing.T) {
 		CropTop:    10,
 		CropRight:  50,
 		CropBottom: 50,
+		Filters:    []imagorpath.Filter{{Name: "preview"}},
 	}
 	result2, err := v.Process(ctx, blob2, params2, load)
 	require.NoError(t, err)
@@ -942,9 +946,12 @@ func TestBaseImageCacheFocalBypass(t *testing.T) {
 		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
 	}
 
-	// First call: no focal — populates the cache.
+	// First call: preview() + no focal — populates the cache.
 	blob1 := imagor.NewBlobFromFile("../../testdata/gopher.png")
-	params1 := imagorpath.Params{Image: "gopher.png", Width: 200, Height: 200}
+	params1 := imagorpath.Params{
+		Image: "gopher.png", Width: 200, Height: 200,
+		Filters: []imagorpath.Filter{{Name: "preview"}},
+	}
 	result1, err := v.Process(ctx, blob1, params1, load)
 	require.NoError(t, err)
 	require.NotNil(t, result1)
@@ -952,13 +959,14 @@ func TestBaseImageCacheFocalBypass(t *testing.T) {
 	_, found := v.cache.Get("gopher.png")
 	assert.True(t, found, "image should be cached after first Process call")
 
-	// Second call: with focal filter — must bypass cache.
+	// Second call: preview() + focal filter — must bypass cache.
 	blob2 := imagor.NewBlobFromFile("../../testdata/gopher.png")
 	params2 := imagorpath.Params{
 		Image:  "gopher.png",
 		Width:  200,
 		Height: 200,
 		Filters: []imagorpath.Filter{
+			{Name: "preview"},
 			{Name: "focal", Args: "100,80"},
 		},
 	}
@@ -986,14 +994,17 @@ func TestBaseImageCacheNoCropStillCaches(t *testing.T) {
 		return imagor.NewBlobFromFile("../../testdata/gopher.png"), nil
 	}
 
-	// First call: no crop — populates the cache.
+	// First call: preview() + no crop — populates the cache.
 	blob1 := imagor.NewBlobFromFile("../../testdata/gopher.png")
-	params := imagorpath.Params{Image: "gopher.png", Width: 200, Height: 200}
+	params := imagorpath.Params{
+		Image: "gopher.png", Width: 200, Height: 200,
+		Filters: []imagorpath.Filter{{Name: "preview"}},
+	}
 	result1, err := v.Process(ctx, blob1, params, load)
 	require.NoError(t, err)
 	require.NotNil(t, result1)
 
-	// Second call: same params, no crop — should use cache (blob replaced with memBlob).
+	// Second call: same params, preview() + no crop — should use cache (blob replaced with memBlob).
 	blob2 := imagor.NewBlobFromFile("../../testdata/gopher.png")
 	result2, err := v.Process(ctx, blob2, params, load)
 	require.NoError(t, err)
@@ -1001,5 +1012,5 @@ func TestBaseImageCacheNoCropStillCaches(t *testing.T) {
 
 	// Cache should be populated.
 	_, found := v.cache.Get("gopher.png")
-	assert.True(t, found, "no-crop request must still populate the cache")
+	assert.True(t, found, "preview() + no-crop request must still populate the cache")
 }

@@ -288,7 +288,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		p = imagorpath.Apply(p, app.BaseParams)
 		isPathChanged = true
 	}
-	var hasFormat, hasPreview, isRaw bool
+	var hasFormat, hasPreview, hasFocal, isRaw bool
 	var filters = p.Filters
 	p.Filters = nil
 
@@ -311,6 +311,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		case "preview":
 			r.Header.Set("Cache-Control", "no-cache")
 			hasPreview = true // disable result storage on preview() filter
+		case "focal":
+			hasFocal = true
 		}
 		// exclude utility filters from result path
 		switch f.Name {
@@ -398,9 +400,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
 		} else {
+			// Base image pixel cache is opt-in via filters:preview().
 			// Skip cache for crop/focal: cache stores a downscaled copy, so original-space
 			// coordinates would be applied incorrectly to the smaller cached image.
-			if !imagorpath.HasCrop(p) && !imagorpath.HasFilter(p, "focal") {
+			if hasPreview && !imagorpath.HasCrop(p) && !hasFocal {
 				for _, processor := range app.Processors {
 					if c, ok := processor.(Cacher); ok {
 						if cachedBlob, ok := c.LoadFromCache(p.Image, p.Width, p.Height); ok {
