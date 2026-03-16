@@ -78,6 +78,7 @@ Request: /smart/400x300/image.jpg
 | 400 px probe cap | ~10× speed-up vs full-res; PICO cascade is designed for small fixed windows, precision loss is negligible for crop purposes |
 | Errors are non-fatal | `detectRegions` returns nil on any error; code falls through to `InterestingAttention`, so a broken detector degrades gracefully |
 | No detection cache | V1 scope; each request runs detection independently. Future: cache results keyed by image URL + TTL |
+| Force full-res load when detector active | When `p.Smart` is true and a detector is configured, `thumbnailNotSupported = true` is set. This prevents libvips from decoding + attention-cropping in one shot via `NewThumbnail`, which would otherwise leave only the already-cropped thumbnail available for detection. |
 
 ---
 
@@ -206,6 +207,23 @@ detector, err := pigoprocessor.NewWithCascade(myCascadeBytes,
     pigoprocessor.WithIoUThreshold(0.3), // NMS aggressiveness (default 0.2)
 )
 ```
+
+---
+
+## Full-resolution load requirement
+
+When a detector is configured, vipsprocessor sets `thumbnailNotSupported = true`
+for `smart` requests. This forces `NewImage` (full-res decode) instead of
+`NewThumbnail`. Without this, libvips' shrink-on-load path would decode and
+attention-crop to the target size in a single C-library call — by the time the
+Go detection hook runs, `img` would already be the final cropped output and
+`origWidth`/`origHeight` would reflect the output size, not the source.
+Detection would then see a tiny already-cropped image and return `regions: 0`
+every time (confirmed during development: `orig_width: 600, orig_height: 600`).
+
+The performance cost is a full-resolution decode instead of a shrink-on-load
+decode. This is partially offset by detection running on a cheap 400 px probe
+copy, not the full-res image.
 
 ---
 
