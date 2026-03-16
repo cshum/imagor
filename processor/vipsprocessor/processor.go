@@ -190,7 +190,22 @@ func (v *Processor) newImageFromBlob(
 	}
 	if blob.BlobType() == imagor.BlobTypeMemory {
 		buf, width, height, bands, _ := blob.Memory()
-		return vips.NewImageFromMemory(buf, width, height, bands)
+		img, err := vips.NewImageFromMemory(buf, width, height, bands)
+		if err != nil {
+			return nil, err
+		}
+		// NewImageFromMemory assigns VIPS_INTERPRETATION_MULTIBAND by default.
+		// Cached raw-pixel blobs were normalized to sRGB on write, so restore
+		// the interpretation so color ops (hue, modulate, etc.) work correctly.
+		if bands >= 3 {
+			if copied, copyErr := img.Copy(&vips.CopyOptions{
+				Interpretation: vips.InterpretationSrgb,
+			}); copyErr == nil {
+				img.Close()
+				return copied, nil
+			}
+		}
+		return img, nil
 	}
 	// Camera RAW files (RAF, ORF, RW2, X3F, CR3) must use dcrawload explicitly.
 	// CR2 is excluded: it is TIFF-based and crashes dcrawload_source, so it falls

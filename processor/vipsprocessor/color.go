@@ -8,6 +8,25 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+// normalizeSrgb converts img to sRGB in-place. If the image has an embedded ICC
+// profile it is used for the conversion; otherwise a direct colourspace cast is
+// performed. Errors are intentionally ignored — the image is left unchanged when
+// conversion is not possible (e.g. unsupported interpretation).
+func normalizeSrgb(img *vips.Image) {
+	if img.HasICCProfile() {
+		opts := vips.DefaultIccTransformOptions()
+		opts.Embedded = true
+		opts.Intent = vips.IntentPerceptual
+		if img.Interpretation() == vips.InterpretationRgb16 {
+			opts.Depth = 16
+		}
+		_ = img.IccTransform("srgb", opts)
+	}
+	if img.Interpretation() != vips.InterpretationSrgb {
+		_ = img.Colourspace(vips.InterpretationSrgb, nil)
+	}
+}
+
 // newColorImage creates a solid color vips.Image with the given RGBA color and dimensions.
 func newColorImage(width, height int, c []float64) (*vips.Image, error) {
 	hasAlpha := len(c) >= 4 && c[3] < 255
