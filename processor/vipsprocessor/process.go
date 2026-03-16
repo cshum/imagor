@@ -473,7 +473,14 @@ func (v *Processor) loadAndProcess(
 	// normalised ratios; multiply by original dimensions to obtain absolute focal
 	// rects that FocalThumbnail / parseFocalPoint already know how to consume.
 	if p.Smart && v.Detector != nil && len(focalRects) == 0 {
-		for _, r := range v.detectRegions(ctx, img) {
+		detected := v.detectRegions(ctx, img)
+		if v.Debug {
+			v.Logger.Debug("detector",
+				zap.Int("regions", len(detected)),
+				zap.Float64("orig_width", origWidth),
+				zap.Float64("orig_height", origHeight))
+		}
+		for _, r := range detected {
 			focalRects = append(focalRects, focal{
 				Left:   r.Left * origWidth,
 				Top:    r.Top * origHeight,
