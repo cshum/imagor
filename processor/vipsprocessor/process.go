@@ -79,7 +79,11 @@ func (v *Processor) Process(
 	// Handle metadata response
 	if p.Meta {
 		stripExif := imagorpath.HasFilter(p, "strip_exif")
-		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif)), nil
+		var metaRegions []Region
+		if v.Detector != nil {
+			metaRegions = v.detectRegions(ctx, img)
+		}
+		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif, metaRegions)), nil
 	}
 
 	// Strip ICC profile before export when strip_metadata is requested.
@@ -703,19 +707,28 @@ func (v *Processor) applyTransformations(
 	return nil
 }
 
-// Metadata image attributes
-type Metadata struct {
-	Format      string            `json:"format"`
-	ContentType string            `json:"content_type"`
-	Width       int               `json:"width"`
-	Height      int               `json:"height"`
-	Orientation int               `json:"orientation"`
-	Pages       int               `json:"pages"`
-	Bands       int               `json:"bands"`
-	Exif        map[string]string `json:"exif"`
+// MetaRegion is a detected region of interest in the output image, in absolute pixels.
+type MetaRegion struct {
+	Left   int `json:"left"`
+	Top    int `json:"top"`
+	Right  int `json:"right"`
+	Bottom int `json:"bottom"`
 }
 
-func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
+// Metadata image attributes
+type Metadata struct {
+	Format          string            `json:"format"`
+	ContentType     string            `json:"content_type"`
+	Width           int               `json:"width"`
+	Height          int               `json:"height"`
+	Orientation     int               `json:"orientation"`
+	Pages           int               `json:"pages"`
+	Bands           int               `json:"bands"`
+	Exif            map[string]string `json:"exif"`
+	DetectedRegions []MetaRegion      `json:"detected_regions,omitempty"`
+}
+
+func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []Region) *Metadata {
 	pages := 1
 	if IsAnimationSupported(format) {
 		pages = img.Height() / img.PageHeight()
@@ -727,16 +740,26 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	if !stripExif {
 		exif = extractExif(img.Exif())
 	}
+	var metaRegions []MetaRegion
+	for _, r := range regions {
+		metaRegions = append(metaRegions, MetaRegion{
+			Left:   int(math.Round(r.Left * float64(img.Width()))),
+			Top:    int(math.Round(r.Top * float64(img.PageHeight()))),
+			Right:  int(math.Round(r.Right * float64(img.Width()))),
+			Bottom: int(math.Round(r.Bottom * float64(img.PageHeight()))),
+		})
+	}
 	mimeType, _ := format.MimeType()
 	return &Metadata{
-		Format:      string(format),
-		ContentType: mimeType,
-		Width:       img.Width(),
-		Height:      img.PageHeight(),
-		Pages:       pages,
-		Bands:       img.Bands(),
-		Orientation: img.Orientation(),
-		Exif:        exif,
+		Format:          string(format),
+		ContentType:     mimeType,
+		Width:           img.Width(),
+		Height:          img.PageHeight(),
+		Pages:           pages,
+		Bands:           img.Bands(),
+		Orientation:     img.Orientation(),
+		Exif:            exif,
+		DetectedRegions: metaRegions,
 	}
 }
 

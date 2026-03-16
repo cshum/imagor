@@ -97,6 +97,7 @@ func NewProcessor(options ...Option) *Processor {
 		"padding":          v.padding,
 		"proportion":       proportion,
 		"crop":             crop,
+		"detect_regions":   v.detectRegionsFilter,
 	}
 	for _, option := range options {
 		option(v)

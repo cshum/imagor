@@ -227,6 +227,73 @@ copy, not the full-res image.
 
 ---
 
+## Debugging detected regions
+
+### Meta endpoint — JSON output (Option 1)
+
+When a detector is configured, the imagor `meta` endpoint includes a
+`detected_regions` array in its JSON response.  Each element contains absolute
+pixel coordinates of a detected face in the **original source image**.
+
+```sh
+# example
+curl "http://localhost:8000/meta/smart/0x0/https://example.com/portrait.jpg"
+```
+
+```json
+{
+  "format": "jpeg",
+  "content_type": "image/jpeg",
+  "width": 1200,
+  "height": 900,
+  "orientation": 1,
+  "detected_regions": [
+    { "left": 312, "top": 95, "right": 488, "bottom": 271 },
+    { "left": 680, "top": 120, "right": 830, "bottom": 270 }
+  ]
+}
+```
+
+The `meta` endpoint does not transform the image, so `detected_regions` always
+refers to the source dimensions. The array is omitted (`omitempty`) when the
+detector returns no regions or no detector is configured.
+
+### Visual overlay filter — `detect_regions()` (Option 2)
+
+The `detect_regions()` filter draws semi-transparent filled rectangles and
+a solid 2 px outline around each detected face on the output image. It is
+intended for visual debugging only.
+
+```
+filters:detect_regions()
+filters:detect_regions(color)
+filters:detect_regions(color,opacity)
+```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `color` | `ff0000` | Any hex colour string accepted by other imagor filters (e.g. `00ff00`, `blue`) |
+| `opacity` | `40` | Fill opacity 0–100. `0` draws the outline only with no fill. Outline is always fully opaque. |
+
+Example URLs:
+
+```
+# Red boxes at 40 % fill opacity (default)
+/filters:detect_regions()/smart/400x300/portrait.jpg
+
+# Green outline only, no fill
+/filters:detect_regions(00ff00,0)/smart/400x300/portrait.jpg
+
+# Blue at 60 % fill
+/filters:detect_regions(0000ff,60)/smart/400x300/portrait.jpg
+```
+
+The filter is a no-op when no detector is configured. Detection runs on the
+400 px probe copy (same as the smart crop path), so adding `detect_regions()`
+does not materially affect performance.
+
+---
+
 ## Cache behaviour
 
 The image cache (`--vips-cache-size`) presents no special concern for face
