@@ -272,17 +272,17 @@ filters:annotate_detection(color,opacity)
 
 | Parameter | Default | Description |
 |---|---|---|
-| `color` | `ff0000` | Any hex colour string accepted by other imagor filters (e.g. `00ff00`, `blue`) |
+| `color` | `00ff00` | Any hex colour string accepted by other imagor filters (e.g. `ff0000`, `blue`) |
 | `opacity` | `40` | Fill opacity 0–100. `0` draws the outline only with no fill. Outline is always fully opaque. |
 
 Example URLs:
 
 ```
-# Red boxes at 40 % fill opacity (default)
+# Green boxes at 40 % fill opacity (default)
 /filters:annotate_detection()/smart/400x300/portrait.jpg
 
-# Green outline only, no fill
-/filters:annotate_detection(00ff00,0)/smart/400x300/portrait.jpg
+# Red outline only, no fill
+/filters:annotate_detection(ff0000,0)/smart/400x300/portrait.jpg
 
 # Blue at 60 % fill
 /filters:annotate_detection(0000ff,60)/smart/400x300/portrait.jpg

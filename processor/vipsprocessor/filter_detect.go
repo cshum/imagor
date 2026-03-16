@@ -17,7 +17,7 @@ import (
 //	filters:annotate_detection(color)          e.g. annotate_detection(ff0000)
 //	filters:annotate_detection(color,opacity)  e.g. annotate_detection(00ff00,60)
 //
-// color    — any CSS colour name or hex string accepted by getColor (default: ff0000, red)
+// color    — any CSS colour name or hex string accepted by getColor (default: 00ff00, green)
 // opacity  — fill opacity 0-100 (default: 40); outline is always fully opaque
 //
 // No-op when no Detector is configured.
@@ -28,7 +28,7 @@ func (v *Processor) annotateDetectionFilter(
 		return
 	}
 
-	color := "ff0000"
+	color := "00ff00"
 	opacity := 40
 	if len(args) >= 1 && args[0] != "" {
 		color = args[0]
