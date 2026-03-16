@@ -32,21 +32,33 @@ func estimateMaxBMPFileSize(maxResolution int64) int64 {
 }
 
 func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
-	img, err := bmp.Decode(r)
+	goImg, err := bmp.Decode(r)
 	if err != nil {
 		return nil, err
 	}
-	rect := img.Bounds()
+	rect := goImg.Bounds()
 	size := rect.Size()
 	if !v.Unlimited && (size.X > v.MaxWidth || size.Y > v.MaxHeight || size.X*size.Y > v.MaxResolution) {
 		return nil, imagor.ErrMaxResolutionExceeded
 	}
-	rgba, ok := img.(*image.RGBA)
+	rgba, ok := goImg.(*image.RGBA)
 	if !ok {
 		rgba = image.NewRGBA(rect)
-		draw.Draw(rgba, rect, img, rect.Min, draw.Src)
+		draw.Draw(rgba, rect, goImg, rect.Min, draw.Src)
 	}
-	return vips.NewImageFromMemory(rgba.Pix, size.X, size.Y, 4)
+	img, err := vips.NewImageFromMemory(rgba.Pix, size.X, size.Y, 4)
+	if err != nil {
+		return nil, err
+	}
+	// NewImageFromMemory assigns VIPS_INTERPRETATION_MULTIBAND by default.
+	// BMP pixels are always RGBA/sRGB, so restore interpretation for color ops.
+	if copied, copyErr := img.Copy(&vips.CopyOptions{
+		Interpretation: vips.InterpretationSrgb,
+	}); copyErr == nil {
+		img.Close()
+		return copied, nil
+	}
+	return img, nil
 }
 
 func (v *Processor) bmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error) {

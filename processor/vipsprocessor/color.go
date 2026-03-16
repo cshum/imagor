@@ -8,6 +8,28 @@ import (
 	"golang.org/x/image/colornames"
 )
 
+// normalizeSrgb converts img to sRGB in-place, used before WriteToMemory so that
+// cached raw-pixel blobs always contain sRGB data. Two steps are tried in order:
+//  1. If the image has an embedded ICC profile, IccTransform performs a
+//     color-accurate conversion and strips the profile.
+//  2. Colourspace reinterprets the pixel data as sRGB (no profile required).
+//     This catches images with a known non-sRGB interpretation but no embedded
+//     profile, and also acts as a fallback if IccTransform failed.
+func normalizeSrgb(img *vips.Image) {
+	if img.HasICCProfile() {
+		opts := vips.DefaultIccTransformOptions()
+		opts.Embedded = true
+		opts.Intent = vips.IntentPerceptual
+		if img.Interpretation() == vips.InterpretationRgb16 {
+			opts.Depth = 16
+		}
+		_ = img.IccTransform("srgb", opts)
+	}
+	if img.Interpretation() != vips.InterpretationSrgb {
+		_ = img.Colourspace(vips.InterpretationSrgb, nil)
+	}
+}
+
 // newColorImage creates a solid color vips.Image with the given RGBA color and dimensions.
 func newColorImage(width, height int, c []float64) (*vips.Image, error) {
 	hasAlpha := len(c) >= 4 && c[3] < 255

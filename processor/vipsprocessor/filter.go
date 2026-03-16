@@ -650,15 +650,7 @@ func sharpen(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...st
 }
 
 func stripIcc(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
-	if img.HasICCProfile() {
-		opts := vips.DefaultIccTransformOptions()
-		opts.Embedded = true
-		opts.Intent = vips.IntentPerceptual
-		if img.Interpretation() == vips.InterpretationRgb16 {
-			opts.Depth = 16
-		}
-		_ = img.IccTransform("srgb", opts)
-	}
+	normalizeSrgb(img)
 	return img.RemoveICCProfile()
 }
 

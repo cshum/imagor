@@ -706,6 +706,67 @@ func TestProcessor(t *testing.T) {
 		assert.True(t, blob.IsRaw())
 		assert.Equal(t, "image/x-canon-cr2", blob.ContentType())
 	})
+	t.Run("cache hit — hue after preview does not crash", func(t *testing.T) {
+		// Regression: BlobTypeMemory blobs loaded from the preview cache had
+		// VIPS_INTERPRETATION_MULTIBAND, causing hue()/Modulate() to fail with
+		// "linear: vector must have 1 or 4 elements".
+		fileLoader := filestorage.New(testDataDir)
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024),
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+			WithDebug(true),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() { require.NoError(t, proc.Shutdown(context.Background())) })
+
+		blobPath, _ := fileLoader.Path("gopher-front.png")
+		load := func(image string) (*imagor.Blob, error) {
+			p, _ := fileLoader.Path(image)
+			return imagor.NewBlobFromFile(p), nil
+		}
+		params := imagorpath.Params{
+			Image: "gopher-front.png", Width: 100, Height: 100,
+			Filters: []imagorpath.Filter{
+				{Name: "preview"},
+				{Name: "hue", Args: "300"},
+				{Name: "format", Args: "webp"},
+			},
+		}
+
+		// First call: cache miss — populates the preview cache.
+		_, err := proc.Process(context.Background(), imagor.NewBlobFromFile(blobPath), params, load)
+		require.NoError(t, err)
+
+		// Retrieve the BlobTypeMemory blob the preview cache stored.
+		cachedBlob, ok := proc.LoadFromCache("gopher-front.png", 100, 100)
+		require.True(t, ok)
+		require.Equal(t, imagor.BlobTypeMemory, cachedBlob.BlobType())
+
+		// Second call: cache hit — hue() runs on BlobTypeMemory; must not crash.
+		result, err := proc.Process(context.Background(), cachedBlob, params, load)
+		require.NoError(t, err, "hue() on a cached BlobTypeMemory blob must not crash")
+		buf, err := result.ReadAll()
+		require.NoError(t, err)
+		require.NotEmpty(t, buf)
+	})
+	t.Run("bmp fallback — hue after loadImageFromBMP does not crash", func(t *testing.T) {
+		// Regression: loadImageFromBMP used vips.NewImageFromMemory which assigned
+		// VIPS_INTERPRETATION_MULTIBAND, causing hue()/Modulate() to crash.
+		ctx := context.Background()
+		p := NewProcessor(WithDebug(true), WithForceBmpFallback())
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "bmp_24.bmp"))
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		require.NoError(t, err)
+		defer img.Close()
+
+		// Modulate is what the hue() filter calls internally.
+		err = img.Modulate(1, 1, 300)
+		assert.NoError(t, err, "hue/Modulate must not fail after BMP fallback load")
+	})
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
@@ -793,6 +854,30 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
 		})
 	}
+}
+
+func TestNormalizeSrgb(t *testing.T) {
+	// normalizeSrgb is the write-side normalizer: it converts real decoded images
+	// (which have a known colorspace) to sRGB before WriteToMemory.
+	// It does NOT handle VIPS_INTERPRETATION_MULTIBAND (raw NewImageFromMemory pixels);
+	// that case is handled by img.Copy on the read side.
+
+	// Load a JPEG with an embedded Adobe RGB ICC profile.
+	path := filepath.Join(testDataDir, "jpg-24bit-icc-adobe-rgb.jpg")
+	buf, err := os.ReadFile(path)
+	require.NoError(t, err)
+	img, err := vips.NewImageFromBuffer(buf, nil)
+	require.NoError(t, err)
+	defer img.Close()
+	require.True(t, img.HasICCProfile(), "test image must have an embedded ICC profile")
+
+	normalizeSrgb(img)
+	assert.Equal(t, vips.InterpretationSrgb, img.Interpretation(),
+		"normalizeSrgb must convert ICC-profiled image to sRGB")
+
+	// Modulate is what hue() calls internally; must succeed after normalization.
+	err = img.Modulate(1, 1, 300)
+	assert.NoError(t, err, "Modulate must not fail after normalizeSrgb")
 }
 
 func TestParseColorImage(t *testing.T) {
