@@ -196,7 +196,6 @@ func (v *Processor) newImageFromBlob(
 		}
 		// NewImageFromMemory assigns VIPS_INTERPRETATION_MULTIBAND by default.
 		// Cached raw-pixel blobs were normalized to sRGB on write, so restore
-		// the interpretation so color ops (hue, modulate, etc.) work correctly.
 		if bands >= 3 {
 			if copied, copyErr := img.Copy(&vips.CopyOptions{
 				Interpretation: vips.InterpretationSrgb,

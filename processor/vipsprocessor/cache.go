@@ -131,9 +131,7 @@ func (v *Processor) loadOrCache(
 			memBlob = imagor.NewBlobFromBytes(buf)
 		default:
 			// Raw pixels (BlobTypeMemory) — fastest cache-hit path.
-			// Normalize to sRGB before WriteToMemory: interpretation metadata is
-			// not preserved in raw bytes, so color ops (hue, saturation, modulate)
-			// must be able to assume sRGB on cache hits.
+			// Normalize to sRGB before WriteToMemory
 			normalizeSrgb(img)
 			bands := img.Bands()
 			buf, err = img.WriteToMemory()
