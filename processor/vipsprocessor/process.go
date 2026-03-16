@@ -248,6 +248,13 @@ func (v *Processor) loadAndProcess(
 	if p.Trim || p.VFlip || p.FullFitIn || p.AdaptiveFitIn {
 		thumbnailNotSupported = true
 	}
+	// When a detector is configured, load the full-resolution source so detection
+	// runs before any crop. Without this, Smart=true triggers NewThumbnail with
+	// InterestingAttention which decodes + attention-crops in one libvips call,
+	// leaving only the already-cropped thumbnail for detection.
+	if p.Smart && v.Detector != nil {
+		thumbnailNotSupported = true
+	}
 	if p.FitIn && !p.FullFitIn {
 		upscale = false
 	}
