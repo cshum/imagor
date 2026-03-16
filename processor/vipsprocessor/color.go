@@ -8,10 +8,13 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-// normalizeSrgb converts img to sRGB in-place. If the image has an embedded ICC
-// profile it is used for the conversion; otherwise a direct colourspace cast is
-// performed. Errors are intentionally ignored — the image is left unchanged when
-// conversion is not possible (e.g. unsupported interpretation).
+// normalizeSrgb converts img to sRGB in-place, used before WriteToMemory so that
+// cached raw-pixel blobs always contain sRGB data. Two steps are tried in order:
+//  1. If the image has an embedded ICC profile, IccTransform performs a
+//     color-accurate conversion and strips the profile.
+//  2. Colourspace reinterprets the pixel data as sRGB (no profile required).
+//     This catches images with a known non-sRGB interpretation but no embedded
+//     profile, and also acts as a fallback if IccTransform failed.
 func normalizeSrgb(img *vips.Image) {
 	if img.HasICCProfile() {
 		opts := vips.DefaultIccTransformOptions()
