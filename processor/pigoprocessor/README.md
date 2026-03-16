@@ -258,16 +258,16 @@ The `meta` endpoint does not transform the image, so `detected_regions` always
 refers to the source dimensions. The array is omitted (`omitempty`) when the
 detector returns no regions or no detector is configured.
 
-### Visual overlay filter — `detect_regions()` (Option 2)
+### Visual overlay filter — `annotate_detection()` (Option 2)
 
-The `detect_regions()` filter draws semi-transparent filled rectangles and
+The `annotate_detection()` filter draws semi-transparent filled rectangles and
 a solid 2 px outline around each detected face on the output image. It is
 intended for visual debugging only.
 
 ```
-filters:detect_regions()
-filters:detect_regions(color)
-filters:detect_regions(color,opacity)
+filters:annotate_detection()
+filters:annotate_detection(color)
+filters:annotate_detection(color,opacity)
 ```
 
 | Parameter | Default | Description |
@@ -279,17 +279,17 @@ Example URLs:
 
 ```
 # Red boxes at 40 % fill opacity (default)
-/filters:detect_regions()/smart/400x300/portrait.jpg
+/filters:annotate_detection()/smart/400x300/portrait.jpg
 
 # Green outline only, no fill
-/filters:detect_regions(00ff00,0)/smart/400x300/portrait.jpg
+/filters:annotate_detection(00ff00,0)/smart/400x300/portrait.jpg
 
 # Blue at 60 % fill
-/filters:detect_regions(0000ff,60)/smart/400x300/portrait.jpg
+/filters:annotate_detection(0000ff,60)/smart/400x300/portrait.jpg
 ```
 
 The filter is a no-op when no detector is configured. Detection runs on the
-400 px probe copy (same as the smart crop path), so adding `detect_regions()`
+400 px probe copy (same as the smart crop path), so adding `annotate_detection()`
 does not materially affect performance.
 
 ---
