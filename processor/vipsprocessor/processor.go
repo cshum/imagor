@@ -27,6 +27,7 @@ var processorCount int
 type Processor struct {
 	Filters            FilterMap
 	FallbackFunc       FallbackFunc
+	Detector           Detector
 	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int

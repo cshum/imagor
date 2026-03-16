@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/processor/pigoprocessor"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"go.uber.org/zap"
 )
@@ -51,35 +52,43 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry")
 		vipsCacheFormat = fs.String("vips-cache-format", "pixel",
 			"VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)")
+		vipsFaceDetect = fs.Bool("vips-face-detect", false,
+			"VIPS enable pigo face detection for smart crop. When enabled, smart crop centres on detected faces instead of libvips attention heuristic")
 
 		logger, isDebug = cb()
 	)
-	return imagor.WithProcessors(
-		vipsprocessor.NewProcessor(
-			vipsprocessor.WithMaxAnimationFrames(*vipsMaxAnimationFrames),
-			vipsprocessor.WithDisableBlur(*vipsDisableBlur),
-			vipsprocessor.WithDisableFilters(*vipsDisableFilters),
-			vipsprocessor.WithConcurrency(*vipsConcurrency),
-			vipsprocessor.WithMaxCacheFiles(*vipsMaxCacheFiles),
-			vipsprocessor.WithMaxCacheMem(*vipsMaxCacheMem),
-			vipsprocessor.WithMaxCacheSize(*vipsMaxCacheSize),
-			vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
-			vipsprocessor.WithMaxWidth(*vipsMaxWidth),
-			vipsprocessor.WithMaxHeight(*vipsMaxHeight),
-			vipsprocessor.WithMaxResolution(*vipsMaxResolution),
-			vipsprocessor.WithMozJPEG(*vipsMozJPEG),
-			vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
-			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
-			vipsprocessor.WithUnlimited(*vipsUnlimited),
-			vipsprocessor.WithCacheSize(*vipsCacheSize),
-			vipsprocessor.WithCacheMaxWidth(*vipsCacheMaxWidth),
-			vipsprocessor.WithCacheMaxHeight(*vipsCacheMaxHeight),
-			vipsprocessor.WithCacheTTL(*vipsCacheTTL),
-			vipsprocessor.WithCacheFormat(parseCacheFormat(*vipsCacheFormat)),
-			vipsprocessor.WithLogger(logger),
-			vipsprocessor.WithDebug(isDebug),
-		),
-	)
+	opts := []vipsprocessor.Option{
+		vipsprocessor.WithMaxAnimationFrames(*vipsMaxAnimationFrames),
+		vipsprocessor.WithDisableBlur(*vipsDisableBlur),
+		vipsprocessor.WithDisableFilters(*vipsDisableFilters),
+		vipsprocessor.WithConcurrency(*vipsConcurrency),
+		vipsprocessor.WithMaxCacheFiles(*vipsMaxCacheFiles),
+		vipsprocessor.WithMaxCacheMem(*vipsMaxCacheMem),
+		vipsprocessor.WithMaxCacheSize(*vipsMaxCacheSize),
+		vipsprocessor.WithMaxFilterOps(*vipsMaxFilterOps),
+		vipsprocessor.WithMaxWidth(*vipsMaxWidth),
+		vipsprocessor.WithMaxHeight(*vipsMaxHeight),
+		vipsprocessor.WithMaxResolution(*vipsMaxResolution),
+		vipsprocessor.WithMozJPEG(*vipsMozJPEG),
+		vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
+		vipsprocessor.WithStripMetadata(*vipsStripMetadata),
+		vipsprocessor.WithUnlimited(*vipsUnlimited),
+		vipsprocessor.WithCacheSize(*vipsCacheSize),
+		vipsprocessor.WithCacheMaxWidth(*vipsCacheMaxWidth),
+		vipsprocessor.WithCacheMaxHeight(*vipsCacheMaxHeight),
+		vipsprocessor.WithCacheTTL(*vipsCacheTTL),
+		vipsprocessor.WithCacheFormat(parseCacheFormat(*vipsCacheFormat)),
+		vipsprocessor.WithLogger(logger),
+		vipsprocessor.WithDebug(isDebug),
+	}
+	if *vipsFaceDetect {
+		if detector, err := pigoprocessor.New(); err == nil {
+			opts = append(opts, vipsprocessor.WithDetector(detector))
+		} else {
+			logger.Warn("vips-face-detect: failed to initialise pigo detector", zap.Error(err))
+		}
+	}
+	return imagor.WithProcessors(vipsprocessor.NewProcessor(opts...))
 }
 
 // parseCacheFormat maps a cache format string to the corresponding imagor.BlobType.

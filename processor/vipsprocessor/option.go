@@ -18,6 +18,14 @@ func WithFilter(name string, filter FilterFunc) Option {
 	}
 }
 
+// WithDetector sets the region Detector used to populate focal points when
+// the smart crop token is present and no explicit focal() filter is provided.
+func WithDetector(d Detector) Option {
+	return func(v *Processor) {
+		v.Detector = d
+	}
+}
+
 // WithDisableBlur with disable blur option
 func WithDisableBlur(disabled bool) Option {
 	return func(v *Processor) {

@@ -468,6 +468,20 @@ func (v *Processor) loadAndProcess(
 			}
 		}
 	}
+	// Run detector when smart mode is active, a detector is configured, and no
+	// explicit focal() rects were provided by the caller.  Detection results are
+	// normalised ratios; multiply by original dimensions to obtain absolute focal
+	// rects that FocalThumbnail / parseFocalPoint already know how to consume.
+	if p.Smart && v.Detector != nil && len(focalRects) == 0 {
+		for _, r := range v.detectRegions(ctx, img) {
+			focalRects = append(focalRects, focal{
+				Left:   r.Left * origWidth,
+				Top:    r.Top * origHeight,
+				Right:  r.Right * origWidth,
+				Bottom: r.Bottom * origHeight,
+			})
+		}
+	}
 	if err := v.applyTransformations(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
@@ -891,4 +905,46 @@ func findTrim(
 		Background: background,
 	})
 	return
+}
+
+// detectorProbeSize is the maximum dimension (width or height) of the
+// downscaled probe image passed to the Detector.  Keeping the probe small
+// (~400 px) gives roughly a 10× speed-up over full-resolution detection with
+// negligible loss in crop precision.
+const detectorProbeSize = 400
+
+// detectRegions creates a cheap downscaled probe from img, exports its raw
+// sRGB pixels, and asks the configured Detector to locate regions of interest.
+// The returned regions are in normalised [0.0, 1.0] coordinates relative to
+// the probe — callers must multiply by original image dimensions before use.
+// All errors are treated as non-fatal: an empty slice is returned so the
+// caller falls back to the default InterestingAttention crop.
+func (v *Processor) detectRegions(ctx context.Context, img *vips.Image) []Region {
+	probe, err := img.Copy(nil)
+	if err != nil {
+		return nil
+	}
+	defer probe.Close()
+
+	if err := probe.ThumbnailImage(detectorProbeSize, &vips.ThumbnailImageOptions{
+		Height: detectorProbeSize,
+		Crop:   vips.InterestingNone,
+		Size:   vips.SizeDown,
+	}); err != nil {
+		return nil
+	}
+	normalizeSrgb(probe)
+
+	buf, err := probe.WriteToMemory()
+	if err != nil {
+		return nil
+	}
+	regions, err := v.Detector.Detect(ctx, buf, probe.Width(), probe.PageHeight(), probe.Bands())
+	if err != nil {
+		if v.Debug {
+			v.Logger.Debug("detector error", zap.Error(err))
+		}
+		return nil
+	}
+	return regions
 }
