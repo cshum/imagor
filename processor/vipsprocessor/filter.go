@@ -625,6 +625,40 @@ func blur(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 	return
 }
 
+// pixelateImage applies a pixelate effect to img in-place using integer-ratio
+// operations with zero interpolation:
+//   - Shrink: box-average downscale — each output pixel is the average of a
+//     blockSize×blockSize input block (no interpolation kernel).
+//   - Zoom: pixel replication upscale — each pixel is replicated exactly
+//     blockSize times in both axes (pure nearest-neighbour, no blending).
+//
+// This produces perfectly sharp square blocks — the classic "lack of resolution"
+// pixelate look — with no anti-aliasing at either step.
+func pixelateImage(img *vips.Image, blockSize int) error {
+	if blockSize <= 1 {
+		return nil
+	}
+	// Shrink: integer box-average downscale (no interpolation)
+	if err := img.Shrink(float64(blockSize), float64(blockSize), nil); err != nil {
+		return err
+	}
+	// Zoom: integer pixel replication upscale (no interpolation)
+	return img.Zoom(blockSize, blockSize)
+}
+
+func pixelate(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
+	if isAnimated(img) {
+		return
+	}
+	blockSize := 10
+	if len(args) > 0 {
+		if b, e := strconv.Atoi(args[0]); e == nil && b > 0 {
+			blockSize = b
+		}
+	}
+	return pixelateImage(img, blockSize)
+}
+
 func sharpen(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if isAnimated(img) {
 		// skip animation support
@@ -810,6 +844,110 @@ func (v *Processor) detectionsFilter(
 		}
 		if err = img.DrawRect(ink, left, top, rw, rh, &vips.DrawRectOptions{Fill: false}); err != nil {
 			return
+		}
+	}
+	return
+}
+
+// redactFilter obscures all detected regions by applying blur or pixelate to
+// each bounding box, compositing the result back onto the image. Intended for
+// privacy/anonymisation use cases (e.g. GDPR face blurring).
+//
+// Usage:
+//
+//	filters:redact()               — blur with default sigma (15)
+//	filters:redact(blur)           — explicit blur, default sigma
+//	filters:redact(blur,20)        — blur with sigma 20
+//	filters:redact(pixelate)       — pixelate with default block size (10)
+//	filters:redact(pixelate,15)    — pixelate with 15px blocks
+//
+// No-op when no Detector is configured or no regions are detected.
+// Skips animated images (consistent with the blur filter).
+func (v *Processor) redactFilter(
+	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string,
+) (err error) {
+	if v.Detector == nil || isAnimated(img) {
+		return
+	}
+
+	mode := "blur"
+	strength := 0 // 0 = use default
+	if len(args) > 0 && args[0] != "" {
+		mode = strings.ToLower(args[0])
+	}
+	if len(args) > 1 {
+		strength, _ = strconv.Atoi(args[1])
+	}
+
+	regions := v.detectRegions(ctx, img, "")
+	if len(regions) == 0 {
+		return
+	}
+
+	w := img.Width()
+	h := img.PageHeight()
+
+	for _, r := range regions {
+		left := int(math.Round(r.Left * float64(w)))
+		top := int(math.Round(r.Top * float64(h)))
+		rw := int(math.Round(r.Right*float64(w))) - left
+		rh := int(math.Round(r.Bottom*float64(h))) - top
+		if rw <= 0 || rh <= 0 {
+			continue
+		}
+		// Clamp to image bounds
+		if left < 0 {
+			rw += left
+			left = 0
+		}
+		if top < 0 {
+			rh += top
+			top = 0
+		}
+		if left+rw > w {
+			rw = w - left
+		}
+		if top+rh > h {
+			rh = h - top
+		}
+		if rw <= 0 || rh <= 0 {
+			continue
+		}
+
+		// Copy the region into a new image, apply the effect, composite back.
+		patch, copyErr := img.Copy(nil)
+		if copyErr != nil {
+			return copyErr
+		}
+		if extractErr := patch.ExtractArea(left, top, rw, rh); extractErr != nil {
+			patch.Close()
+			return extractErr
+		}
+
+		var applyErr error
+		switch mode {
+		case "pixelate":
+			blockSize := 10
+			if strength > 0 {
+				blockSize = strength
+			}
+			applyErr = pixelateImage(patch, blockSize)
+		default: // "blur"
+			sigma := 15.0
+			if strength > 0 {
+				sigma = float64(strength)
+			}
+			applyErr = patch.Gaussblur(sigma, nil)
+		}
+		if applyErr != nil {
+			patch.Close()
+			return applyErr
+		}
+
+		compErr := img.Composite2(patch, vips.BlendModeOver, &vips.Composite2Options{X: left, Y: top})
+		patch.Close()
+		if compErr != nil {
+			return compErr
 		}
 	}
 	return

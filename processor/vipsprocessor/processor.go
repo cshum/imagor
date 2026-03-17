@@ -98,6 +98,8 @@ func NewProcessor(options ...Option) *Processor {
 		"proportion":       proportion,
 		"crop":             crop,
 		"detections":       v.detectionsFilter,
+		"pixelate":         pixelate,
+		"redact":           v.redactFilter,
 	}
 	for _, option := range options {
 		option(v)

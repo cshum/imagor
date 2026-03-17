@@ -777,6 +777,26 @@ func TestProcessor(t *testing.T) {
 			{name: "detections auto", path: "filters:detections()/gopher-front.png"},
 		}, WithDetector(stub))
 	})
+	t.Run("pixelate filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/pixelate")
+		doGoldenTests(t, resultDir, []test{
+			{name: "pixelate default", path: "filters:pixelate()/gopher-front.png"},
+			{name: "pixelate 20", path: "filters:pixelate(20)/gopher-front.png"},
+		})
+	})
+	t.Run("redact filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/redact")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "redact blur default", path: "filters:redact()/gopher-front.png"},
+			{name: "redact blur custom", path: "filters:redact(blur,25)/gopher-front.png"},
+			{name: "redact pixelate default", path: "filters:redact(pixelate)/gopher-front.png"},
+			{name: "redact pixelate custom", path: "filters:redact(pixelate,20)/gopher-front.png"},
+		}, WithDetector(stub))
+	})
 }
 
 // stubDetector is a test-only Detector that returns a fixed set of regions.

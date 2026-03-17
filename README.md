@@ -90,7 +90,9 @@ imagor supports the following filters:
 - `crop(left,top,width,height)` crops the image after resizing
   - Absolute pixels: `crop(10,20,200,150)` - crop 200x150 box starting at (10,20)
   - Relative (0.0-1.0): `crop(0.1,0.1,0.8,0.8)` - crop using percentages
-- `detections()` visually debugs detected regions by drawing colour-coded bounding boxes on the image — each class name is automatically assigned a distinct colour. For use with detection plugins such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured.
+- `detections()` **debug only** — draws colour-coded bounding boxes on detected regions. Each class name is automatically assigned a distinct colour via hash-based palette. For use with detection plugins such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured.
+- `pixelate(block_size)` applies a pixelate effect to the whole image by downscaling to 1/`block_size` then upscaling back with nearest-neighbour interpolation
+  - `block_size` pixel block size in pixels, defaults to 10
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image
@@ -144,6 +146,10 @@ imagor supports the following filters:
   - `color` the color name or hexadecimal rgb expression without the "#" character
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
+- `redact([mode[, strength]])` obscures all detected regions for privacy/anonymisation (e.g. GDPR face blurring). Requires a detection plugin such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured or no regions are detected. Skips animated images.
+  - `mode` — `blur` (default) or `pixelate`
+  - `strength` — blur sigma (default 15) or pixelate block size in pixels (default 10)
+  - Examples: `redact()`, `redact(blur,20)`, `redact(pixelate)`, `redact(pixelate,15)`
 - `sharpen(sigma)` sharpens the image
 - `strip_exif()` removes Exif metadata from the resulting image
 - `strip_icc()` removes ICC profile information from the resulting image. The image is first converted to sRGB color space to preserve correct colors before the profile is removed.
