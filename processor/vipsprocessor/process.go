@@ -312,7 +312,7 @@ func (v *Processor) loadAndProcess(
 			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				thumbnailNotSupported = true
 			}
-		case "trim", "focal", "rotate", "annotate_detection":
+		case "trim", "focal", "rotate", "detections":
 			thumbnailNotSupported = true
 		}
 	}

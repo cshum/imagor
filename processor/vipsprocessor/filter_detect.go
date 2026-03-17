@@ -9,19 +9,19 @@ import (
 	"github.com/cshum/vipsgen/vips"
 )
 
-// annotateDetectionFilter draws bounding boxes for all regions returned by the
+// detectionsFilter draws bounding boxes for all regions returned by the
 // configured Detector onto the image.  It is intended for visual debugging.
 //
-// Usage:  filters:annotate_detection()
+// Usage:  filters:detections()
 //
-//	filters:annotate_detection(color)          e.g. annotate_detection(ff0000)
-//	filters:annotate_detection(color,opacity)  e.g. annotate_detection(00ff00,60)
+//	filters:detections(color)          e.g. detections(ff0000)
+//	filters:detections(color,opacity)  e.g. detections(00ff00,60)
 //
 // color    — any CSS colour name or hex string accepted by getColor (default: 00ff00, green)
 // opacity  — fill opacity 0-100 (default: 40); outline is always fully opaque
 //
 // No-op when no Detector is configured.
-func (v *Processor) annotateDetectionFilter(
+func (v *Processor) detectionsFilter(
 	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string,
 ) (err error) {
 	if v.Detector == nil {
