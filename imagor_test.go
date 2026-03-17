@@ -2392,6 +2392,44 @@ func (f processorFunc) Shutdown(_ context.Context) error {
 	return nil
 }
 
+// detectorSetterProc wraps processorFunc and implements DetectorSetter for testing.
+type detectorSetterProc struct {
+	processorFunc
+	detector Detector
+}
+
+func (p *detectorSetterProc) SetDetector(d Detector) { p.detector = d }
+
+// testDetector is a no-op Detector used in tests.
+type testDetector struct{}
+
+func (testDetector) Startup(_ context.Context) error  { return nil }
+func (testDetector) Shutdown(_ context.Context) error { return nil }
+func (testDetector) Detect(_ context.Context, _ []uint8, _, _, _ int) ([]Region, error) {
+	return nil, nil
+}
+
+func TestWithDetector(t *testing.T) {
+	proc := &detectorSetterProc{}
+	d := testDetector{}
+	app := New(
+		WithProcessors(proc),
+		WithDetector(d),
+	)
+	assert.Equal(t, Detector(d), proc.detector)
+	_ = app
+}
+
+func TestWithDetectorNil(t *testing.T) {
+	proc := &detectorSetterProc{}
+	app := New(
+		WithProcessors(proc),
+		WithDetector(nil),
+	)
+	assert.Nil(t, proc.detector)
+	_ = app
+}
+
 // failingStorage is a mock storage that can be configured to fail on Put operations
 type failingStorage struct {
 	*mapStore
