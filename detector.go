@@ -32,3 +32,19 @@ type Detector interface {
 type DetectorSetter interface {
 	SetDetector(Detector)
 }
+
+// WithDetector wires d into every DetectorSetter processor in the app.
+// Passing nil is a no-op, allowing callers to unconditionally call WithDetector
+// and skip wiring when the feature is disabled.
+func WithDetector(d Detector) Option {
+	return func(app *Imagor) {
+		if d == nil {
+			return
+		}
+		for _, p := range app.Processors {
+			if s, ok := p.(DetectorSetter); ok {
+				s.SetDetector(d)
+			}
+		}
+	}
+}
