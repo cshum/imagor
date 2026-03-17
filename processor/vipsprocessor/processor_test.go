@@ -960,6 +960,27 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 	}
 }
 
+func TestPaletteColorForName(t *testing.T) {
+	// Lock in the deterministic palette mapping for key detector class names.
+	// If the palette order changes, these tests will catch it and force a
+	// conscious decision about the colour reassignment.
+	tests := []struct {
+		name  string
+		color string
+	}{
+		{"face", "33ff66"},   // green — index 4
+		{"eye", "00cccc"},    // cyan  — index 6
+		{"person", "ff6600"}, // deep orange — index 8
+		{"car", "33aaff"},    // blue  — index 1
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.color, paletteColorForName(tt.name),
+				"palette color for %q must be stable", tt.name)
+		})
+	}
+}
+
 func TestNormalizeSrgb(t *testing.T) {
 	// normalizeSrgb is the write-side normalizer: it converts real decoded images
 	// (which have a known colorspace) to sRGB before WriteToMemory.

@@ -778,9 +778,9 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 var detectionPalette = []string{
 	"ff3333", // red
 	"33aaff", // blue
-	"33ff66", // green
-	"ffaa00", // orange
 	"aa33ff", // purple
+	"ffaa00", // orange
+	"33ff66", // green
 	"ff33aa", // pink
 	"00cccc", // cyan
 	"ffff33", // yellow
