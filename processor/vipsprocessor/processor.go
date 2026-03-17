@@ -27,7 +27,7 @@ var processorCount int
 type Processor struct {
 	Filters            FilterMap
 	FallbackFunc       FallbackFunc
-	Detector           Detector
+	Detector           imagor.Detector
 	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int
@@ -115,7 +115,7 @@ func NewProcessor(options ...Option) *Processor {
 }
 
 // Startup implements imagor.Processor interface
-func (v *Processor) Startup(_ context.Context) error {
+func (v *Processor) Startup(ctx context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	processorCount++
@@ -163,11 +163,22 @@ func (v *Processor) Startup(_ context.Context) error {
 		}
 		v.cache = cache
 	}
+	if v.Detector != nil {
+		if err := v.Detector.Startup(ctx); err != nil {
+			v.Logger.Warn("detector startup failed, face detection disabled", zap.Error(err))
+			v.Detector = nil
+		}
+	}
 	return nil
 }
 
+// SetDetector implements imagor.DetectorSetter.
+func (v *Processor) SetDetector(d imagor.Detector) {
+	v.Detector = d
+}
+
 // Shutdown implements imagor.Processor interface
-func (v *Processor) Shutdown(_ context.Context) error {
+func (v *Processor) Shutdown(ctx context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	if processorCount <= 0 {
@@ -180,6 +191,9 @@ func (v *Processor) Shutdown(_ context.Context) error {
 	if v.cache != nil {
 		v.cache.Close()
 		v.cache = nil
+	}
+	if v.Detector != nil {
+		_ = v.Detector.Shutdown(ctx)
 	}
 	return nil
 }

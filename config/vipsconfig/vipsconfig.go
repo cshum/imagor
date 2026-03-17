@@ -4,7 +4,6 @@ import (
 	"flag"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/processor/pigoprocessor"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"go.uber.org/zap"
 )
@@ -52,8 +51,6 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry")
 		vipsCacheFormat = fs.String("vips-cache-format", "pixel",
 			"VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)")
-		vipsFaceDetect = fs.Bool("vips-face-detect", false,
-			"VIPS enable pigo face detection for smart crop. When enabled, smart crop centres on detected faces instead of libvips attention heuristic")
 
 		logger, isDebug = cb()
 	)
@@ -80,13 +77,6 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		vipsprocessor.WithCacheFormat(parseCacheFormat(*vipsCacheFormat)),
 		vipsprocessor.WithLogger(logger),
 		vipsprocessor.WithDebug(isDebug),
-	}
-	if *vipsFaceDetect {
-		if detector, err := pigoprocessor.New(); err == nil {
-			opts = append(opts, vipsprocessor.WithDetector(detector))
-		} else {
-			logger.Warn("vips-face-detect: failed to initialise pigo detector", zap.Error(err))
-		}
 	}
 	return imagor.WithProcessors(vipsprocessor.NewProcessor(opts...))
 }
