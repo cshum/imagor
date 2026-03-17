@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"net/url"
 	"strconv"
@@ -737,41 +738,42 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 	return img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
 }
 
-// detectionsFilter draws bounding box outlines for all regions returned by the
-// configured Detector onto the image.  It is intended for visual debugging.
-//
-// Usage:
-//
-//	filters:detections()
-//	filters:detections(color)                       e.g. detections(ff0000)
-//	filters:detections(name:color,...)              e.g. detections(face:ff0000,eye:00ff00)
-//	filters:detections(color,name:color,...)        e.g. detections(ff0000,face:0000ff)
-//
-// A bare argument (no colon) sets the default colour for all region names that do
-// not have an explicit per-name override.  name:color pairs assign a colour to
-// regions whose Name field matches exactly.  Matching is case-sensitive.
-//
-// color — any CSS colour name or hex string accepted by getColor (default: 00ff00, green)
-//
-// No-op when no Detector is configured.
+// detectionPalette is a set of visually distinct colours used to auto-colour
+// bounding boxes by detector class name. The index is chosen by hashing the
+// name, so the same name always maps to the same colour.
+var detectionPalette = []string{
+	"ff3333", // red
+	"33aaff", // blue
+	"33ff66", // green
+	"ffaa00", // orange
+	"aa33ff", // purple
+	"ff33aa", // pink
+	"00cccc", // cyan
+	"ffff33", // yellow
+	"ff6600", // deep orange
+	"0066ff", // royal blue
+	"66ff00", // lime
+	"cc0066", // magenta
+}
+
+// paletteColorForName returns a deterministic palette colour for the given
+// detector class name using FNV-32a hashing, so the same name always maps
+// to the same colour regardless of what other names are present.
+func paletteColorForName(name string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(name))
+	return detectionPalette[h.Sum32()%uint32(len(detectionPalette))]
+}
+
+// detectionsFilter draws colour-coded bounding boxes for all detected regions
+// onto the image for visual debugging. Each unique class name is automatically
+// assigned a distinct colour via hash-based palette selection — the same name
+// always maps to the same colour. No-op when no Detector is configured.
 func (v *Processor) detectionsFilter(
-	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string,
+	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string,
 ) (err error) {
 	if v.Detector == nil {
 		return
-	}
-
-	defaultColor := "00ff00"
-	nameColors := map[string]string{}
-	for _, arg := range args {
-		if arg == "" {
-			continue
-		}
-		if name, color, ok := strings.Cut(arg, ":"); ok {
-			nameColors[name] = color
-		} else {
-			defaultColor = arg
-		}
 	}
 
 	regions := v.detectRegions(ctx, img, "")
@@ -783,29 +785,22 @@ func (v *Processor) detectionsFilter(
 	h := img.PageHeight()
 	bands := img.Bands()
 
-	colorInk := func(colorStr string) []float64 {
-		c := getColor(img, colorStr)
+	nameInks := make(map[string][]float64)
+
+	inkForName := func(name string) []float64 {
+		if ink, ok := nameInks[name]; ok {
+			return ink
+		}
+		c := getColor(img, paletteColorForName(name))
 		for len(c) < bands {
 			c = append(c, 255)
 		}
+		nameInks[name] = c
 		return c
 	}
 
-	// Pre-compute default ink once; per-name inks are computed lazily.
-	defaultInk := colorInk(defaultColor)
-	nameInks := make(map[string][]float64, len(nameColors))
-
 	for _, r := range regions {
-		ink := defaultInk
-		if c, ok := nameColors[r.Name]; ok {
-			if ni, cached := nameInks[r.Name]; cached {
-				ink = ni
-			} else {
-				ni = colorInk(c)
-				nameInks[r.Name] = ni
-				ink = ni
-			}
-		}
+		ink := inkForName(r.Name)
 		left := int(math.Round(r.Left * float64(w)))
 		top := int(math.Round(r.Top * float64(h)))
 		rw := int(math.Round(r.Right*float64(w))) - left
