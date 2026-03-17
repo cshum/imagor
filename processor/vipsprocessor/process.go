@@ -81,7 +81,7 @@ func (v *Processor) Process(
 		stripExif := imagorpath.HasFilter(p, "strip_exif")
 		var metaRegions []imagor.Region
 		if v.Detector != nil {
-			metaRegions = v.detectRegions(ctx, img)
+			metaRegions = v.detectRegions(ctx, img, p.Image)
 		}
 		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif, metaRegions)), nil
 	}
@@ -484,7 +484,7 @@ func (v *Processor) loadAndProcess(
 	// normalised ratios; multiply by original dimensions to obtain absolute focal
 	// rects that FocalThumbnail / parseFocalPoint already know how to consume.
 	if p.Smart && v.Detector != nil && len(focalRects) == 0 {
-		detected := v.detectRegions(ctx, img)
+		detected := v.detectRegions(ctx, img, p.Image)
 		if v.Debug {
 			v.Logger.Debug("detector",
 				zap.Int("regions", len(detected)),
@@ -960,7 +960,7 @@ const detectorProbeSize = 400
 // the probe — callers must multiply by original image dimensions before use.
 // All errors are treated as non-fatal: an empty slice is returned so the
 // caller falls back to the default InterestingAttention crop.
-func (v *Processor) detectRegions(ctx context.Context, img *vips.Image) []imagor.Region {
+func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePath string) []imagor.Region {
 	probe, err := img.Copy(nil)
 	if err != nil {
 		return nil
@@ -980,7 +980,8 @@ func (v *Processor) detectRegions(ctx context.Context, img *vips.Image) []imagor
 	if err != nil {
 		return nil
 	}
-	regions, err := v.Detector.Detect(ctx, buf, probe.Width(), probe.PageHeight(), probe.Bands())
+	blob := imagor.NewBlobFromMemory(buf, probe.Width(), probe.PageHeight(), probe.Bands())
+	regions, err := v.Detector.Detect(ctx, imagePath, blob)
 	if err != nil {
 		if v.Debug {
 			v.Logger.Debug("detector error", zap.Error(err))

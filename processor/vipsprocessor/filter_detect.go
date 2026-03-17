@@ -30,7 +30,7 @@ func (v *Processor) detectionsFilter(
 		color = args[0]
 	}
 
-	regions := v.detectRegions(ctx, img)
+	regions := v.detectRegions(ctx, img, "")
 	if len(regions) == 0 {
 		return
 	}

@@ -787,7 +787,7 @@ type stubDetector struct {
 
 func (s *stubDetector) Startup(_ context.Context) error { return nil }
 func (s *stubDetector) Shutdown(_ context.Context) error { return nil }
-func (s *stubDetector) Detect(_ context.Context, _ []uint8, _, _, _ int) ([]imagor.Region, error) {
+func (s *stubDetector) Detect(_ context.Context, _ string, blob *imagor.Blob) ([]imagor.Region, error) {
 	return s.regions, nil
 }
 

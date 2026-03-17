@@ -14,15 +14,18 @@ type Region struct {
 // Implementations are free to perform any kind of detection (faces, objects,
 // text boxes, etc.) — the only contract is the coordinate space.
 //
-// buf is a row-major sRGB or sRGBA byte slice produced by vips WriteToMemory,
-// with `bands` channels per pixel (typically 3 or 4).
-// len(buf) == width * height * bands.
+// imagePath identifies the source image (e.g. URL path) and is used as a cache
+// key by implementations that cache results. Pass an empty string to opt out of
+// caching for a particular call.
+//
+// blob must be a BlobTypeMemory blob created with NewBlobFromMemory, carrying
+// row-major sRGB/sRGBA pixels. Retrieve dimensions via blob.Memory().
 //
 // Returned regions must use normalised coordinates in [0.0, 1.0] relative to
-// width / height.
+// the image width / height stored in blob.
 type Detector interface {
 	Startup(ctx context.Context) error
-	Detect(ctx context.Context, buf []uint8, width, height, bands int) ([]Region, error)
+	Detect(ctx context.Context, imagePath string, blob *Blob) ([]Region, error)
 	Shutdown(ctx context.Context) error
 }
 
