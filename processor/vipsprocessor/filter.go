@@ -849,9 +849,9 @@ func (v *Processor) detectionsFilter(
 	return
 }
 
-// redactFilter obscures all detected regions by applying blur or pixelate to
-// each bounding box, compositing the result back onto the image. Intended for
-// privacy/anonymisation use cases (e.g. GDPR face blurring).
+// redactFilter obscures all detected regions by applying blur, pixelate, or a
+// solid color fill to each bounding box. Intended for privacy/anonymisation use
+// cases (e.g. GDPR face blurring, legal document redaction).
 //
 // Usage:
 //
@@ -860,6 +860,9 @@ func (v *Processor) detectionsFilter(
 //	filters:redact(blur,20)        — blur with sigma 20
 //	filters:redact(pixelate)       — pixelate with default block size (10)
 //	filters:redact(pixelate,15)    — pixelate with 15px blocks
+//	filters:redact(black)          — solid black fill (most common for legal docs)
+//	filters:redact(white)          — solid white fill
+//	filters:redact(ff0000)         — solid red fill (any CSS color name or hex)
 //
 // No-op when no Detector is configured or no regions are detected.
 // Skips animated images (consistent with the blur filter).
@@ -924,30 +927,48 @@ func (v *Processor) redactFilter(
 			return extractErr
 		}
 
-		var applyErr error
 		switch mode {
 		case "pixelate":
 			blockSize := 10
 			if strength > 0 {
 				blockSize = strength
 			}
-			applyErr = pixelateImage(patch, blockSize)
-		default: // "blur"
+			if applyErr := pixelateImage(patch, blockSize); applyErr != nil {
+				patch.Close()
+				return applyErr
+			}
+			compErr := img.Composite2(patch, vips.BlendModeOver, &vips.Composite2Options{X: left, Y: top})
+			patch.Close()
+			if compErr != nil {
+				return compErr
+			}
+		case "blur":
 			sigma := 15.0
 			if strength > 0 {
 				sigma = float64(strength)
 			}
-			applyErr = patch.Gaussblur(sigma, nil)
-		}
-		if applyErr != nil {
+			if applyErr := patch.Gaussblur(sigma, nil); applyErr != nil {
+				patch.Close()
+				return applyErr
+			}
+			compErr := img.Composite2(patch, vips.BlendModeOver, &vips.Composite2Options{X: left, Y: top})
 			patch.Close()
-			return applyErr
-		}
-
-		compErr := img.Composite2(patch, vips.BlendModeOver, &vips.Composite2Options{X: left, Y: top})
-		patch.Close()
-		if compErr != nil {
-			return compErr
+			if compErr != nil {
+				return compErr
+			}
+		default:
+			// Treat mode as a color name or hex — solid fill redaction.
+			// This is the most common form in legal/compliance contexts (black bars).
+			// e.g. redact(black), redact(white), redact(ff0000)
+			patch.Close() // don't need the extracted patch for solid fill
+			c := getColor(img, mode)
+			// Pad ink to match image band count (e.g. add alpha=255 for RGBA images)
+			for len(c) < img.Bands() {
+				c = append(c, 255)
+			}
+			if drawErr := img.DrawRect(c, left, top, rw, rh, &vips.DrawRectOptions{Fill: true}); drawErr != nil {
+				return drawErr
+			}
 		}
 	}
 	return
