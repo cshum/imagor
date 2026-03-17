@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -795,7 +796,69 @@ func TestProcessor(t *testing.T) {
 			{name: "redact blur custom", path: "filters:redact(blur,25)/gopher-front.png"},
 			{name: "redact pixelate default", path: "filters:redact(pixelate)/gopher-front.png"},
 			{name: "redact pixelate custom", path: "filters:redact(pixelate,20)/gopher-front.png"},
+			{name: "redact black", path: "filters:redact(black)/gopher-front.png"},
+			{name: "redact white", path: "filters:redact(white)/gopher-front.png"},
+			{name: "redact color hex", path: "filters:redact(ff0000)/gopher-front.png"},
 		}, WithDetector(stub))
+	})
+	t.Run("meta with detector", func(t *testing.T) {
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face", Score: 9.5},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye", Score: 7.2},
+		}}
+		fileLoader := filestorage.New(testDataDir)
+		processor := NewProcessor(WithDetector(stub))
+		require.NoError(t, processor.Startup(context.Background()))
+		defer func() { require.NoError(t, processor.Shutdown(context.Background())) }()
+
+		loader := loaderFunc(func(r *http.Request, image string) (*imagor.Blob, error) {
+			image, _ = fileLoader.Path(image)
+			return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+				reader, err := os.Open(image)
+				return reader, 0, err
+			}), nil
+		})
+		app := imagor.New(
+			imagor.WithLoaders(loader),
+			imagor.WithProcessors(processor),
+			imagor.WithUnsafe(true),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+		readMeta := func(path string) *Metadata {
+			t.Helper()
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", path), nil))
+			require.Equal(t, 200, w.Code)
+			var m Metadata
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &m))
+			return &m
+		}
+
+		t.Run("plain meta has no detected regions", func(t *testing.T) {
+			m := readMeta("meta/gopher-front.png")
+			assert.Empty(t, m.DetectedRegions,
+				"plain /meta should not run detection")
+		})
+		t.Run("meta with detections filter has regions", func(t *testing.T) {
+			m := readMeta("meta/filters:detections()/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+detections() should return detected regions")
+			assert.Equal(t, "face", m.DetectedRegions[0].Name)
+			assert.Equal(t, "eye", m.DetectedRegions[1].Name)
+		})
+		t.Run("meta with smart has regions", func(t *testing.T) {
+			m := readMeta("meta/smart/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+smart should return detected regions")
+		})
+		t.Run("meta with redact filter has regions", func(t *testing.T) {
+			m := readMeta("meta/filters:redact()/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+redact() should return detected regions")
+		})
 	})
 }
 

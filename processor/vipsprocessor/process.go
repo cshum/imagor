@@ -80,7 +80,11 @@ func (v *Processor) Process(
 	if p.Meta {
 		stripExif := imagorpath.HasFilter(p, "strip_exif")
 		var metaRegions []imagor.DetectorRegion
-		if v.Detector != nil {
+		// Only run detection when the URL semantically requests it — smart crop, detections() or redact() filter.
+		needsDetection := p.Smart ||
+			imagorpath.HasFilter(p, "detections") ||
+			imagorpath.HasFilter(p, "redact")
+		if v.Detector != nil && needsDetection {
 			metaRegions = v.detectRegions(ctx, img, p.Image)
 		}
 		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif, metaRegions)), nil
