@@ -769,7 +769,7 @@ func TestProcessor(t *testing.T) {
 	})
 	t.Run("detections filter", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden/detections")
-		stub := &stubDetector{regions: []imagor.Region{
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
 			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6},
 			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55},
 		}}
@@ -782,12 +782,12 @@ func TestProcessor(t *testing.T) {
 
 // stubDetector is a test-only Detector that returns a fixed set of regions.
 type stubDetector struct {
-	regions []imagor.Region
+	regions []imagor.DetectorRegion
 }
 
 func (s *stubDetector) Startup(_ context.Context) error  { return nil }
 func (s *stubDetector) Shutdown(_ context.Context) error { return nil }
-func (s *stubDetector) Detect(_ context.Context, _ string, blob *imagor.Blob) ([]imagor.Region, error) {
+func (s *stubDetector) Detect(_ context.Context, _ string, blob *imagor.Blob) ([]imagor.DetectorRegion, error) {
 	return s.regions, nil
 }
 

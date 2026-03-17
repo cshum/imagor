@@ -2405,7 +2405,7 @@ type testDetector struct{}
 
 func (testDetector) Startup(_ context.Context) error  { return nil }
 func (testDetector) Shutdown(_ context.Context) error { return nil }
-func (testDetector) Detect(_ context.Context, _ string, _ *Blob) ([]Region, error) {
+func (testDetector) Detect(_ context.Context, _ string, _ *Blob) ([]DetectorRegion, error) {
 	return nil, nil
 }
 

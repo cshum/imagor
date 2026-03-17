@@ -2,9 +2,9 @@ package imagor
 
 import "context"
 
-// Region is a normalised bounding box where all fields are ratios in [0.0, 1.0]
+// DetectorRegion is a normalised bounding box where all fields are ratios in [0.0, 1.0]
 // relative to the image dimensions passed to Detector.Detect.
-type Region struct {
+type DetectorRegion struct {
 	Left, Top, Right, Bottom float64
 	Score                    float64 // detection confidence; 0 means not provided
 	Name                     string  // class name e.g. "face"; empty means not provided
@@ -25,7 +25,7 @@ type Region struct {
 // the image width / height stored in blob.
 type Detector interface {
 	Startup(ctx context.Context) error
-	Detect(ctx context.Context, imagePath string, blob *Blob) ([]Region, error)
+	Detect(ctx context.Context, imagePath string, blob *Blob) ([]DetectorRegion, error)
 	Shutdown(ctx context.Context) error
 }
 

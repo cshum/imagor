@@ -79,7 +79,7 @@ func (v *Processor) Process(
 	// Handle metadata response
 	if p.Meta {
 		stripExif := imagorpath.HasFilter(p, "strip_exif")
-		var metaRegions []imagor.Region
+		var metaRegions []imagor.DetectorRegion
 		if v.Detector != nil {
 			metaRegions = v.detectRegions(ctx, img, p.Image)
 		}
@@ -730,7 +730,7 @@ type Metadata struct {
 	DetectedRegions []MetaRegion      `json:"detected_regions,omitempty"`
 }
 
-func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []imagor.Region) *Metadata {
+func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []imagor.DetectorRegion) *Metadata {
 	pages := 1
 	if IsAnimationSupported(format) {
 		pages = img.Height() / img.PageHeight()
@@ -960,7 +960,7 @@ const detectorProbeSize = 400
 // the probe — callers must multiply by original image dimensions before use.
 // All errors are treated as non-fatal: an empty slice is returned so the
 // caller falls back to the default InterestingAttention crop.
-func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePath string) []imagor.Region {
+func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePath string) []imagor.DetectorRegion {
 	probe, err := img.Copy(nil)
 	if err != nil {
 		return nil
