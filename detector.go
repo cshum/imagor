@@ -6,6 +6,8 @@ import "context"
 // relative to the image dimensions passed to Detector.Detect.
 type Region struct {
 	Left, Top, Right, Bottom float64
+	Score                    float64 // detection confidence; 0 means not provided
+	Name                     string  // class name e.g. "face"; empty means not provided
 }
 
 // Detector detects regions of interest in a raw pixel buffer.

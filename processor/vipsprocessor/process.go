@@ -709,10 +709,12 @@ func (v *Processor) applyTransformations(
 
 // MetaRegion is a detected region of interest in the output image, in absolute pixels.
 type MetaRegion struct {
-	Left   int `json:"left"`
-	Top    int `json:"top"`
-	Right  int `json:"right"`
-	Bottom int `json:"bottom"`
+	Left   int     `json:"left"`
+	Top    int     `json:"top"`
+	Right  int     `json:"right"`
+	Bottom int     `json:"bottom"`
+	Score  float64 `json:"score,omitempty"`
+	Name   string  `json:"name,omitempty"`
 }
 
 // Metadata image attributes
@@ -747,6 +749,8 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []
 			Top:    int(math.Round(r.Top * float64(img.PageHeight()))),
 			Right:  int(math.Round(r.Right * float64(img.Width()))),
 			Bottom: int(math.Round(r.Bottom * float64(img.PageHeight()))),
+			Score:  r.Score,
+			Name:   r.Name,
 		})
 	}
 	mimeType, _ := format.MimeType()
