@@ -100,6 +100,7 @@ func NewProcessor(options ...Option) *Processor {
 		"detections":       v.detectionsFilter,
 		"pixelate":         pixelate,
 		"redact":           v.redactFilter,
+		"redact_oval":      v.redactOvalFilter,
 	}
 	for _, option := range options {
 		option(v)

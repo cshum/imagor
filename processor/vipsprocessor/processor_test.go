@@ -801,6 +801,22 @@ func TestProcessor(t *testing.T) {
 			{name: "redact color hex", path: "filters:redact(ff0000)/gopher-front.png"},
 		}, WithDetector(stub))
 	})
+	t.Run("redact_oval filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/redact_oval")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "redact_oval blur default", path: "filters:redact_oval()/gopher-front.png"},
+			{name: "redact_oval blur custom", path: "filters:redact_oval(blur,25)/gopher-front.png"},
+			{name: "redact_oval pixelate default", path: "filters:redact_oval(pixelate)/gopher-front.png"},
+			{name: "redact_oval pixelate custom", path: "filters:redact_oval(pixelate,20)/gopher-front.png"},
+			{name: "redact_oval black", path: "filters:redact_oval(black)/gopher-front.png"},
+			{name: "redact_oval white", path: "filters:redact_oval(white)/gopher-front.png"},
+			{name: "redact_oval color hex", path: "filters:redact_oval(ff0000)/gopher-front.png"},
+		}, WithDetector(stub))
+	})
 	t.Run("meta with detector", func(t *testing.T) {
 		stub := &stubDetector{regions: []imagor.DetectorRegion{
 			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face", Score: 9.5},
