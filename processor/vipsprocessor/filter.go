@@ -736,3 +736,86 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 
 	return img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
 }
+
+// detectionsFilter draws bounding box outlines for all regions returned by the
+// configured Detector onto the image.  It is intended for visual debugging.
+//
+// Usage:
+//
+//	filters:detections()
+//	filters:detections(color)                       e.g. detections(ff0000)
+//	filters:detections(name:color,...)              e.g. detections(face:ff0000,eye:00ff00)
+//	filters:detections(color,name:color,...)        e.g. detections(ff0000,face:0000ff)
+//
+// A bare argument (no colon) sets the default colour for all region names that do
+// not have an explicit per-name override.  name:color pairs assign a colour to
+// regions whose Name field matches exactly.  Matching is case-sensitive.
+//
+// color — any CSS colour name or hex string accepted by getColor (default: 00ff00, green)
+//
+// No-op when no Detector is configured.
+func (v *Processor) detectionsFilter(
+	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string,
+) (err error) {
+	if v.Detector == nil {
+		return
+	}
+
+	defaultColor := "00ff00"
+	nameColors := map[string]string{}
+	for _, arg := range args {
+		if arg == "" {
+			continue
+		}
+		if name, color, ok := strings.Cut(arg, ":"); ok {
+			nameColors[name] = color
+		} else {
+			defaultColor = arg
+		}
+	}
+
+	regions := v.detectRegions(ctx, img, "")
+	if len(regions) == 0 {
+		return
+	}
+
+	w := img.Width()
+	h := img.PageHeight()
+	bands := img.Bands()
+
+	colorInk := func(colorStr string) []float64 {
+		c := getColor(img, colorStr)
+		for len(c) < bands {
+			c = append(c, 255)
+		}
+		return c
+	}
+
+	// Pre-compute default ink once; per-name inks are computed lazily.
+	defaultInk := colorInk(defaultColor)
+	nameInks := make(map[string][]float64, len(nameColors))
+
+	for _, r := range regions {
+		ink := defaultInk
+		if c, ok := nameColors[r.Name]; ok {
+			if ni, cached := nameInks[r.Name]; cached {
+				ink = ni
+			} else {
+				ni = colorInk(c)
+				nameInks[r.Name] = ni
+				ink = ni
+			}
+		}
+		left := int(math.Round(r.Left * float64(w)))
+		top := int(math.Round(r.Top * float64(h)))
+		rw := int(math.Round(r.Right*float64(w))) - left
+		rh := int(math.Round(r.Bottom*float64(h))) - top
+		if rw <= 0 || rh <= 0 {
+			continue
+		}
+		if err = img.DrawRect(ink, left, top, rw, rh, &vips.DrawRectOptions{Fill: false}); err != nil {
+			return
+		}
+	}
+	return
+}

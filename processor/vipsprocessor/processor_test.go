@@ -778,6 +778,17 @@ func TestProcessor(t *testing.T) {
 			{name: "detections red", path: "filters:detections(ff0000)/gopher-front.png"},
 		}, WithDetector(stub))
 	})
+	t.Run("detections filter per-name color", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/detections")
+		stubNamed := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "detections per-name", path: "filters:detections(face:ff0000,eye:0000ff)/gopher-front.png"},
+			{name: "detections default+per-name", path: "filters:detections(ffff00,face:ff0000)/gopher-front.png"},
+		}, WithDetector(stubNamed))
+	})
 }
 
 // stubDetector is a test-only Detector that returns a fixed set of regions.
