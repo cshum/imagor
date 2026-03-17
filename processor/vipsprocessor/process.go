@@ -489,12 +489,6 @@ func (v *Processor) loadAndProcess(
 	// rects that FocalThumbnail / parseFocalPoint already know how to consume.
 	if p.Smart && v.Detector != nil && len(focalRects) == 0 {
 		detected := v.detectRegions(ctx, img, p.Image)
-		if v.Debug {
-			v.Logger.Debug("detector",
-				zap.Int("regions", len(detected)),
-				zap.Float64("orig_width", origWidth),
-				zap.Float64("orig_height", origHeight))
-		}
 		for _, r := range detected {
 			focalRects = append(focalRects, focal{
 				Left:   r.Left * origWidth,
@@ -985,12 +979,6 @@ func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePat
 		return nil
 	}
 	blob := imagor.NewBlobFromMemory(buf, probe.Width(), probe.PageHeight(), probe.Bands())
-	regions, err := v.Detector.Detect(ctx, imagePath, blob)
-	if err != nil {
-		if v.Debug {
-			v.Logger.Debug("detector error", zap.Error(err))
-		}
-		return nil
-	}
+	regions, _ := v.Detector.Detect(ctx, imagePath, blob)
 	return regions
 }
