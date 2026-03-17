@@ -767,6 +767,28 @@ func TestProcessor(t *testing.T) {
 		err = img.Modulate(1, 1, 300)
 		assert.NoError(t, err, "hue/Modulate must not fail after BMP fallback load")
 	})
+	t.Run("detections filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/detections")
+		stub := &stubDetector{regions: []imagor.Region{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "detections default", path: "filters:detections()/gopher-front.png"},
+			{name: "detections red", path: "filters:detections(ff0000)/gopher-front.png"},
+		}, WithDetector(stub))
+	})
+}
+
+// stubDetector is a test-only Detector that returns a fixed set of regions.
+type stubDetector struct {
+	regions []imagor.Region
+}
+
+func (s *stubDetector) Startup(_ context.Context) error { return nil }
+func (s *stubDetector) Shutdown(_ context.Context) error { return nil }
+func (s *stubDetector) Detect(_ context.Context, _ []uint8, _, _, _ int) ([]imagor.Region, error) {
+	return s.regions, nil
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
