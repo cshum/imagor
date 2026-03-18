@@ -946,12 +946,6 @@ func findTrim(
 	return
 }
 
-// detectorProbeSize is the maximum dimension (width or height) of the
-// downscaled probe image passed to the Detector.  Keeping the probe small
-// (~400 px) gives roughly a 10× speed-up over full-resolution detection with
-// negligible loss in crop precision.
-const detectorProbeSize = 400
-
 // detectRegions creates a cheap downscaled probe from img, exports its raw
 // sRGB pixels, and asks the configured Detector to locate regions of interest.
 // The returned regions are in normalised [0.0, 1.0] coordinates relative to
@@ -965,8 +959,8 @@ func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePat
 	}
 	defer probe.Close()
 
-	if err := probe.ThumbnailImage(detectorProbeSize, &vips.ThumbnailImageOptions{
-		Height: detectorProbeSize,
+	if err := probe.ThumbnailImage(v.DetectorProbeSize, &vips.ThumbnailImageOptions{
+		Height: v.DetectorProbeSize,
 		Crop:   vips.InterestingNone,
 		Size:   vips.SizeDown,
 	}); err != nil {

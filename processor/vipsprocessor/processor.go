@@ -25,10 +25,11 @@ var processorCount int
 
 // Processor implements imagor.Processor interface
 type Processor struct {
-	Filters            FilterMap
-	FallbackFunc       FallbackFunc
-	Detector           imagor.Detector
-	DisableBlur        bool
+	Filters              FilterMap
+	FallbackFunc         FallbackFunc
+	Detector             imagor.Detector
+	DetectorProbeSize    int
+	DisableBlur          bool
 	DisableFilters     []string
 	MaxFilterOps       int
 	Logger             *zap.Logger
@@ -72,6 +73,7 @@ func NewProcessor(options ...Option) *Processor {
 		disableFilters:     map[string]bool{},
 		CacheMaxWidth:      2400,
 		CacheMaxHeight:     2000,
+		DetectorProbeSize:  400,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,

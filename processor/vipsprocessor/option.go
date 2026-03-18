@@ -26,6 +26,18 @@ func WithDetector(d imagor.Detector) Option {
 	}
 }
 
+// WithDetectorProbeSize sets the maximum dimension (width or height) of the
+// downscaled probe image passed to the Detector for smart crop detection.
+// Keeping the probe small (~400 px) gives roughly a 10x speed-up over
+// full-resolution detection with negligible loss in crop precision. Defaults to 400.
+func WithDetectorProbeSize(size int) Option {
+	return func(v *Processor) {
+		if size > 0 {
+			v.DetectorProbeSize = size
+		}
+	}
+}
+
 // WithDisableBlur with disable blur option
 func WithDisableBlur(disabled bool) Option {
 	return func(v *Processor) {
