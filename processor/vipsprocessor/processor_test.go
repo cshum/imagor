@@ -876,6 +876,26 @@ func TestProcessor(t *testing.T) {
 				"meta+redact() should return detected regions")
 		})
 	})
+	t.Run("detector startup failure disables detector", func(t *testing.T) {
+		// When Detector.Startup returns an error, the processor must set
+		// Detector to nil so that draw_detections/redact become no-ops.
+		p := NewProcessor(WithDetector(&failingDetector{}))
+		require.NoError(t, p.Startup(context.Background()))
+		defer func() { require.NoError(t, p.Shutdown(context.Background())) }()
+		assert.Nil(t, p.Detector, "Detector must be nil after startup failure")
+	})
+	t.Run("SetDetector wires detector", func(t *testing.T) {
+		p := NewProcessor()
+		require.NoError(t, p.Startup(context.Background()))
+		defer func() { require.NoError(t, p.Shutdown(context.Background())) }()
+
+		assert.Nil(t, p.Detector, "Detector must be nil before SetDetector")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+		}}
+		p.SetDetector(stub)
+		assert.Equal(t, stub, p.Detector, "SetDetector must assign the provided detector")
+	})
 }
 
 // stubDetector is a test-only Detector that returns a fixed set of regions.
@@ -887,6 +907,15 @@ func (s *stubDetector) Startup(_ context.Context) error  { return nil }
 func (s *stubDetector) Shutdown(_ context.Context) error { return nil }
 func (s *stubDetector) Detect(_ context.Context, _ string, blob *imagor.Blob) ([]imagor.DetectorRegion, error) {
 	return s.regions, nil
+}
+
+// failingDetector is a test-only Detector whose Startup always returns an error.
+type failingDetector struct{}
+
+func (f *failingDetector) Startup(_ context.Context) error  { return fmt.Errorf("startup failed") }
+func (f *failingDetector) Shutdown(_ context.Context) error { return nil }
+func (f *failingDetector) Detect(_ context.Context, _ string, _ *imagor.Blob) ([]imagor.DetectorRegion, error) {
+	return nil, nil
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
