@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"runtime"
 	"strings"
@@ -27,7 +28,7 @@ var processorCount int
 type Processor struct {
 	Filters            FilterMap
 	FallbackFunc       FallbackFunc
-	Detector           imagor.Detector
+	Detectors          []imagor.Detector
 	DetectorProbeSize  int
 	DisableBlur        bool
 	DisableFilters     []string
@@ -168,18 +169,17 @@ func (v *Processor) Startup(ctx context.Context) error {
 		}
 		v.cache = cache
 	}
-	if v.Detector != nil {
-		if err := v.Detector.Startup(ctx); err != nil {
-			v.Logger.Warn("detector startup failed, face detection disabled", zap.Error(err))
-			v.Detector = nil
+	for _, d := range v.Detectors {
+		if err := d.Startup(ctx); err != nil {
+			return fmt.Errorf("detector startup: %w", err)
 		}
 	}
 	return nil
 }
 
-// SetDetector implements imagor.DetectorSetter.
-func (v *Processor) SetDetector(d imagor.Detector) {
-	v.Detector = d
+// AddDetector implements imagor.DetectorAdder.
+func (v *Processor) AddDetector(d imagor.Detector) {
+	v.Detectors = append(v.Detectors, d)
 }
 
 // Shutdown implements imagor.Processor interface
@@ -197,8 +197,8 @@ func (v *Processor) Shutdown(ctx context.Context) error {
 		v.cache.Close()
 		v.cache = nil
 	}
-	if v.Detector != nil {
-		_ = v.Detector.Shutdown(ctx)
+	for _, d := range v.Detectors {
+		_ = d.Shutdown(ctx)
 	}
 	return nil
 }

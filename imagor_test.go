@@ -2392,13 +2392,13 @@ func (f processorFunc) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// detectorSetterProc wraps processorFunc and implements DetectorSetter for testing.
-type detectorSetterProc struct {
+// detectorAdderProc wraps processorFunc and implements DetectorAdder for testing.
+type detectorAdderProc struct {
 	processorFunc
-	detector Detector
+	detectors []Detector
 }
 
-func (p *detectorSetterProc) SetDetector(d Detector) { p.detector = d }
+func (p *detectorAdderProc) AddDetector(d Detector) { p.detectors = append(p.detectors, d) }
 
 // testDetector is a no-op Detector used in tests.
 type testDetector struct{}
@@ -2410,23 +2410,37 @@ func (testDetector) Detect(_ context.Context, _ string, _ *Blob) ([]DetectorRegi
 }
 
 func TestWithDetector(t *testing.T) {
-	proc := &detectorSetterProc{}
+	proc := &detectorAdderProc{}
 	d := testDetector{}
 	app := New(
 		WithProcessors(proc),
 		WithDetector(d),
 	)
-	assert.Equal(t, Detector(d), proc.detector)
+	require.Len(t, proc.detectors, 1)
+	assert.Equal(t, Detector(d), proc.detectors[0])
 	_ = app
 }
 
 func TestWithDetectorNil(t *testing.T) {
-	proc := &detectorSetterProc{}
+	proc := &detectorAdderProc{}
 	app := New(
 		WithProcessors(proc),
 		WithDetector(nil),
 	)
-	assert.Nil(t, proc.detector)
+	assert.Empty(t, proc.detectors)
+	_ = app
+}
+
+func TestWithDetectors(t *testing.T) {
+	proc := &detectorAdderProc{}
+	d1, d2 := testDetector{}, testDetector{}
+	app := New(
+		WithProcessors(proc),
+		WithDetectors(d1, nil, d2),
+	)
+	require.Len(t, proc.detectors, 2, "nil entries must be skipped")
+	assert.Equal(t, Detector(d1), proc.detectors[0])
+	assert.Equal(t, Detector(d2), proc.detectors[1])
 	_ = app
 }
 

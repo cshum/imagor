@@ -46,7 +46,7 @@ func paletteColorForName(name string) string {
 func (v *Processor) drawDetectionsFilter(
 	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string,
 ) (err error) {
-	if v.Detector == nil {
+	if len(v.Detectors) == 0 {
 		return
 	}
 
@@ -218,7 +218,7 @@ func applyRedactRegion(img *vips.Image, left, top, rw, rh int, mode string, stre
 
 // doRedact is the shared implementation for redactFilter and redactOvalFilter.
 func (v *Processor) doRedact(ctx context.Context, img *vips.Image, oval bool, args ...string) error {
-	if v.Detector == nil || isAnimated(img) {
+	if len(v.Detectors) == 0 || isAnimated(img) {
 		return nil
 	}
 	mode, strength := parseRedactArgs(args)

@@ -792,8 +792,8 @@ func TestProcessor(t *testing.T) {
 			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
 		}}
 		doGoldenTests(t, resultDir, []test{
-			{name: "redact blur default", path: "filters:redact()/gopher-front.png"},
-			{name: "redact blur custom", path: "filters:redact(blur,25)/gopher-front.png"},
+			{name: "redact blur default", path: "filters:redact()/gopher-front.png", arm64Golden: true},
+			{name: "redact blur custom", path: "filters:redact(blur,25)/gopher-front.png", arm64Golden: true},
 			{name: "redact pixelate default", path: "filters:redact(pixelate)/gopher-front.png"},
 			{name: "redact pixelate custom", path: "filters:redact(pixelate,20)/gopher-front.png"},
 			{name: "redact black", path: "filters:redact(black)/gopher-front.png"},
@@ -808,8 +808,8 @@ func TestProcessor(t *testing.T) {
 			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
 		}}
 		doGoldenTests(t, resultDir, []test{
-			{name: "redact_oval blur default", path: "filters:redact_oval()/gopher-front.png"},
-			{name: "redact_oval blur custom", path: "filters:redact_oval(blur,25)/gopher-front.png"},
+			{name: "redact_oval blur default", path: "filters:redact_oval()/gopher-front.png", arm64Golden: true},
+			{name: "redact_oval blur custom", path: "filters:redact_oval(blur,25)/gopher-front.png", arm64Golden: true},
 			{name: "redact_oval pixelate default", path: "filters:redact_oval(pixelate)/gopher-front.png"},
 			{name: "redact_oval pixelate custom", path: "filters:redact_oval(pixelate,20)/gopher-front.png"},
 			{name: "redact_oval black", path: "filters:redact_oval(black)/gopher-front.png"},
@@ -876,25 +876,41 @@ func TestProcessor(t *testing.T) {
 				"meta+redact() should return detected regions")
 		})
 	})
-	t.Run("detector startup failure disables detector", func(t *testing.T) {
-		// When Detector.Startup returns an error, the processor must set
-		// Detector to nil so that draw_detections/redact become no-ops.
+	t.Run("detector startup failure returns error", func(t *testing.T) {
+		// When any Detector.Startup returns an error, Processor.Startup must
+		// propagate it so the server fails fast rather than silently disabling detection.
 		p := NewProcessor(WithDetector(&failingDetector{}))
-		require.NoError(t, p.Startup(context.Background()))
-		defer func() { require.NoError(t, p.Shutdown(context.Background())) }()
-		assert.Nil(t, p.Detector, "Detector must be nil after startup failure")
+		err := p.Startup(context.Background())
+		require.Error(t, err, "Startup must return error when a detector fails")
+		assert.Contains(t, err.Error(), "startup failed")
+		_ = p.Shutdown(context.Background())
 	})
-	t.Run("SetDetector wires detector", func(t *testing.T) {
+	t.Run("AddDetector wires detector", func(t *testing.T) {
 		p := NewProcessor()
 		require.NoError(t, p.Startup(context.Background()))
 		defer func() { require.NoError(t, p.Shutdown(context.Background())) }()
 
-		assert.Nil(t, p.Detector, "Detector must be nil before SetDetector")
+		assert.Empty(t, p.Detectors, "Detectors must be empty before AddDetector")
 		stub := &stubDetector{regions: []imagor.DetectorRegion{
 			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
 		}}
-		p.SetDetector(stub)
-		assert.Equal(t, stub, p.Detector, "SetDetector must assign the provided detector")
+		p.AddDetector(stub)
+		require.Len(t, p.Detectors, 1, "AddDetector must append the provided detector")
+		assert.Equal(t, stub, p.Detectors[0])
+	})
+	t.Run("two detectors both contribute regions", func(t *testing.T) {
+		// Wire two stubs with distinct region names; detectRegions must merge
+		// both result sets so downstream smart crop / redact sees all regions.
+		stub1 := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.4, Name: "face"},
+		}}
+		stub2 := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.6, Top: 0.1, Right: 0.9, Bottom: 0.5, Name: "person"},
+		}}
+		var resultDir = filepath.Join(testDataDir, "golden/two_detectors")
+		doGoldenTests(t, resultDir, []test{
+			{name: "two detectors merged", path: "filters:draw_detections()/gopher-front.png"},
+		}, WithDetectors(stub1, stub2))
 	})
 }
 

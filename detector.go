@@ -29,9 +29,9 @@ type Detector interface {
 	Shutdown(ctx context.Context) error
 }
 
-// DetectorSetter is implemented by processors that accept a Detector.
-// imagorface uses this interface to wire a detector into a processor without
-// importing the processor package directly.
-type DetectorSetter interface {
-	SetDetector(Detector)
+// DetectorAdder is implemented by processors that accept one or more Detectors.
+// imagorface and other detector plugins use this interface to wire a detector
+// into a processor without importing the processor package directly.
+type DetectorAdder interface {
+	AddDetector(Detector)
 }

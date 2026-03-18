@@ -18,11 +18,19 @@ func WithFilter(name string, filter FilterFunc) Option {
 	}
 }
 
-// WithDetector sets the region Detector used to populate focal points when
-// the smart crop token is present and no explicit focal() filter is provided.
+// WithDetector appends a region Detector to the processor.
+// Multiple detectors can be added; their results are merged for smart crop,
+// draw_detections(), and redact() filters.
 func WithDetector(d imagor.Detector) Option {
 	return func(v *Processor) {
-		v.Detector = d
+		v.Detectors = append(v.Detectors, d)
+	}
+}
+
+// WithDetectors appends multiple Detectors to the processor at once.
+func WithDetectors(ds ...imagor.Detector) Option {
+	return func(v *Processor) {
+		v.Detectors = append(v.Detectors, ds...)
 	}
 }
 

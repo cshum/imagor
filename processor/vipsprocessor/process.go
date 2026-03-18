@@ -84,7 +84,7 @@ func (v *Processor) Process(
 		needsDetection := p.Smart ||
 			imagorpath.HasFilter(p, "draw_detections") ||
 			imagorpath.HasFilter(p, "redact")
-		if v.Detector != nil && needsDetection {
+		if len(v.Detectors) > 0 && needsDetection {
 			metaRegions = v.detectRegions(ctx, img, p.Image)
 		}
 		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif, metaRegions)), nil
@@ -260,7 +260,7 @@ func (v *Processor) loadAndProcess(
 	// runs before any crop. Without this, Smart=true triggers NewThumbnail with
 	// InterestingAttention which decodes + attention-crops in one libvips call,
 	// leaving only the already-cropped thumbnail for detection.
-	if p.Smart && v.Detector != nil {
+	if p.Smart && len(v.Detectors) > 0 {
 		thumbnailNotSupported = true
 	}
 	if p.FitIn && !p.FullFitIn {
@@ -487,7 +487,7 @@ func (v *Processor) loadAndProcess(
 	// explicit focal() rects were provided by the caller.  Detection results are
 	// normalised ratios; multiply by original dimensions to obtain absolute focal
 	// rects that FocalThumbnail / parseFocalPoint already know how to consume.
-	if p.Smart && v.Detector != nil && len(focalRects) == 0 {
+	if p.Smart && len(v.Detectors) > 0 && len(focalRects) == 0 {
 		detected := v.detectRegions(ctx, img, p.Image)
 		for _, r := range detected {
 			focalRects = append(focalRects, focal{
@@ -973,6 +973,10 @@ func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePat
 		return nil
 	}
 	blob := imagor.NewBlobFromMemory(buf, probe.Width(), probe.PageHeight(), probe.Bands())
-	regions, _ := v.Detector.Detect(ctx, imagePath, blob)
+	var regions []imagor.DetectorRegion
+	for _, d := range v.Detectors {
+		r, _ := d.Detect(ctx, imagePath, blob)
+		regions = append(regions, r...)
+	}
 	return regions
 }

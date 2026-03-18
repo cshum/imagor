@@ -250,7 +250,7 @@ func WithResponseRawOnError(enabled bool) Option {
 	}
 }
 
-// WithDetector wires d into every DetectorSetter processor in the app.
+// WithDetector wires d into every DetectorAdder processor in the app.
 // Passing nil is a no-op, allowing callers to unconditionally call WithDetector
 // and skip wiring when the feature is disabled.
 func WithDetector(d Detector) Option {
@@ -259,8 +259,25 @@ func WithDetector(d Detector) Option {
 			return
 		}
 		for _, p := range app.Processors {
-			if s, ok := p.(DetectorSetter); ok {
-				s.SetDetector(d)
+			if s, ok := p.(DetectorAdder); ok {
+				s.AddDetector(d)
+			}
+		}
+	}
+}
+
+// WithDetectors wires multiple detectors into every DetectorAdder processor in
+// the app. Like WithDetector, nil entries are skipped.
+func WithDetectors(ds ...Detector) Option {
+	return func(app *Imagor) {
+		for _, d := range ds {
+			if d == nil {
+				continue
+			}
+			for _, p := range app.Processors {
+				if s, ok := p.(DetectorAdder); ok {
+					s.AddDetector(d)
+				}
 			}
 		}
 	}
