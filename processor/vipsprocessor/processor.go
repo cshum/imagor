@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"runtime"
 	"strings"
@@ -27,6 +28,8 @@ var processorCount int
 type Processor struct {
 	Filters            FilterMap
 	FallbackFunc       FallbackFunc
+	Detectors          []imagor.Detector
+	DetectorProbeSize  int
 	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int
@@ -71,6 +74,7 @@ func NewProcessor(options ...Option) *Processor {
 		disableFilters:     map[string]bool{},
 		CacheMaxWidth:      2400,
 		CacheMaxHeight:     2000,
+		DetectorProbeSize:  400,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,
@@ -96,6 +100,10 @@ func NewProcessor(options ...Option) *Processor {
 		"padding":          v.padding,
 		"proportion":       proportion,
 		"crop":             crop,
+		"draw_detections":  v.drawDetectionsFilter,
+		"pixelate":         pixelate,
+		"redact":           v.redactFilter,
+		"redact_oval":      v.redactOvalFilter,
 	}
 	for _, option := range options {
 		option(v)
@@ -113,7 +121,7 @@ func NewProcessor(options ...Option) *Processor {
 }
 
 // Startup implements imagor.Processor interface
-func (v *Processor) Startup(_ context.Context) error {
+func (v *Processor) Startup(ctx context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	processorCount++
@@ -161,11 +169,21 @@ func (v *Processor) Startup(_ context.Context) error {
 		}
 		v.cache = cache
 	}
+	for _, d := range v.Detectors {
+		if err := d.Startup(ctx); err != nil {
+			return fmt.Errorf("detector startup: %w", err)
+		}
+	}
 	return nil
 }
 
+// AddDetector implements imagor.DetectorAdder.
+func (v *Processor) AddDetector(d imagor.Detector) {
+	v.Detectors = append(v.Detectors, d)
+}
+
 // Shutdown implements imagor.Processor interface
-func (v *Processor) Shutdown(_ context.Context) error {
+func (v *Processor) Shutdown(ctx context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	if processorCount <= 0 {
@@ -178,6 +196,9 @@ func (v *Processor) Shutdown(_ context.Context) error {
 	if v.cache != nil {
 		v.cache.Close()
 		v.cache = nil
+	}
+	for _, d := range v.Detectors {
+		_ = d.Shutdown(ctx)
 	}
 	return nil
 }

@@ -90,6 +90,9 @@ imagor supports the following filters:
 - `crop(left,top,width,height)` crops the image after resizing
   - Absolute pixels: `crop(10,20,200,150)` - crop 200x150 box starting at (10,20)
   - Relative (0.0-1.0): `crop(0.1,0.1,0.8,0.8)` - crop using percentages
+- `draw_detections()` draws color-coded bounding boxes on detected regions. Each class name is automatically assigned a distinct colour via hash-based palette. For use with detection plugins such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured.
+- `pixelate(block_size)` applies a pixelate effect to the whole image by downscaling to 1/`block_size` then upscaling back with nearest-neighbour interpolation
+  - `block_size` pixel block size in pixels, defaults to 10
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image
@@ -143,6 +146,12 @@ imagor supports the following filters:
   - `color` the color name or hexadecimal rgb expression without the "#" character
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
+- `redact([mode[, strength]])` obscures all detected regions for privacy/anonymisation (e.g. GDPR face blurring, legal document redaction). Requires a detection plugin such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured or no regions are detected. Skips animated images.
+  - `mode` — `blur` (default), `pixelate`, or any color name/hex for solid fill (e.g. `black`, `white`, `ff0000`)
+  - `strength` — blur sigma (default 15) or pixelate block size in pixels (default 10). Not used for solid color mode.
+  - Examples: `redact()`, `redact(blur,20)`, `redact(pixelate)`, `redact(pixelate,15)`, `redact(black)`, `redact(white)`, `redact(ff0000)`
+- `redact_oval([mode[, strength]])` identical to `redact` but applies an elliptical mask to each region, producing a rounded/oval redaction shape. This is the most natural shape for face anonymisation as it closely follows the contour of a face. Same arguments and defaults as `redact`.
+  - Examples: `redact_oval()`, `redact_oval(blur,20)`, `redact_oval(pixelate)`, `redact_oval(pixelate,15)`, `redact_oval(black)`, `redact_oval(white)`, `redact_oval(ff0000)`
 - `sharpen(sigma)` sharpens the image
 - `strip_exif()` removes Exif metadata from the resulting image
 - `strip_icc()` removes ICC profile information from the resulting image. The image is first converted to sRGB color space to preserve correct colors before the profile is removed.
@@ -1115,6 +1124,8 @@ Usage of imagor:
         VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
   -vips-avif-speed int
         VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
+  -vips-detector-probe-size int
+        VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop region detection. Lower values are faster, higher values improve detection of small regions (default 400)
   -vips-strip-metadata
         VIPS strips all metadata from the resulting image
   -vips-unlimited

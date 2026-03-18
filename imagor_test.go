@@ -2392,6 +2392,58 @@ func (f processorFunc) Shutdown(_ context.Context) error {
 	return nil
 }
 
+// detectorAdderProc wraps processorFunc and implements DetectorAdder for testing.
+type detectorAdderProc struct {
+	processorFunc
+	detectors []Detector
+}
+
+func (p *detectorAdderProc) AddDetector(d Detector) { p.detectors = append(p.detectors, d) }
+
+// testDetector is a no-op Detector used in tests.
+type testDetector struct{}
+
+func (testDetector) Startup(_ context.Context) error  { return nil }
+func (testDetector) Shutdown(_ context.Context) error { return nil }
+func (testDetector) Detect(_ context.Context, _ string, _ *Blob) ([]DetectorRegion, error) {
+	return nil, nil
+}
+
+func TestWithDetector(t *testing.T) {
+	proc := &detectorAdderProc{}
+	d := testDetector{}
+	app := New(
+		WithProcessors(proc),
+		WithDetector(d),
+	)
+	require.Len(t, proc.detectors, 1)
+	assert.Equal(t, Detector(d), proc.detectors[0])
+	_ = app
+}
+
+func TestWithDetectorNil(t *testing.T) {
+	proc := &detectorAdderProc{}
+	app := New(
+		WithProcessors(proc),
+		WithDetector(nil),
+	)
+	assert.Empty(t, proc.detectors)
+	_ = app
+}
+
+func TestWithDetectors(t *testing.T) {
+	proc := &detectorAdderProc{}
+	d1, d2 := testDetector{}, testDetector{}
+	app := New(
+		WithProcessors(proc),
+		WithDetectors(d1, nil, d2),
+	)
+	require.Len(t, proc.detectors, 2, "nil entries must be skipped")
+	assert.Equal(t, Detector(d1), proc.detectors[0])
+	assert.Equal(t, Detector(d2), proc.detectors[1])
+	_ = app
+}
+
 // failingStorage is a mock storage that can be configured to fail on Put operations
 type failingStorage struct {
 	*mapStore

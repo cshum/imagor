@@ -79,7 +79,15 @@ func (v *Processor) Process(
 	// Handle metadata response
 	if p.Meta {
 		stripExif := imagorpath.HasFilter(p, "strip_exif")
-		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif)), nil
+		var metaRegions []imagor.DetectorRegion
+		// Only run detection when the URL semantically requests it — smart crop, draw_detections() or redact() filter.
+		needsDetection := p.Smart ||
+			imagorpath.HasFilter(p, "draw_detections") ||
+			imagorpath.HasFilter(p, "redact")
+		if len(v.Detectors) > 0 && needsDetection {
+			metaRegions = v.detectRegions(ctx, img, p.Image)
+		}
+		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif, metaRegions)), nil
 	}
 
 	// Strip ICC profile before export when strip_metadata is requested.
@@ -248,6 +256,13 @@ func (v *Processor) loadAndProcess(
 	if p.Trim || p.VFlip || p.FullFitIn || p.AdaptiveFitIn {
 		thumbnailNotSupported = true
 	}
+	// When a detector is configured, load the full-resolution source so detection
+	// runs before any crop. Without this, Smart=true triggers NewThumbnail with
+	// InterestingAttention which decodes + attention-crops in one libvips call,
+	// leaving only the already-cropped thumbnail for detection.
+	if p.Smart && len(v.Detectors) > 0 {
+		thumbnailNotSupported = true
+	}
 	if p.FitIn && !p.FullFitIn {
 		upscale = false
 	}
@@ -301,7 +316,7 @@ func (v *Processor) loadAndProcess(
 			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				thumbnailNotSupported = true
 			}
-		case "trim", "focal", "rotate":
+		case "trim", "focal", "rotate", "draw_detections":
 			thumbnailNotSupported = true
 		}
 	}
@@ -466,6 +481,21 @@ func (v *Processor) loadAndProcess(
 				rect.Bottom = rect.Top + 1
 				focalRects = append(focalRects, rect)
 			}
+		}
+	}
+	// Run detector when smart mode is active, a detector is configured, and no
+	// explicit focal() rects were provided by the caller.  Detection results are
+	// normalised ratios; multiply by original dimensions to obtain absolute focal
+	// rects that FocalThumbnail / parseFocalPoint already know how to consume.
+	if p.Smart && len(v.Detectors) > 0 && len(focalRects) == 0 {
+		detected := v.detectRegions(ctx, img, p.Image)
+		for _, r := range detected {
+			focalRects = append(focalRects, focal{
+				Left:   r.Left * origWidth,
+				Top:    r.Top * origHeight,
+				Right:  r.Right * origWidth,
+				Bottom: r.Bottom * origHeight,
+			})
 		}
 	}
 	if err := v.applyTransformations(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
@@ -675,19 +705,30 @@ func (v *Processor) applyTransformations(
 	return nil
 }
 
-// Metadata image attributes
-type Metadata struct {
-	Format      string            `json:"format"`
-	ContentType string            `json:"content_type"`
-	Width       int               `json:"width"`
-	Height      int               `json:"height"`
-	Orientation int               `json:"orientation"`
-	Pages       int               `json:"pages"`
-	Bands       int               `json:"bands"`
-	Exif        map[string]string `json:"exif"`
+// MetaRegion is a detected region of interest in the output image, in absolute pixels.
+type MetaRegion struct {
+	Left   int     `json:"left"`
+	Top    int     `json:"top"`
+	Right  int     `json:"right"`
+	Bottom int     `json:"bottom"`
+	Score  float64 `json:"score,omitempty"`
+	Name   string  `json:"name,omitempty"`
 }
 
-func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
+// Metadata image attributes
+type Metadata struct {
+	Format          string            `json:"format"`
+	ContentType     string            `json:"content_type"`
+	Width           int               `json:"width"`
+	Height          int               `json:"height"`
+	Orientation     int               `json:"orientation"`
+	Pages           int               `json:"pages"`
+	Bands           int               `json:"bands"`
+	Exif            map[string]string `json:"exif"`
+	DetectedRegions []MetaRegion      `json:"detected_regions,omitempty"`
+}
+
+func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []imagor.DetectorRegion) *Metadata {
 	pages := 1
 	if IsAnimationSupported(format) {
 		pages = img.Height() / img.PageHeight()
@@ -699,16 +740,28 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	if !stripExif {
 		exif = extractExif(img.Exif())
 	}
+	var metaRegions []MetaRegion
+	for _, r := range regions {
+		metaRegions = append(metaRegions, MetaRegion{
+			Left:   int(math.Round(r.Left * float64(img.Width()))),
+			Top:    int(math.Round(r.Top * float64(img.PageHeight()))),
+			Right:  int(math.Round(r.Right * float64(img.Width()))),
+			Bottom: int(math.Round(r.Bottom * float64(img.PageHeight()))),
+			Score:  r.Score,
+			Name:   r.Name,
+		})
+	}
 	mimeType, _ := format.MimeType()
 	return &Metadata{
-		Format:      string(format),
-		ContentType: mimeType,
-		Width:       img.Width(),
-		Height:      img.PageHeight(),
-		Pages:       pages,
-		Bands:       img.Bands(),
-		Orientation: img.Orientation(),
-		Exif:        exif,
+		Format:          string(format),
+		ContentType:     mimeType,
+		Width:           img.Width(),
+		Height:          img.PageHeight(),
+		Pages:           pages,
+		Bands:           img.Bands(),
+		Orientation:     img.Orientation(),
+		Exif:            exif,
+		DetectedRegions: metaRegions,
 	}
 }
 
@@ -891,4 +944,39 @@ func findTrim(
 		Background: background,
 	})
 	return
+}
+
+// detectRegions creates a cheap downscaled probe from img, exports its raw
+// sRGB pixels, and asks the configured Detector to locate regions of interest.
+// The returned regions are in normalised [0.0, 1.0] coordinates relative to
+// the probe — callers must multiply by original image dimensions before use.
+// All errors are treated as non-fatal: an empty slice is returned so the
+// caller falls back to the default InterestingAttention crop.
+func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePath string) []imagor.DetectorRegion {
+	probe, err := img.Copy(nil)
+	if err != nil {
+		return nil
+	}
+	defer probe.Close()
+
+	if err := probe.ThumbnailImage(v.DetectorProbeSize, &vips.ThumbnailImageOptions{
+		Height: v.DetectorProbeSize,
+		Crop:   vips.InterestingNone,
+		Size:   vips.SizeDown,
+	}); err != nil {
+		return nil
+	}
+	normalizeSrgb(probe)
+
+	buf, err := probe.WriteToMemory()
+	if err != nil {
+		return nil
+	}
+	blob := imagor.NewBlobFromMemory(buf, probe.Width(), probe.PageHeight(), probe.Bands())
+	var regions []imagor.DetectorRegion
+	for _, d := range v.Detectors {
+		r, _ := d.Detect(ctx, imagePath, blob)
+		regions = append(regions, r...)
+	}
+	return regions
 }

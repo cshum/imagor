@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -767,6 +768,170 @@ func TestProcessor(t *testing.T) {
 		err = img.Modulate(1, 1, 300)
 		assert.NoError(t, err, "hue/Modulate must not fail after BMP fallback load")
 	})
+	t.Run("draw_detections filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/draw_detections")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "draw_detections auto", path: "filters:draw_detections()/gopher-front.png"},
+		}, WithDetector(stub))
+	})
+	t.Run("pixelate filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/pixelate")
+		doGoldenTests(t, resultDir, []test{
+			{name: "pixelate default", path: "filters:pixelate()/gopher-front.png"},
+			{name: "pixelate 20", path: "filters:pixelate(20)/gopher-front.png"},
+		})
+	})
+	t.Run("redact filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/redact")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "redact blur default", path: "filters:redact()/gopher-front.png", arm64Golden: true},
+			{name: "redact blur custom", path: "filters:redact(blur,25)/gopher-front.png", arm64Golden: true},
+			{name: "redact pixelate default", path: "filters:redact(pixelate)/gopher-front.png"},
+			{name: "redact pixelate custom", path: "filters:redact(pixelate,20)/gopher-front.png"},
+			{name: "redact black", path: "filters:redact(black)/gopher-front.png"},
+			{name: "redact white", path: "filters:redact(white)/gopher-front.png"},
+			{name: "redact color hex", path: "filters:redact(ff0000)/gopher-front.png"},
+		}, WithDetector(stub))
+	})
+	t.Run("redact_oval filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/redact_oval")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "redact_oval blur default", path: "filters:redact_oval()/gopher-front.png", arm64Golden: true},
+			{name: "redact_oval blur custom", path: "filters:redact_oval(blur,25)/gopher-front.png", arm64Golden: true},
+			{name: "redact_oval pixelate default", path: "filters:redact_oval(pixelate)/gopher-front.png"},
+			{name: "redact_oval pixelate custom", path: "filters:redact_oval(pixelate,20)/gopher-front.png"},
+			{name: "redact_oval black", path: "filters:redact_oval(black)/gopher-front.png"},
+			{name: "redact_oval white", path: "filters:redact_oval(white)/gopher-front.png"},
+			{name: "redact_oval color hex", path: "filters:redact_oval(ff0000)/gopher-front.png"},
+		}, WithDetector(stub))
+	})
+	t.Run("meta with detector", func(t *testing.T) {
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face", Score: 9.5},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye", Score: 7.2},
+		}}
+		fileLoader := filestorage.New(testDataDir)
+		processor := NewProcessor(WithDetector(stub))
+		require.NoError(t, processor.Startup(context.Background()))
+		defer func() { require.NoError(t, processor.Shutdown(context.Background())) }()
+
+		loader := loaderFunc(func(r *http.Request, image string) (*imagor.Blob, error) {
+			image, _ = fileLoader.Path(image)
+			return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+				reader, err := os.Open(image)
+				return reader, 0, err
+			}), nil
+		})
+		app := imagor.New(
+			imagor.WithLoaders(loader),
+			imagor.WithProcessors(processor),
+			imagor.WithUnsafe(true),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+		readMeta := func(path string) *Metadata {
+			t.Helper()
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", path), nil))
+			require.Equal(t, 200, w.Code)
+			var m Metadata
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &m))
+			return &m
+		}
+
+		t.Run("plain meta has no detected regions", func(t *testing.T) {
+			m := readMeta("meta/gopher-front.png")
+			assert.Empty(t, m.DetectedRegions,
+				"plain /meta should not run detection")
+		})
+		t.Run("meta with draw_detections filter has regions", func(t *testing.T) {
+			m := readMeta("meta/filters:draw_detections()/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+draw_detections() should return detected regions")
+			assert.Equal(t, "face", m.DetectedRegions[0].Name)
+			assert.Equal(t, "eye", m.DetectedRegions[1].Name)
+		})
+		t.Run("meta with smart has regions", func(t *testing.T) {
+			m := readMeta("meta/smart/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+smart should return detected regions")
+		})
+		t.Run("meta with redact filter has regions", func(t *testing.T) {
+			m := readMeta("meta/filters:redact()/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+redact() should return detected regions")
+		})
+	})
+	t.Run("detector startup failure returns error", func(t *testing.T) {
+		// When any Detector.Startup returns an error, Processor.Startup must
+		// propagate it so the server fails fast rather than silently disabling detection.
+		p := NewProcessor(WithDetector(&failingDetector{}))
+		err := p.Startup(context.Background())
+		require.Error(t, err, "Startup must return error when a detector fails")
+		assert.Contains(t, err.Error(), "startup failed")
+		_ = p.Shutdown(context.Background())
+	})
+	t.Run("AddDetector wires detector", func(t *testing.T) {
+		p := NewProcessor()
+		require.NoError(t, p.Startup(context.Background()))
+		defer func() { require.NoError(t, p.Shutdown(context.Background())) }()
+
+		assert.Empty(t, p.Detectors, "Detectors must be empty before AddDetector")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+		}}
+		p.AddDetector(stub)
+		require.Len(t, p.Detectors, 1, "AddDetector must append the provided detector")
+		assert.Equal(t, stub, p.Detectors[0])
+	})
+	t.Run("two detectors both contribute regions", func(t *testing.T) {
+		// Wire two stubs with distinct region names; detectRegions must merge
+		// both result sets so downstream smart crop / redact sees all regions.
+		stub1 := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.4, Name: "face"},
+		}}
+		stub2 := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.6, Top: 0.1, Right: 0.9, Bottom: 0.5, Name: "person"},
+		}}
+		var resultDir = filepath.Join(testDataDir, "golden/two_detectors")
+		doGoldenTests(t, resultDir, []test{
+			{name: "two detectors merged", path: "filters:draw_detections()/gopher-front.png"},
+		}, WithDetectors(stub1, stub2))
+	})
+}
+
+// stubDetector is a test-only Detector that returns a fixed set of regions.
+type stubDetector struct {
+	regions []imagor.DetectorRegion
+}
+
+func (s *stubDetector) Startup(_ context.Context) error  { return nil }
+func (s *stubDetector) Shutdown(_ context.Context) error { return nil }
+func (s *stubDetector) Detect(_ context.Context, _ string, blob *imagor.Blob) ([]imagor.DetectorRegion, error) {
+	return s.regions, nil
+}
+
+// failingDetector is a test-only Detector whose Startup always returns an error.
+type failingDetector struct{}
+
+func (f *failingDetector) Startup(_ context.Context) error  { return fmt.Errorf("startup failed") }
+func (f *failingDetector) Shutdown(_ context.Context) error { return nil }
+func (f *failingDetector) Detect(_ context.Context, _ string, _ *imagor.Blob) ([]imagor.DetectorRegion, error) {
+	return nil, nil
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
@@ -852,6 +1017,27 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			buf2, err := img2.WebpsaveBuffer(nil)
 			require.NoError(t, err)
 			require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
+		})
+	}
+}
+
+func TestPaletteColorForName(t *testing.T) {
+	// Lock in the deterministic palette mapping for key detector class names.
+	// If the palette order changes, these tests will catch it and force a
+	// conscious decision about the colour reassignment.
+	tests := []struct {
+		name  string
+		color string
+	}{
+		{"face", "33ff66"},   // green — index 4
+		{"eye", "00cccc"},    // cyan  — index 6
+		{"person", "ff6600"}, // deep orange — index 8
+		{"car", "33aaff"},    // blue  — index 1
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.color, paletteColorForName(tt.name),
+				"palette color for %q must be stable", tt.name)
 		})
 	}
 }
