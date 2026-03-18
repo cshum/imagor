@@ -768,14 +768,14 @@ func TestProcessor(t *testing.T) {
 		err = img.Modulate(1, 1, 300)
 		assert.NoError(t, err, "hue/Modulate must not fail after BMP fallback load")
 	})
-	t.Run("detections filter", func(t *testing.T) {
-		var resultDir = filepath.Join(testDataDir, "golden/detections")
+	t.Run("draw_detections filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/draw_detections")
 		stub := &stubDetector{regions: []imagor.DetectorRegion{
 			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
 			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
 		}}
 		doGoldenTests(t, resultDir, []test{
-			{name: "detections auto", path: "filters:detections()/gopher-front.png"},
+			{name: "draw_detections auto", path: "filters:draw_detections()/gopher-front.png"},
 		}, WithDetector(stub))
 	})
 	t.Run("pixelate filter", func(t *testing.T) {
@@ -858,10 +858,10 @@ func TestProcessor(t *testing.T) {
 			assert.Empty(t, m.DetectedRegions,
 				"plain /meta should not run detection")
 		})
-		t.Run("meta with detections filter has regions", func(t *testing.T) {
-			m := readMeta("meta/filters:detections()/gopher-front.png")
+		t.Run("meta with draw_detections filter has regions", func(t *testing.T) {
+			m := readMeta("meta/filters:draw_detections()/gopher-front.png")
 			assert.Len(t, m.DetectedRegions, 2,
-				"meta+detections() should return detected regions")
+				"meta+draw_detections() should return detected regions")
 			assert.Equal(t, "face", m.DetectedRegions[0].Name)
 			assert.Equal(t, "eye", m.DetectedRegions[1].Name)
 		})

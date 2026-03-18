@@ -97,7 +97,7 @@ func NewProcessor(options ...Option) *Processor {
 		"padding":          v.padding,
 		"proportion":       proportion,
 		"crop":             crop,
-		"detections":       v.detectionsFilter,
+		"draw_detections":  v.drawDetectionsFilter,
 		"pixelate":         pixelate,
 		"redact":           v.redactFilter,
 		"redact_oval":      v.redactOvalFilter,

@@ -39,11 +39,11 @@ func paletteColorForName(name string) string {
 	return detectionPalette[h.Sum32()%uint32(len(detectionPalette))]
 }
 
-// detectionsFilter draws colour-coded bounding boxes for all detected regions
+// drawDetectionsFilter draws colour-coded bounding boxes for all detected regions
 // onto the image for visual debugging. Each unique class name is automatically
 // assigned a distinct colour via hash-based palette selection — the same name
 // always maps to the same colour. No-op when no Detector is configured.
-func (v *Processor) detectionsFilter(
+func (v *Processor) drawDetectionsFilter(
 	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string,
 ) (err error) {
 	if v.Detector == nil {

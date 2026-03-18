@@ -80,9 +80,9 @@ func (v *Processor) Process(
 	if p.Meta {
 		stripExif := imagorpath.HasFilter(p, "strip_exif")
 		var metaRegions []imagor.DetectorRegion
-		// Only run detection when the URL semantically requests it — smart crop, detections() or redact() filter.
+		// Only run detection when the URL semantically requests it — smart crop, draw_detections() or redact() filter.
 		needsDetection := p.Smart ||
-			imagorpath.HasFilter(p, "detections") ||
+			imagorpath.HasFilter(p, "draw_detections") ||
 			imagorpath.HasFilter(p, "redact")
 		if v.Detector != nil && needsDetection {
 			metaRegions = v.detectRegions(ctx, img, p.Image)
@@ -316,7 +316,7 @@ func (v *Processor) loadAndProcess(
 			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				thumbnailNotSupported = true
 			}
-		case "trim", "focal", "rotate", "detections":
+		case "trim", "focal", "rotate", "draw_detections":
 			thumbnailNotSupported = true
 		}
 	}
