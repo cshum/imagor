@@ -1125,7 +1125,7 @@ Usage of imagor:
   -vips-avif-speed int
         VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
   -vips-detector-probe-size int
-        VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop face/region detection. Lower values are faster, higher values improve detection of small regions (default 400)
+        VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop region detection. Lower values are faster, higher values improve detection of small regions (default 400)
   -vips-strip-metadata
         VIPS strips all metadata from the resulting image
   -vips-unlimited
