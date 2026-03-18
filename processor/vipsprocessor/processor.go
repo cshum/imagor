@@ -25,11 +25,11 @@ var processorCount int
 
 // Processor implements imagor.Processor interface
 type Processor struct {
-	Filters              FilterMap
-	FallbackFunc         FallbackFunc
-	Detector             imagor.Detector
-	DetectorProbeSize    int
-	DisableBlur          bool
+	Filters            FilterMap
+	FallbackFunc       FallbackFunc
+	Detector           imagor.Detector
+	DetectorProbeSize  int
+	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int
 	Logger             *zap.Logger

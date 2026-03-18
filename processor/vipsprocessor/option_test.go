@@ -83,8 +83,8 @@ func TestWithOption(t *testing.T) {
 			WithCacheTTL(0),
 			WithDetectorProbeSize(0),
 		)
-		assert.Equal(t, 2400, v2.CacheMaxWidth)    // unchanged default
-		assert.Equal(t, 2000, v2.CacheMaxHeight)   // unchanged default
+		assert.Equal(t, 2400, v2.CacheMaxWidth)  // unchanged default
+		assert.Equal(t, 2000, v2.CacheMaxHeight) // unchanged default
 		assert.Equal(t, time.Duration(0), v2.CacheTTL)
 		assert.Equal(t, 400, v2.DetectorProbeSize) // unchanged default
 	})
