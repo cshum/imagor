@@ -4,7 +4,7 @@
 [![Codecov](https://img.shields.io/codecov/c/github/cshum/imagor
 )](https://codecov.io/gh/cshum/imagor)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
-[![Go Reference](https://pkg.go.dev/badge/github.com/cshum/imagor.svg)](https://pkg.go.dev/github.com/cshum/imagor)
+[![Docs](https://img.shields.io/badge/docs-docs.imagor.net-white)](https://docs.imagor.net)
 
 imagor is a fast, secure image processing server and Go library.
 
