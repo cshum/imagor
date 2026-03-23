@@ -106,28 +106,15 @@ const config: Config = {
       style: "dark",
       links: [
         {
-          title: "Docs",
-          items: [
-            {
-              label: "Getting Started",
-              to: "/",
-            },
-            {
-              label: "Configuration",
-              to: "/configuration",
-            },
-            {
-              label: "Community",
-              to: "/community",
-            },
-          ],
-        },
-        {
           title: "Ecosystem",
           items: [
             {
-              label: "imagor-studio",
-              href: "https://github.com/cshum/imagor-studio",
+              label: "imagor",
+              href: "https://github.com/cshum/imagor",
+            },
+            {
+              label: "imagor Studio",
+              href: "https://imagor.net",
             },
             {
               label: "imagorvideo",
