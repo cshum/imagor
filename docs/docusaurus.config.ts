@@ -63,6 +63,11 @@ const config: Config = {
       title: "imagor",
       items: [
         {
+          href: "https://imagor.net",
+          label: "imagor.net",
+          position: "left",
+        },
+        {
           type: "dropdown",
           label: "Ecosystem",
           position: "left",
