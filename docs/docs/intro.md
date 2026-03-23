@@ -15,8 +15,6 @@ imagor features a ton of image processing use cases, available as a HTTP server 
 
 imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
-### Quick Start
-
 ```bash
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
 ```
