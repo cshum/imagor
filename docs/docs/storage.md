@@ -8,6 +8,12 @@ imagor `Loader`, `Storage` and `Result Storage` are the building blocks for load
 
 imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS S3 and Google Cloud Storage. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
 
+## Storage
+
+- [File System](./storage-filesystem) — Local file system storage using mounted volumes
+- [AWS S3](./storage-s3) — Amazon S3 and S3-compatible storage (MinIO, DigitalOcean Spaces)
+- [Google Cloud Storage](./storage-gcloud) — Google Cloud Storage buckets
+
 ## Storage and Result Storage Path Style
 
 `Storage` and `Result Storage` path style enables additional hashing rules to the storage path when loading and saving images:

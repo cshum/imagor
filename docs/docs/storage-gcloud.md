@@ -1,5 +1,7 @@
 # Google Cloud Storage
 
+## Docker Compose Example
+
 Docker Compose example with Google Cloud Storage:
 
 ```yaml

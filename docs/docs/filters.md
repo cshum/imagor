@@ -8,6 +8,8 @@ Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations 
 /filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/
 ```
 
+## Image Filters
+
 imagor supports the following filters:
 
 - `background_color(color)` sets the background color of a transparent image

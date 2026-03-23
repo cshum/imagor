@@ -1,5 +1,7 @@
 # File System
 
+## Docker Compose Example
+
 Docker Compose example with file system, using mounted volume:
 
 ```yaml
