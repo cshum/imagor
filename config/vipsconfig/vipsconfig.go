@@ -37,10 +37,22 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed")
 		vipsAvifSpeed = fs.Int("vips-avif-speed", 5,
 			"VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).")
+		vipsDetectorProbeSize = fs.Int("vips-detector-probe-size", 400,
+			"VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop region detection. Lower values are faster, higher values improve detection of small regions (default 400)")
 		vipsStripMetadata = fs.Bool("vips-strip-metadata", false,
 			"VIPS strips all metadata from the resulting image")
 		vipsUnlimited = fs.Bool("vips-unlimited", false,
 			"VIPS bypass image max resolution check and remove all denial of service limits")
+		vipsCacheSize = fs.Int64("vips-cache-size", 0,
+			"VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by URL to avoid repeated I/O and decode for base images, watermark() and image() filters")
+		vipsCacheMaxWidth = fs.Int("vips-cache-max-width", 2400,
+			"VIPS image cache maximum width. Images wider than this are not cached (default 2400)")
+		vipsCacheMaxHeight = fs.Int("vips-cache-max-height", 2000,
+			"VIPS image cache maximum height. Images taller than this are not cached (default 2000)")
+		vipsCacheTTL = fs.Duration("vips-cache-ttl", 0,
+			"VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry")
+		vipsCacheFormat = fs.String("vips-cache-format", "pixel",
+			"VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)")
 
 		logger, isDebug = cb()
 	)
@@ -59,10 +71,30 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithMaxResolution(*vipsMaxResolution),
 			vipsprocessor.WithMozJPEG(*vipsMozJPEG),
 			vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
+			vipsprocessor.WithDetectorProbeSize(*vipsDetectorProbeSize),
 			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
 			vipsprocessor.WithUnlimited(*vipsUnlimited),
+			vipsprocessor.WithCacheSize(*vipsCacheSize),
+			vipsprocessor.WithCacheMaxWidth(*vipsCacheMaxWidth),
+			vipsprocessor.WithCacheMaxHeight(*vipsCacheMaxHeight),
+			vipsprocessor.WithCacheTTL(*vipsCacheTTL),
+			vipsprocessor.WithCacheFormat(parseCacheFormat(*vipsCacheFormat)),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
 		),
 	)
+}
+
+// parseCacheFormat maps a cache format string to the corresponding imagor.BlobType.
+// "png" → BlobTypePNG (lossless), "webp" → BlobTypeWEBP (lossy),
+// "pixel" or "" → BlobTypeMemory (raw pixels, default).
+func parseCacheFormat(s string) imagor.BlobType {
+	switch s {
+	case "png":
+		return imagor.BlobTypePNG
+	case "webp":
+		return imagor.BlobTypeWEBP
+	default: // "pixel" or ""
+		return imagor.BlobTypeMemory
+	}
 }

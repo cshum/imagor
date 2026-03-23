@@ -33,7 +33,15 @@ func GeneratePath(p Params) string {
 			strconv.FormatFloat(p.CropBottom, 'f', -1, 64)))
 	}
 	if p.FitIn {
-		parts = append(parts, "fit-in")
+		var fitInStr string
+		if p.AdaptiveFitIn {
+			fitInStr += "adaptive-"
+		}
+		if p.FullFitIn {
+			fitInStr += "full-"
+		}
+		fitInStr += "fit-in"
+		parts = append(parts, fitInStr)
 	}
 	if p.Stretch {
 		parts = append(parts, "stretch")
@@ -90,6 +98,9 @@ func GeneratePath(p Params) string {
 		parts = append(parts, "b64:"+string(encoded))
 	} else {
 		if strings.Contains(p.Image, "?") ||
+			strings.Contains(p.Image, "(") ||
+			strings.Contains(p.Image, ")") ||
+			strings.Contains(p.Image, ",") ||
 			strings.HasPrefix(p.Image, "trim/") ||
 			strings.HasPrefix(p.Image, "meta/") ||
 			strings.HasPrefix(p.Image, "fit-in/") ||
@@ -100,7 +111,7 @@ func GeneratePath(p Params) string {
 			strings.HasPrefix(p.Image, "bottom/") ||
 			strings.HasPrefix(p.Image, "center/") ||
 			strings.HasPrefix(p.Image, "smart/") {
-			p.Image = url.QueryEscape(p.Image)
+			p.Image = url.PathEscape(p.Image)
 		}
 		parts = append(parts, p.Image)
 	}

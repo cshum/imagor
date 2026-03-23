@@ -54,7 +54,7 @@ func TestWithUnsafe(t *testing.T) {
 
 func TestWithEnablePostRequests(t *testing.T) {
 	logger := zap.NewExample()
-	
+
 	t.Run("POST requests disabled by default", func(t *testing.T) {
 		app := New(WithOptions(
 			WithUnsafe(true),
@@ -1886,7 +1886,7 @@ func (l *loaderWithStat) Stat(ctx context.Context, key string) (*Stat, error) {
 	l.mu.Lock()
 	l.statCalls++
 	l.mu.Unlock()
-	
+
 	if l.statErr != nil {
 		return nil, l.statErr
 	}
@@ -1910,11 +1910,11 @@ func (l *loaderWithStat) GetStatCalls() int {
 func TestWithModifiedTimeCheckLoader(t *testing.T) {
 	resultStore := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader with data
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.modTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat), // No storages configured - should use loader stat
@@ -1929,14 +1929,14 @@ func TestWithModifiedTimeCheckLoader(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Second request - should call loader stat for comparison
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Verify that loader stat was called (key test for the new functionality)
 	assert.Greater(t, loaderStat.GetStatCalls(), 0, "Loader Stat method should have been called")
 }
@@ -1945,15 +1945,15 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader to fail stat operation
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.statErr = errors.New("stat failed")
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat),
@@ -1976,7 +1976,7 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
-	
+
 	// Regular loader without Stater interface
 	regularLoader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		if image == "test-image" {
@@ -1984,11 +1984,11 @@ func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 		}
 		return nil, ErrNotFound
 	})
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(regularLoader), // Loader without Stater
@@ -2008,6 +2008,378 @@ func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 	assert.Equal(t, 1, resultStore.SaveCnt["test-image"])
 }
 
+func TestColorImagePath(t *testing.T) {
+	t.Run("color image skips loader", func(t *testing.T) {
+		loaderCalled := false
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				loaderCalled = true
+				return nil, ErrNotFound
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob, "blob should be nil for color image")
+				assert.Equal(t, "color:red", p.Image)
+				return NewBlobFromBytes([]byte("processed")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/color:red", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "processed", w.Body.String())
+		assert.False(t, loaderCalled, "loader should not be called for color image")
+	})
+
+	t.Run("color image with filters", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob)
+				assert.Equal(t, "color:ff0000", p.Image)
+				assert.Equal(t, 100, p.Width)
+				assert.Equal(t, 100, p.Height)
+				assert.Len(t, p.Filters, 1)
+				assert.Equal(t, "format", p.Filters[0].Name)
+				assert.Equal(t, "png", p.Filters[0].Args)
+				return NewBlobFromBytes([]byte("color-png")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/100x100/filters:format(png)/color:ff0000", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "color-png", w.Body.String())
+	})
+
+	t.Run("color image does not save to storage", func(t *testing.T) {
+		store := newMapStore()
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithStorages(store),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobFromBytes([]byte("color-result")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/50x50/color:blue", nil))
+		time.Sleep(time.Millisecond * 10)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, 0, store.SaveCnt["color:blue"], "should not save color image to storage")
+	})
+
+	t.Run("color transparent", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob)
+				assert.Equal(t, "color:transparent", p.Image)
+				return NewBlobFromBytes([]byte("transparent")), nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/100x100/color:transparent", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "transparent", w.Body.String())
+	})
+
+	t.Run("color image with signer", func(t *testing.T) {
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithSigner(imagorpath.NewDefaultSigner("1234")),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.Nil(t, blob)
+				return NewBlobFromBytes([]byte("signed-color")), nil
+			})),
+		)
+		path := "100x100/color:red"
+		signed := imagorpath.NewDefaultSigner("1234").Sign(path)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, fmt.Sprintf("https://example.com/%s/%s", signed, path), nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "signed-color", w.Body.String())
+	})
+
+	t.Run("non-color image still uses loader", func(t *testing.T) {
+		loaderCalled := false
+		app := New(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				loaderCalled = true
+				return NewBlobFromBytes([]byte("loaded")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				assert.NotNil(t, blob)
+				return blob, nil
+			})),
+		)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/foo.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.True(t, loaderCalled, "loader should be called for regular image")
+	})
+}
+
+// cacherProcessor is a mock processor that implements both Processor and Cacher.
+// It simulates an in-memory image cache keyed by image URL.
+// LoadFromCache returns the cached blob only when the key is in the cache AND the requested
+// dimensions (w×h) are both known (>0) and within the configured max — w and h determine
+// cache eligibility, not the size of the returned blob.
+type cacherProcessor struct {
+	cache  map[string][]byte // key → cached content
+	maxW   int
+	maxH   int
+	called int // number of times Process was called with a cached blob (cache hit)
+}
+
+func newCacherProcessor(maxW, maxH int) *cacherProcessor {
+	return &cacherProcessor{cache: map[string][]byte{}, maxW: maxW, maxH: maxH}
+}
+
+func (c *cacherProcessor) Startup(_ context.Context) error  { return nil }
+func (c *cacherProcessor) Shutdown(_ context.Context) error { return nil }
+
+// LoadFromCache returns the cached blob when:
+//   - key is in the cache
+//   - w and h are both known (>0) — unknown size must bypass cache
+//   - w <= maxW and h <= maxH — oversized requests must bypass cache
+func (c *cacherProcessor) LoadFromCache(key string, w, h int) (*Blob, bool) {
+	data, ok := c.cache[key]
+	if !ok {
+		return nil, false
+	}
+	if w <= 0 || h <= 0 {
+		return nil, false // unknown size — cannot guarantee cache is sufficient
+	}
+	if w > c.maxW || h > c.maxH {
+		return nil, false // requested size exceeds cache max — must load original
+	}
+	return NewBlobFromBytes(data), true
+}
+
+func (c *cacherProcessor) Process(_ context.Context, blob *Blob, p imagorpath.Params, _ LoadFunc) (*Blob, error) {
+	if blob == nil {
+		return nil, ErrNotFound
+	}
+	data, _ := blob.ReadAll()
+	// Cache hit path: blob came from LoadFromCache — content matches cached data
+	if cached, ok := c.cache[p.Image]; ok && string(data) == string(cached) {
+		c.called++
+		return NewBlobFromBytes(data), nil
+	}
+	// Cache miss path: blob provided by loader, read and "cache" it
+	c.cache[p.Image] = data
+	return NewBlobFromBytes(data), nil
+}
+
+func TestWithCacher(t *testing.T) {
+	const maxW, maxH = 2400, 1800
+
+	newApp := func(proc *cacherProcessor) *Imagor {
+		return New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				if image == "cached.jpg" || image == "other.jpg" {
+					return NewBlobFromBytes([]byte("loaded:" + image)), nil
+				}
+				return nil, ErrNotFound
+			})),
+			WithProcessors(proc),
+		)
+	}
+
+	t.Run("cache hit — known size within max — loader skipped", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// preview() opts in to base image cache
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called, "Process should be called with cached blob on cache hit")
+	})
+
+	t.Run("cache miss — no preview filter — loader always called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// No preview() filter → cache is NOT used for base image
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "without preview() filter, cache must not be used")
+	})
+
+	t.Run("cache miss — unknown size (0x0) — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// No dimensions in URL → w=0, h=0 → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		// Loader was called, processor got the loaded blob
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "Process should NOT be called with cached blob when size unknown")
+	})
+
+	t.Run("cache miss — width only (0 height) — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// Only width specified → h=0 → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/500x0/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called)
+	})
+
+	t.Run("cache miss — size exceeds max dims — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// Requested size > maxW×maxH → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/5000x4000/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "oversized request must bypass cache")
+	})
+
+	t.Run("cache miss — image not in cache — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		// "other.jpg" is NOT in proc.cache
+		app := newApp(proc)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/other.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:other.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called)
+	})
+
+	t.Run("cache hit — loader would error but is never called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		// Loader always returns error — but cache hit should skip it entirely
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return nil, ErrNotFound // would fail if called
+			})),
+			WithProcessors(proc),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called)
+	})
+
+	t.Run("cache hit — exact max dims boundary — loader skipped", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("boundary-cache")
+		app := newApp(proc)
+
+		// Exactly at max dims → LoadFromCache returns true
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/filters:preview()/cached.jpg", maxW, maxH), nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "boundary-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called)
+	})
+
+	t.Run("cache miss — one pixel over max dims — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// One pixel over max → LoadFromCache returns false
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, fmt.Sprintf("https://example.com/unsafe/%dx%d/filters:preview()/cached.jpg", maxW+1, maxH), nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called)
+	})
+
+	t.Run("cache bypass — crop coordinates — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// 30x20:100x150/200x200/filters:preview()/cached.jpg → crop present
+		// Even with preview() and cached image, crop must bypass cache
+		// because the cache stores a downscaled copy and crop pixel coords would be wrong.
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/30x20:100x150/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "crop request must bypass cache even with preview()")
+	})
+
+	t.Run("cache bypass — focal filter — loader called", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// filters:preview():focal(0.5x0.5) → focal must bypass cache even with preview()
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview():focal(0.5x0.5)/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "loaded:cached.jpg", w.Body.String())
+		assert.Equal(t, 0, proc.called, "focal filter must bypass cache even with preview()")
+	})
+
+	t.Run("preview with no crop no focal — cache used", func(t *testing.T) {
+		proc := newCacherProcessor(maxW, maxH)
+		proc.cache["cached.jpg"] = []byte("from-cache")
+		app := newApp(proc)
+
+		// preview() + no crop/focal → cache hit (regression guard)
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/200x200/filters:preview()/cached.jpg", nil))
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "from-cache", w.Body.String())
+		assert.Equal(t, 1, proc.called, "preview() with no crop/focal should use cache")
+	})
+}
+
 type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
 
 func (f processorFunc) Process(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
@@ -2018,4 +2390,480 @@ func (f processorFunc) Startup(_ context.Context) error {
 }
 func (f processorFunc) Shutdown(_ context.Context) error {
 	return nil
+}
+
+// detectorAdderProc wraps processorFunc and implements DetectorAdder for testing.
+type detectorAdderProc struct {
+	processorFunc
+	detectors []Detector
+}
+
+func (p *detectorAdderProc) AddDetector(d Detector) { p.detectors = append(p.detectors, d) }
+
+// testDetector is a no-op Detector used in tests.
+type testDetector struct{}
+
+func (testDetector) Startup(_ context.Context) error  { return nil }
+func (testDetector) Shutdown(_ context.Context) error { return nil }
+func (testDetector) Detect(_ context.Context, _ string, _ *Blob) ([]DetectorRegion, error) {
+	return nil, nil
+}
+
+func TestWithDetector(t *testing.T) {
+	proc := &detectorAdderProc{}
+	d := testDetector{}
+	app := New(
+		WithProcessors(proc),
+		WithDetector(d),
+	)
+	require.Len(t, proc.detectors, 1)
+	assert.Equal(t, Detector(d), proc.detectors[0])
+	_ = app
+}
+
+func TestWithDetectorNil(t *testing.T) {
+	proc := &detectorAdderProc{}
+	app := New(
+		WithProcessors(proc),
+		WithDetector(nil),
+	)
+	assert.Empty(t, proc.detectors)
+	_ = app
+}
+
+func TestWithDetectors(t *testing.T) {
+	proc := &detectorAdderProc{}
+	d1, d2 := testDetector{}, testDetector{}
+	app := New(
+		WithProcessors(proc),
+		WithDetectors(d1, nil, d2),
+	)
+	require.Len(t, proc.detectors, 2, "nil entries must be skipped")
+	assert.Equal(t, Detector(d1), proc.detectors[0])
+	assert.Equal(t, Detector(d2), proc.detectors[1])
+	_ = app
+}
+
+// failingStorage is a mock storage that can be configured to fail on Put operations
+type failingStorage struct {
+	*mapStore
+	failOnPut bool
+	putCalls  int
+	mu        sync.Mutex
+}
+
+func newFailingStorage() *failingStorage {
+	return &failingStorage{
+		mapStore: newMapStore(),
+	}
+}
+
+func (s *failingStorage) Put(ctx context.Context, image string, blob *Blob) error {
+	s.mu.Lock()
+	s.putCalls++
+	shouldFail := s.failOnPut
+	s.mu.Unlock()
+
+	if shouldFail {
+		return errors.New("simulated storage failure")
+	}
+	return s.mapStore.Put(ctx, image, blob)
+}
+
+func (s *failingStorage) GetPutCalls() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.putCalls
+}
+
+func (s *failingStorage) SetFailOnPut(fail bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.failOnPut = fail
+}
+
+// slowPutStorage simulates slow storage operations for timeout testing
+type slowPutStorage struct {
+	*mapStore
+	delay time.Duration
+}
+
+func (s *slowPutStorage) Put(ctx context.Context, image string, blob *Blob) error {
+	time.Sleep(s.delay)
+	// Check if context was cancelled during sleep
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return s.mapStore.Put(ctx, image, blob)
+}
+
+func TestResultStorageCleanupOnFailure(t *testing.T) {
+	t.Run("cleanup on result storage save failure", func(t *testing.T) {
+		resultStore := newFailingStorage()
+		resultStore.SetFailOnPut(true) // Make it fail
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20) // Wait for async save to complete
+
+		assert.Equal(t, 200, w.Code) // Request should still succeed
+		assert.Equal(t, "test content", w.Body.String())
+
+		// Verify Put was called
+		assert.Equal(t, 1, resultStore.GetPutCalls())
+
+		// Verify Delete was called for cleanup
+		assert.Equal(t, 1, resultStore.DelCnt["test-image"])
+
+		// Verify the file was NOT saved (due to cleanup)
+		assert.Nil(t, resultStore.Map["test-image"])
+	})
+
+	t.Run("no cleanup on successful save", func(t *testing.T) {
+		resultStore := newFailingStorage()
+		resultStore.SetFailOnPut(false) // Make it succeed
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20) // Wait for async save to complete
+
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "test content", w.Body.String())
+
+		// Verify Put was called
+		assert.Equal(t, 1, resultStore.GetPutCalls())
+
+		// Verify Delete was NOT called (no cleanup needed)
+		assert.Equal(t, 0, resultStore.DelCnt["test-image"])
+
+		// Verify the file WAS saved
+		assert.NotNil(t, resultStore.Map["test-image"])
+	})
+
+	t.Run("cleanup on partial upload with multiple result storages", func(t *testing.T) {
+		resultStore1 := newFailingStorage()
+		resultStore2 := newFailingStorage()
+
+		resultStore1.SetFailOnPut(true)  // First fails
+		resultStore2.SetFailOnPut(false) // Second succeeds
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(resultStore1, resultStore2),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20) // Wait for async save to complete
+
+		assert.Equal(t, 200, w.Code)
+
+		// Both storages should have been attempted
+		assert.Equal(t, 1, resultStore1.GetPutCalls())
+		assert.Equal(t, 1, resultStore2.GetPutCalls())
+
+		// Independent cleanup: only failed storage should have cleanup called
+		assert.Equal(t, 1, resultStore1.DelCnt["test-image"]) // Failed, so cleanup
+		assert.Equal(t, 0, resultStore2.DelCnt["test-image"]) // Succeeded, no cleanup
+
+		// First should not have the file (cleanup removed it), second should have it
+		assert.Nil(t, resultStore1.Map["test-image"])
+		assert.NotNil(t, resultStore2.Map["test-image"]) // Successful save preserved
+	})
+
+	t.Run("concurrent requests with save failures", func(t *testing.T) {
+		resultStore := newFailingStorage()
+		resultStore.SetFailOnPut(true)
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte(image)), nil
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		n := 10
+		var wg sync.WaitGroup
+		wg.Add(n)
+
+		for i := 0; i < n; i++ {
+			go func(i int) {
+				defer wg.Done()
+				w := httptest.NewRecorder()
+				app.ServeHTTP(w, httptest.NewRequest(
+					http.MethodGet, fmt.Sprintf("https://example.com/unsafe/image-%d", i), nil))
+				assert.Equal(t, 200, w.Code)
+			}(i)
+		}
+
+		wg.Wait()
+		time.Sleep(time.Millisecond * 50) // Wait for all async saves to complete
+
+		// All should have attempted save
+		assert.Equal(t, n, resultStore.GetPutCalls())
+
+		// All should have cleanup
+		totalDeletes := 0
+		for i := 0; i < n; i++ {
+			totalDeletes += resultStore.DelCnt[fmt.Sprintf("image-%d", i)]
+		}
+		assert.Equal(t, n, totalDeletes)
+	})
+
+	t.Run("no cleanup when result storage disabled", func(t *testing.T) {
+		store := newMapStore()
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithStorages(store),
+			// No result storage configured
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20)
+
+		assert.Equal(t, 200, w.Code)
+
+		// Source storage should have the file
+		assert.NotNil(t, store.Map["test-image"])
+		assert.Equal(t, 1, store.SaveCnt["test-image"])
+		assert.Equal(t, 0, store.DelCnt["test-image"])
+	})
+
+	t.Run("cleanup on timeout during save", func(t *testing.T) {
+		// Use a custom storage that sleeps during Put to simulate timeout
+		slowStorage := &slowPutStorage{
+			mapStore: newMapStore(),
+			delay:    time.Millisecond * 100,
+		}
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithSaveTimeout(time.Millisecond*10), // Short timeout
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithResultStorages(slowStorage),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 150) // Wait for timeout and cleanup
+
+		assert.Equal(t, 200, w.Code) // Request should still succeed
+
+		// Cleanup should have been called due to timeout
+		assert.Equal(t, 1, slowStorage.DelCnt["test-image"])
+	})
+}
+
+func TestResultStorageCleanupWithProcessingError(t *testing.T) {
+	t.Run("no result storage save on processing error", func(t *testing.T) {
+		resultStore := newMapStore()
+
+		app := New(
+			WithDebug(true),
+			WithLogger(zap.NewExample()),
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("test content")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, errors.New("processing failed")
+			})),
+			WithResultStorages(resultStore),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/test-image", nil))
+		time.Sleep(time.Millisecond * 20)
+
+		assert.Equal(t, 500, w.Code) // Processing error
+
+		// No save should have been attempted
+		assert.Equal(t, 0, resultStore.SaveCnt["test-image"])
+		assert.Equal(t, 0, resultStore.DelCnt["test-image"])
+		assert.Nil(t, resultStore.Map["test-image"])
+	})
+}
+
+func TestResponseRawOnError(t *testing.T) {
+	t.Run("disabled returns error JSON", func(t *testing.T) {
+		testImageData := []byte("test image data")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlobFromBytes(testImageData), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrMaxResolutionExceeded
+			})),
+			WithResponseRawOnError(false),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 422, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+		assert.Contains(t, w.Body.String(), "maximum resolution exceeded")
+	})
+
+	t.Run("enabled returns raw image with error status", func(t *testing.T) {
+		testImageData := []byte("test image data")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlobFromBytes(testImageData), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrMaxResolutionExceeded
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 422, w.Code)
+		assert.Equal(t, testImageData, w.Body.Bytes())
+		assert.NotContains(t, w.Header().Get("Content-Type"), "application/json")
+	})
+
+	t.Run("no blob returns normal error", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return nil, ErrNotFound
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 404, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+	})
+
+	t.Run("processing succeeds returns normal response", func(t *testing.T) {
+		processedData := []byte("processed image")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("original")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobFromBytes(processedData), nil
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, processedData, w.Body.Bytes())
+	})
+
+	t.Run("different errors return correct status codes", func(t *testing.T) {
+		testCases := []struct {
+			name       string
+			err        error
+			expectCode int
+		}{
+			{"max resolution", ErrMaxResolutionExceeded, 422},
+			{"unsupported format", ErrUnsupportedFormat, 406},
+			{"timeout", ErrTimeout, 408},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				testImageData := []byte("test image")
+				app := New(
+					WithUnsafe(true),
+					WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+						return NewBlobFromBytes(testImageData), nil
+					})),
+					WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+						return nil, tc.err
+					})),
+					WithResponseRawOnError(true),
+				)
+
+				w := httptest.NewRecorder()
+				req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+				app.ServeHTTP(w, req)
+
+				assert.Equal(t, tc.expectCode, w.Code)
+				assert.Equal(t, testImageData, w.Body.Bytes())
+			})
+		}
+	})
+
+	t.Run("loader timeout with nil blob returns error", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				// Simulate loader timeout - returns nil blob with timeout error
+				return nil, ErrTimeout
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		// Should return error JSON, not crash
+		assert.Equal(t, 408, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+		assert.Contains(t, w.Body.String(), "timeout")
+	})
 }

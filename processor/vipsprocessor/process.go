@@ -34,33 +34,236 @@ func IsAnimationSupported(imageType vips.ImageType) bool {
 	return imageType == vips.ImageTypeGif || imageType == vips.ImageTypeWebp
 }
 
+// exportParams holds parameters needed for image export
+type exportParams struct {
+	format        vips.ImageType
+	quality       int
+	compression   int
+	bitdepth      int
+	palette       bool
+	stripMetadata bool
+	maxBytes      int
+}
+
 // Process implements imagor.Processor interface
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
 	ctx = withContext(ctx)
 	defer contextDone(ctx)
+
+	// Use image cache for preview() requests: known-size, within cache max dims, no bypass conditions.
+	// preview() opts in to base image caching for interactive editing workflows.
+	// Skip for crop/focal/page/dpi: cache stores a downscaled single-page copy at default DPI.
+	if p.Image != "" && imagorpath.HasFilter(p, "preview") {
+		if _, isColor := parseColorImage(p.Image); !isColor {
+			sizeKnown := p.Width > 0 && p.Height > 0
+			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight &&
+				!imagorpath.HasCacheBypass(p) &&
+				blob.BlobType() != imagor.BlobTypeMemory {
+				if memBlob, _, cacheErr := v.loadOrCache(blob, p.Image, 1, nil); cacheErr == nil && memBlob != nil {
+					blob = memBlob
+				}
+			}
+		}
+	}
+
+	img, err := v.loadAndProcess(ctx, blob, p, load)
+	if err != nil {
+		return nil, err
+	}
+	defer img.Close()
+
+	params := v.extractExportParams(p, blob, img)
+
+	// Handle metadata response
+	if p.Meta {
+		stripExif := imagorpath.HasFilter(p, "strip_exif")
+		var metaRegions []imagor.DetectorRegion
+		// Only run detection when the URL semantically requests it — smart crop, draw_detections() or redact() filter.
+		needsDetection := p.Smart ||
+			imagorpath.HasFilter(p, "draw_detections") ||
+			imagorpath.HasFilter(p, "redact")
+		if len(v.Detectors) > 0 && needsDetection {
+			metaRegions = v.detectRegions(ctx, img, p.Image)
+		}
+		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif, metaRegions)), nil
+	}
+
+	// Strip ICC profile before export when strip_metadata is requested.
+	// This ensures proper colour conversion to sRGB before the ICC profile
+	// is removed, matching the behaviour of the strip_icc filter.
+	if params.stripMetadata {
+		if err := stripIcc(ctx, img, load); err != nil {
+			return nil, WrapErr(err)
+		}
+	}
+
+	// Export with max_bytes retry loop
+	params.format = supportedSaveFormat(params.format)
+	for {
+		buf, err := v.export(img, params.format, params.compression, params.quality, params.palette, params.bitdepth, params.stripMetadata)
+		if err != nil {
+			return nil, WrapErr(err)
+		}
+		if params.maxBytes > 0 && (params.quality > 10 || params.quality == 0) && params.format != vips.ImageTypePng {
+			ln := len(buf)
+			if v.Debug {
+				v.Logger.Debug("max_bytes",
+					zap.Int("bytes", ln),
+					zap.Int("quality", params.quality),
+				)
+			}
+			if ln > params.maxBytes {
+				if params.quality == 0 {
+					params.quality = 80
+				}
+				delta := float64(ln) / float64(params.maxBytes)
+				switch {
+				case delta > 3:
+					params.quality = params.quality * 25 / 100
+				case delta > 1.5:
+					params.quality = params.quality * 50 / 100
+				default:
+					params.quality = params.quality * 75 / 100
+				}
+				if err := ctx.Err(); err != nil {
+					return nil, WrapErr(err)
+				}
+				continue
+			}
+		}
+		blob := imagor.NewBlobFromBytes(buf)
+		if typ, ok := params.format.MimeType(); ok {
+			blob.SetContentType(typ)
+		}
+		return blob, nil
+	}
+}
+
+// extractExportParams extracts export-related parameters from filters
+func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, img *vips.Image) *exportParams {
+	var (
+		quality       int
+		bitdepth      int
+		compression   int
+		palette       bool
+		stripMetadata = v.StripMetadata
+		maxBytes      int
+		format        = vips.ImageTypeUnknown
+	)
+
+	for _, f := range p.Filters {
+		if v.disableFilters[f.Name] {
+			continue
+		}
+		switch f.Name {
+		case "format":
+			if imageType, ok := imageTypeMap[f.Args]; ok {
+				format = supportedSaveFormat(imageType)
+			}
+		case "quality":
+			quality, _ = strconv.Atoi(f.Args)
+		case "autojpg":
+			format = vips.ImageTypeJpeg
+		case "palette":
+			palette = true
+		case "bitdepth":
+			bitdepth, _ = strconv.Atoi(f.Args)
+		case "compression":
+			compression, _ = strconv.Atoi(f.Args)
+		case "max_bytes":
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
+				maxBytes = n
+			}
+		case "strip_metadata":
+			stripMetadata = true
+		}
+	}
+
+	// Default format from blob/image type
+	if format == vips.ImageTypeUnknown {
+		if blob != nil && blob.BlobType() == imagor.BlobTypeAVIF {
+			format = vips.ImageTypeAvif
+		} else {
+			format = img.Format()
+		}
+	}
+
+	return &exportParams{
+		format:        format,
+		quality:       quality,
+		compression:   compression,
+		bitdepth:      bitdepth,
+		palette:       palette,
+		stripMetadata: stripMetadata,
+		maxBytes:      maxBytes,
+	}
+}
+
+// loadAndProcess loads the image from blob and applies all transformations
+func (v *Processor) loadAndProcess(
+	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
+) (*vips.Image, error) {
+	if c, ok := parseColorImage(p.Image); ok {
+		w, h := p.Width, p.Height
+		if w <= 0 && h <= 0 {
+			w, h = 1, 1
+		} else if w <= 0 {
+			w = h
+		} else if h <= 0 {
+			h = w
+		}
+		if !v.Unlimited && w*h > v.MaxResolution {
+			return nil, imagor.ErrMaxResolutionExceeded
+		}
+		if w > v.MaxWidth {
+			w = v.MaxWidth
+		}
+		if h > v.MaxHeight {
+			h = v.MaxHeight
+		}
+		img, err := newColorImage(w, h, c)
+		if err != nil {
+			return nil, WrapErr(err)
+		}
+		if v.Debug {
+			v.Logger.Debug("color-image",
+				zap.Int("width", w),
+				zap.Int("height", h),
+				zap.Any("color", c))
+		}
+		// thumbnail=true: image is already at target size, skip resize/crop
+		if err := v.applyTransformations(ctx, img, p, load, true, false, false, nil); err != nil {
+			img.Close()
+			return nil, WrapErr(err)
+		}
+		return img, nil
+	}
+
 	var (
 		thumbnailNotSupported bool
 		upscale               = true
 		stretch               = p.Stretch
 		thumbnail             = false
-		stripExif             bool
-		stripMetadata         = v.StripMetadata
 		orient                int
 		img                   *vips.Image
-		format                = vips.ImageTypeUnknown
 		maxN                  = v.MaxAnimationFrames
-		maxBytes              int
 		page                  = 1
 		dpi                   = 0
-		focalRects            []focal
 		err                   error
 	)
-	if p.Trim {
+	if p.Trim || p.VFlip || p.FullFitIn || p.AdaptiveFitIn {
 		thumbnailNotSupported = true
 	}
-	if p.FitIn {
+	// When a detector is configured, load the full-resolution source so detection
+	// runs before any crop. Without this, Smart=true triggers NewThumbnail with
+	// InterestingAttention which decodes + attention-crops in one libvips call,
+	// leaving only the already-cropped thumbnail for detection.
+	if p.Smart && len(v.Detectors) > 0 {
+		thumbnailNotSupported = true
+	}
+	if p.FitIn && !p.FullFitIn {
 		upscale = false
 	}
 	if maxN == 0 || maxN < -1 {
@@ -69,69 +272,52 @@ func (v *Processor) Process(
 	if blob != nil && !blob.SupportsAnimation() {
 		maxN = 1
 	}
-	for _, p := range p.Filters {
-		if v.disableFilters[p.Name] {
+	for _, f := range p.Filters {
+		if v.disableFilters[f.Name] {
 			continue
 		}
-		switch p.Name {
+		switch f.Name {
 		case "format":
-			if imageType, ok := imageTypeMap[p.Args]; ok {
-				format = supportedSaveFormat(imageType)
+			if imageType, ok := imageTypeMap[f.Args]; ok {
+				format := supportedSaveFormat(imageType)
 				if !IsAnimationSupported(format) {
 					// no frames if export format not support animation
 					maxN = 1
 				}
 			}
-			break
 		case "max_frames":
-			if n, _ := strconv.Atoi(p.Args); n > 0 && (maxN == -1 || n < maxN) {
+			if n, _ := strconv.Atoi(f.Args); n > 0 && (maxN == -1 || n < maxN) {
 				maxN = n
 			}
-			break
 		case "stretch":
 			stretch = true
-			break
 		case "upscale":
 			upscale = true
-			break
 		case "no_upscale":
 			upscale = false
-			break
 		case "fill", "background_color":
-			if args := strings.Split(p.Args, ","); args[0] == "auto" {
+			if args := strings.Split(f.Args, ","); args[0] == "auto" {
 				thumbnailNotSupported = true
 			}
-			break
 		case "page":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				page = n
 			}
-			break
 		case "dpi":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				dpi = n
 			}
-			break
 		case "orient":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				orient = n
 				thumbnailNotSupported = true
 			}
-			break
 		case "max_bytes":
-			if n, _ := strconv.Atoi(p.Args); n > 0 {
-				maxBytes = n
+			if n, _ := strconv.Atoi(f.Args); n > 0 {
 				thumbnailNotSupported = true
 			}
-			break
-		case "trim", "focal", "rotate":
+		case "trim", "focal", "rotate", "draw_detections":
 			thumbnailNotSupported = true
-			break
-		case "strip_exif":
-			stripExif = true
-		case "strip_metadata":
-			stripMetadata = true
-			break
 		}
 	}
 
@@ -189,25 +375,37 @@ func (v *Processor) Process(
 					thumbnail = true
 				}
 				if thumbnail {
+					size := vips.SizeBoth
+					if !upscale {
+						size = vips.SizeDown
+					}
 					if img, err = v.NewThumbnail(
 						ctx, blob, p.Width, p.Height,
-						interest, vips.SizeBoth, maxN, page, dpi,
+						interest, size, maxN, page, dpi,
 					); err != nil {
 						return nil, err
 					}
 				}
 			} else if p.Width > 0 && p.Height == 0 {
+				size := vips.SizeBoth
+				if !upscale {
+					size = vips.SizeDown
+				}
 				if img, err = v.NewThumbnail(
 					ctx, blob, p.Width, v.MaxHeight,
-					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
+					vips.InterestingNone, size, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
 				thumbnail = true
 			} else if p.Height > 0 && p.Width == 0 {
+				size := vips.SizeBoth
+				if !upscale {
+					size = vips.SizeDown
+				}
 				if img, err = v.NewThumbnail(
 					ctx, blob, v.MaxWidth, p.Height,
-					vips.InterestingNone, vips.SizeBoth, maxN, page, dpi,
+					vips.InterestingNone, size, maxN, page, dpi,
 				); err != nil {
 					return nil, err
 				}
@@ -229,8 +427,6 @@ func (v *Processor) Process(
 			}
 		}
 	}
-	// this should be called BEFORE vipscontext.contextDone
-	defer img.Close()
 
 	if orient > 0 {
 		// orient rotate before resize
@@ -238,130 +434,79 @@ func (v *Processor) Process(
 			return nil, err
 		}
 	}
+
 	var (
-		quality     int
-		bitdepth    int
-		compression int
-		palette     bool
-		origWidth   = float64(img.Width())
-		origHeight  = float64(img.PageHeight())
+		origWidth  = float64(img.Width())
+		origHeight = float64(img.PageHeight())
 	)
-	if format == vips.ImageTypeUnknown {
-		if blob.BlobType() == imagor.BlobTypeAVIF {
-			// meta loader determined as heif
-			format = vips.ImageTypeAvif
-		} else {
-			format = img.Format()
-		}
-	}
 	if v.Debug {
 		v.Logger.Debug("image",
 			zap.Int("width", img.Width()),
 			zap.Int("height", img.Height()),
 			zap.Int("page_height", img.PageHeight()))
 	}
-	for _, p := range p.Filters {
-		if v.disableFilters[p.Name] {
+
+	var focalRects []focal
+	for _, f := range p.Filters {
+		if v.disableFilters[f.Name] {
 			continue
 		}
-		switch p.Name {
-		case "quality":
-			quality, _ = strconv.Atoi(p.Args)
-			break
-		case "autojpg":
-			format = vips.ImageTypeJpeg
-			break
-		case "focal":
-			args := strings.FieldsFunc(p.Args, argSplit)
+		if f.Name == "focal" {
+			args := strings.FieldsFunc(f.Args, argSplit)
 			switch len(args) {
 			case 4:
-				f := focal{}
-				f.Left, _ = strconv.ParseFloat(args[0], 64)
-				f.Top, _ = strconv.ParseFloat(args[1], 64)
-				f.Right, _ = strconv.ParseFloat(args[2], 64)
-				f.Bottom, _ = strconv.ParseFloat(args[3], 64)
-				if f.Left < 1 && f.Top < 1 && f.Right <= 1 && f.Bottom <= 1 {
-					f.Left *= origWidth
-					f.Right *= origWidth
-					f.Top *= origHeight
-					f.Bottom *= origHeight
+				rect := focal{}
+				rect.Left, _ = strconv.ParseFloat(args[0], 64)
+				rect.Top, _ = strconv.ParseFloat(args[1], 64)
+				rect.Right, _ = strconv.ParseFloat(args[2], 64)
+				rect.Bottom, _ = strconv.ParseFloat(args[3], 64)
+				if rect.Left < 1 && rect.Top < 1 && rect.Right <= 1 && rect.Bottom <= 1 {
+					rect.Left *= origWidth
+					rect.Right *= origWidth
+					rect.Top *= origHeight
+					rect.Bottom *= origHeight
 				}
-				if f.Right > f.Left && f.Bottom > f.Top {
-					focalRects = append(focalRects, f)
+				if rect.Right > rect.Left && rect.Bottom > rect.Top {
+					focalRects = append(focalRects, rect)
 				}
 			case 2:
-				f := focal{}
-				f.Left, _ = strconv.ParseFloat(args[0], 64)
-				f.Top, _ = strconv.ParseFloat(args[1], 64)
-				if f.Left < 1 && f.Top < 1 {
-					f.Left *= origWidth
-					f.Top *= origHeight
+				rect := focal{}
+				rect.Left, _ = strconv.ParseFloat(args[0], 64)
+				rect.Top, _ = strconv.ParseFloat(args[1], 64)
+				if rect.Left < 1 && rect.Top < 1 {
+					rect.Left *= origWidth
+					rect.Top *= origHeight
 				}
-				f.Right = f.Left + 1
-				f.Bottom = f.Top + 1
-				focalRects = append(focalRects, f)
+				rect.Right = rect.Left + 1
+				rect.Bottom = rect.Top + 1
+				focalRects = append(focalRects, rect)
 			}
-			break
-		case "palette":
-			palette = true
-			break
-		case "bitdepth":
-			bitdepth, _ = strconv.Atoi(p.Args)
-			break
-		case "compression":
-			compression, _ = strconv.Atoi(p.Args)
-			break
 		}
 	}
-	if err := v.process(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
+	// Run detector when smart mode is active, a detector is configured, and no
+	// explicit focal() rects were provided by the caller.  Detection results are
+	// normalised ratios; multiply by original dimensions to obtain absolute focal
+	// rects that FocalThumbnail / parseFocalPoint already know how to consume.
+	if p.Smart && len(v.Detectors) > 0 && len(focalRects) == 0 {
+		detected := v.detectRegions(ctx, img, p.Image)
+		for _, r := range detected {
+			focalRects = append(focalRects, focal{
+				Left:   r.Left * origWidth,
+				Top:    r.Top * origHeight,
+				Right:  r.Right * origWidth,
+				Bottom: r.Bottom * origHeight,
+			})
+		}
+	}
+	if err := v.applyTransformations(ctx, img, p, load, thumbnail, stretch, upscale, focalRects); err != nil {
 		return nil, WrapErr(err)
 	}
-	if p.Meta {
-		// metadata without export
-		return imagor.NewBlobFromJsonMarshal(metadata(img, format, stripExif)), nil
-	}
-	format = supportedSaveFormat(format) // convert to supported export format
-	for {
-		buf, err := v.export(img, format, compression, quality, palette, bitdepth, stripMetadata)
-		if err != nil {
-			return nil, WrapErr(err)
-		}
-		if maxBytes > 0 && (quality > 10 || quality == 0) && format != vips.ImageTypePng {
-			ln := len(buf)
-			if v.Debug {
-				v.Logger.Debug("max_bytes",
-					zap.Int("bytes", ln),
-					zap.Int("quality", quality),
-				)
-			}
-			if ln > maxBytes {
-				if quality == 0 {
-					quality = 80
-				}
-				delta := float64(ln) / float64(maxBytes)
-				switch {
-				case delta > 3:
-					quality = quality * 25 / 100
-				case delta > 1.5:
-					quality = quality * 50 / 100
-				default:
-					quality = quality * 75 / 100
-				}
-				if err := ctx.Err(); err != nil {
-					return nil, WrapErr(err)
-				}
-				continue
-			}
-		}
-		blob := imagor.NewBlobFromBytes(buf)
-		if typ, ok := format.MimeType(); ok {
-			blob.SetContentType(typ)
-		}
-		return blob, nil
-	}
+
+	return img, nil
 }
 
-func (v *Processor) process(
+// applyTransformations applies all image transformations (crop, resize, flip, filters)
+func (v *Processor) applyTransformations(
 	ctx context.Context, img *vips.Image, p imagorpath.Params, load imagor.LoadFunc, thumbnail, stretch, upscale bool, focalRects []focal,
 ) error {
 	var (
@@ -373,7 +518,6 @@ func (v *Processor) process(
 		cropBottom float64
 	)
 	if p.CropRight > 0 || p.CropLeft > 0 || p.CropBottom > 0 || p.CropTop > 0 {
-		// percentage
 		cropLeft = math.Max(p.CropLeft, 0)
 		cropTop = math.Max(p.CropTop, 0)
 		cropRight = p.CropRight
@@ -420,6 +564,17 @@ func (v *Processor) process(
 		w = p.Width
 		h = p.Height
 	)
+
+	// Apply adaptive fit-in: swap dimensions if it would get better image definition
+	if p.AdaptiveFitIn && w > 0 && h > 0 {
+		imgAspect := float64(img.Width()) / float64(img.PageHeight())
+		boxAspect := float64(w) / float64(h)
+		// If orientations differ (one portrait, one landscape), swap dimensions
+		if (imgAspect > 1) != (boxAspect > 1) {
+			w, h = h, w
+		}
+	}
+
 	if w == 0 && h == 0 {
 		w = img.Width()
 		h = img.PageHeight()
@@ -436,8 +591,24 @@ func (v *Processor) process(
 	}
 	if !thumbnail {
 		if p.FitIn {
+			if p.FullFitIn && w > 0 && h > 0 {
+				imgAspect := float64(img.Width()) / float64(img.PageHeight())
+				boxAspect := float64(w) / float64(h)
+
+				if imgAspect < boxAspect {
+					// Image is taller (portrait) - use width as constraint, height will exceed box
+					// Use Ceil to ensure output is always >= requested box (full-fit-in guarantee)
+					h = int(math.Ceil(float64(w) / imgAspect))
+				} else {
+					// Image is wider (landscape) - use height as constraint, width will exceed box
+					// Use Ceil to ensure output is always >= requested box (full-fit-in guarantee)
+					w = int(math.Ceil(float64(h) * imgAspect))
+				}
+			}
+
 			if upscale || w < img.Width() || h < img.PageHeight() {
-				if err := img.ThumbnailImage(w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}); err != nil {
+				opts := &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}
+				if err := img.ThumbnailImage(w, opts); err != nil {
 					return err
 				}
 			}
@@ -512,7 +683,7 @@ func (v *Processor) process(
 		start := time.Now()
 		var args []string
 		if filter.Args != "" {
-			args = strings.Split(filter.Args, ",")
+			args = imagorpath.SplitArgs(filter.Args)
 		}
 		if fn := v.Filters[filter.Name]; fn != nil {
 			if err := fn(ctx, img, load, args...); err != nil {
@@ -534,19 +705,30 @@ func (v *Processor) process(
 	return nil
 }
 
-// Metadata image attributes
-type Metadata struct {
-	Format      string            `json:"format"`
-	ContentType string            `json:"content_type"`
-	Width       int               `json:"width"`
-	Height      int               `json:"height"`
-	Orientation int               `json:"orientation"`
-	Pages       int               `json:"pages"`
-	Bands       int               `json:"bands"`
-	Exif        map[string]string `json:"exif"`
+// MetaRegion is a detected region of interest in the output image, in absolute pixels.
+type MetaRegion struct {
+	Left   int     `json:"left"`
+	Top    int     `json:"top"`
+	Right  int     `json:"right"`
+	Bottom int     `json:"bottom"`
+	Score  float64 `json:"score,omitempty"`
+	Name   string  `json:"name,omitempty"`
 }
 
-func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata {
+// Metadata image attributes
+type Metadata struct {
+	Format          string            `json:"format"`
+	ContentType     string            `json:"content_type"`
+	Width           int               `json:"width"`
+	Height          int               `json:"height"`
+	Orientation     int               `json:"orientation"`
+	Pages           int               `json:"pages"`
+	Bands           int               `json:"bands"`
+	Exif            map[string]string `json:"exif"`
+	DetectedRegions []MetaRegion      `json:"detected_regions,omitempty"`
+}
+
+func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []imagor.DetectorRegion) *Metadata {
 	pages := 1
 	if IsAnimationSupported(format) {
 		pages = img.Height() / img.PageHeight()
@@ -558,16 +740,28 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool) *Metadata 
 	if !stripExif {
 		exif = extractExif(img.Exif())
 	}
+	var metaRegions []MetaRegion
+	for _, r := range regions {
+		metaRegions = append(metaRegions, MetaRegion{
+			Left:   int(math.Round(r.Left * float64(img.Width()))),
+			Top:    int(math.Round(r.Top * float64(img.PageHeight()))),
+			Right:  int(math.Round(r.Right * float64(img.Width()))),
+			Bottom: int(math.Round(r.Bottom * float64(img.PageHeight()))),
+			Score:  r.Score,
+			Name:   r.Name,
+		})
+	}
 	mimeType, _ := format.MimeType()
 	return &Metadata{
-		Format:      string(format),
-		ContentType: mimeType,
-		Width:       img.Width(),
-		Height:      img.PageHeight(),
-		Pages:       pages,
-		Bands:       img.Bands(),
-		Orientation: img.Orientation(),
-		Exif:        exif,
+		Format:          string(format),
+		ContentType:     mimeType,
+		Width:           img.Width(),
+		Height:          img.PageHeight(),
+		Pages:           pages,
+		Bands:           img.Bands(),
+		Orientation:     img.Orientation(),
+		Exif:            exif,
+		DetectedRegions: metaRegions,
 	}
 }
 
@@ -582,7 +776,6 @@ func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 func (v *Processor) export(
 	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
 ) ([]byte, error) {
-	// check resolution before export
 	if _, err := v.CheckResolution(image, nil); err != nil {
 		return nil, err
 	}
@@ -596,6 +789,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.PngsaveBuffer(opts)
 	case vips.ImageTypeWebp:
@@ -604,6 +799,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.WebpsaveBuffer(opts)
 	case vips.ImageTypeJxl:
@@ -612,6 +809,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.JxlsaveBuffer(opts)
 	case vips.ImageTypeTiff:
@@ -620,12 +819,16 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.TiffsaveBuffer(opts)
 	case vips.ImageTypeGif:
 		opts := &vips.GifsaveBufferOptions{}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.GifsaveBuffer(opts)
 	case vips.ImageTypeAvif:
@@ -635,6 +838,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		opts.Effort = 9 - v.AvifSpeed
 		return image.HeifsaveBuffer(opts)
@@ -644,6 +849,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeJp2k:
@@ -652,6 +859,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else {
+			opts.Keep = vips.KeepAll
 		}
 		return image.Jp2ksaveBuffer(opts)
 	default:
@@ -670,6 +879,8 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
+		} else if !v.MozJPEG {
+			opts.Keep = vips.KeepAll
 		}
 		return image.JpegsaveBuffer(opts)
 	}
@@ -733,4 +944,39 @@ func findTrim(
 		Background: background,
 	})
 	return
+}
+
+// detectRegions creates a cheap downscaled probe from img, exports its raw
+// sRGB pixels, and asks the configured Detector to locate regions of interest.
+// The returned regions are in normalised [0.0, 1.0] coordinates relative to
+// the probe — callers must multiply by original image dimensions before use.
+// All errors are treated as non-fatal: an empty slice is returned so the
+// caller falls back to the default InterestingAttention crop.
+func (v *Processor) detectRegions(ctx context.Context, img *vips.Image, imagePath string) []imagor.DetectorRegion {
+	probe, err := img.Copy(nil)
+	if err != nil {
+		return nil
+	}
+	defer probe.Close()
+
+	if err := probe.ThumbnailImage(v.DetectorProbeSize, &vips.ThumbnailImageOptions{
+		Height: v.DetectorProbeSize,
+		Crop:   vips.InterestingNone,
+		Size:   vips.SizeDown,
+	}); err != nil {
+		return nil
+	}
+	normalizeSrgb(probe)
+
+	buf, err := probe.WriteToMemory()
+	if err != nil {
+		return nil
+	}
+	blob := imagor.NewBlobFromMemory(buf, probe.Width(), probe.PageHeight(), probe.Bands())
+	var regions []imagor.DetectorRegion
+	for _, d := range v.Detectors {
+		r, _ := d.Detect(ctx, imagePath, blob)
+		regions = append(regions, r...)
+	}
+	return regions
 }

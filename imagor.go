@@ -22,7 +22,7 @@ import (
 )
 
 // Version imagor version
-const Version = "1.6.3"
+const Version = "1.8.0"
 
 // Loader image loader interface
 type Loader interface {
@@ -47,6 +47,18 @@ type Storage interface {
 // Stater optional interface for loaders that support stat operations
 type Stater interface {
 	Stat(ctx context.Context, key string) (*Stat, error)
+}
+
+// Cacher is an optional Processor interface for in-memory blob caching.
+// LoadFromCache is called by imagor.Do() before loadStorage; on a hit the cached
+// blob is passed directly to Process(), skipping loader/storage I/O entirely.
+//
+// w and h are the requested output dimensions used to determine cache eligibility,
+// not to select a blob of that size. Return (nil, false) when w or h is zero
+// (unknown size) or exceeds the cache budget — the cache holds a single downscaled
+// copy per image path and cannot safely serve those requests.
+type Cacher interface {
+	LoadFromCache(key string, w, h int) (*Blob, bool)
 }
 
 // LoadFunc function handler for Processor to call loader
@@ -92,6 +104,7 @@ type Imagor struct {
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
 	EnablePostRequests     bool
+	ResponseRawOnError     bool
 	BaseParams             string
 	Logger                 *zap.Logger
 	Debug                  bool
@@ -201,6 +214,22 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
+		// Check if we should respond with raw image on error
+		if app.ResponseRawOnError && !isBlobEmpty(blob) {
+			e := WrapError(err)
+			app.Logger.Warn("response-raw-on-error",
+				zap.Any("params", p),
+				zap.Error(err),
+				zap.Int("status", e.Code))
+
+			// Write error status code but serve raw image
+			w.WriteHeader(e.Code)
+			app.setResponseHeaders(w, r, blob, p)
+			reader, size, _ := blob.NewReader()
+			writeBody(w, r, reader, size)
+			return
+		}
+
 		app.handleErrorResponse(w, r, err)
 		return
 	}
@@ -370,11 +399,30 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			defer app.sema.Release(1)
 		}
 		var shouldSave bool
-		if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
-			if app.Debug {
-				app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+		if isColorImage(p.Image) {
+			// color image — skip storage/loader, processor will generate it
+		} else {
+			// Base image cache is opt-in via filters:preview().
+			// Skip cache for requests that depend on original-space coordinates or
+			// per-request decode parameters (crop, focal, page>1, dpi).
+			if hasPreview && !imagorpath.HasCacheBypass(p) {
+				for _, processor := range app.Processors {
+					if c, ok := processor.(Cacher); ok {
+						if cachedBlob, ok := c.LoadFromCache(p.Image, p.Width, p.Height); ok {
+							blob = cachedBlob
+							break
+						}
+					}
+				}
 			}
-			return blob, err
+			if isBlobEmpty(blob) {
+				if blob, shouldSave, err = app.loadStorage(r, p.Image); err != nil {
+					if app.Debug {
+						app.Logger.Debug("load", zap.Any("params", p), zap.Error(err))
+					}
+					return blob, err
+				}
+			}
 		}
 
 		sourceBlob := blob
@@ -386,11 +434,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				storageKey = app.StoragePathStyle.Hash(p.Image)
 			}
 			go func(blob *Blob) {
-				app.save(ctx, app.Storages, storageKey, blob)
+				app.saveWithErrorHandling(ctx, app.Storages, storageKey, blob)
 				close(doneSave)
 			}(blob)
 		}
-		if isBlobEmpty(blob) {
+		if isBlobEmpty(blob) && !isColorImage(p.Image) {
 			return blob, err
 		}
 		if !isRaw {
@@ -440,7 +488,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		ctx = detachContext(ctx)
 		if err == nil && !isBlobEmpty(blob) && resultKey != "" && !isRaw &&
 			len(app.ResultStorages) > 0 {
-			app.save(ctx, app.ResultStorages, resultKey, blob)
+			app.saveWithErrorHandling(ctx, app.ResultStorages, resultKey, blob)
 		}
 		if err != nil && shouldSave {
 			var storageKey = p.Image
@@ -679,7 +727,8 @@ func (app *Imagor) loaderStat(ctx context.Context, key string) (stat *Stat, err 
 	return
 }
 
-func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blob *Blob) {
+// saveWithErrorHandling saves blob to storage with cleanup on error
+func (app *Imagor) saveWithErrorHandling(ctx context.Context, storages []Storage, key string, blob *Blob) {
 	if key == "" {
 		return
 	}
@@ -695,13 +744,18 @@ func (app *Imagor) save(ctx context.Context, storages []Storage, key string, blo
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
+				if delErr := storage.Delete(ctx, key); delErr != nil {
+					app.Logger.Warn("delete-after-save-error",
+						zap.String("key", key), zap.Error(delErr))
+				} else if app.Debug {
+					app.Logger.Debug("deleted-after-save-error", zap.String("key", key))
+				}
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
 			}
 		}(storage)
 	}
 	wg.Wait()
-	return
 }
 
 func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
@@ -980,6 +1034,11 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 		}
 	}
 	return "inline"
+}
+
+// isColorImage checks if the image path is a color image specification (color:xxx)
+func isColorImage(image string) bool {
+	return strings.HasPrefix(strings.ToLower(image), "color:")
 }
 
 func getType(v interface{}) string {

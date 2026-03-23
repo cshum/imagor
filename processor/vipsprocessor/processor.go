@@ -2,14 +2,17 @@ package vipsprocessor
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 )
 
 // FilterFunc filter handler function
@@ -25,6 +28,8 @@ var processorCount int
 type Processor struct {
 	Filters            FilterMap
 	FallbackFunc       FallbackFunc
+	Detectors          []imagor.Detector
+	DetectorProbeSize  int
 	DisableBlur        bool
 	DisableFilters     []string
 	MaxFilterOps       int
@@ -43,7 +48,17 @@ type Processor struct {
 	Unlimited          bool
 	Debug              bool
 
+	// Image cache settings
+	CacheSize      int64
+	CacheMaxWidth  int
+	CacheMaxHeight int
+	CacheTTL       time.Duration
+	CacheFormat    imagor.BlobType // BlobTypeMemory (default, raw pixels), BlobTypeWEBP, BlobTypePNG
+
 	disableFilters map[string]bool
+	cache          *imageCache
+	cacheSF        singleflight.Group
+	hasDcrawload   bool
 }
 
 // NewProcessor create Processor
@@ -57,12 +72,17 @@ func NewProcessor(options ...Option) *Processor {
 		MaxAnimationFrames: -1,
 		Logger:             zap.NewNop(),
 		disableFilters:     map[string]bool{},
+		CacheMaxWidth:      2400,
+		CacheMaxHeight:     2000,
+		DetectorProbeSize:  400,
 	}
 	v.Filters = FilterMap{
+		"image":            v.image,
 		"watermark":        v.watermark,
 		"round_corner":     roundCorner,
 		"rotate":           rotate,
 		"label":            label,
+		"text":             text,
 		"grayscale":        grayscale,
 		"brightness":       brightness,
 		"background_color": backgroundColor,
@@ -75,9 +95,15 @@ func NewProcessor(options ...Option) *Processor {
 		"sharpen":          sharpen,
 		"strip_icc":        stripIcc,
 		"strip_exif":       stripExif,
+		"to_colorspace":    toColorspace,
 		"trim":             trim,
 		"padding":          v.padding,
 		"proportion":       proportion,
+		"crop":             crop,
+		"draw_detections":  v.drawDetectionsFilter,
+		"pixelate":         pixelate,
+		"redact":           v.redactFilter,
+		"redact_oval":      v.redactOvalFilter,
 	}
 	for _, option := range options {
 		option(v)
@@ -95,7 +121,7 @@ func NewProcessor(options ...Option) *Processor {
 }
 
 // Startup implements imagor.Processor interface
-func (v *Processor) Startup(_ context.Context) error {
+func (v *Processor) Startup(ctx context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	processorCount++
@@ -123,6 +149,10 @@ func (v *Processor) Startup(_ context.Context) error {
 			ConcurrencyLevel: v.Concurrency,
 		})
 	}
+	v.hasDcrawload = vips.HasOperation("dcrawload_source")
+	if v.hasDcrawload {
+		v.Logger.Debug("dcrawload support enabled")
+	}
 	if v.FallbackFunc == nil {
 		if vips.HasOperation("magickload_buffer") {
 			v.FallbackFunc = bufferFallbackFunc
@@ -132,11 +162,28 @@ func (v *Processor) Startup(_ context.Context) error {
 			v.Logger.Debug("source fallback", zap.String("fallback", "bmp"))
 		}
 	}
+	if v.CacheSize > 0 && v.cache == nil {
+		cache, err := newImageCache(v.CacheSize)
+		if err != nil {
+			return err
+		}
+		v.cache = cache
+	}
+	for _, d := range v.Detectors {
+		if err := d.Startup(ctx); err != nil {
+			return fmt.Errorf("detector startup: %w", err)
+		}
+	}
 	return nil
 }
 
+// AddDetector implements imagor.DetectorAdder.
+func (v *Processor) AddDetector(d imagor.Detector) {
+	v.Detectors = append(v.Detectors, d)
+}
+
 // Shutdown implements imagor.Processor interface
-func (v *Processor) Shutdown(_ context.Context) error {
+func (v *Processor) Shutdown(ctx context.Context) error {
 	processorLock.Lock()
 	defer processorLock.Unlock()
 	if processorCount <= 0 {
@@ -145,6 +192,13 @@ func (v *Processor) Shutdown(_ context.Context) error {
 	processorCount--
 	if processorCount == 0 {
 		vips.Shutdown()
+	}
+	if v.cache != nil {
+		v.cache.Close()
+		v.cache = nil
+	}
+	for _, d := range v.Detectors {
+		_ = d.Shutdown(ctx)
 	}
 	return nil
 }
@@ -157,7 +211,41 @@ func (v *Processor) newImageFromBlob(
 	}
 	if blob.BlobType() == imagor.BlobTypeMemory {
 		buf, width, height, bands, _ := blob.Memory()
-		return vips.NewImageFromMemory(buf, width, height, bands)
+		img, err := vips.NewImageFromMemory(buf, width, height, bands)
+		if err != nil {
+			return nil, err
+		}
+		// NewImageFromMemory assigns VIPS_INTERPRETATION_MULTIBAND by default.
+		// Cached raw-pixel blobs were normalized to sRGB on write, so restore
+		if bands >= 3 {
+			if copied, copyErr := img.Copy(&vips.CopyOptions{
+				Interpretation: vips.InterpretationSrgb,
+			}); copyErr == nil {
+				img.Close()
+				return copied, nil
+			}
+		}
+		return img, nil
+	}
+	// Camera RAW files (RAF, ORF, RW2, X3F, CR3) must use dcrawload explicitly.
+	// CR2 is excluded: it is TIFF-based and crashes dcrawload_source, so it falls
+	// through to the normal TIFF loader below.
+	if blob.IsRaw() && blob.BlobType() != imagor.BlobTypeCR2 {
+		if !v.hasDcrawload {
+			return nil, imagor.ErrUnsupportedFormat
+		}
+		return v.dcrawloadFromBlob(ctx, blob)
+	}
+	// For TIFF blobs (ARW, NEF, DNG, PEF, SRW, NRW, CR2, regular TIFF), try dcrawload
+	// first when available — it handles TIFF-based RAW formats that share TIFF magic bytes.
+	// CR2 is now BlobTypeCR2 (not BlobTypeTIFF) so it won't hit this branch.
+	// LibRaw rejects non-RAW TIFFs quickly (header check only).
+	if blob.BlobType() == imagor.BlobTypeTIFF && v.hasDcrawload {
+		img, err := v.dcrawloadFromBlob(ctx, blob)
+		if err == nil {
+			return img, nil
+		}
+		// dcrawload failed — it's a real TIFF or unsupported, proceed with normal loading
 	}
 	reader, _, err := blob.NewReader()
 	if err != nil {
@@ -171,6 +259,22 @@ func (v *Processor) newImageFromBlob(
 		return v.FallbackFunc(blob, options)
 	}
 	return img, err
+}
+
+// dcrawloadFromBlob loads a RAW camera image using vips_dcrawload_source.
+func (v *Processor) dcrawloadFromBlob(ctx context.Context, blob *imagor.Blob) (*vips.Image, error) {
+	reader, _, err := blob.NewReader()
+	if err != nil {
+		return nil, err
+	}
+	src := vips.NewSource(reader)
+	contextDefer(ctx, src.Close)
+	img, err := vips.NewDcrawloadSource(src, vips.DefaultDcrawloadSourceOptions())
+	if err != nil {
+		src.Close()
+		return nil, err
+	}
+	return img, nil
 }
 
 func newThumbnailFromBlob(

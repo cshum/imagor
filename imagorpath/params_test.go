@@ -200,9 +200,9 @@ func TestParseGenerate(t *testing.T) {
 		},
 		{
 			name: "contains query",
-			uri:  "unsafe/https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
+			uri:  "unsafe/https:%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo=bar",
 			params: Params{
-				Path:   "https%3A%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo%3Dbar",
+				Path:   "https:%2F%2Ffoobar%2Fen%2Flatest%2F_images%2Fman_before_sharpen.png%3Ffoo=bar",
 				Image:  "https://foobar/en/latest/_images/man_before_sharpen.png?foo=bar",
 				Unsafe: true,
 			},
@@ -295,6 +295,43 @@ func TestParseGenerate(t *testing.T) {
 				Path:   "bottom%2Fimg",
 				Image:  "bottom/img",
 				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains parentheses",
+			uri:  "unsafe/photo%281%29.jpg",
+			params: Params{
+				Path:   "photo%281%29.jpg",
+				Image:  "photo(1).jpg",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains comma",
+			uri:  "unsafe/photo%2Cversion2.jpg",
+			params: Params{
+				Path:   "photo%2Cversion2.jpg",
+				Image:  "photo,version2.jpg",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image contains parentheses and comma",
+			uri:  "unsafe/my%20image%20%28special%2C%20v2%29.jpg",
+			params: Params{
+				Path:   "my%20image%20%28special%2C%20v2%29.jpg",
+				Image:  "my image (special, v2).jpg",
+				Unsafe: true,
+			},
+		},
+		{
+			name: "image with filters and parentheses in filename",
+			uri:  "unsafe/filters:blur(5)/photo%281%29.jpg",
+			params: Params{
+				Path:    "filters:blur(5)/photo%281%29.jpg",
+				Image:   "photo(1).jpg",
+				Unsafe:  true,
+				Filters: []Filter{{Name: "blur", Args: "5"}},
 			},
 		},
 		{
@@ -409,6 +446,132 @@ func TestParseGenerate(t *testing.T) {
 				Filters:    []Filter{{Name: "some_filter"}},
 			},
 		},
+		{
+			name: "adaptive fit-in",
+			uri:  "adaptive-fit-in/300x200/img",
+			params: Params{
+				Path:          "adaptive-fit-in/300x200/img",
+				Image:         "img",
+				FitIn:         true,
+				AdaptiveFitIn: true,
+				Width:         300,
+				Height:        200,
+			},
+		},
+		{
+			name: "full fit-in",
+			uri:  "full-fit-in/300x200/img",
+			params: Params{
+				Path:      "full-fit-in/300x200/img",
+				Image:     "img",
+				FitIn:     true,
+				FullFitIn: true,
+				Width:     300,
+				Height:    200,
+			},
+		},
+		{
+			name: "adaptive full fit-in",
+			uri:  "adaptive-full-fit-in/300x200/img",
+			params: Params{
+				Path:          "adaptive-full-fit-in/300x200/img",
+				Image:         "img",
+				FitIn:         true,
+				AdaptiveFitIn: true,
+				FullFitIn:     true,
+				Width:         300,
+				Height:        200,
+			},
+		},
+		{
+			name: "adaptive fit-in with filters",
+			uri:  "adaptive-fit-in/300x200/filters:blur(5)/img",
+			params: Params{
+				Path:          "adaptive-fit-in/300x200/filters:blur(5)/img",
+				Image:         "img",
+				FitIn:         true,
+				AdaptiveFitIn: true,
+				Width:         300,
+				Height:        200,
+				Filters:       []Filter{{Name: "blur", Args: "5"}},
+			},
+		},
+		{
+			name: "full fit-in with smart crop",
+			uri:  "full-fit-in/300x200/smart/img",
+			params: Params{
+				Path:      "full-fit-in/300x200/smart/img",
+				Image:     "img",
+				FitIn:     true,
+				FullFitIn: true,
+				Width:     300,
+				Height:    200,
+				Smart:     true,
+			},
+		},
+		{
+			name: "dimensions 949x1000 (8 chars, should not be treated as hash)",
+			uri:  "949x1000/img.jpg",
+			params: Params{
+				Path:   "949x1000/img.jpg",
+				Image:  "img.jpg",
+				Width:  949,
+				Height: 1000,
+			},
+		},
+		{
+			name: "dimensions 1000x1000 (9 chars, should not be treated as hash)",
+			uri:  "1000x1000/img.jpg",
+			params: Params{
+				Path:   "1000x1000/img.jpg",
+				Image:  "img.jpg",
+				Width:  1000,
+				Height: 1000,
+			},
+		},
+		{
+			name: "dimensions 1920x1080 (9 chars, should not be treated as hash)",
+			uri:  "1920x1080/img.jpg",
+			params: Params{
+				Path:   "1920x1080/img.jpg",
+				Image:  "img.jpg",
+				Width:  1920,
+				Height: 1080,
+			},
+		},
+		{
+			name: "dimensions with flip -1920x-1080 (11 chars, should not be treated as hash)",
+			uri:  "-1920x-1080/img.jpg",
+			params: Params{
+				Path:   "-1920x-1080/img.jpg",
+				Image:  "img.jpg",
+				Width:  1920,
+				Height: 1080,
+				HFlip:  true,
+				VFlip:  true,
+			},
+		},
+		{
+			name: "dimensions in nested path (layer use case)",
+			uri:  "unsafe/949x1000/Google Photos/IMG_20180519_191530.jpg",
+			params: Params{
+				Path:   "949x1000/Google Photos/IMG_20180519_191530.jpg",
+				Image:  "Google Photos/IMG_20180519_191530.jpg",
+				Width:  949,
+				Height: 1000,
+				Unsafe: true,
+			},
+		},
+		{
+			name: "max valid dimensions 99999x99999 (5 digits each)",
+			uri:  "99999x99999/img.jpg",
+			params: Params{
+				Path:   "99999x99999/img.jpg",
+				Image:  "img.jpg",
+				Width:  99999,
+				Height: 99999,
+			},
+		},
 	}
 	for _, test := range tests {
 		if test.name == "" {
@@ -473,6 +636,56 @@ func TestHMACSigner(t *testing.T) {
 	assert.Equal(t, signer.Sign("assfasf"), "zb6uWXQxwJDOe_zOgxkuj96Etrsz")
 }
 
+func TestSplitArgs(t *testing.T) {
+	tests := []struct {
+		name string
+		args string
+		want []string
+	}{
+		{
+			name: "empty",
+			args: "",
+			want: nil,
+		},
+		{
+			name: "single arg",
+			args: "arg1",
+			want: []string{"arg1"},
+		},
+		{
+			name: "simple comma split",
+			args: "arg1,arg2,arg3",
+			want: []string{"arg1", "arg2", "arg3"},
+		},
+		{
+			name: "nested parentheses",
+			args: "path(a,b),x,y",
+			want: []string{"path(a,b)", "x", "y"},
+		},
+		{
+			name: "nested imagor path",
+			args: "/150x150/filters:image(/50x50/gopher-front.png,center,center)/gopher.png,10,10",
+			want: []string{"/150x150/filters:image(/50x50/gopher-front.png,center,center)/gopher.png", "10", "10"},
+		},
+		{
+			name: "double nested",
+			args: "/200x200/filters:image(/100x100/filters:image(/50x50/gopher.png,center,center)/demo.jpg,center,center)/base.jpg,center,center",
+			want: []string{"/200x200/filters:image(/100x100/filters:image(/50x50/gopher.png,center,center)/demo.jpg,center,center)/base.jpg", "center", "center"},
+		},
+		{
+			name: "watermark style",
+			args: "s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0",
+			want: []string{"s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg", "0", "0", "0"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SplitArgs(tt.args)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestParseFilters(t *testing.T) {
 	filters, img := parseFilters("filters:watermark(s.glbimg.com/filters:label(abc):watermark(aaa.com/fit-in/filters:aaa(bbb))/aaa.jpg,0,0,0):brightness(-50):grayscale()/some/example/img")
 	assert.Equal(t, []Filter{
@@ -510,4 +723,91 @@ func TestParseFilters(t *testing.T) {
 		{"grayscale", ""},
 	}, filters)
 	assert.Empty(t, img)
+}
+
+func TestHasCrop(t *testing.T) {
+	tests := []struct {
+		name string
+		p    Params
+		want bool
+	}{
+		{"no crop", Params{}, false},
+		{"crop left", Params{CropLeft: 10}, true},
+		{"crop top", Params{CropTop: 5}, true},
+		{"crop right", Params{CropRight: 100}, true},
+		{"crop bottom", Params{CropBottom: 200}, true},
+		{"all four", Params{CropLeft: 10, CropTop: 20, CropRight: 100, CropBottom: 200}, true},
+		{"percentage crop", Params{CropLeft: 0.1, CropTop: 0.2, CropRight: 0.9, CropBottom: 0.8}, true},
+		{"zero values", Params{CropLeft: 0, CropTop: 0, CropRight: 0, CropBottom: 0}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, HasCrop(tt.p))
+		})
+	}
+}
+
+func TestHasFilter(t *testing.T) {
+	tests := []struct {
+		name       string
+		p          Params
+		filterName string
+		want       bool
+	}{
+		{"empty filters", Params{}, "focal", false},
+		{"focal present", Params{Filters: Filters{{"focal", "0.5x0.5"}}}, "focal", true},
+		{"focal absent", Params{Filters: Filters{{"format", "webp"}}}, "focal", false},
+		{"strip_exif present", Params{Filters: Filters{{"strip_exif", ""}}}, "strip_exif", true},
+		{"strip_exif absent", Params{Filters: Filters{{"focal", "0.5x0.5"}}}, "strip_exif", false},
+		{"multiple filters, target present", Params{Filters: Filters{{"format", "webp"}, {"focal", "0.3x0.7"}, {"quality", "80"}}}, "focal", true},
+		{"multiple filters, target absent", Params{Filters: Filters{{"format", "webp"}, {"quality", "80"}}}, "focal", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, HasFilter(tt.p, tt.filterName))
+		})
+	}
+}
+
+func TestHasCacheBypass(t *testing.T) {
+	tests := []struct {
+		name string
+		p    Params
+		want bool
+	}{
+		// no bypass
+		{"no bypass — plain resize", Params{Width: 800, Height: 600}, false},
+		{"no bypass — with preview and format", Params{Filters: Filters{{"preview", ""}, {"format", "webp"}}}, false},
+		{"no bypass — page 1 explicit", Params{Filters: Filters{{"page", "1"}}}, false},
+		{"no bypass — page 0 (default)", Params{Filters: Filters{{"page", "0"}}}, false},
+		{"no bypass — dpi 0", Params{Filters: Filters{{"dpi", "0"}}}, false},
+
+		// crop bypass
+		{"bypass — crop left", Params{CropLeft: 10}, true},
+		{"bypass — crop top", Params{CropTop: 5}, true},
+		{"bypass — crop right", Params{CropRight: 100}, true},
+		{"bypass — crop bottom", Params{CropBottom: 200}, true},
+		{"bypass — percentage crop", Params{CropLeft: 0.1, CropTop: 0.2, CropRight: 0.9, CropBottom: 0.8}, true},
+
+		// focal bypass
+		{"bypass — focal filter", Params{Filters: Filters{{"focal", "0.5x0.5"}}}, true},
+		{"bypass — focal with other filters", Params{Filters: Filters{{"format", "webp"}, {"focal", "100x200:300x400"}}}, true},
+
+		// page bypass
+		{"bypass — page 2", Params{Filters: Filters{{"page", "2"}}}, true},
+		{"bypass — page 10", Params{Filters: Filters{{"page", "10"}}}, true},
+
+		// dpi bypass
+		{"bypass — dpi 72", Params{Filters: Filters{{"dpi", "72"}}}, true},
+		{"bypass — dpi 150", Params{Filters: Filters{{"dpi", "150"}}}, true},
+
+		// combined
+		{"bypass — crop + focal", Params{CropLeft: 10, Filters: Filters{{"focal", "0.5x0.5"}}}, true},
+		{"bypass — page 3 + format", Params{Filters: Filters{{"page", "3"}, {"format", "webp"}}}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, HasCacheBypass(tt.p))
+		})
+	}
 }

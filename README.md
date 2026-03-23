@@ -1,7 +1,8 @@
 # imagor
 
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
-[![Coverage Status](https://coveralls.io/repos/github/cshum/imagor/badge.svg?branch=master)](https://coveralls.io/github/cshum/imagor?branch=master)
+[![Codecov](https://img.shields.io/codecov/c/github/cshum/imagor
+)](https://codecov.io/gh/cshum/imagor)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cshum/imagor.svg)](https://pkg.go.dev/github.com/cshum/imagor)
 
@@ -48,13 +49,13 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
-/HASH|unsafe/trim/AxB:CxD/fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
+/HASH|unsafe/trim/AxB:CxD/(adaptive-)(full-)fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
 - `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
 - `trim` removes surrounding space in images using top-left pixel color
 - `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
-- `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`
+- `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`. If `full-fit-in` is specified, then the largest size is used for cropping (width instead of height, or the other way around). If `adaptive-fit-in` is specified, it inverts requested width and height if it would get a better image definition
 - `stretch` means resize the image to `ExF` without keeping its aspect ratios
 - `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
 - `GxH:IxJ` add left-top padding `GxH` and right-bottom padding `IxJ`
@@ -65,6 +66,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - `IMAGE` is the image path or URI
   - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
   - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64). This encoding is  more robust if you have special characters in your image URL, and can fix encoding/signing issues in your setup.
+  - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](#color-image) section below.
 
 ### Filters
 
@@ -85,6 +87,12 @@ imagor supports the following filters:
   - `amount` -100 to 100, the amount in % to increase or decrease the image brightness
 - `contrast(amount)` increases or decreases the image contrast
   - `amount` -100 to 100, the amount in % to increase or decrease the image contrast
+- `crop(left,top,width,height)` crops the image after resizing
+  - Absolute pixels: `crop(10,20,200,150)` - crop 200x150 box starting at (10,20)
+  - Relative (0.0-1.0): `crop(0.1,0.1,0.8,0.8)` - crop using percentages
+- `draw_detections()` draws color-coded bounding boxes on detected regions. Each class name is automatically assigned a distinct colour via hash-based palette. For use with detection plugins such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured.
+- `pixelate(block_size)` applies a pixelate effect to the whole image by downscaling to 1/`block_size` then upscaling back with nearest-neighbour interpolation
+  - `block_size` pixel block size in pixels, defaults to 10
 - `fill(color)` fill the missing area or transparent image with the specified color:
   - `color` - color name or hexadecimal rgb expression without the “#” character
     - If color is "blur" - missing parts are filled with blurred original image
@@ -98,22 +106,31 @@ imagor supports the following filters:
 - `grayscale()` changes the image to grayscale
 - `hue(angle)` increases or decreases the image hue
   - `angle` the angle in degree to increase or decrease the hue rotation
-- `label(text, x, y, size, color[, alpha[, font]])` adds a text label to the image. It can be positioned inside the image with the alignment specified, color and transparency support:
-  - `text` text label, also support url encoded text.
-  - `x` horizontal position that the text label will be in:
-    - Positive number indicate position from the left, negative number from the right.
-    - Number followed by a `p` e.g. 20p means calculating the value from the image width as percentage
-    - `left`,`right`,`center` align left, right or centered respectively
-  - `y` vertical position that the text label will be in:
-    - Positive number indicate position from the top, negative number from the bottom.
-    - Number followed by a `p` e.g. 20p means calculating the value from the image height as percentage
-    - `top`,`bottom`,`center` vertical align top, bottom or centered respectively
-  - `size` - text label font size
-  - `color` - color name or hexadecimal rgb expression without the “#” character
-  - `alpha` - text label transparency, a number between 0 (fully opaque) and 100 (fully transparent).
-  - `font` - text label font type
+- `image(imagorpath, x, y[, alpha[, blend_mode]])` composites a processed image onto the current image with full imagor transformation support, enabling recursive image composition:
+  - `imagorpath` - an imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
+    - The nested path supports all imagor operations: resizing, cropping, filters, etc.
+    - Enables recursive nesting - images can load other processed images
+    - Use `full` (or `f`) in the `WxH` dimension segment to inherit the parent image's width or height. `full` means the full parent dimension; `full-NNN` means the parent dimension minus NNN pixels. Examples:
+      - `fullxfull/overlay.png` (or `fxf`) — overlay fills the parent canvas exactly
+      - `fit-in/full-20xfull-20/overlay.png` (or `fit-in/f-20xf-20`) — overlay fits within the parent canvas with a 20px inset on each side
+      - `fullx200/banner.png` — overlay inherits parent width, fixed 200px height
+  - `x` - horizontal position (defaults to 0 if not specified):
+    - Positive number indicates position from the left, negative from the right
+    - Number followed by `p` e.g. `20p` means percentage of image width
+    - `left` or `l`, `right` or `r`, `center` for alignment, optionally with pixel offset e.g. `left-20`, `r-10`
+    - `repeat` to tile horizontally
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `y` - vertical position (defaults to 0 if not specified):
+    - Positive number indicates position from the top, negative from the bottom
+    - Number followed by `p` e.g. `20p` means percentage of image height
+    - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally with pixel offset e.g. `top-10`, `b-20`
+    - `repeat` to tile vertically
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `alpha` - transparency level, 0 (fully opaque) to 100 (fully transparent)
+  - `blend_mode` - compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
 - `max_bytes(amount)` automatically degrades the quality of the image until the image is under the specified `amount` of bytes
 - `max_frames(n)` limit maximum number of animation frames `n` to be loaded
+- `no_upscale()` prevents the image from being upscaled beyond its original dimensions
 - `orient(angle)` rotates the image before resizing and cropping, according to the angle value
   - `angle` accepts 0, 90, 180, 270
 - `page(num)` specify page number for PDF, or frame number for animated image, starts from 1
@@ -126,14 +143,48 @@ imagor supports the following filters:
   - `angle` accepts 0, 90, 180, 270
 - `round_corner(rx [, ry [, color]])` adds rounded corners to the image with the specified color as background
   - `rx`, `ry` amount of pixel to use as radius. ry = rx if ry is not provided
-  - `color` the color name or hexadecimal rgb expression without the “#” character
+  - `color` the color name or hexadecimal rgb expression without the "#" character
 - `saturation(amount)` increases or decreases the image saturation
   - `amount` -100 to 100, the amount in % to increase or decrease the image saturation
+- `redact([mode[, strength]])` obscures all detected regions for privacy/anonymisation (e.g. GDPR face blurring, legal document redaction). Requires a detection plugin such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured or no regions are detected. Skips animated images.
+  - `mode` — `blur` (default), `pixelate`, or any color name/hex for solid fill (e.g. `black`, `white`, `ff0000`)
+  - `strength` — blur sigma (default 15) or pixelate block size in pixels (default 10). Not used for solid color mode.
+  - Examples: `redact()`, `redact(blur,20)`, `redact(pixelate)`, `redact(pixelate,15)`, `redact(black)`, `redact(white)`, `redact(ff0000)`
+- `redact_oval([mode[, strength]])` identical to `redact` but applies an elliptical mask to each region, producing a rounded/oval redaction shape. This is the most natural shape for face anonymisation as it closely follows the contour of a face. Same arguments and defaults as `redact`.
+  - Examples: `redact_oval()`, `redact_oval(blur,20)`, `redact_oval(pixelate)`, `redact_oval(pixelate,15)`, `redact_oval(black)`, `redact_oval(white)`, `redact_oval(ff0000)`
 - `sharpen(sigma)` sharpens the image
 - `strip_exif()` removes Exif metadata from the resulting image
-- `strip_icc()` removes ICC profile information from the resulting image
-- `strip_metadata()` removes all metadata from the resulting image
-- `upscale()` upscale the image if `fit-in` is used
+- `strip_icc()` removes ICC profile information from the resulting image. The image is first converted to sRGB color space to preserve correct colors before the profile is removed.
+- `text(text, x, y[, font[, color[, alpha[, blend_mode[, width[, align[, justify[, wrap[, spacing[, dpi]]]]]]]]]])` renders a text overlay onto the image with full multi-line and Pango font support:
+  - `text` the text to render. Supports URL query-encoding and `b64:` prefix for [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding to safely pass arbitrary unicode or multi-word strings.
+  - `font` Pango font description with hyphens as space separators, e.g. `sans-bold-24` for `sans bold 24`, `monospace-18` for `monospace 18`. Font size is in points; at the default 72 DPI, 1pt = 1px.
+  - `x` horizontal position:
+    - Positive number indicates position from the left, negative from the right
+    - Number followed by `p` e.g. `20p` means percentage of image width
+    - `left` or `l`, `right` or `r`, `center` for alignment, optionally with pixel offset e.g. `left-20`, `r-10`
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `y` vertical position:
+    - Positive number indicates position from the top, negative from the bottom
+    - Number followed by `p` e.g. `20p` means percentage of image height
+    - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally with pixel offset e.g. `top-10`, `b-20`
+    - Float between 0-1 represents percentage e.g. `0.5` for center
+  - `color` color name or hexadecimal rgb expression without the `#` character, defaults to black
+  - `alpha` transparency, 0 (fully opaque) to 100 (fully transparent), defaults to 0
+  - `blend_mode` compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
+  - `width` wrap width — text wraps when a line exceeds this width. Supports the same conventions as image dimensions:
+    - Plain integer for pixel count, e.g. `300`
+    - Number followed by `p` for percentage of canvas width, e.g. `80p`
+    - Float between 0-1 as fraction of canvas width, e.g. `0.75`
+    - `f` or `full` for full canvas width; `f-N` / `full-N` for canvas width minus N pixels
+    - `0` or omitted means unconstrained (Pango wraps only on explicit newlines)
+  - `align` horizontal alignment of lines within the text box: `low` (default, left), `centre` / `center`, `high` / `right`
+  - `justify` justify text: `true` or `1`
+  - `wrap` line wrapping mode: `word` (default), `char`, `wordchar`, `none`
+  - `spacing` additional line spacing in pixels
+  - `dpi` render DPI, defaults to 72 (where 1pt = 1px)
+- `to_colorspace(profile)` converts the image to the specified ICC color profile
+  - `profile` the target color profile, defaults to `srgb` if not specified. Common values: `srgb`, `p3`, `cmyk`
+- `upscale()` enables upscaling for `fit-in` and `adaptive-fit-in` modes
 - `watermark(image, x, y, alpha [, w_ratio [, h_ratio]])` adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio
   - `image` watermark image URI, using the same image loader configured for imagor.
     Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
@@ -157,7 +208,7 @@ These filters do not manipulate images but provide useful utilities to the imago
 
 - `attachment(filename)` returns attachment in the `Content-Disposition` header, and the browser will open a "Save as" dialog with `filename`. When `filename` not specified, imagor will get the filename from the image source
 - `expire(timestamp)` adds expiration time to the content. `timestamp` is the unix milliseconds timestamp, e.g. if content is valid for 30s then timestamp would be `Date.now() + 30*1000` in JavaScript.
-- `preview()` skips the result storage even if result storage is enabled. Useful for conditional caching
+- `preview()` skips the result storage even if result storage is enabled, and opts the request into the [in-memory cache](#in-memory-cache) when configured. Useful for preview contexts where the same source image is served at multiple transformations.
 - `raw()` response with a raw unprocessed and unchecked source image. Image still loads from loader and storage but skips the result storage
 
 
@@ -272,6 +323,111 @@ AWS_RESULT_STORAGE_SECRET_ACCESS_KEY
 S3_RESULT_STORAGE_ENDPOINT
 ```
 
+##### S3 Wildcard Bucket (Dynamic Bucket from Path)
+
+For setups where the bucket name is embedded as the first path segment of the image URL, set the bucket to `*`:
+
+```dotenv
+AWS_REGION=us-east-1
+
+S3_LOADER_BUCKET=*          # enable S3 loader with dynamic bucket from path
+S3_STORAGE_BUCKET=*         # enable S3 storage with dynamic bucket from path
+S3_RESULT_STORAGE_BUCKET=*  # enable S3 result storage with dynamic bucket from path
+```
+
+A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` bucket. A request for `/mysite-prod/assets/logo.png` will load `assets/logo.png` from the `mysite-prod` bucket. The first path segment is always used as the bucket name and the remainder as the object key.
+
+This works identically for loader, storage, and result storage — all three use the same `S3Storage` implementation. This allows a single imagor instance to serve images from any bucket in the same AWS account without any additional configuration.
+
+##### S3 Loader Bucket Routing
+
+For multi-tenant or multi-bucket setups, you can route image requests to different S3 buckets based on pattern matching. Each bucket can have its own region, endpoint, and credentials. Create a YAML configuration file:
+
+```yaml
+# Regex pattern with named capture group (?P<bucket>...)
+# Extracts the bucket identifier from the object key.
+# Optionally, add (?P<path>...) to extract the S3 key separately from the routing prefix.
+routing_pattern: "^[a-f0-9]{4}-(?P<bucket>[A-Za-z0-9]+)-"
+
+default_bucket:
+  name: imagor-default
+  region: us-east-1
+
+fallback_buckets:
+  - name: imagor-archive
+    region: us-west-2
+
+rules:
+  - match: SG
+    bucket:
+      name: imagor-singapore
+      region: ap-southeast-1
+  - match: US
+    bucket:
+      name: imagor-us
+      region: us-east-1
+  - match: EU
+    bucket:
+      name: imagor-eu
+      region: eu-west-1
+      endpoint: https://s3.custom-endpoint.com
+      access_key_id: AKIAIOSFODNN7EXAMPLE
+      secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+**Pattern Examples:**
+
+| Use Case | `routing_pattern` | Example Key | Bucket | S3 Key |
+|----------|-------------------|-------------|--------|--------|
+| Random prefix with bucket code | `^[a-f0-9]{4}-(?P<bucket>[A-Z]{2})-` | `f7a3-SG-image.jpg` | `SG` | `f7a3-SG-image.jpg` |
+| Simple prefix routing | `^(?P<bucket>[^/]+)/` | `users/photo.jpg` | `users` | `users/photo.jpg` |
+| Region-based naming | `(?P<bucket>[a-z]{2}-[a-z]+-\d)` | `eu-west-1-img.jpg` | `eu-west-1` | `eu-west-1-img.jpg` |
+| Path-prefix routing (strip prefix) | `^(?P<bucket>mysite-[a-z]+)\/(?P<path>.+)$` | `mysite-test/images/photo.jpg` | `mysite-test` | `images/photo.jpg` |
+| Passthrough (any bucket, no rules) | `^(?P<bucket>[^/]+)\/(?P<path>.+)$` | `any-bucket/images/photo.jpg` | `any-bucket` | `images/photo.jpg` |
+
+Then specify the config file path:
+
+```dotenv
+S3_LOADER_BUCKET_ROUTER_CONFIG=/path/to/bucket-routing.yaml
+```
+
+Or via command line:
+
+```bash
+imagor -s3-loader-bucket-router-config /path/to/bucket-routing.yaml
+```
+
+Routing behavior:
+- The `routing_pattern` must contain a named capture group `(?P<bucket>...)` to extract the bucket identifier
+- The extracted value is matched against `rules[].match` to find the target bucket
+- If no rule matches, the `default_bucket` is used
+- If image not found in primary bucket, `fallback_buckets` are tried in order (up to 2 fallbacks)
+- Each bucket config can specify its own `region`, `endpoint`, and credentials
+- If bucket-specific credentials are not provided, global AWS credentials are used
+- If `S3_LOADER_BUCKET` is not set, `default_bucket.name` from the config is used
+- Optionally, add a named capture group `(?P<path>...)` to the pattern to use a sub-match as the S3 key instead of the full image path. This is useful for path-prefix routing where the bucket name is embedded as the first path segment and should not be included in the object key
+- **Passthrough mode:** if no `rules` and no `default_bucket` are configured, the router uses the captured `(?P<bucket>...)` value directly as the bucket name, creating S3 clients on demand. This allows routing to any bucket without pre-declaring them in the YAML
+
+Docker Compose example with bucket routing:
+
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    volumes:
+      - ./bucket-routing.yaml:/etc/imagor/bucket-routing.yaml
+    environment:
+      PORT: 8000
+      IMAGOR_SECRET: mysecret
+      AWS_ACCESS_KEY_ID: ...
+      AWS_SECRET_ACCESS_KEY: ...
+      AWS_REGION: us-east-1
+      S3_LOADER_BUCKET_ROUTER_CONFIG: /etc/imagor/bucket-routing.yaml
+    ports:
+      - "8000:8000"
+```
+
 #### Google Cloud Storage
 
 Docker Compose example with Google Cloud Storage:
@@ -301,6 +457,18 @@ services:
     ports:
       - "8000:8000"
 ```
+
+##### Google Cloud Storage Wildcard Bucket (Dynamic Bucket from Path)
+
+Google Cloud Storage supports the same `*` bucket paradigm as S3:
+
+```dotenv
+GCLOUD_LOADER_BUCKET=*          # enable GCS loader with dynamic bucket from path
+GCLOUD_STORAGE_BUCKET=*         # enable GCS storage with dynamic bucket from path
+GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket from path
+```
+
+A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
 
 #### Storage and Result Storage Path Style
 
@@ -418,28 +586,6 @@ The example URL then becomes:
 http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(testdata/gopher-front.png,repeat,bottom,0,40,40)/testdata/dancing-banana.gif
 ```
 
-### ImageMagick Support
-
-imagor uses [libvips](https://github.com/libvips/libvips) which is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than ImageMagick with better memory efficiency and security. However, there are image formats that libvips cannot handle natively, such as PSD, BMP, XCF and other legacy formats.
-
-imagor provides an ImageMagick-enabled variant that includes ImageMagick support through libvips `magickload` operation. This allows processing additional file formats but with performance and security tradeoffs.
-
-**ImageMagick is not recommended for speed, memory and security** but is capable of opening files that libvips won't support natively.
-
-#### Docker build `imagor-magick`
-
-```bash
-docker pull ghcr.io/cshum/imagor-magick
-```
-
-Usage:
-
-```bash
-docker run -p 8000:8000 ghcr.io/cshum/imagor-magick -imagor-unsafe -imagor-auto-webp
-```
-
-We recommend using the standard imagor image for most use cases.
-
 ### MozJPEG Support
 
 By default, imagor uses libjpeg-turbo for JPEG encoding, which provides fast compression. For enhanced JPEG compression at the cost of slower encoding speed, imagor provides a MozJPEG-enabled variant that includes [MozJPEG](https://github.com/mozilla/mozjpeg) support through libvips.
@@ -483,6 +629,57 @@ services:
 
 When enabled, MozJPEG will be used for JPEG output, providing better compression efficiency for JPEG images.
 
+### ImageMagick Support
+
+imagor uses [libvips](https://github.com/libvips/libvips) which is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than ImageMagick with better memory efficiency and security. However, there are image formats that libvips cannot handle natively, such as PSD, BMP, XCF and other legacy formats.
+
+imagor provides an ImageMagick-enabled variant that includes ImageMagick support through libvips `magickload` operation. This allows processing additional file formats but with performance and security tradeoffs.
+
+**ImageMagick is not recommended for speed, memory and security** but is capable of opening files that libvips won't support natively.
+
+#### Docker build `imagor-magick`
+
+```bash
+docker pull ghcr.io/cshum/imagor-magick
+```
+
+Usage:
+
+```bash
+docker run -p 8000:8000 ghcr.io/cshum/imagor-magick -imagor-unsafe -imagor-auto-webp
+```
+
+We recommend using the standard imagor image for most use cases.
+
+### Color Image
+
+Use `color:<color>` as the image path to generate a solid color or transparent image on-the-fly, without loading from any source. This is useful for creating background canvases, placeholder images, or base layers for further composition.
+
+```
+/unsafe/{width}x{height}/color:{color}
+```
+
+Supported color values:
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| Named color | `color:red`, `color:blue` | CSS named colors |
+| Transparent | `color:none` | Fully transparent (RGBA) |
+| 3-char hex | `color:fff` | Short hex (expanded to 6-char) |
+| 6-char hex | `color:ff0000` | Standard RGB hex |
+| 8-char hex | `color:ff000080` | RGBA hex with alpha channel |
+
+Examples:
+
+```
+http://localhost:8000/unsafe/200x200/color:red
+http://localhost:8000/unsafe/100x100/filters:format(png)/color:transparent
+http://localhost:8000/unsafe/300x300/filters:round_corner(20):format(png)/color:ff6600
+http://localhost:8000/unsafe/50x50/filters:format(png)/color:ff000080
+```
+
+All existing filters and transformations work with color images. When no dimensions are specified, defaults to 1×1. When only width or height is specified, the other defaults to the same value.
+
 ### Metadata and Exif
 
 imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
@@ -522,6 +719,52 @@ Prepending `/params` to the existing endpoint returns the endpoint attributes in
 ```bash
 curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
 ```
+
+### In-Memory Cache
+
+Imagor maintains an in-memory cache of decoded image pixels, keyed by image path. This avoids repeated I/O and decode for the same source image across different requests — base images, `watermark()` and `image()` filter overlays all share the same cache.
+
+The cache stores raw pixel buffers keyed by image path. Each request gets its own independent image object reconstructed from the cached bytes, so concurrent requests are fully safe with no shared mutable state. The cache is backed by [ristretto](https://github.com/dgraph-io/ristretto) with LRU eviction and a configurable byte budget.
+
+```dotenv
+VIPS_CACHE_SIZE=52428800      # Cache byte budget (e.g. 50 MiB). Default 0 = disabled
+VIPS_CACHE_MAX_WIDTH=2400     # Max image width to cache (default 2400px)
+VIPS_CACHE_MAX_HEIGHT=2000    # Max image height to cache (default 2000px)
+VIPS_CACHE_TTL=1h             # Cache entry TTL. Default 0 = no expiry (LRU eviction only)
+VIPS_CACHE_FORMAT=pixel       # Cache storage format: pixel (default), png, webp
+```
+
+**When to use:**
+- Enable in preview contexts where the same source image is requested at multiple sizes (e.g. `800x600`, `400x300`, `200x150`). Add `filters:preview()` to opt base image requests into the in-memory cache — the first request decodes and caches; subsequent requests skip I/O entirely.
+- Enable when the same `watermark()` or `image()` image path is reused across many requests (e.g. a logo watermark on every image).
+- Images larger than `VIPS_CACHE_MAX_WIDTH` × `VIPS_CACHE_MAX_HEIGHT` are still served normally, just not cached.
+- Only known-size requests (explicit width × height) are served from cache. Unknown-size (0×0) and oversized requests always load from source to ensure correct native resolution.
+- Requests with crop coordinates always bypass the cache, because the cache stores a downscaled copy and pixel coordinates from the original image space would be incorrect.
+- Leave disabled (default) if source image paths are highly varied or user-supplied, as caching provides no benefit.
+- Set `VIPS_CACHE_TTL` if source images may change at the same image path (e.g. mutable assets). Without a TTL, stale pixels are served until evicted by memory pressure or process restart. For stable assets (logos, static images), TTL is not needed.
+- `VIPS_CACHE_FORMAT` controls how cached pixels are stored in memory. `pixel` (default) stores raw uncompressed pixels — fastest cache-hit and pixel-identical, but uses the most memory. `png` uses lossless compression — smaller memory footprint with pixel-identical quality. `webp` uses lossy compression — smallest memory footprint at the cost of slight quality difference.
+
+### VIPS Performance Tuning
+
+imagor uses [libvips](https://github.com/libvips/libvips) for image processing. libvips provides several configuration options to tune performance and resource usage:
+
+`VIPS_CONCURRENCY` controls the number of threads libvips uses for image operations:
+
+```dotenv
+VIPS_CONCURRENCY=1    # Single-threaded (default)
+VIPS_CONCURRENCY=-1   # Use all available CPU cores
+VIPS_CONCURRENCY=4    # Use 4 threads
+```
+
+**Important:** `VIPS_CONCURRENCY` is a **global setting** that controls threading **within each image operation**, not the number of concurrent requests.
+
+- **Default (1)**: Single-threaded processing. Recommended for most deployments where you handle concurrency at the application level (multiple imagor processes/containers).
+- **-1 (auto)**: Uses all CPU cores. Can improve performance for individual large images but may cause resource contention under high request concurrency.
+- **Custom value**: Set to a specific number of threads for fine-tuned control.
+
+For high-traffic deployments, it's generally better to scale horizontally (more imagor instances) rather than increasing `VIPS_CONCURRENCY`.
+
+libvips also has a built-in operation cache (`VIPS_MAX_CACHE_MEM`, `VIPS_MAX_CACHE_SIZE`, `VIPS_MAX_CACHE_FILES`) that reuses recently computed operations. For imagor's typical workload, each request processes a different source image so this cache rarely gets hits — the defaults (0 = disabled) are appropriate. See [libvips documentation](https://github.com/libvips/libvips/issues/1585) for details.
 
 ### POST Upload Endpoint
 
@@ -567,8 +810,9 @@ The upload form includes debug information showing how imagor parses the URL par
 
 The imagor ecosystem includes several community-contributed projects that extend and integrate with imagor:
 
-- **[cshum/imagor-studio](https://github.com/cshum/imagor-studio)** - Image gallery and live editing web application for creators
+- **[cshum/imagor-studio](https://github.com/cshum/imagor-studio)** - Image gallery with built-in editing and template workflows
 - **[cshum/imagorvideo](https://github.com/cshum/imagorvideo)** - imagor video thumbnail server in Go and ffmpeg C bindings
+- **[cshum/imagorface](https://github.com/cshum/imagorface)** - Fast, on-the-fly face detection for imagor
 - **[sandstorm/laravel-imagor](https://github.com/sandstorm/laravel-imagor)** - Laravel integration for imagor
 - **[codedoga/imagor-toy](https://github.com/codedoga/imagor-toy)** - A ReactJS based app to play with Imagor
 
@@ -659,6 +903,8 @@ Usage of imagor:
         imagor disable /params endpoint
   -imagor-disable-error-body
         imagor disable response body on error
+  -imagor-response-raw-on-error
+        imagor response with a raw unprocessed and unchecked source image on error
 
   -server-address string
         Server address
@@ -767,6 +1013,8 @@ Usage of imagor:
         Base directory for S3 Loader
   -s3-loader-path-prefix string
         Base path prefix for S3 Loader
+  -s3-loader-bucket-router-config string
+        YAML config file for S3 Loader bucket routing based on pattern matching
   -s3-result-storage-bucket string
         S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
   -s3-result-storage-base-dir string
@@ -819,6 +1067,9 @@ Usage of imagor:
   -s3-result-storage-endpoint string
         Optional S3 Storage Endpoint to override default
 
+  -s3-http-max-idle-conns-per-host int
+        S3 HTTP client max idle connections per host (default 100, Go default is 2)
+
   -gcloud-safe-chars string
         Google Cloud safe characters to be excluded from image key escape. Set -- for no-op
   -gcloud-loader-base-dir string
@@ -848,6 +1099,14 @@ Usage of imagor:
   -gcloud-storage-path-prefix string
         Base path prefix for Google Cloud Storage
         
+  -vips-concurrency int
+        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
+  -vips-max-cache-files int
+        VIPS max cache files (default 0)
+  -vips-max-cache-mem int
+        VIPS max cache mem in bytes (default 0)
+  -vips-max-cache-size int
+        VIPS max cache size (default 0)
   -vips-max-animation-frames int
         VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited
   -vips-disable-blur
@@ -866,11 +1125,26 @@ Usage of imagor:
         VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
   -vips-avif-speed int
         VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
+  -vips-detector-probe-size int
+        VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop region detection. Lower values are faster, higher values improve detection of small regions (default 400)
   -vips-strip-metadata
         VIPS strips all metadata from the resulting image
   -vips-unlimited
     	VIPS bypass image max resolution check and remove all denial of service limits
+  -vips-cache-size int
+        VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by image path to avoid repeated I/O and decode for base images, watermark() and image() filters
+  -vips-cache-max-width int
+        VIPS image cache maximum width. Images wider than this are not cached (default 2400)
+  -vips-cache-max-height int
+        VIPS image cache maximum height. Images taller than this are not cached (default 2000)
+  -vips-cache-ttl duration
+        VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry
+  -vips-cache-format string
+        VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
+        
+  -log-ecs
+        Enable ECS (Elastic Common Schema) log format
 ```

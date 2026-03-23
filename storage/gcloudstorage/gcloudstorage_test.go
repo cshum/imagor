@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/cshum/imagor"
 	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/api/option"
 )
 
 func TestGCloudStorage_Path(t *testing.T) {
@@ -97,17 +99,27 @@ func TestGCloudStorage_Path(t *testing.T) {
 }
 
 func TestCRUD(t *testing.T) {
-	srv := fakestorage.NewServer([]fakestorage.Object{{
-		ObjectAttrs: fakestorage.ObjectAttrs{
-			BucketName: "test",
-			Name:       "placeholder",
-		},
-		Content: []byte(""),
-	}})
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: []fakestorage.Object{{
+			ObjectAttrs: fakestorage.ObjectAttrs{
+				BucketName: "test",
+				Name:       "placeholder",
+			},
+			Content: []byte(""),
+		}},
+		NoListener: true,
+	})
+	require.NoError(t, err)
+	defer srv.Stop()
+
+	// Create client manually to avoid credential conflicts
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	defer client.Close()
+
 	ctx := context.Background()
 	r := (&http.Request{}).WithContext(ctx)
-	s := New(srv.Client(), "test", WithPathPrefix("/foo"), WithACL("publicRead"))
-	var err error
+	s := New(client, "test", WithPathPrefix("/foo"), WithACL("publicRead"))
 
 	_, err = s.Get(r, "/bar/fooo/asdf")
 	assert.Equal(t, imagor.ErrInvalid, err)
@@ -156,16 +168,26 @@ func TestCRUD(t *testing.T) {
 }
 
 func TestExpiration(t *testing.T) {
-	srv := fakestorage.NewServer([]fakestorage.Object{{
-		ObjectAttrs: fakestorage.ObjectAttrs{
-			BucketName: "test",
-			Name:       "placeholder",
-		},
-		Content: []byte(""),
-	}})
-	s := New(srv.Client(), "test", WithExpiration(time.Millisecond*10))
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: []fakestorage.Object{{
+			ObjectAttrs: fakestorage.ObjectAttrs{
+				BucketName: "test",
+				Name:       "placeholder",
+			},
+			Content: []byte(""),
+		}},
+		NoListener: true,
+	})
+	require.NoError(t, err)
+	defer srv.Stop()
+
+	// Create client manually to avoid credential conflicts
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	defer client.Close()
+
+	s := New(client, "test", WithExpiration(time.Millisecond*10))
 	ctx := context.Background()
-	var err error
 
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
 	assert.Equal(t, imagor.ErrNotFound, err)
@@ -183,17 +205,28 @@ func TestExpiration(t *testing.T) {
 }
 
 func TestContextCancel(t *testing.T) {
-	srv := fakestorage.NewServer([]fakestorage.Object{{
-		ObjectAttrs: fakestorage.ObjectAttrs{
-			BucketName: "test",
-			Name:       "placeholder",
-		},
-		Content: []byte(""),
-	}})
-	s := New(srv.Client(), "test")
-	ctx, cancel := context.WithCancel(context.Background())
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: []fakestorage.Object{{
+			ObjectAttrs: fakestorage.ObjectAttrs{
+				BucketName: "test",
+				Name:       "placeholder",
+			},
+			Content: []byte(""),
+		}},
+		NoListener: true,
+	})
 	require.NoError(t, err)
+	defer srv.Stop()
+
+	// Create client manually to avoid credential conflicts
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	defer client.Close()
+
+	s := New(client, "test")
+	ctx, cancel := context.WithCancel(context.Background())
+	r, err2 := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+	require.NoError(t, err2)
 	blob := imagor.NewBlobFromBytes([]byte("bar"))
 	require.NoError(t, s.Put(ctx, "/foo/bar/asdf", blob))
 	b, err := s.Get(r, "/foo/bar/asdf")
@@ -206,9 +239,178 @@ func TestContextCancel(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+func TestContextCancelDuringBlobInit(t *testing.T) {
+	// This test validates that nil reader protection works when context is cancelled
+	// after Get() succeeds but before the blob is read (during lazy initialization)
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: []fakestorage.Object{{
+			ObjectAttrs: fakestorage.ObjectAttrs{
+				BucketName: "test",
+				Name:       "foo/bar/test",
+			},
+			Content: []byte("test content for deferred read"),
+		}},
+		NoListener: true,
+	})
+	require.NoError(t, err)
+	defer srv.Stop()
+
+	// Create client manually to avoid credential conflicts
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	defer client.Close()
+
+	s := New(client, "test")
+
+	// Create a context with very short timeout to simulate cancellation during blob init
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*1)
+	defer cancel()
+
+	r, err2 := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+	require.NoError(t, err2)
+
+	// Wait a bit to ensure context times out
+	time.Sleep(time.Millisecond * 10)
+
+	// Get should fail because context is already cancelled
+	// The fix ensures we get a proper error instead of a panic
+	b, err3 := s.Get(r, "/foo/bar/test")
+
+	// Either Get fails immediately (expected), or if Get succeeds,
+	// ReadAll should fail gracefully without panic
+	if err3 == nil {
+		_, err3 = b.ReadAll()
+		require.Error(t, err3)
+	}
+	// Both scenarios should result in an error, never a panic
+	require.Error(t, err3)
+}
+
+func fakeGCSServer(t *testing.T, buckets ...string) (*fakestorage.Server, *storage.Client) {
+	t.Helper()
+	var initialObjects []fakestorage.Object
+	for _, b := range buckets {
+		initialObjects = append(initialObjects, fakestorage.Object{
+			ObjectAttrs: fakestorage.ObjectAttrs{BucketName: b, Name: "placeholder"},
+			Content:     []byte(""),
+		})
+	}
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: initialObjects,
+		NoListener:     true,
+	})
+	require.NoError(t, err)
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	t.Cleanup(func() { srv.Stop(); client.Close() })
+	return srv, client
+}
+
+func TestWildcardBucket_Path(t *testing.T) {
+	tests := []struct {
+		name           string
+		image          string
+		expectedBucket string
+		expectedKey    string
+		expectedOk     bool
+	}{
+		{
+			name:           "extracts bucket and key from path",
+			image:          "mysite-test/images/photo.jpg",
+			expectedBucket: "mysite-test",
+			expectedKey:    "images/photo.jpg",
+			expectedOk:     true,
+		},
+		{
+			name:           "strips leading slash",
+			image:          "/mysite-prod/assets/logo.png",
+			expectedBucket: "mysite-prod",
+			expectedKey:    "assets/logo.png",
+			expectedOk:     true,
+		},
+		{
+			name:           "deep nested key",
+			image:          "/my-bucket/a/b/c/image.jpg",
+			expectedBucket: "my-bucket",
+			expectedKey:    "a/b/c/image.jpg",
+			expectedOk:     true,
+		},
+		{
+			name:       "no slash — invalid",
+			image:      "no-slash-here",
+			expectedOk: false,
+		},
+		{
+			name:       "empty bucket segment — invalid",
+			image:      "//photo.jpg",
+			expectedOk: false,
+		},
+	}
+	s := New(nil, "*")
+	assert.Equal(t, "*", s.Bucket)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bucket, key, ok := s.resolve(tt.image)
+			assert.Equal(t, tt.expectedOk, ok)
+			if tt.expectedOk {
+				assert.Equal(t, tt.expectedBucket, bucket)
+				assert.Equal(t, tt.expectedKey, key)
+			}
+		})
+	}
+}
+
+func TestWildcardBucket_CRUD(t *testing.T) {
+	_, client := fakeGCSServer(t, "bucket-a", "bucket-b")
+
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+	s := New(client, "*")
+	assert.Equal(t, "*", s.Bucket)
+
+	// Invalid: no slash
+	_, err := s.Get(r, "no-slash")
+	assert.Equal(t, imagor.ErrInvalid, err)
+
+	// Not found in bucket-a
+	_, err = s.Get(r, "/bucket-a/images/photo.jpg")
+	assert.Equal(t, imagor.ErrNotFound, err)
+
+	// Put into bucket-a
+	require.NoError(t, s.Put(ctx, "/bucket-a/images/photo.jpg", imagor.NewBlobFromBytes([]byte("hello-a"))))
+
+	// Get from bucket-a
+	b, err := s.Get(r, "/bucket-a/images/photo.jpg")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "hello-a", string(buf))
+
+	// Put into bucket-b
+	require.NoError(t, s.Put(ctx, "/bucket-b/images/photo.jpg", imagor.NewBlobFromBytes([]byte("hello-b"))))
+
+	// Get from bucket-b — different bucket, different content
+	b, err = s.Get(r, "/bucket-b/images/photo.jpg")
+	require.NoError(t, err)
+	buf, err = b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "hello-b", string(buf))
+
+	// Stat bucket-a
+	stat, err := s.Stat(ctx, "/bucket-a/images/photo.jpg")
+	require.NoError(t, err)
+	assert.NotEmpty(t, stat.ETag)
+
+	// Delete from bucket-a
+	require.NoError(t, s.Delete(ctx, "/bucket-a/images/photo.jpg"))
+	_, err = s.Get(r, "/bucket-a/images/photo.jpg")
+	assert.Equal(t, imagor.ErrNotFound, err)
+}
+
 func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
 	// Test that gzip-compressed objects don't cause fanout buffer size issues
-	
+
 	// Create properly gzipped content
 	originalContent := "this content is longer than 20 bytes when decompressed and should not be truncated"
 	var gzipBuf bytes.Buffer
@@ -216,36 +418,46 @@ func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
 	_, err := gzipWriter.Write([]byte(originalContent))
 	require.NoError(t, err)
 	require.NoError(t, gzipWriter.Close())
-	
+
 	gzippedContent := gzipBuf.Bytes()
-	
-	srv := fakestorage.NewServer([]fakestorage.Object{{
-		ObjectAttrs: fakestorage.ObjectAttrs{
-			BucketName:      "test",
-			Name:           "test-gzip",
-			ContentEncoding: "gzip",
-			Size:           int64(len(gzippedContent)), // Actual compressed size
-		},
-		Content: gzippedContent,
-	}})
-	
+
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: []fakestorage.Object{{
+			ObjectAttrs: fakestorage.ObjectAttrs{
+				BucketName:      "test",
+				Name:            "test-gzip",
+				ContentEncoding: "gzip",
+				Size:            int64(len(gzippedContent)), // Actual compressed size
+			},
+			Content: gzippedContent,
+		}},
+		NoListener: true,
+	})
+	require.NoError(t, err)
+	defer srv.Stop()
+
+	// Create client manually to avoid credential conflicts
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	defer client.Close()
+
 	ctx := context.Background()
 	r := (&http.Request{}).WithContext(ctx)
-	s := New(srv.Client(), "test")
-	
+	s := New(client, "test")
+
 	// Test the fix - should not truncate despite size mismatch
 	b, err := s.Get(r, "/test-gzip")
 	require.NoError(t, err)
-	
+
 	buf, err := b.ReadAll()
 	require.NoError(t, err)
 	assert.Equal(t, originalContent, string(buf))
-	
+
 	// Verify blob stats are still set correctly
 	assert.NotNil(t, b.Stat)
 	// The stat size will still show compressed size, which is correct behavior
 	assert.Equal(t, int64(len(gzippedContent)), b.Stat.Size)
-	
+
 	// The key fix is that content is fully readable despite size mismatch
 	// (the fanout optimization is disabled internally for gzip content)
 }

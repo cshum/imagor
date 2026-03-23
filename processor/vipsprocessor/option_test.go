@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/vipsgen/vips"
@@ -32,6 +33,11 @@ func TestWithOption(t *testing.T) {
 			WithFilter("noop", func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
 				return nil
 			}),
+			WithCacheSize(52428800),
+			WithCacheMaxWidth(3000),
+			WithCacheMaxHeight(2000),
+			WithCacheTTL(time.Hour),
+			WithDetectorProbeSize(200),
 		)
 		assert.Equal(t, 2, v.Concurrency)
 		assert.Equal(t, 167, v.MaxFilterOps)
@@ -48,12 +54,38 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, 9, v.AvifSpeed)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, v.DisableFilters)
 		assert.NotNil(t, v.FallbackFunc)
-
+		assert.Equal(t, int64(52428800), v.CacheSize)
+		assert.Equal(t, 3000, v.CacheMaxWidth)
+		assert.Equal(t, 2000, v.CacheMaxHeight)
+		assert.Equal(t, time.Hour, v.CacheTTL)
+		assert.Equal(t, 200, v.DetectorProbeSize)
 	})
 	t.Run("edge options", func(t *testing.T) {
 		v := NewProcessor(
 			WithConcurrency(-1),
 		)
 		assert.Equal(t, runtime.NumCPU(), v.Concurrency)
+	})
+	t.Run("cache option defaults and guards", func(t *testing.T) {
+		// Defaults
+		v := NewProcessor()
+		assert.Equal(t, int64(0), v.CacheSize)
+		assert.Equal(t, 2400, v.CacheMaxWidth)
+		assert.Equal(t, 2000, v.CacheMaxHeight)
+		assert.Equal(t, time.Duration(0), v.CacheTTL)
+
+		assert.Equal(t, 400, v.DetectorProbeSize)
+
+		// Zero/negative values are ignored (guards)
+		v2 := NewProcessor(
+			WithCacheMaxWidth(0),
+			WithCacheMaxHeight(0),
+			WithCacheTTL(0),
+			WithDetectorProbeSize(0),
+		)
+		assert.Equal(t, 2400, v2.CacheMaxWidth)  // unchanged default
+		assert.Equal(t, 2000, v2.CacheMaxHeight) // unchanged default
+		assert.Equal(t, time.Duration(0), v2.CacheTTL)
+		assert.Equal(t, 400, v2.DetectorProbeSize) // unchanged default
 	})
 }

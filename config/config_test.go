@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -12,6 +14,8 @@ import (
 	"github.com/cshum/imagor/metrics/prometheusmetrics"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestDefault(t *testing.T) {
@@ -291,4 +295,129 @@ func TestUploadLoader(t *testing.T) {
 	}
 	assert.Equal(t, 1, httpLoaderCount)
 	assert.Equal(t, 1, uploadLoaderCount)
+}
+
+func TestLoaderPriority(t *testing.T) {
+	// Test that file loader comes before HTTP loader
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// Should have file loader first, then HTTP loader
+	assert.Equal(t, 2, len(app.Loaders))
+	_, isFileLoader := app.Loaders[0].(*filestorage.FileStorage)
+	_, isHTTPLoader := app.Loaders[1].(*httploader.HTTPLoader)
+	assert.True(t, isFileLoader, "File loader should be first")
+	assert.True(t, isHTTPLoader, "HTTP loader should be second")
+}
+
+func TestLoaderPriorityWithMultipleLoaders(t *testing.T) {
+	// Test that all specific loaders come before HTTP loader (fallback)
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+		"-upload-loader-enable",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// Should have: file loader, upload loader, then HTTP loader
+	assert.Equal(t, 3, len(app.Loaders))
+
+	_, isFileLoader := app.Loaders[0].(*filestorage.FileStorage)
+	_, isUploadLoader := app.Loaders[1].(*uploadloader.UploadLoader)
+	_, isHTTPLoader := app.Loaders[2].(*httploader.HTTPLoader)
+
+	assert.True(t, isFileLoader, "File loader should be first")
+	assert.True(t, isUploadLoader, "Upload loader should be second")
+	assert.True(t, isHTTPLoader, "HTTP loader should be last (fallback)")
+}
+
+func TestHTTPLoaderDisabledDoesNotAffectOtherLoaders(t *testing.T) {
+	// Test that disabling HTTP loader doesn't affect other loaders
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+		"-upload-loader-enable",
+		"-http-loader-disable",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// Should have only file and upload loaders, no HTTP loader
+	assert.Equal(t, 2, len(app.Loaders))
+
+	_, isFileLoader := app.Loaders[0].(*filestorage.FileStorage)
+	_, isUploadLoader := app.Loaders[1].(*uploadloader.UploadLoader)
+
+	assert.True(t, isFileLoader, "File loader should be first")
+	assert.True(t, isUploadLoader, "Upload loader should be second")
+
+	// Verify no HTTP loader
+	for _, loader := range app.Loaders {
+		_, isHTTP := loader.(*httploader.HTTPLoader)
+		assert.False(t, isHTTP, "HTTP loader should not be present when disabled")
+	}
+}
+
+func TestCloudLoadersBeforeHTTP(t *testing.T) {
+	// Test that when file and upload loaders are enabled with cloud loaders,
+	// HTTP loader is last. This test verifies the loader priority order.
+	srv := CreateServer([]string{
+		"-file-loader-base-dir", "./testdata",
+		"-upload-loader-enable",
+	})
+	app := srv.App.(*imagor.Imagor)
+
+	// HTTP loader should be the last one
+	assert.GreaterOrEqual(t, len(app.Loaders), 2, "Should have multiple loaders")
+
+	// Last loader should be HTTP loader
+	lastLoader := app.Loaders[len(app.Loaders)-1]
+	_, isHTTPLoader := lastLoader.(*httploader.HTTPLoader)
+	assert.True(t, isHTTPLoader, "HTTP loader should be the last loader (fallback)")
+
+	// All loaders before the last should NOT be HTTP loaders
+	for i := 0; i < len(app.Loaders)-1; i++ {
+		_, isHTTP := app.Loaders[i].(*httploader.HTTPLoader)
+		assert.False(t, isHTTP, "Non-HTTP loaders should come before HTTP loader at index %d", i)
+	}
+}
+
+func TestResponseRawOnError(t *testing.T) {
+	srv := CreateServer([]string{
+		"-imagor-response-raw-on-error",
+	})
+	app := srv.App.(*imagor.Imagor)
+	assert.True(t, app.ResponseRawOnError)
+}
+
+func TestLogECSFormat(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newECSLogger(false, zapcore.AddSync(&buf))
+	logger.Info("test-message", zap.String("status", "200"))
+
+	var entry map[string]interface{}
+	err := json.Unmarshal(buf.Bytes(), &entry)
+	assert.NoError(t, err)
+
+	assert.Contains(t, entry, "@timestamp")
+	assert.Contains(t, entry, "log.level")
+	assert.Contains(t, entry, "log.origin")
+	assert.Equal(t, "info", entry["log.level"])
+	assert.Equal(t, "test-message", entry["message"])
+	assert.Equal(t, "200", entry["status"])
+}
+
+func TestLogECSDebugLevel(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newECSLogger(true, zapcore.AddSync(&buf))
+	logger.Debug("captured-debug-message")
+
+	assert.Contains(t, buf.String(), "captured-debug-message")
+}
+
+func TestLogECSInfoIgnoresDebug(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newECSLogger(false, zapcore.AddSync(&buf))
+	logger.Debug("lost-debug-message")
+
+	assert.Empty(t, buf.String())
 }

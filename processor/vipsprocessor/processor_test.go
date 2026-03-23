@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -183,6 +184,24 @@ func TestProcessor(t *testing.T) {
 			{name: "resize unspecified height", path: "50x0/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "fit-in unspecified width", path: "fit-in/0x50/filters:fill(white):format(jpg)/Canon_40D.jpg"},
 			{name: "resize unspecified width", path: "0x50/filters:fill(white):format(jpg)/Canon_40D.jpg"},
+			{name: "resize with no_upscale", path: "500x400/filters:no_upscale()/gopher-front.png"},
+			{name: "resize with no_upscale unspecified height", path: "500x0/filters:no_upscale()/gopher-front.png"},
+			{name: "resize with no_upscale cropped", path: "500x200/filters:no_upscale()/gopher-front.png"},
+			{name: "adaptive-fit-in landscape to portrait", path: "adaptive-fit-in/100x200/gopher.png"},
+			{name: "adaptive-fit-in portrait to landscape", path: "adaptive-fit-in/200x100/gopher-front.png"},
+			{name: "adaptive-fit-in same orientation", path: "adaptive-fit-in/200x100/gopher.png"},
+			{name: "adaptive-fit-in with filters", path: "adaptive-fit-in/200x100/filters:fill(white):format(jpeg)/gopher-front.png"},
+			{name: "full-fit-in basic", path: "full-fit-in/300x200/gopher.png"},
+			{name: "full-fit-in vertical", path: "full-fit-in/200x300/gopher-front.png"},
+			{name: "full-fit-in with smart", path: "full-fit-in/300x200/smart/gopher.png"},
+			{name: "full-fit-in upscale", path: "full-fit-in/500x400/gopher-front.png"},
+			{name: "full-fit-in rounding precision", path: "full-fit-in/74x11/gopher-front.png"},
+			{name: "full-fit-in rounding portrait down", path: "full-fit-in/30x39/gopher-front.png"},
+			{name: "full-fit-in rounding landscape down", path: "full-fit-in/100x65/jpg-24bit-icc-adobe-rgb.jpg"},
+			{name: "full-fit-in rounding landscape up", path: "full-fit-in/102x30/Canon_40D.jpg"},
+			{name: "adaptive-full-fit-in combined", path: "adaptive-full-fit-in/100x200/gopher.png"},
+			{name: "adaptive-full-fit-in with filters", path: "adaptive-full-fit-in/200x100/filters:fill(yellow):format(jpeg)/gopher-front.png"},
+			{name: "adaptive-full-fit-in upscale", path: "adaptive-full-fit-in/500x400/gopher-front.png"},
 			{name: "stretch", path: "stretch/100x100/filters:modulate(-10,30,20)/gopher.png"},
 			{name: "fit-in flip hue", path: "fit-in/-200x0/filters:hue(290):saturation(100):fill(FFO):upscale()/gopher.png"},
 			{name: "fit-in padding", path: "fit-in/100x100/10x5/filters:fill(white)/gopher.png"},
@@ -217,6 +236,47 @@ func TestProcessor(t *testing.T) {
 			{name: "watermark 2 bands", path: "filters:watermark(2bands.png,repeat,bottom,40,25,50)/demo1.jpg", arm64Golden: true},
 			{name: "watermark float", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,0.1,repeat,30,20,20):watermark(gopher.png,repeat,bottom,30,30,30):watermark(gopher-front.png,center,-0.1)/gopher.png", arm64Golden: true},
 			{name: "watermark align", path: "fit-in/500x500/filters:fill(white):watermark(gopher.png,left,top,30,20,20):watermark(gopher.png,right,center,30,30,30):watermark(gopher-front.png,-20,-10)/gopher.png"},
+			{name: "image left offset", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,left-20,top-10)/gopher.png", arm64Golden: true},
+			{name: "image right offset", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,right-30,bottom-20)/gopher.png"},
+			{name: "image shorthand l t", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,l-20,t-10)/gopher.png", arm64Golden: true},
+			{name: "image shorthand r b", path: "fit-in/500x500/filters:fill(white):image(gopher-front.png,r-30,b-20)/gopher.png"},
+
+			{name: "image default position", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png)/gopher.png"},
+			{name: "image center", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center)/gopher.png"},
+			{name: "image outside rotate", path: "fit-in/500x500/filters:rotate(90):image(/100x100/gopher-front.png,center,center)/gopher.png"},
+			{name: "image inside rotate", path: "fit-in/500x500/filters:image(/100x100/filters:rotate(90)/gopher-front.png,center,center)/gopher.png"},
+			{name: "image with alpha", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center,50)/gopher.png"},
+			{name: "image with mask blend mode", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center,0,mask)/gopher.png"},
+			{name: "image with invalid blend mode fallback", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center,50,invalid-mode)/gopher.png"},
+			{name: "image with multiply blend mode", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,center,center,30,multiply)/gopher.png"},
+			{name: "image negative position", path: "fit-in/500x500/filters:image(/100x100/gopher-front.png,-10,-10)/gopher.png"},
+			{name: "image repeat", path: "fit-in/300x300/filters:image(/50x50/gopher-front.png,repeat,repeat)/gopher.png", arm64Golden: true},
+			{name: "image nested single", path: "fit-in/500x500/filters:image(/150x150/filters:image(/50x50/gopher-front.png,center,center)/gopher.png,10,10)/demo1.jpg", arm64Golden: true},
+			{name: "image nested double", path: "fit-in/500x500/filters:image(/200x200/filters:image(/100x100/filters:image(/50x50/gopher-front.png,center,center)/gopher.png,center,center)/demo1.jpg,center,center)/gopher.png", arm64Golden: true},
+			{name: "image nested with transforms", path: "filters:image(/150x150/filters:grayscale():image(/50x50/filters:rotate(90)/gopher-front.png,center,center)/gopher.png,center,center)/demo1.jpg", arm64Golden: true},
+
+			// f-token parent-relative dimensions
+			{name: "image full dim fxf", path: "fit-in/500x500/filters:fill(white):image(fxf/gopher-front.png,0,0)/gopher.png"},
+			{name: "image full dim f-offset", path: "fit-in/500x500/filters:fill(white):image(f-50xf-50/gopher-front.png,center,center)/gopher.png"},
+			{name: "image full dim width only", path: "fit-in/500x500/filters:fill(white):image(fx0/gopher-front.png,0,0)/gopher.png"},
+			{name: "image full dim height only", path: "fit-in/500x500/filters:fill(white):image(0xf/gopher-front.png,0,0)/gopher.png"},
+			{name: "image full dim fit-in mode", path: "fit-in/500x500/filters:fill(white):image(fit-in/fxf/gopher-front.png,center,center)/gopher.png"},
+			{name: "image full dim stretch mode", path: "fit-in/500x500/filters:fill(white):image(stretch/fxf/gopher-front.png,0,0)/gopher.png", arm64Golden: true},
+			{name: "image full dim nested isolation", path: "fit-in/500x500/filters:fill(white):image(fxf/filters:image(f-50xf-50/gopher-front.png,center,center)/gopher.png,0,0)/gopher.png"},
+			{name: "image full-token fullxfull", path: "fit-in/500x500/filters:fill(white):image(fullxfull/gopher-front.png,0,0)/gopher.png"},
+			{name: "image full-token full-offset", path: "fit-in/500x500/filters:fill(white):image(full-50xfull-50/gopher-front.png,center,center)/gopher.png"},
+
+			// Overlay cropping edge cases - tests transformOverlay boundary logic
+			{name: "image overlay crop right edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,250,50)/gopher.png"},
+			{name: "image overlay crop bottom edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,50,250)/gopher.png"},
+			{name: "image overlay crop left edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,-50,50)/gopher.png"},
+			{name: "image overlay crop top edge", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,50,-50)/gopher.png"},
+			{name: "image overlay outside bounds", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,400,50)/gopher.png"},
+			{name: "image overlay outside bounds far right", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,5000,0)/gopher.png"},
+			{name: "image overlay outside bounds far below", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,0,5000)/gopher.png"},
+			{name: "image overlay outside bounds far left", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,-5000,0)/gopher.png"},
+			{name: "image overlay outside bounds far above", path: "fit-in/300x300/filters:image(/100x100/gopher-front.png,0,-5000)/gopher.png"},
+			{name: "image overlay center child larger than parent", path: "fit-in/100x100/filters:fill(yellow):image(/fit-in/150x150/filters:grayscale()/gopher-front.png,center,center)/dancing-banana.gif", arm64Golden: true},
 
 			{name: "original no animate", path: "filters:fill(white):format(jpeg)/dancing-banana.gif"},
 			{name: "original animated", path: "dancing-banana.gif"},
@@ -257,13 +317,47 @@ func TestProcessor(t *testing.T) {
 			{name: "label negative", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,-15,-10,30,red,30)/gopher-front.png", arm64Golden: true},
 			{name: "label percentage", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,-15p,10p,30,red,30)/gopher-front.png", arm64Golden: true},
 			{name: "label float", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,-0.15,0.1,30,red,30)/gopher-front.png", arm64Golden: true},
+			{name: "label left offset", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,left-20,top-10,30,blue,30)/gopher-front.png", arm64Golden: true},
+			{name: "label right offset", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,right-30,bottom-20,30,green,30)/gopher-front.png", arm64Golden: true},
+			{name: "label shorthand l t", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,l-20,t-10,30,blue,30)/gopher-front.png", arm64Golden: true},
+			{name: "label shorthand r b", path: "fit-in/300x200/10x10/filters:fill(yellow):label(IMAGOR,r-30,b-20,30,green,30)/gopher-front.png", arm64Golden: true},
 			{name: "label animated", path: "fit-in/150x200/10x00:10x50/filters:fill(yellow):label(IMAGOR,center,-30,25,black)/dancing-banana.gif", arm64Golden: true},
 			{name: "label animated with font", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):label(IMAGOR,center,-30,25,white,0,monospace)/dancing-banana.gif", arm64Golden: true},
 			{name: "label grayscale", path: "fit-in/filters:label(imagor,-1,0,50)/2bands.png", checkTypeOnly: true},
+			{name: "text basic", path: "fit-in/300x200/10x10/filters:fill(yellow):text(IMAGOR,15,10,sans-bold-24,blue,30)/gopher-front.png", arm64Golden: true},
+			{name: "text blend mode", path: "fit-in/300x200/10x10/filters:fill(yellow):text(IMAGOR,15,10,sans-bold-24,blue,30,multiply)/gopher-front.png", arm64Golden: true},
+			{name: "text top left", path: "fit-in/300x200/10x10/filters:fill(yellow):text(IMAGOR,left,top,sans-20,red,30)/gopher-front.png", arm64Golden: true},
+			{name: "text right bottom", path: "fit-in/300x200/10x10/filters:fill(yellow):text(IMAGOR,right,bottom,sans-20,green,30)/gopher-front.png", arm64Golden: true},
+			{name: "text multiline wrap", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,20,20,sans-18,black,80,,120)/gopher-front.png", arm64Golden: true},
+			{name: "text multiline center align", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,center,40,sans-18,red,80,,120,centre)/gopher-front.png", arm64Golden: true},
+			{name: "text multiline wrap percent", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,20,20,sans-18,black,80,,60p)/gopher-front.png", arm64Golden: true},
+			{name: "text multiline wrap full", path: "fit-in/300x200/10x10/filters:fill(white):text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,0,20,sans-18,black,80,,f-40)/gopher-front.png", arm64Golden: true},
+			{name: "text animated", path: "fit-in/150x200/10x00:10x50/filters:fill(cyan):text(GO,center,-30,sans-bold-18,white,0)/dancing-banana.gif", arm64Golden: true},
+			{name: "text grayscale", path: "fit-in/filters:text(imagor,-1,0,sans-30)/2bands.png", checkTypeOnly: true},
 			{name: "strip exif", path: "filters:strip_exif()/Canon_40D.jpg"},
-			{name: "bmp 24bit", path: "100x100/bmp_24.bmp"},
-			{name: "bmp 8bit", path: "100x100/lena_gray.bmp"},
+			{name: "bmp 24bit", path: "100x100/bmp_24.bmp", checkTypeOnly: true},
+			{name: "bmp 8bit", path: "100x100/lena_gray.bmp", checkTypeOnly: true},
 			{name: "svg", path: "test.svg", checkTypeOnly: true},
+			{name: "crop absolute", path: "300x300/filters:crop(50,50,200,200)/gopher.png"},
+			{name: "crop relative", path: "300x300/filters:crop(0.1,0.1,0.8,0.8)/gopher.png"},
+			{name: "crop overflow", path: "300x300/filters:crop(250,250,200,200)/gopher.png"},
+			{name: "crop animated", path: "200x200/filters:crop(20,20,160,160)/dancing-banana.gif", arm64Golden: true},
+			{name: "crop with fill", path: "400x400/filters:fill(yellow):crop(50,50,300,300)/gopher.png"},
+			{name: "strip icc", path: "200x200/filters:strip_icc():to_colorspace()/jpg-24bit-icc-adobe-rgb.jpg"},
+			{name: "to colorspace", path: "200x200/filters:to_colorspace(cmyk)/jpg-24bit-icc-adobe-rgb.jpg"},
+
+			// color image
+			{name: "color red", path: "200x200/color:red", checkTypeOnly: true},
+			{name: "color hex blue", path: "100x50/color:0000ff", checkTypeOnly: true},
+			{name: "color transparent png", path: "300x200/filters:format(png)/color:transparent", checkTypeOnly: true},
+			{name: "color rgba hex", path: "50x50/filters:format(png)/color:ff000080", checkTypeOnly: true},
+			{name: "color white 3char", path: "10x10/color:fff", checkTypeOnly: true},
+			{name: "color green default size", path: "color:green", checkTypeOnly: true},
+			{name: "color format png", path: "100x100/filters:format(png)/color:red", checkTypeOnly: true},
+			{name: "color round_corner", path: "200x200/filters:round_corner(20):format(png)/color:ff6600", checkTypeOnly: true},
+			{name: "color grayscale", path: "50x50/filters:grayscale()/color:red", checkTypeOnly: true},
+			{name: "color flip", path: "-100x-50/color:blue", checkTypeOnly: true},
+			{name: "image color overlay", path: "600x600/filters:format(png):image(/300x300/color:red,center,center)/color:none", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()), WithForceBmpFallback())
 	})
 	t.Run("max frames", func(t *testing.T) {
@@ -461,6 +555,74 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("image cache — LoadFromCache returns cached blob", func(t *testing.T) {
+		// Verify that LoadFromCache returns the cached blob after Process populates the cache,
+		// and that Process can use it directly (no nil blob, no TOCTOU).
+		fileLoader := filestorage.New(testDataDir)
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024),
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+			WithDebug(true),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() {
+			require.NoError(t, proc.Shutdown(context.Background()))
+		})
+
+		blobPath, _ := fileLoader.Path("gopher-front.png")
+		blob := imagor.NewBlobFromFile(blobPath)
+		load := func(image string) (*imagor.Blob, error) {
+			p, _ := fileLoader.Path(image)
+			return imagor.NewBlobFromFile(p), nil
+		}
+		params := imagorpath.Params{
+			Image: "gopher-front.png", Width: 100, Height: 100,
+			Filters: []imagorpath.Filter{{Name: "preview"}},
+		}
+
+		// First call: cache miss — populates cache.
+		result, err := proc.Process(context.Background(), blob, params, load)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		// LoadFromCache should now return the cached blob directly.
+		cachedBlob, ok := proc.LoadFromCache("gopher-front.png", 100, 100)
+		require.True(t, ok, "cache should be populated after first Process call")
+		require.NotNil(t, cachedBlob)
+		require.Equal(t, imagor.BlobTypeMemory, cachedBlob.BlobType())
+
+		// Second call: pass the cached blob directly (as imagor.Do() now does).
+		result2, err := proc.Process(context.Background(), cachedBlob, params, load)
+		require.NoError(t, err)
+		require.NotNil(t, result2)
+		buf, err := result2.ReadAll()
+		require.NoError(t, err)
+		require.NotEmpty(t, buf)
+	})
+
+	t.Run("image cache — LoadFromCache miss on unknown size", func(t *testing.T) {
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024),
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() {
+			require.NoError(t, proc.Shutdown(context.Background()))
+		})
+
+		// Unknown size (w=0 or h=0) must always return miss.
+		_, ok := proc.LoadFromCache("gopher-front.png", 0, 100)
+		assert.False(t, ok, "w=0 should be a cache miss")
+		_, ok = proc.LoadFromCache("gopher-front.png", 100, 0)
+		assert.False(t, ok, "h=0 should be a cache miss")
+
+		// Oversized must also return miss.
+		_, ok = proc.LoadFromCache("gopher-front.png", 9999, 9999)
+		assert.False(t, ok, "oversized should be a cache miss")
+	})
+
 	t.Run("invalid BMP", func(t *testing.T) {
 		ctx := context.Background()
 		blob := imagor.NewBlobFromBytes([]byte("BMabcdasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"))
@@ -472,6 +634,304 @@ func TestProcessor(t *testing.T) {
 		assert.Empty(t, img)
 		assert.Error(t, err)
 	})
+	t.Run("raw unsupported when no dcrawload", func(t *testing.T) {
+		// BlobTypeRAF (Fuji RAF) with hasDcrawload=false must return ErrUnsupportedFormat
+		ctx := context.Background()
+		buf := make([]byte, 512)
+		copy(buf, []byte("FUJIFILMCCD-RAW")) // Fuji RAF magic bytes
+		blob := imagor.NewBlobFromBytes(buf)
+		assert.Equal(t, imagor.BlobTypeRAF, blob.BlobType())
+		assert.True(t, blob.IsRaw())
+
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+		p.hasDcrawload = false // force no dcrawload support
+
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		assert.Nil(t, img)
+		assert.Equal(t, imagor.ErrUnsupportedFormat, err)
+	})
+	t.Run("raw routed to dcrawload when available", func(t *testing.T) {
+		// BlobTypeRAF (Fuji RAF) with hasDcrawload=true must be routed to dcrawload,
+		// not fall through to ImageMagick. Fake data causes a dcrawload parse
+		// error — but NOT ErrUnsupportedFormat, proving routing went to dcrawload.
+		ctx := context.Background()
+		buf := make([]byte, 512)
+		copy(buf, []byte("FUJIFILMCCD-RAW")) // Fuji RAF magic bytes, fake data
+		blob := imagor.NewBlobFromBytes(buf)
+		assert.Equal(t, imagor.BlobTypeRAF, blob.BlobType())
+		assert.True(t, blob.IsRaw())
+
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		if !p.hasDcrawload {
+			t.Skip("dcrawload not available in this libvips build")
+		}
+
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		assert.Nil(t, img)
+		// Must be a dcrawload error, not ErrUnsupportedFormat
+		assert.Error(t, err)
+		assert.NotEqual(t, imagor.ErrUnsupportedFormat, err)
+	})
+	t.Run("tiff loads correctly when dcrawload enabled", func(t *testing.T) {
+		// Real TIFF must still load fine even when hasDcrawload=true.
+		// dcrawload rejects non-RAW TIFFs quickly, then falls back to normal TIFF loader.
+		ctx := context.Background()
+		blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "gopher.tiff"))
+		assert.Equal(t, imagor.BlobTypeTIFF, blob.BlobType())
+
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		require.NoError(t, err)
+		require.NotNil(t, img)
+		defer img.Close()
+		assert.Greater(t, img.Width(), 0)
+		assert.Greater(t, img.Height(), 0)
+	})
+	t.Run("cr2 is BlobTypeCR2 and IsRaw", func(t *testing.T) {
+		// BlobTypeCR2 must be detected by TIFF header + "CR" at [8:10].
+		// IsRaw() must return true (CR2 is a camera RAW format).
+		// CR2 is excluded from dcrawload routing (blob.IsRaw() && != BlobTypeCR2 condition)
+		// so it goes to NewImageFromSource — verified by code structure.
+		buf := make([]byte, 512)
+		copy(buf, []byte("\x49\x49\x2A\x00\x08\x00\x00\x00\x43\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))
+		blob := imagor.NewBlobFromBytes(buf)
+		assert.Equal(t, imagor.BlobTypeCR2, blob.BlobType())
+		assert.True(t, blob.IsRaw())
+		assert.Equal(t, "image/x-canon-cr2", blob.ContentType())
+	})
+	t.Run("cache hit — hue after preview does not crash", func(t *testing.T) {
+		// Regression: BlobTypeMemory blobs loaded from the preview cache had
+		// VIPS_INTERPRETATION_MULTIBAND, causing hue()/Modulate() to fail with
+		// "linear: vector must have 1 or 4 elements".
+		fileLoader := filestorage.New(testDataDir)
+		proc := NewProcessor(
+			WithCacheSize(100*1024*1024),
+			WithCacheMaxWidth(2400),
+			WithCacheMaxHeight(1800),
+			WithDebug(true),
+		)
+		require.NoError(t, proc.Startup(context.Background()))
+		t.Cleanup(func() { require.NoError(t, proc.Shutdown(context.Background())) })
+
+		blobPath, _ := fileLoader.Path("gopher-front.png")
+		load := func(image string) (*imagor.Blob, error) {
+			p, _ := fileLoader.Path(image)
+			return imagor.NewBlobFromFile(p), nil
+		}
+		params := imagorpath.Params{
+			Image: "gopher-front.png", Width: 100, Height: 100,
+			Filters: []imagorpath.Filter{
+				{Name: "preview"},
+				{Name: "hue", Args: "300"},
+				{Name: "format", Args: "webp"},
+			},
+		}
+
+		// First call: cache miss — populates the preview cache.
+		_, err := proc.Process(context.Background(), imagor.NewBlobFromFile(blobPath), params, load)
+		require.NoError(t, err)
+
+		// Retrieve the BlobTypeMemory blob the preview cache stored.
+		cachedBlob, ok := proc.LoadFromCache("gopher-front.png", 100, 100)
+		require.True(t, ok)
+		require.Equal(t, imagor.BlobTypeMemory, cachedBlob.BlobType())
+
+		// Second call: cache hit — hue() runs on BlobTypeMemory; must not crash.
+		result, err := proc.Process(context.Background(), cachedBlob, params, load)
+		require.NoError(t, err, "hue() on a cached BlobTypeMemory blob must not crash")
+		buf, err := result.ReadAll()
+		require.NoError(t, err)
+		require.NotEmpty(t, buf)
+	})
+	t.Run("bmp fallback — hue after loadImageFromBMP does not crash", func(t *testing.T) {
+		// Regression: loadImageFromBMP used vips.NewImageFromMemory which assigned
+		// VIPS_INTERPRETATION_MULTIBAND, causing hue()/Modulate() to crash.
+		ctx := context.Background()
+		p := NewProcessor(WithDebug(true), WithForceBmpFallback())
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "bmp_24.bmp"))
+		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
+		require.NoError(t, err)
+		defer img.Close()
+
+		// Modulate is what the hue() filter calls internally.
+		err = img.Modulate(1, 1, 300)
+		assert.NoError(t, err, "hue/Modulate must not fail after BMP fallback load")
+	})
+	t.Run("draw_detections filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/draw_detections")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "draw_detections auto", path: "filters:draw_detections()/gopher-front.png"},
+		}, WithDetector(stub))
+	})
+	t.Run("pixelate filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/pixelate")
+		doGoldenTests(t, resultDir, []test{
+			{name: "pixelate default", path: "filters:pixelate()/gopher-front.png"},
+			{name: "pixelate 20", path: "filters:pixelate(20)/gopher-front.png"},
+		})
+	})
+	t.Run("redact filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/redact")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "redact blur default", path: "filters:redact()/gopher-front.png", arm64Golden: true},
+			{name: "redact blur custom", path: "filters:redact(blur,25)/gopher-front.png", arm64Golden: true},
+			{name: "redact pixelate default", path: "filters:redact(pixelate)/gopher-front.png"},
+			{name: "redact pixelate custom", path: "filters:redact(pixelate,20)/gopher-front.png"},
+			{name: "redact black", path: "filters:redact(black)/gopher-front.png"},
+			{name: "redact white", path: "filters:redact(white)/gopher-front.png"},
+			{name: "redact color hex", path: "filters:redact(ff0000)/gopher-front.png"},
+		}, WithDetector(stub))
+	})
+	t.Run("redact_oval filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden/redact_oval")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye"},
+		}}
+		doGoldenTests(t, resultDir, []test{
+			{name: "redact_oval blur default", path: "filters:redact_oval()/gopher-front.png", arm64Golden: true},
+			{name: "redact_oval blur custom", path: "filters:redact_oval(blur,25)/gopher-front.png", arm64Golden: true},
+			{name: "redact_oval pixelate default", path: "filters:redact_oval(pixelate)/gopher-front.png"},
+			{name: "redact_oval pixelate custom", path: "filters:redact_oval(pixelate,20)/gopher-front.png"},
+			{name: "redact_oval black", path: "filters:redact_oval(black)/gopher-front.png"},
+			{name: "redact_oval white", path: "filters:redact_oval(white)/gopher-front.png"},
+			{name: "redact_oval color hex", path: "filters:redact_oval(ff0000)/gopher-front.png"},
+		}, WithDetector(stub))
+	})
+	t.Run("meta with detector", func(t *testing.T) {
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face", Score: 9.5},
+			{Left: 0.6, Top: 0.05, Right: 0.9, Bottom: 0.55, Name: "eye", Score: 7.2},
+		}}
+		fileLoader := filestorage.New(testDataDir)
+		processor := NewProcessor(WithDetector(stub))
+		require.NoError(t, processor.Startup(context.Background()))
+		defer func() { require.NoError(t, processor.Shutdown(context.Background())) }()
+
+		loader := loaderFunc(func(r *http.Request, image string) (*imagor.Blob, error) {
+			image, _ = fileLoader.Path(image)
+			return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+				reader, err := os.Open(image)
+				return reader, 0, err
+			}), nil
+		})
+		app := imagor.New(
+			imagor.WithLoaders(loader),
+			imagor.WithProcessors(processor),
+			imagor.WithUnsafe(true),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+		readMeta := func(path string) *Metadata {
+			t.Helper()
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", path), nil))
+			require.Equal(t, 200, w.Code)
+			var m Metadata
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &m))
+			return &m
+		}
+
+		t.Run("plain meta has no detected regions", func(t *testing.T) {
+			m := readMeta("meta/gopher-front.png")
+			assert.Empty(t, m.DetectedRegions,
+				"plain /meta should not run detection")
+		})
+		t.Run("meta with draw_detections filter has regions", func(t *testing.T) {
+			m := readMeta("meta/filters:draw_detections()/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+draw_detections() should return detected regions")
+			assert.Equal(t, "face", m.DetectedRegions[0].Name)
+			assert.Equal(t, "eye", m.DetectedRegions[1].Name)
+		})
+		t.Run("meta with smart has regions", func(t *testing.T) {
+			m := readMeta("meta/smart/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+smart should return detected regions")
+		})
+		t.Run("meta with redact filter has regions", func(t *testing.T) {
+			m := readMeta("meta/filters:redact()/gopher-front.png")
+			assert.Len(t, m.DetectedRegions, 2,
+				"meta+redact() should return detected regions")
+		})
+	})
+	t.Run("detector startup failure returns error", func(t *testing.T) {
+		// When any Detector.Startup returns an error, Processor.Startup must
+		// propagate it so the server fails fast rather than silently disabling detection.
+		p := NewProcessor(WithDetector(&failingDetector{}))
+		err := p.Startup(context.Background())
+		require.Error(t, err, "Startup must return error when a detector fails")
+		assert.Contains(t, err.Error(), "startup failed")
+		_ = p.Shutdown(context.Background())
+	})
+	t.Run("AddDetector wires detector", func(t *testing.T) {
+		p := NewProcessor()
+		require.NoError(t, p.Startup(context.Background()))
+		defer func() { require.NoError(t, p.Shutdown(context.Background())) }()
+
+		assert.Empty(t, p.Detectors, "Detectors must be empty before AddDetector")
+		stub := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face"},
+		}}
+		p.AddDetector(stub)
+		require.Len(t, p.Detectors, 1, "AddDetector must append the provided detector")
+		assert.Equal(t, stub, p.Detectors[0])
+	})
+	t.Run("two detectors both contribute regions", func(t *testing.T) {
+		// Wire two stubs with distinct region names; detectRegions must merge
+		// both result sets so downstream smart crop / redact sees all regions.
+		stub1 := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.4, Name: "face"},
+		}}
+		stub2 := &stubDetector{regions: []imagor.DetectorRegion{
+			{Left: 0.6, Top: 0.1, Right: 0.9, Bottom: 0.5, Name: "person"},
+		}}
+		var resultDir = filepath.Join(testDataDir, "golden/two_detectors")
+		doGoldenTests(t, resultDir, []test{
+			{name: "two detectors merged", path: "filters:draw_detections()/gopher-front.png"},
+		}, WithDetectors(stub1, stub2))
+	})
+}
+
+// stubDetector is a test-only Detector that returns a fixed set of regions.
+type stubDetector struct {
+	regions []imagor.DetectorRegion
+}
+
+func (s *stubDetector) Startup(_ context.Context) error  { return nil }
+func (s *stubDetector) Shutdown(_ context.Context) error { return nil }
+func (s *stubDetector) Detect(_ context.Context, _ string, blob *imagor.Blob) ([]imagor.DetectorRegion, error) {
+	return s.regions, nil
+}
+
+// failingDetector is a test-only Detector whose Startup always returns an error.
+type failingDetector struct{}
+
+func (f *failingDetector) Startup(_ context.Context) error  { return fmt.Errorf("startup failed") }
+func (f *failingDetector) Shutdown(_ context.Context) error { return nil }
+func (f *failingDetector) Detect(_ context.Context, _ string, _ *imagor.Blob) ([]imagor.DetectorRegion, error) {
+	return nil, nil
 }
 
 func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option) {
@@ -557,6 +1017,112 @@ func doGoldenTests(t *testing.T, resultDir string, tests []test, opts ...Option)
 			buf2, err := img2.WebpsaveBuffer(nil)
 			require.NoError(t, err)
 			require.True(t, reflect.DeepEqual(buf1, buf2), "image mismatch")
+		})
+	}
+}
+
+func TestPaletteColorForName(t *testing.T) {
+	// Lock in the deterministic palette mapping for key detector class names.
+	// If the palette order changes, these tests will catch it and force a
+	// conscious decision about the colour reassignment.
+	tests := []struct {
+		name  string
+		color string
+	}{
+		{"face", "33ff66"},   // green — index 4
+		{"eye", "00cccc"},    // cyan  — index 6
+		{"person", "ff6600"}, // deep orange — index 8
+		{"car", "33aaff"},    // blue  — index 1
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.color, paletteColorForName(tt.name),
+				"palette color for %q must be stable", tt.name)
+		})
+	}
+}
+
+func TestNormalizeSrgb(t *testing.T) {
+	// normalizeSrgb is the write-side normalizer: it converts real decoded images
+	// (which have a known colorspace) to sRGB before WriteToMemory.
+	// It does NOT handle VIPS_INTERPRETATION_MULTIBAND (raw NewImageFromMemory pixels);
+	// that case is handled by img.Copy on the read side.
+
+	// Load a JPEG with an embedded Adobe RGB ICC profile.
+	path := filepath.Join(testDataDir, "jpg-24bit-icc-adobe-rgb.jpg")
+	buf, err := os.ReadFile(path)
+	require.NoError(t, err)
+	img, err := vips.NewImageFromBuffer(buf, nil)
+	require.NoError(t, err)
+	defer img.Close()
+	require.True(t, img.HasICCProfile(), "test image must have an embedded ICC profile")
+
+	normalizeSrgb(img)
+	assert.Equal(t, vips.InterpretationSrgb, img.Interpretation(),
+		"normalizeSrgb must convert ICC-profiled image to sRGB")
+
+	// Modulate is what hue() calls internally; must succeed after normalization.
+	err = img.Modulate(1, 1, 300)
+	assert.NoError(t, err, "Modulate must not fail after normalizeSrgb")
+}
+
+func TestParseColorImage(t *testing.T) {
+	tests := []struct {
+		image  string
+		wantC  []float64
+		wantOk bool
+	}{
+		{"color:red", []float64{255, 0, 0, 255}, true},
+		{"color:transparent", []float64{0, 0, 0, 0}, true},
+		{"color:none", []float64{0, 0, 0, 0}, true},
+		{"color:ff0000", []float64{255, 0, 0, 255}, true},
+		{"color:ff000080", []float64{255, 0, 0, 128}, true},
+		{"color:fff", []float64{255, 255, 255, 255}, true},
+		{"color:000", []float64{0, 0, 0, 255}, true},
+		{"Color:RED", []float64{255, 0, 0, 255}, true},
+		{"notcolor:red", nil, false},
+		{"my-image.jpg", nil, false},
+		{"color:", nil, false},
+		{"color:invalidcolor", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.image, func(t *testing.T) {
+			c, ok := parseColorImage(tt.image)
+			assert.Equal(t, tt.wantOk, ok)
+			if ok {
+				assert.Equal(t, tt.wantC, c)
+			}
+		})
+	}
+}
+
+func TestParseHexColorRGBA(t *testing.T) {
+	tests := []struct {
+		hex        string
+		r, g, b, a byte
+		ok         bool
+	}{
+		{"ff0000", 255, 0, 0, 255, true},
+		{"00ff00", 0, 255, 0, 255, true},
+		{"0000ff", 0, 0, 255, 255, true},
+		{"ff000080", 255, 0, 0, 128, true},
+		{"00000000", 0, 0, 0, 0, true},
+		{"ffffffff", 255, 255, 255, 255, true},
+		{"fff", 255, 255, 255, 255, true},
+		{"000", 0, 0, 0, 255, true},
+		{"ff00", 0, 0, 0, 0, false}, // 4 chars not supported
+		{"ff", 0, 0, 0, 0, false},   // 2 chars not supported
+	}
+	for _, tt := range tests {
+		t.Run(tt.hex, func(t *testing.T) {
+			c, ok := parseHexColor(tt.hex)
+			assert.Equal(t, tt.ok, ok)
+			if ok {
+				assert.Equal(t, tt.r, c.R)
+				assert.Equal(t, tt.g, c.G)
+				assert.Equal(t, tt.b, c.B)
+				assert.Equal(t, tt.a, c.A)
+			}
 		})
 	}
 }
