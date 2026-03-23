@@ -92,11 +92,11 @@ const config: Config = {
             },
             {
               label: "Configuration",
-              to: "/configuration/overview",
+              to: "/configuration",
             },
             {
-              label: "API Reference",
-              to: "/api/image-endpoint",
+              label: "Community",
+              to: "/community",
             },
           ],
         },
@@ -108,12 +108,12 @@ const config: Config = {
               href: "https://github.com/cshum/imagor-studio",
             },
             {
-              label: "vipsgen",
-              href: "https://github.com/cshum/vipsgen",
-            },
-            {
               label: "imagorvideo",
               href: "https://github.com/cshum/imagorvideo",
+            },
+            {
+              label: "imagorface",
+              href: "https://github.com/cshum/imagorface",
             },
           ],
         },
