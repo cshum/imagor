@@ -1,4 +1,4 @@
-# Storage
+# Loader, Storage, Result Storage
 
 imagor `Loader`, `Storage` and `Result Storage` are the building blocks for loading and saving images from various sources:
 
