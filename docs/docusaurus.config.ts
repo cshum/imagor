@@ -63,19 +63,37 @@ const config: Config = {
       title: "imagor",
       items: [
         {
-          type: "docSidebar",
-          sidebarId: "tutorialSidebar",
+          href: "https://imagor.net",
+          label: "imagor.net",
           position: "left",
-          label: "Documentation",
         },
         {
-          href: "https://docs.studio.imagor.net",
-          label: "Imagor Studio",
-          position: "right",
+          type: "dropdown",
+          label: "Ecosystem",
+          position: "left",
+          items: [
+            {
+              label: "imagor Studio",
+              href: "https://imagor.net",
+            },
+            {
+              label: "imagorvideo",
+              href: "https://github.com/cshum/imagorvideo",
+            },
+            {
+              label: "imagorface",
+              href: "https://github.com/cshum/imagorface",
+            },
+          ],
         },
         {
           href: "https://github.com/cshum/imagor",
           label: "GitHub",
+          position: "right",
+        },
+        {
+          href: "https://github.com/sponsors/cshum",
+          label: "Sponsor",
           position: "right",
         },
       ],
