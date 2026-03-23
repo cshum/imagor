@@ -63,15 +63,14 @@ const config: Config = {
       title: "imagor",
       items: [
         {
-          href: "https://imagor.net",
-          label: "imagor.net",
-          position: "left",
-        },
-        {
           type: "dropdown",
           label: "Ecosystem",
           position: "left",
           items: [
+            {
+              label: "imagor",
+              href: "https://github.com/cshum/imagor",
+            },
             {
               label: "imagor Studio",
               href: "https://imagor.net",
