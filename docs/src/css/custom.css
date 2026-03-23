@@ -235,3 +235,10 @@ a:hover {
 [data-theme="dark"] a:hover {
   color: var(--ifm-color-primary);
 }
+
+/* Footer link hover - keep light color on dark footer */
+.footer__link-item:hover {
+  color: var(--ifm-footer-link-color) !important;
+  opacity: 0.8;
+  text-decoration: underline;
+}
