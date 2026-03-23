@@ -85,6 +85,8 @@ Usage of imagor:
         imagor disable /params endpoint
   -imagor-disable-error-body
         imagor disable response body on error
+  -imagor-response-raw-on-error
+        imagor response with a raw unprocessed and unchecked source image on error
 
   -server-address string
         Server address
@@ -193,6 +195,8 @@ Usage of imagor:
         Base directory for S3 Loader
   -s3-loader-path-prefix string
         Base path prefix for S3 Loader
+  -s3-loader-bucket-router-config string
+        YAML config file for S3 Loader bucket routing based on pattern matching
   -s3-result-storage-bucket string
         S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
   -s3-result-storage-base-dir string
@@ -245,6 +249,9 @@ Usage of imagor:
   -s3-result-storage-endpoint string
         Optional S3 Storage Endpoint to override default
 
+  -s3-http-max-idle-conns-per-host int
+        S3 HTTP client max idle connections per host (default 100, Go default is 2)
+
   -gcloud-safe-chars string
         Google Cloud safe characters to be excluded from image key escape. Set -- for no-op
   -gcloud-loader-base-dir string
@@ -274,6 +281,14 @@ Usage of imagor:
   -gcloud-storage-path-prefix string
         Base path prefix for Google Cloud Storage
         
+  -vips-concurrency int
+        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
+  -vips-max-cache-files int
+        VIPS max cache files (default 0)
+  -vips-max-cache-mem int
+        VIPS max cache mem in bytes (default 0)
+  -vips-max-cache-size int
+        VIPS max cache size (default 0)
   -vips-max-animation-frames int
         VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited
   -vips-disable-blur
@@ -292,10 +307,26 @@ Usage of imagor:
         VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
   -vips-avif-speed int
         VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
+  -vips-detector-probe-size int
+        VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop region detection. Lower values are faster, higher values improve detection of small regions (default 400)
   -vips-strip-metadata
         VIPS strips all metadata from the resulting image
   -vips-unlimited
     	VIPS bypass image max resolution check and remove all denial of service limits
+  -vips-cache-size int
+        VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by image path to avoid repeated I/O and decode for base images, watermark() and image() filters
+  -vips-cache-max-width int
+        VIPS image cache maximum width. Images wider than this are not cached (default 2400)
+  -vips-cache-max-height int
+        VIPS image cache maximum height. Images taller than this are not cached (default 2000)
+  -vips-cache-ttl duration
+        VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry
+  -vips-cache-format string
+        VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)
         
   -sentry-dsn
         include sentry dsn to integrate imagor with sentry
+        
+  -log-ecs
+        Enable ECS (Elastic Common Schema) log format
+```

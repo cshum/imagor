@@ -6,7 +6,8 @@ slug: /
 # Introduction
 
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
-[![Coverage Status](https://coveralls.io/repos/github/cshum/imagor/badge.svg?branch=master)](https://coveralls.io/github/cshum/imagor?branch=master)
+[![Codecov](https://img.shields.io/codecov/c/github/cshum/imagor
+)](https://codecov.io/gh/cshum/imagor)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cshum/imagor.svg)](https://pkg.go.dev/github.com/cshum/imagor)
 
@@ -34,13 +35,7 @@ https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gi
 https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png
 ```
 
-<div className="demo-images">
-
-![Gopher](https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png)
-![Dancing Banana](https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif)
-![Gopher Front](https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png)
-
-</div>
+<img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png" height="100" />
 
 Try out the following image URLs:
 
@@ -52,12 +47,4 @@ http://localhost:8000/unsafe/30x40:100x150/filters:fill(cyan)/raw.githubusercont
 http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,0,40,40)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
 ```
 
-<div className="demo-images">
-
-![Demo 1](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg)
-![Demo 2](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg)
-![Demo 4](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg)
-![Demo 3](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif)
-![Demo 5](https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif)
-
-</div>
+<img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif" height="100" />
