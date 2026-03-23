@@ -8,7 +8,7 @@ Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations 
 /filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/
 ```
 
-## Image Filters
+## Processing Filters
 
 imagor supports the following filters:
 
