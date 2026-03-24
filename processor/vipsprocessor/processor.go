@@ -302,6 +302,20 @@ func newThumbnailFromBlob(
 	})
 }
 
+// unlimitedSupportedByLoader returns true only for blob types whose libvips
+// loader accepts the "unlimited" option. gifload, webpload, jp2kload, jxlload,
+// pdfload and bmpload do not have this property and will error if passed it.
+func unlimitedSupportedByLoader(blob *imagor.Blob) bool {
+	switch blob.BlobType() {
+	case imagor.BlobTypeJPEG, imagor.BlobTypePNG,
+		imagor.BlobTypeTIFF, imagor.BlobTypeCR2,
+		imagor.BlobTypeAVIF, imagor.BlobTypeHEIF,
+		imagor.BlobTypeSVG:
+		return true
+	}
+	return false
+}
+
 // NewThumbnail creates new thumbnail with resize and crop from imagor.Blob
 func (v *Processor) NewThumbnail(
 	ctx context.Context, blob *imagor.Blob, width, height int, crop vips.Interesting,
@@ -311,7 +325,7 @@ func (v *Processor) NewThumbnail(
 	if dpi > 0 {
 		options.Dpi = dpi
 	}
-	options.Unlimited = v.Unlimited
+	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
 	var err error
 	var img *vips.Image
 	if isMultiPage(blob, n, page) {
@@ -381,7 +395,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 	if dpi > 0 {
 		options.Dpi = dpi
 	}
-	options.Unlimited = v.Unlimited
+	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
 	if isMultiPage(blob, n, page) {
 		applyMultiPageOptions(options, n, page)
 		img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, options))
