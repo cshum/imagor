@@ -497,6 +497,39 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("unlimited does not break loaders without unlimited support", func(t *testing.T) {
+		// Regression test for https://github.com/cshum/imagor/issues/780
+		// gifload and webpload do not have an "unlimited" property; passing it
+		// via the option string caused a 406 error. Verify all common types work.
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithProcessors(NewProcessor(WithUnlimited(true))),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		tests := []struct {
+			name string
+			path string
+		}{
+			// These were broken before the fix (gifload/webpload don't support unlimited)
+			{"gif", "/unsafe/fit-in/256x256/filters:format(webp):page(1)/dancing-banana.gif"},
+			{"webp", "/unsafe/fit-in/256x256/demo3.webp"},
+			// These should continue to work fine with unlimited
+			{"jpeg", "/unsafe/fit-in/256x256/demo1.jpg"},
+			{"png", "/unsafe/fit-in/256x256/gopher-front.png"},
+			{"tiff", "/unsafe/fit-in/256x256/gopher.tiff"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				w := httptest.NewRecorder()
+				app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, tt.path, nil))
+				assert.Equal(t, 200, w.Code)
+			})
+		}
+	})
 	t.Run("resolution exceeded bmp 2", func(t *testing.T) {
 		app := imagor.New(
 			imagor.WithLoaders(filestorage.New(testDataDir)),
