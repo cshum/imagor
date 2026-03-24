@@ -1,5 +1,7 @@
 # AWS S3
 
+## Docker Compose Example
+
 Docker Compose example with AWS S3. Also works with S3 compatible such as MinIO, DigitalOcean Space.
 
 ```yaml
