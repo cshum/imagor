@@ -498,9 +498,6 @@ func TestProcessor(t *testing.T) {
 		assert.Equal(t, 422, w.Code)
 	})
 	t.Run("unlimited does not break loaders without unlimited support", func(t *testing.T) {
-		// Regression test for https://github.com/cshum/imagor/issues/780
-		// gifload and webpload do not have an "unlimited" property; passing it
-		// via the option string caused a 406 error. Verify all common types work.
 		app := imagor.New(
 			imagor.WithLoaders(filestorage.New(testDataDir)),
 			imagor.WithUnsafe(true),
@@ -514,10 +511,8 @@ func TestProcessor(t *testing.T) {
 			name string
 			path string
 		}{
-			// These were broken before the fix (gifload/webpload don't support unlimited)
 			{"gif", "/unsafe/fit-in/256x256/filters:format(webp):page(1)/dancing-banana.gif"},
 			{"webp", "/unsafe/fit-in/256x256/demo3.webp"},
-			// These should continue to work fine with unlimited
 			{"jpeg", "/unsafe/fit-in/256x256/demo1.jpg"},
 			{"png", "/unsafe/fit-in/256x256/gopher-front.png"},
 			{"tiff", "/unsafe/fit-in/256x256/gopher.tiff"},
