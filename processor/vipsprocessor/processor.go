@@ -415,18 +415,8 @@ func (v *Processor) Thumbnail(
 }
 
 // FocalThumbnail handles thumbnail with custom focal point
-func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, fx, fy float64) (err error) {
-	var imageWidth, imageHeight float64
-	// exif orientation greater 5-8 are 90 or 270 degrees, w and h swapped
-	if img.Orientation() > 4 {
-		imageWidth = float64(img.PageHeight())
-		imageHeight = float64(img.Width())
-	} else {
-		imageWidth = float64(img.Width())
-		imageHeight = float64(img.PageHeight())
-	}
-
-	if float64(w)/float64(h) > float64(imageWidth)/float64(imageHeight) {
+func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, imgAspect, fx, fy float64) (err error) {
+	if float64(w)/float64(h) > imgAspect {
 		if err = img.ThumbnailImage(w, &vips.ThumbnailImageOptions{
 			Height: v.MaxHeight, Crop: vips.InterestingNone,
 		}); err != nil {

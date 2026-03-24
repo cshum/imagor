@@ -433,6 +433,10 @@ func (v *Processor) loadAndProcess(
 		if err = img.RotMultiPage(getAngle(orient)); err != nil {
 			return nil, err
 		}
+		// clear EXIF orientation to prevent unexpected rotation from ThumbnailImage
+		if err = img.RemoveOrientation(); err != nil {
+			return nil, err
+		}
 	}
 
 	var (
@@ -564,10 +568,15 @@ func (v *Processor) applyTransformations(
 		w = p.Width
 		h = p.Height
 	)
+	imgW, imgH := img.Width(), img.PageHeight()
+	if img.Orientation() > 4 {
+		// match ThumbnailImage which auto-rotates during resize
+		imgW, imgH = imgH, imgW
+	}
+	imgAspect := float64(imgW) / float64(imgH)
 
 	// Apply adaptive fit-in: swap dimensions if it would get better image definition
 	if p.AdaptiveFitIn && w > 0 && h > 0 {
-		imgAspect := float64(img.Width()) / float64(img.PageHeight())
 		boxAspect := float64(w) / float64(h)
 		// If orientations differ (one portrait, one landscape), swap dimensions
 		if (imgAspect > 1) != (boxAspect > 1) {
@@ -576,23 +585,22 @@ func (v *Processor) applyTransformations(
 	}
 
 	if w == 0 && h == 0 {
-		w = img.Width()
-		h = img.PageHeight()
+		w = imgW
+		h = imgH
 	} else if w == 0 {
-		w = img.Width() * h / img.PageHeight()
-		if !upscale && w > img.Width() {
-			w = img.Width()
+		w = imgW * h / imgH
+		if !upscale && w > imgW {
+			w = imgW
 		}
 	} else if h == 0 {
-		h = img.PageHeight() * w / img.Width()
-		if !upscale && h > img.PageHeight() {
-			h = img.PageHeight()
+		h = imgH * w / imgW
+		if !upscale && h > imgH {
+			h = imgH
 		}
 	}
 	if !thumbnail {
 		if p.FitIn {
 			if p.FullFitIn && w > 0 && h > 0 {
-				imgAspect := float64(img.Width()) / float64(img.PageHeight())
 				boxAspect := float64(w) / float64(h)
 
 				if imgAspect < boxAspect {
@@ -606,25 +614,25 @@ func (v *Processor) applyTransformations(
 				}
 			}
 
-			if upscale || w < img.Width() || h < img.PageHeight() {
+			if upscale || w < imgW || h < imgH {
 				opts := &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}
 				if err := img.ThumbnailImage(w, opts); err != nil {
 					return err
 				}
 			}
 		} else if stretch {
-			if upscale || (w < img.Width() && h < img.PageHeight()) {
+			if upscale || (w < imgW && h < imgH) {
 				if err := img.ThumbnailImage(
 					w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone, Size: vips.SizeForce},
 				); err != nil {
 					return err
 				}
 			}
-		} else if upscale || w < img.Width() || h < img.PageHeight() {
+		} else if upscale || w < imgW || h < imgH {
 			interest := vips.InterestingCentre
 			if p.Smart {
 				interest = vips.InterestingAttention
-			} else if float64(w)/float64(h) > float64(img.Width())/float64(img.PageHeight()) {
+			} else if float64(w)/float64(h) > imgAspect {
 				if p.VAlign == imagorpath.VAlignTop {
 					interest = vips.InterestingLow
 				} else if p.VAlign == imagorpath.VAlignBottom {
@@ -641,6 +649,7 @@ func (v *Processor) applyTransformations(
 				focalX, focalY := parseFocalPoint(focalRects...)
 				if err := v.FocalThumbnail(
 					img, w, h,
+					imgAspect,
 					(focalX-cropLeft)/float64(img.Width()),
 					(focalY-cropTop)/float64(img.PageHeight()),
 				); err != nil {
