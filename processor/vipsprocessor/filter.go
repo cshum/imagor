@@ -2,13 +2,17 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"image"
 	"math"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/bbrks/go-blurhash"
 	"github.com/cshum/vipsgen/vips"
+	thumbhash "github.com/kheina-com/go-thumbhash"
 
 	"github.com/cshum/imagor"
 )
@@ -372,4 +376,137 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 	}
 
 	return img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
+}
+
+// avgColor returns the average color of img as an AvgColor with RGBA components.
+// R, G, B and A are all means of the visible (non-zero-alpha) pixels only.
+// For images without an alpha channel A is always 255.
+func avgColor(_ context.Context, img *vips.Image) (*AvgColor, error) {
+	thumb, err := img.Copy(nil)
+	if err != nil {
+		return nil, err
+	}
+	defer thumb.Close()
+	normalizeSrgb(thumb)
+	if err := thumb.ThumbnailImage(64, &vips.ThumbnailImageOptions{Size: vips.SizeDown}); err != nil {
+		return nil, err
+	}
+	w, h := thumb.Width(), thumb.Height()
+	raw, err := thumb.WriteToMemory()
+	if err != nil {
+		return nil, err
+	}
+	if thumb.HasAlpha() {
+		if len(raw) != w*h*4 {
+			return nil, fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*4)
+		}
+		var rSum, gSum, bSum, aSum, count int64
+		for i := 0; i < len(raw); i += 4 {
+			if raw[i+3] == 0 {
+				continue
+			}
+			rSum += int64(raw[i])
+			gSum += int64(raw[i+1])
+			bSum += int64(raw[i+2])
+			aSum += int64(raw[i+3])
+			count++
+		}
+		if count == 0 {
+			return &AvgColor{}, nil
+		}
+		return &AvgColor{
+			R: uint8(rSum / count),
+			G: uint8(gSum / count),
+			B: uint8(bSum / count),
+			A: uint8(aSum / count),
+		}, nil
+	}
+	if len(raw) != w*h*3 {
+		return nil, fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*3)
+	}
+	var rSum, gSum, bSum int64
+	count := int64(w * h)
+	for i := 0; i < len(raw); i += 3 {
+		rSum += int64(raw[i])
+		gSum += int64(raw[i+1])
+		bSum += int64(raw[i+2])
+	}
+	return &AvgColor{
+		R: uint8(rSum / count),
+		G: uint8(gSum / count),
+		B: uint8(bSum / count),
+		A: 255,
+	}, nil
+}
+
+// blurHash returns a Blurhash string for img using the given x and y components.
+func blurHash(_ context.Context, img *vips.Image, xComponents, yComponents int) (string, error) {
+	thumb, err := img.Copy(nil)
+	if err != nil {
+		return "", err
+	}
+	defer thumb.Close()
+	normalizeSrgb(thumb)
+	if thumb.HasAlpha() {
+		if err := thumb.Flatten(vips.DefaultFlattenOptions()); err != nil {
+			return "", err
+		}
+	}
+	if err := thumb.ThumbnailImage(64, &vips.ThumbnailImageOptions{Size: vips.SizeDown}); err != nil {
+		return "", err
+	}
+	w, h := thumb.Width(), thumb.Height()
+	raw, err := thumb.WriteToMemory()
+	if err != nil {
+		return "", err
+	}
+	// raw is packed RGB (3 bytes/pixel), expand to RGBA with an alpha channel of 255
+	if len(raw) != w*h*3 {
+		return "", fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*3)
+	}
+	nrgba := image.NewNRGBA(image.Rect(0, 0, w, h))
+	for i, j := 0, 0; i < len(raw); i, j = i+3, j+4 {
+		nrgba.Pix[j] = raw[i]
+		nrgba.Pix[j+1] = raw[i+1]
+		nrgba.Pix[j+2] = raw[i+2]
+		nrgba.Pix[j+3] = 255
+	}
+	return blurhash.Encode(xComponents, yComponents, nrgba)
+}
+
+// thumbHash returns a base64-encoded ThumbHash string for img.
+// Alpha is preserved when present.
+func thumbHash(_ context.Context, img *vips.Image) (string, error) {
+	thumb, err := img.Copy(nil)
+	if err != nil {
+		return "", err
+	}
+	defer thumb.Close()
+	normalizeSrgb(thumb)
+	if err := thumb.ThumbnailImage(100, &vips.ThumbnailImageOptions{Size: vips.SizeDown}); err != nil {
+		return "", err
+	}
+	w, h := thumb.Width(), thumb.Height()
+	raw, err := thumb.WriteToMemory()
+	if err != nil {
+		return "", err
+	}
+	nrgba := image.NewNRGBA(image.Rect(0, 0, w, h))
+	if thumb.HasAlpha() {
+		if len(raw) != w*h*4 {
+			return "", fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*4)
+		}
+		copy(nrgba.Pix, raw)
+	} else {
+		if len(raw) != w*h*3 {
+			return "", fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*3)
+		}
+		for i, j := 0, 0; i < len(raw); i, j = i+3, j+4 {
+			nrgba.Pix[j] = raw[i]
+			nrgba.Pix[j+1] = raw[i+1]
+			nrgba.Pix[j+2] = raw[i+2]
+			nrgba.Pix[j+3] = 255
+		}
+	}
+	return base64.StdEncoding.EncodeToString(thumbhash.EncodeImage(nrgba)), nil
 }
