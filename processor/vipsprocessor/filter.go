@@ -12,7 +12,7 @@ import (
 
 	"github.com/bbrks/go-blurhash"
 	"github.com/cshum/vipsgen/vips"
-	thumbhash "github.com/kheina-com/go-thumbhash"
+	"go.n16f.net/thumbhash"
 
 	"github.com/cshum/imagor"
 )

@@ -15,12 +15,12 @@ require (
 	github.com/fsouza/fake-gcs-server v1.54.0
 	github.com/getsentry/sentry-go v0.43.0
 	github.com/johannesboyne/gofakes3 v0.0.0-20260208201424-4c385a1f6a73
-	github.com/kheina-com/go-thumbhash v0.0.0-20240307074515-9146e72dc387
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.1
 	go.elastic.co/ecszap v1.0.3
+	go.n16f.net/thumbhash v1.1.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/image v0.38.0
 	golang.org/x/sync v0.20.0
