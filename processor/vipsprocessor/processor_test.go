@@ -956,13 +956,10 @@ func TestProcessor(t *testing.T) {
 			// Grayscale images produce equal R, G, B components.
 			assert.Equal(t, m.AverageColor.R, m.AverageColor.G)
 			assert.Equal(t, m.AverageColor.G, m.AverageColor.B)
-			// 2bands.png has an alpha channel so A must not be 255.
-			assert.LessOrEqual(t, m.AverageColor.A, uint8(255))
 		})
 		t.Run("avgcolor works on jpeg input", func(t *testing.T) {
 			m := readMeta("meta/filters:avgcolor()/demo1.jpg")
 			require.NotNil(t, m.AverageColor)
-			assert.Equal(t, uint8(255), m.AverageColor.A, "jpeg has no alpha, A must be 255")
 		})
 	})
 	t.Run("meta blurhash filter", func(t *testing.T) {

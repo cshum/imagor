@@ -782,7 +782,6 @@ type AvgColor struct {
 	R uint8 `json:"r"`
 	G uint8 `json:"g"`
 	B uint8 `json:"b"`
-	A uint8 `json:"a"`
 }
 
 func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []imagor.DetectorRegion) *Metadata {

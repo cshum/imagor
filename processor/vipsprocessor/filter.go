@@ -379,111 +379,41 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 }
 
 // avgColor returns the average color of img as an AvgColor with RGBA components.
-// The calculation is based on visible (non-zero-alpha) pixels.
 func avgColor(_ context.Context, img *vips.Image) (*AvgColor, error) {
-	normalized, err := img.Copy(nil)
+	thumb, err := img.Copy(nil)
 	if err != nil {
 		return nil, err
 	}
-	defer normalized.Close()
-	normalizeSrgb(normalized)
-
-	if !normalized.HasAlpha() {
-		// Stats matrix. Column 4 = mean, bands are R,G,B.
-		if err := normalized.Stats(); err != nil {
+	defer thumb.Close()
+	normalizeSrgb(thumb)
+	if thumb.HasAlpha() {
+		if err := thumb.Flatten(vips.DefaultFlattenOptions()); err != nil {
 			return nil, err
 		}
-		rMean, err := normalized.Getpoint(4, 1, nil)
-		if err != nil {
-			return nil, err
-		}
-		gMean, err := normalized.Getpoint(4, 2, nil)
-		if err != nil {
-			return nil, err
-		}
-		bMean, err := normalized.Getpoint(4, 3, nil)
-		if err != nil {
-			return nil, err
-		}
-		return &AvgColor{
-			R: uint8(math.Round(rMean[0])),
-			G: uint8(math.Round(gMean[0])),
-			B: uint8(math.Round(bMean[0])),
-			A: 255,
-		}, nil
 	}
-
-	// Build a 1-band visibility mask. Will be 1.0 when alpha > 0, otherwise 0.0.
-	visibilityMask, err := normalized.Copy(nil)
+	if err := thumb.ThumbnailImage(64, &vips.ThumbnailImageOptions{Size: vips.SizeDown}); err != nil {
+		return nil, err
+	}
+	// Stats matrix. Column 4 = mean, bands are R,G,B.
+	if err := thumb.Stats(); err != nil {
+		return nil, err
+	}
+	rMean, err := thumb.Getpoint(4, 1, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer visibilityMask.Close()
-	// Extract the alpha band.
-	if err := visibilityMask.ExtractBand(visibilityMask.Bands()-1, nil); err != nil {
-		return nil, err
-	}
-	// Convert to 0 (transparent) or 255 (visible).
-	if err := visibilityMask.RelationalConst(vips.OperationRelationalMore, []float64{0}); err != nil {
-		return nil, err
-	}
-	if err := visibilityMask.Cast(vips.BandFormatDouble, nil); err != nil {
-		return nil, err
-	}
-	// Scale from 0/255 to 0.0/1.0.
-	if err := visibilityMask.Linear([]float64{1.0 / 255.0}, []float64{0}, nil); err != nil {
-		return nil, err
-	}
-
-	// Zero out transparent pixels across all bands.
-	if err := normalized.Cast(vips.BandFormatDouble, nil); err != nil {
-		return nil, err
-	}
-	if err := normalized.Multiply(visibilityMask); err != nil {
-		return nil, err
-	}
-
-	// Stats matrices. Column 2 = sum, bands are R,G,B,A.
-	if err := normalized.Stats(); err != nil {
-		return nil, err
-	}
-	if err := visibilityMask.Stats(); err != nil {
-		return nil, err
-	}
-
-	// Mask values are either 0.0 or 1.0, so the sum equals the number of visible pixels.
-	visibleCountPx, err := visibilityMask.Getpoint(2, 1, nil)
+	gMean, err := thumb.Getpoint(4, 2, nil)
 	if err != nil {
 		return nil, err
 	}
-	visibleCount := visibleCountPx[0]
-	if visibleCount == 0 {
-		return &AvgColor{}, nil
-	}
-
-	// Read per-band sums from the masked image (transparent pixels contributed 0).
-	rSum, err := normalized.Getpoint(2, 1, nil)
+	bMean, err := thumb.Getpoint(4, 3, nil)
 	if err != nil {
 		return nil, err
 	}
-	gSum, err := normalized.Getpoint(2, 2, nil)
-	if err != nil {
-		return nil, err
-	}
-	bSum, err := normalized.Getpoint(2, 3, nil)
-	if err != nil {
-		return nil, err
-	}
-	aSum, err := normalized.Getpoint(2, 4, nil)
-	if err != nil {
-		return nil, err
-	}
-
 	return &AvgColor{
-		R: uint8(math.Round(rSum[0] / visibleCount)),
-		G: uint8(math.Round(gSum[0] / visibleCount)),
-		B: uint8(math.Round(bSum[0] / visibleCount)),
-		A: uint8(math.Round(aSum[0] / visibleCount)),
+		R: uint8(math.Round(rMean[0])),
+		G: uint8(math.Round(gMean[0])),
+		B: uint8(math.Round(bMean[0])),
 	}, nil
 }
 

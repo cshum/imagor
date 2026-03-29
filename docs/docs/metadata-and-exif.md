@@ -74,9 +74,9 @@ http://localhost:8000/unsafe/meta/filters:thumbhash()/raw.githubusercontent.com/
 
 ### `avgcolor()`
 
-Computes the average color of the image as an `average_color` object with `r`, `g`, `b`, and `a` integer fields (0–255).
+Computes the average color of the image as an `average_color` object with `r`, `g`, and `b` integer fields (0–255).
 
-Fully transparent pixels (`a == 0`) are excluded from the average. `r`, `g`, and `b` reflect the mean color of visible pixels only. `a` is the mean alpha of those same visible pixels. For images without an alpha channel `a` is always `255`.
+For images with an alpha channel, transparent pixels will be filled with black. If you'd like to control the fill color, you can use `avgcolor()` in conjunction with the `background_color()` filter.
 
 ```
 http://localhost:8000/unsafe/meta/filters:avgcolor()/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
@@ -85,6 +85,6 @@ http://localhost:8000/unsafe/meta/filters:avgcolor()/raw.githubusercontent.com/c
 ```jsonc
 {
   // ...
-  "average_color": { "r": 99, "g": 172, "b": 229, "a": 226 }
+  "average_color": { "r": 99, "g": 172, "b": 229 }
 }
 ```
