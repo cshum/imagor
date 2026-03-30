@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.12
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.2
 	github.com/aws/smithy-go v1.24.2
+	github.com/bbrks/go-blurhash v1.2.0
 	github.com/cshum/vipsgen v1.3.9
 	github.com/fsouza/fake-gcs-server v1.54.0
 	github.com/getsentry/sentry-go v0.43.0
@@ -19,6 +20,7 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.1
 	go.elastic.co/ecszap v1.0.3
+	go.n16f.net/thumbhash v1.1.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/image v0.38.0
 	golang.org/x/sync v0.20.0

@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -906,6 +907,192 @@ func TestProcessor(t *testing.T) {
 			m := readMeta("meta/filters:redact()/gopher-front.png")
 			assert.Len(t, m.DetectedRegions, 2,
 				"meta+redact() should return detected regions")
+		})
+	})
+	t.Run("meta avgcolor filter", func(t *testing.T) {
+		processor := NewProcessor()
+		require.NoError(t, processor.Startup(context.Background()))
+		defer func() { require.NoError(t, processor.Shutdown(context.Background())) }()
+
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithProcessors(processor),
+			imagor.WithUnsafe(true),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+		readMeta := func(path string) *Metadata {
+			t.Helper()
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", path), nil))
+			require.Equal(t, 200, w.Code)
+			var m Metadata
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &m))
+			return &m
+		}
+
+		t.Run("plain meta has no average_color", func(t *testing.T) {
+			m := readMeta("meta/gopher.png")
+			assert.Nil(t, m.AverageColor, "plain meta must not include average_color")
+		})
+		t.Run("avgcolor filter populates average_color field", func(t *testing.T) {
+			m := readMeta("meta/filters:avgcolor()/gopher.png")
+			assert.NotNil(t, m.AverageColor,
+				"avgcolor() filter must populate average_color field")
+			assert.Empty(t, m.BlurHash, "avgcolor() filter must not populate blurhash")
+		})
+		t.Run("avgcolor with args returns 400", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "/unsafe/meta/filters:avgcolor(red)/gopher.png", nil))
+			assert.Equal(t, 400, w.Code)
+		})
+		t.Run("avgcolor works on grayscale+alpha image", func(t *testing.T) {
+			m := readMeta("meta/filters:avgcolor()/2bands.png")
+			require.NotNil(t, m.AverageColor,
+				"avgcolor must populate average_color for a grayscale+alpha image")
+			// Grayscale images produce equal R, G, B components.
+			assert.Equal(t, m.AverageColor.R, m.AverageColor.G)
+			assert.Equal(t, m.AverageColor.G, m.AverageColor.B)
+		})
+		t.Run("avgcolor works on jpeg input", func(t *testing.T) {
+			m := readMeta("meta/filters:avgcolor()/demo1.jpg")
+			require.NotNil(t, m.AverageColor)
+		})
+	})
+	t.Run("meta blurhash filter", func(t *testing.T) {
+		processor := NewProcessor()
+		require.NoError(t, processor.Startup(context.Background()))
+		defer func() { require.NoError(t, processor.Shutdown(context.Background())) }()
+
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithProcessors(processor),
+			imagor.WithUnsafe(true),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+		readMeta := func(path string) *Metadata {
+			t.Helper()
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", path), nil))
+			require.Equal(t, 200, w.Code)
+			var m Metadata
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &m))
+			return &m
+		}
+
+		t.Run("plain meta has no blurhash", func(t *testing.T) {
+			m := readMeta("meta/gopher.png")
+			assert.Empty(t, m.BlurHash, "plain meta must not include blurhash")
+		})
+		t.Run("blurhash filter populates blurhash field", func(t *testing.T) {
+			m := readMeta("meta/filters:blurhash(4,3)/gopher.png")
+			assert.NotEmpty(t, m.BlurHash, "blurhash() filter must populate blurhash field")
+		})
+		t.Run("blurhash components affect output", func(t *testing.T) {
+			m43 := readMeta("meta/filters:blurhash(4,3)/gopher.png")
+			m22 := readMeta("meta/filters:blurhash(2,2)/gopher.png")
+			assert.NotEqual(t, m43.BlurHash, m22.BlurHash,
+				"different component counts must produce different hashes")
+		})
+		t.Run("invalid blurhash args return 400", func(t *testing.T) {
+			for _, path := range []string{
+				"meta/filters:blurhash(4)/gopher.png",        // one arg
+				"meta/filters:blurhash()/gopher.png",         // no args
+				"meta/filters:blurhash(bad,args)/gopher.png", // non-numeric
+				"meta/filters:blurhash(0,3)/gopher.png",      // out of range
+				"meta/filters:blurhash(4,10)/gopher.png",     // out of range
+			} {
+				w := httptest.NewRecorder()
+				app.ServeHTTP(w, httptest.NewRequest(
+					http.MethodGet, fmt.Sprintf("/unsafe/%s", path), nil))
+				assert.Equal(t, 400, w.Code, "path: %s", path)
+			}
+		})
+		t.Run("blurhash is deterministic", func(t *testing.T) {
+			m1 := readMeta("meta/filters:blurhash(4,3)/gopher.png")
+			m2 := readMeta("meta/filters:blurhash(4,3)/gopher.png")
+			assert.Equal(t, m1.BlurHash, m2.BlurHash,
+				"blurhash must be identical for repeated calls on the same image")
+		})
+		t.Run("blurhash works on jpeg input", func(t *testing.T) {
+			m := readMeta("meta/filters:blurhash(4,3)/demo1.jpg")
+			assert.NotEmpty(t, m.BlurHash)
+		})
+		t.Run("blurhash works on alpha png", func(t *testing.T) {
+			// gopher-front.png has an alpha channel; blurHash must flatten it
+			m := readMeta("meta/filters:blurhash(4,3)/gopher-front.png")
+			assert.NotEmpty(t, m.BlurHash)
+		})
+	})
+	t.Run("meta thumbhash filter", func(t *testing.T) {
+		processor := NewProcessor()
+		require.NoError(t, processor.Startup(context.Background()))
+		defer func() { require.NoError(t, processor.Shutdown(context.Background())) }()
+
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithProcessors(processor),
+			imagor.WithUnsafe(true),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+		readMeta := func(path string) *Metadata {
+			t.Helper()
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, fmt.Sprintf("/unsafe/%s", path), nil))
+			require.Equal(t, 200, w.Code)
+			var m Metadata
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &m))
+			return &m
+		}
+
+		t.Run("plain meta has no thumbhash", func(t *testing.T) {
+			m := readMeta("meta/gopher.png")
+			assert.Empty(t, m.ThumbHash, "plain meta must not include thumbhash")
+		})
+		t.Run("thumbhash filter populates thumbhash field", func(t *testing.T) {
+			m := readMeta("meta/filters:thumbhash()/gopher.png")
+			assert.NotEmpty(t, m.ThumbHash)
+		})
+		t.Run("thumbhash output is valid base64", func(t *testing.T) {
+			m := readMeta("meta/filters:thumbhash()/gopher.png")
+			_, err := base64.StdEncoding.DecodeString(m.ThumbHash)
+			assert.NoError(t, err, "thumbhash must be valid standard base64")
+		})
+		t.Run("thumbhash is deterministic", func(t *testing.T) {
+			m1 := readMeta("meta/filters:thumbhash()/gopher.png")
+			m2 := readMeta("meta/filters:thumbhash()/gopher.png")
+			assert.Equal(t, m1.ThumbHash, m2.ThumbHash,
+				"thumbhash must be identical for repeated calls on the same image")
+		})
+		t.Run("thumbhash with args returns 400", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet, "/unsafe/meta/filters:thumbhash(foo)/gopher.png", nil))
+			assert.Equal(t, 400, w.Code)
+		})
+		t.Run("thumbhash works on image with alpha", func(t *testing.T) {
+			// gopher-front.png has an alpha channel; thumbHash must handle 4-byte pixels
+			m := readMeta("meta/filters:thumbhash()/gopher-front.png")
+			assert.NotEmpty(t, m.ThumbHash)
+		})
+		t.Run("thumbhash works on jpeg input", func(t *testing.T) {
+			m := readMeta("meta/filters:thumbhash()/demo1.jpg")
+			assert.NotEmpty(t, m.ThumbHash)
+		})
+		t.Run("different images produce different thumbhashes", func(t *testing.T) {
+			mA := readMeta("meta/filters:thumbhash()/gopher.png")
+			mB := readMeta("meta/filters:thumbhash()/gopher-front.png")
+			assert.NotEqual(t, mA.ThumbHash, mB.ThumbHash,
+				"distinct images must produce distinct thumbhashes")
 		})
 	})
 	t.Run("detector startup failure returns error", func(t *testing.T) {

@@ -87,7 +87,45 @@ func (v *Processor) Process(
 		if len(v.Detectors) > 0 && needsDetection {
 			metaRegions = v.detectRegions(ctx, img, p.Image)
 		}
-		return imagor.NewBlobFromJsonMarshal(metadata(img, params.format, stripExif, metaRegions)), nil
+		m := metadata(img, params.format, stripExif, metaRegions)
+		for _, f := range p.Filters {
+			switch f.Name {
+			case "avgcolor":
+				if f.Args != "" {
+					return nil, imagor.NewError("avgcolor takes no arguments", 400)
+				}
+				color, err := avgColor(ctx, img)
+				if err != nil {
+					return nil, WrapErr(err)
+				}
+				m.AverageColor = color
+			case "blurhash":
+				args := imagorpath.SplitArgs(f.Args)
+				if len(args) != 2 {
+					return nil, imagor.NewError("blurhash requires exactly x and y components", 400)
+				}
+				xc, errX := strconv.Atoi(args[0])
+				yc, errY := strconv.Atoi(args[1])
+				if errX != nil || errY != nil || xc < 1 || xc > 9 || yc < 1 || yc > 9 {
+					return nil, imagor.NewError("blurhash x and y components must be between 1 and 9", 400)
+				}
+				hash, err := blurHash(ctx, img, xc, yc)
+				if err != nil {
+					return nil, WrapErr(err)
+				}
+				m.BlurHash = hash
+			case "thumbhash":
+				if f.Args != "" {
+					return nil, imagor.NewError("thumbhash takes no arguments", 400)
+				}
+				hash, err := thumbHash(ctx, img)
+				if err != nil {
+					return nil, WrapErr(err)
+				}
+				m.ThumbHash = hash
+			}
+		}
+		return imagor.NewBlobFromJsonMarshal(m), nil
 	}
 
 	// Strip ICC profile before export when strip_metadata is requested.
@@ -735,6 +773,15 @@ type Metadata struct {
 	Bands           int               `json:"bands"`
 	Exif            map[string]string `json:"exif"`
 	DetectedRegions []MetaRegion      `json:"detected_regions,omitempty"`
+	BlurHash        string            `json:"blurhash,omitempty"`
+	ThumbHash       string            `json:"thumbhash,omitempty"`
+	AverageColor    *AvgColor         `json:"average_color,omitempty"`
+}
+
+type AvgColor struct {
+	R uint8 `json:"r"`
+	G uint8 `json:"g"`
+	B uint8 `json:"b"`
 }
 
 func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []imagor.DetectorRegion) *Metadata {

@@ -2,13 +2,17 @@ package vipsprocessor
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"image"
 	"math"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/bbrks/go-blurhash"
 	"github.com/cshum/vipsgen/vips"
+	"go.n16f.net/thumbhash"
 
 	"github.com/cshum/imagor"
 )
@@ -372,4 +376,115 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 	}
 
 	return img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
+}
+
+// avgColor returns the average color of img as an AvgColor with RGBA components.
+func avgColor(_ context.Context, img *vips.Image) (*AvgColor, error) {
+	thumb, err := img.Copy(nil)
+	if err != nil {
+		return nil, err
+	}
+	defer thumb.Close()
+	normalizeSrgb(thumb)
+	if thumb.HasAlpha() {
+		if err := thumb.Flatten(vips.DefaultFlattenOptions()); err != nil {
+			return nil, err
+		}
+	}
+	if err := thumb.ThumbnailImage(64, &vips.ThumbnailImageOptions{Size: vips.SizeDown}); err != nil {
+		return nil, err
+	}
+	// Stats matrix. Column 4 = mean, bands are R,G,B.
+	if err := thumb.Stats(); err != nil {
+		return nil, err
+	}
+	rMean, err := thumb.Getpoint(4, 1, nil)
+	if err != nil {
+		return nil, err
+	}
+	gMean, err := thumb.Getpoint(4, 2, nil)
+	if err != nil {
+		return nil, err
+	}
+	bMean, err := thumb.Getpoint(4, 3, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &AvgColor{
+		R: uint8(math.Round(rMean[0])),
+		G: uint8(math.Round(gMean[0])),
+		B: uint8(math.Round(bMean[0])),
+	}, nil
+}
+
+// blurHash returns a Blurhash string for img using the given x and y components.
+func blurHash(_ context.Context, img *vips.Image, xComponents, yComponents int) (string, error) {
+	thumb, err := img.Copy(nil)
+	if err != nil {
+		return "", err
+	}
+	defer thumb.Close()
+	normalizeSrgb(thumb)
+	if thumb.HasAlpha() {
+		if err := thumb.Flatten(vips.DefaultFlattenOptions()); err != nil {
+			return "", err
+		}
+	}
+	if err := thumb.ThumbnailImage(64, &vips.ThumbnailImageOptions{Size: vips.SizeDown}); err != nil {
+		return "", err
+	}
+	w, h := thumb.Width(), thumb.Height()
+	raw, err := thumb.WriteToMemory()
+	if err != nil {
+		return "", err
+	}
+	// raw is packed RGB (3 bytes/pixel), expand to RGBA with an alpha channel of 255
+	if len(raw) != w*h*3 {
+		return "", fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*3)
+	}
+	nrgba := image.NewNRGBA(image.Rect(0, 0, w, h))
+	for i, j := 0, 0; i < len(raw); i, j = i+3, j+4 {
+		nrgba.Pix[j] = raw[i]
+		nrgba.Pix[j+1] = raw[i+1]
+		nrgba.Pix[j+2] = raw[i+2]
+		nrgba.Pix[j+3] = 255
+	}
+	return blurhash.Encode(xComponents, yComponents, nrgba)
+}
+
+// thumbHash returns a base64-encoded ThumbHash string for img.
+// Alpha is preserved when present.
+func thumbHash(_ context.Context, img *vips.Image) (string, error) {
+	thumb, err := img.Copy(nil)
+	if err != nil {
+		return "", err
+	}
+	defer thumb.Close()
+	normalizeSrgb(thumb)
+	if err := thumb.ThumbnailImage(100, &vips.ThumbnailImageOptions{Size: vips.SizeDown}); err != nil {
+		return "", err
+	}
+	w, h := thumb.Width(), thumb.Height()
+	raw, err := thumb.WriteToMemory()
+	if err != nil {
+		return "", err
+	}
+	nrgba := image.NewNRGBA(image.Rect(0, 0, w, h))
+	if thumb.HasAlpha() {
+		if len(raw) != w*h*4 {
+			return "", fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*4)
+		}
+		copy(nrgba.Pix, raw)
+	} else {
+		if len(raw) != w*h*3 {
+			return "", fmt.Errorf("unexpected raw pixel length %d (want %d)", len(raw), w*h*3)
+		}
+		for i, j := 0, 0; i < len(raw); i, j = i+3, j+4 {
+			nrgba.Pix[j] = raw[i]
+			nrgba.Pix[j+1] = raw[i+1]
+			nrgba.Pix[j+2] = raw[i+2]
+			nrgba.Pix[j+3] = 255
+		}
+	}
+	return base64.StdEncoding.EncodeToString(thumbhash.EncodeImage(nrgba)), nil
 }
