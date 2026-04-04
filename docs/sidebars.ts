@@ -36,8 +36,8 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Advanced",
       items: [
-        "color-image",
         "metadata-and-exif",
+        "color-image",
         "in-memory-cache",
         "vips-performance",
         "post-upload",
