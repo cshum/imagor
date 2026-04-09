@@ -2867,3 +2867,163 @@ func TestResponseRawOnError(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "timeout")
 	})
 }
+
+func TestGetSigner(t *testing.T) {
+	secrets := map[string]string{
+		"space-a.example.com": "secret-a",
+		"space-b.example.com": "secret-b",
+	}
+	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithGetSigner(func(r *http.Request) imagorpath.Signer {
+			secret, ok := secrets[r.Host]
+			if !ok {
+				return nil
+			}
+			return imagorpath.NewHMACSigner(sha256.New, 0, secret)
+		}),
+	)
+
+	signerA := imagorpath.NewHMACSigner(sha256.New, 0, "secret-a")
+	signerB := imagorpath.NewHMACSigner(sha256.New, 0, "secret-b")
+
+	// generate a valid signed path for space-a
+	pathA := imagorpath.Generate(imagorpath.Params{Image: "foo.jpg"}, signerA)
+	// generate a valid signed path for space-b
+	pathB := imagorpath.Generate(imagorpath.Params{Image: "foo.jpg"}, signerB)
+
+	t.Run("valid request for space-a", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/"+pathA, nil)
+		req.Host = "space-a.example.com"
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, req)
+		assert.Equal(t, 200, w.Code)
+	})
+
+	t.Run("valid request for space-b", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/"+pathB, nil)
+		req.Host = "space-b.example.com"
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, req)
+		assert.Equal(t, 200, w.Code)
+	})
+
+	t.Run("space-a HMAC on space-b request returns signature mismatch", func(t *testing.T) {
+		// pathA was signed with secret-a, but host is space-b → wrong secret → mismatch
+		req := httptest.NewRequest(http.MethodGet, "/"+pathA, nil)
+		req.Host = "space-b.example.com"
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, req)
+		assert.Equal(t, 403, w.Code)
+		assert.Equal(t, jsonStr(ErrSignatureMismatch), w.Body.String())
+	})
+
+	t.Run("unknown host returns signature mismatch via nil signer", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/"+pathA, nil)
+		req.Host = "unknown.example.com"
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, req)
+		assert.Equal(t, 403, w.Code)
+		assert.Equal(t, jsonStr(ErrSignatureMismatch), w.Body.String())
+	})
+
+	t.Run("GetSigner takes precedence over Signer when both set", func(t *testing.T) {
+		// Signer uses a different (wrong) secret; GetSigner uses the correct per-host secret
+		appBoth := New(
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+			WithSigner(imagorpath.NewHMACSigner(sha256.New, 0, "wrong-secret")),
+			WithGetSigner(func(r *http.Request) imagorpath.Signer {
+				secret, ok := secrets[r.Host]
+				if !ok {
+					return nil
+				}
+				return imagorpath.NewHMACSigner(sha256.New, 0, secret)
+			}),
+		)
+		req := httptest.NewRequest(http.MethodGet, "/"+pathA, nil)
+		req.Host = "space-a.example.com"
+		w := httptest.NewRecorder()
+		appBoth.ServeHTTP(w, req)
+		assert.Equal(t, 200, w.Code)
+	})
+
+	t.Run("nil GetSigner falls back to Signer", func(t *testing.T) {
+		appStatic := New(
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+			WithSigner(signerA),
+		)
+		req := httptest.NewRequest(http.MethodGet, "/"+pathA, nil)
+		w := httptest.NewRecorder()
+		appStatic.ServeHTTP(w, req)
+		assert.Equal(t, 200, w.Code)
+	})
+}
+
+func TestGetResultKey(t *testing.T) {
+	// Track which result keys were used by the singleflight / result storage
+	var mu sync.Mutex
+	var capturedKeys []string
+
+	app := New(
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithGetResultKey(func(r *http.Request, p imagorpath.Params) string {
+			if p.Image == "" {
+				return ""
+			}
+			key := strings.TrimSuffix(r.Host, ".example.com") + "/" + p.Path
+			mu.Lock()
+			capturedKeys = append(capturedKeys, key)
+			mu.Unlock()
+			return key
+		}),
+	)
+
+	t.Run("same path different hosts produce distinct result keys", func(t *testing.T) {
+		capturedKeys = nil
+
+		reqA := httptest.NewRequest(http.MethodGet, "/unsafe/foo.jpg", nil)
+		reqA.Host = "space-a.example.com"
+		wA := httptest.NewRecorder()
+		app.ServeHTTP(wA, reqA)
+		assert.Equal(t, 200, wA.Code)
+
+		reqB := httptest.NewRequest(http.MethodGet, "/unsafe/foo.jpg", nil)
+		reqB.Host = "space-b.example.com"
+		wB := httptest.NewRecorder()
+		app.ServeHTTP(wB, reqB)
+		assert.Equal(t, 200, wB.Code)
+
+		mu.Lock()
+		keys := append([]string(nil), capturedKeys...)
+		mu.Unlock()
+
+		require.Len(t, keys, 2)
+		assert.Equal(t, "space-a/foo.jpg", keys[0])
+		assert.Equal(t, "space-b/foo.jpg", keys[1])
+		assert.NotEqual(t, keys[0], keys[1])
+	})
+
+	t.Run("nil GetResultKey falls back to p.Path", func(t *testing.T) {
+		appNoKey := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+		)
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/foo.jpg", nil)
+		w := httptest.NewRecorder()
+		appNoKey.ServeHTTP(w, req)
+		assert.Equal(t, 200, w.Code)
+	})
+}
