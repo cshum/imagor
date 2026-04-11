@@ -29,7 +29,7 @@ Resizes the image to the given width `W` and height `H`, auto-cropping the exces
 /unsafe/0x400/IMAGE      → resize to height 400, width proportional
 ```
 
-![Resize & Crop](/img/endpoint/resize-crop.jpg)
+<img src="/img/endpoint/resize-crop.jpg" width="33%" />
 
 ### Alignment
 
@@ -38,9 +38,18 @@ Control where the auto-crop is anchored using `HALIGN` and `VALIGN`:
 - `HALIGN` — `left`, `center` (default), or `right`
 - `VALIGN` — `top`, `middle` (default), or `bottom`
 
-| `left/top` | `center/middle` | `right/bottom` |
-|:---:|:---:|:---:|
-| ![left/top](/img/endpoint/align-left-top.jpg) | ![center/middle](/img/endpoint/align-center.jpg) | ![right/bottom](/img/endpoint/align-right-bottom.jpg) |
+<table>
+  <tr>
+    <th width="33%"><code>left/top</code></th>
+    <th width="33%"><code>center/middle</code></th>
+    <th width="33%"><code>right/bottom</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/endpoint/align-left-top.jpg" /></td>
+    <td><img src="/img/endpoint/align-center.jpg" /></td>
+    <td><img src="/img/endpoint/align-right-bottom.jpg" /></td>
+  </tr>
+</table>
 
 ```
 /unsafe/400x400/left/top/IMAGE
@@ -56,7 +65,7 @@ Control where the auto-crop is anchored using `HALIGN` and `VALIGN`:
 /unsafe/400x400/smart/IMAGE
 ```
 
-![Smart Crop](/img/endpoint/smart-crop.jpg)
+<img src="/img/endpoint/smart-crop.jpg" width="33%" />
 
 ---
 
@@ -68,14 +77,23 @@ Control where the auto-crop is anchored using `HALIGN` and `VALIGN`:
 
 Resizes the image to fit **within** the given dimensions without cropping. The result may be letterboxed; use the [`fill()`](./filters#fillcolor) filter to add a background:
 
-| No fill | `fill(white)` | `fill(blur)` |
-|:---:|:---:|:---:|
-| ![fit-in](/img/endpoint/fit-in.jpg) | ![fit-in fill white](/img/endpoint/fit-in-fill-white.jpg) | ![fit-in fill blur](/img/endpoint/fit-in-fill-blur.jpg) |
+<table>
+  <tr>
+    <th width="33%">No fill</th>
+    <th width="33%"><code>fill(eeeeee)</code></th>
+    <th width="33%"><code>fill(blur)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/endpoint/fit-in.jpg" /></td>
+    <td><img src="/img/endpoint/fit-in-fill-grey.jpg" /></td>
+    <td><img src="/img/endpoint/fit-in-fill-blur.jpg" /></td>
+  </tr>
+</table>
 
 ```
-/unsafe/fit-in/400x300/IMAGE
-/unsafe/fit-in/400x300/filters:fill(white)/IMAGE
-/unsafe/fit-in/400x300/filters:fill(blur)/IMAGE
+/unsafe/fit-in/400x400/IMAGE
+/unsafe/fit-in/400x400/filters:fill(eeeeee)/IMAGE
+/unsafe/fit-in/400x400/filters:fill(blur)/IMAGE
 ```
 
 ### Full Fit-in
@@ -86,8 +104,6 @@ Resizes the image to fit **within** the given dimensions without cropping. The r
 
 Like `fit-in` but uses the **larger** dimension for fitting — the image always fills at least one edge of the box.
 
-![Full fit-in](/img/endpoint/full-fit-in.jpg)
-
 ### Adaptive Fit-in
 
 ```
@@ -95,8 +111,6 @@ Like `fit-in` but uses the **larger** dimension for fitting — the image always
 ```
 
 Like `fit-in` but automatically swaps width and height if it produces better image coverage.
-
-![Adaptive fit-in](/img/endpoint/adaptive-fit-in.jpg)
 
 ---
 
@@ -108,10 +122,10 @@ Like `fit-in` but automatically swaps width and height if it produces better ima
 
 Resizes the image to exactly `W×H` without preserving the aspect ratio. The image is distorted to fill the box.
 
-![Stretch](/img/endpoint/stretch.jpg)
+<img src="/img/endpoint/stretch.jpg" width="33%" />
 
 ```
-/unsafe/stretch/400x300/IMAGE
+/unsafe/stretch/400x400/IMAGE
 ```
 
 ---
@@ -120,14 +134,21 @@ Resizes the image to exactly `W×H` without preserving the aspect ratio. The ima
 
 Prefix width or height with `-` to flip the image:
 
-| Flip horizontal (`-400x300`) | Flip vertical (`400x-300`) |
-|:---:|:---:|
-| ![flip horizontal](/img/endpoint/flip-h.jpg) | ![flip vertical](/img/endpoint/flip-v.jpg) |
+<table>
+  <tr>
+    <th width="50%">Flip horizontal (<code>-400x400</code>)</th>
+    <th width="50%">Flip vertical (<code>400x-400</code>)</th>
+  </tr>
+  <tr>
+    <td><img src="/img/endpoint/flip-h.jpg" /></td>
+    <td><img src="/img/endpoint/flip-v.jpg" /></td>
+  </tr>
+</table>
 
 ```
-/unsafe/-400x300/IMAGE    → flip horizontally
-/unsafe/400x-300/IMAGE    → flip vertically
-/unsafe/-400x-300/IMAGE   → flip both
+/unsafe/-400x400/IMAGE    → flip horizontally
+/unsafe/400x-400/IMAGE    → flip vertically
+/unsafe/-400x-400/IMAGE   → flip both
 ```
 
 ---
@@ -142,10 +163,10 @@ Manually crops the image at left-top point `AxB` to right-bottom point `CxD` **b
 
 - Coordinates can be integer pixels or float values between `0.0`–`1.0` (percentage of image dimensions).
 
-![Manual crop](/img/endpoint/manual-crop.jpg)
+<img src="/img/endpoint/manual-crop.jpg" width="33%" />
 
 ```
-/unsafe/100x50:900x600/400x300/IMAGE     → crop region then resize to 400×300
+/unsafe/100x50:1800x1200/400x400/IMAGE   → crop region then resize to 400×400
 /unsafe/0.1x0.1:0.9x0.9/IMAGE           → crop inner 80% using relative coordinates
 ```
 
@@ -163,7 +184,7 @@ Adds padding around the image after resizing:
 - `IxJ` — right and bottom padding in pixels
 
 ```
-/unsafe/20x20:20x20/400x300/IMAGE    → 20px padding on all sides
+/unsafe/20x20:20x20/400x400/IMAGE    → 20px padding on all sides
 ```
 
 ---
@@ -181,7 +202,7 @@ Removes surrounding border/whitespace based on the color of the corner pixel:
 - `trim:top-right` uses the top-right pixel color instead
 
 ```
-/unsafe/trim/400x300/IMAGE
+/unsafe/trim/400x400/IMAGE
 ```
 
 ---
@@ -195,8 +216,8 @@ Removes surrounding border/whitespace based on the color of the corner pixel:
 Filters are a pipeline of image operations applied after resizing. Multiple filters can be chained:
 
 ```
-/unsafe/400x300/filters:grayscale():quality(80)/IMAGE
-/unsafe/fit-in/400x300/filters:fill(white):format(jpeg)/IMAGE
+/unsafe/400x400/filters:grayscale():quality(80)/IMAGE
+/unsafe/fit-in/400x400/filters:fill(eeeeee):format(jpeg)/IMAGE
 ```
 
 See [Filters](./filters) for the full list of available filters.
@@ -211,10 +232,10 @@ The `IMAGE` path at the end supports several special forms:
 - **URL with query string** — encode with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) if the URL contains `?`
 - **Base64 URL** — use `b64:` prefix with [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding for URLs with special characters:
   ```
-  /unsafe/400x300/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc=/
+  /unsafe/400x400/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc=/
   ```
 - **Color image** — use `color:<color>` to generate a solid color image without a source. See [Color Image](./color-image).
   ```
-  /unsafe/400x300/color:ff8800
-  /unsafe/400x300/color:transparent
+  /unsafe/400x400/color:ff8800
+  /unsafe/400x400/color:transparent
   ```

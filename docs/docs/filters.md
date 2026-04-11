@@ -32,7 +32,7 @@ Applies gaussian blur to the image.
 
 - `sigma` — blur sigma value
 
-![blur(5)](/img/filters/blur.jpg)
+<img src="/img/filters/blur.jpg" width="33%" />
 
 ---
 
@@ -42,9 +42,18 @@ Increases or decreases the image brightness.
 
 - `amount` — -100 to 100, the amount in % to increase or decrease the image brightness
 
-| `brightness(-50)` | original | `brightness(50)` |
-|:---:|:---:|:---:|
-| ![brightness(-50)](/img/filters/brightness-minus.jpg) | ![original](/img/filters/original.jpg) | ![brightness(50)](/img/filters/brightness-plus.jpg) |
+<table>
+  <tr>
+    <th width="33%"><code>brightness(-50)</code></th>
+    <th width="33%">original</th>
+    <th width="33%"><code>brightness(50)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/brightness-minus.jpg" /></td>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/brightness-plus.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -54,9 +63,18 @@ Increases or decreases the image contrast.
 
 - `amount` — -100 to 100, the amount in % to increase or decrease the image contrast
 
-| `contrast(-50)` | original | `contrast(50)` |
-|:---:|:---:|:---:|
-| ![contrast(-50)](/img/filters/contrast-minus.jpg) | ![original](/img/filters/original.jpg) | ![contrast(50)](/img/filters/contrast-plus.jpg) |
+<table>
+  <tr>
+    <th width="33%"><code>contrast(-50)</code></th>
+    <th width="33%">original</th>
+    <th width="33%"><code>contrast(50)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/contrast-minus.jpg" /></td>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/contrast-plus.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -113,7 +131,7 @@ Specifies the output format of the image.
 
 Changes the image to grayscale.
 
-![grayscale()](/img/filters/grayscale.jpg)
+<img src="/img/filters/grayscale.jpg" width="33%" />
 
 ---
 
@@ -123,7 +141,7 @@ Increases or decreases the image hue.
 
 - `angle` — the angle in degrees to increase or decrease the hue rotation
 
-![hue(90)](/img/filters/hue.jpg)
+<img src="/img/filters/hue.jpg" width="33%" />
 
 ---
 
@@ -193,7 +211,7 @@ Applies a pixelate effect to the whole image by downscaling to 1/`block_size` th
 
 - `block_size` — pixel block size in pixels, defaults to 10
 
-![pixelate(10)](/img/filters/pixelate.jpg)
+<img src="/img/filters/pixelate.jpg" width="33%" />
 
 ---
 
@@ -209,9 +227,16 @@ Changes the overall quality of the image. Does nothing for PNG.
 
 - `amount` — 0 to 100, the quality level in %
 
-| original | `quality(5)` |
-|:---:|:---:|
-| ![original](/img/filters/original.jpg) | ![quality(5)](/img/filters/quality-low.jpg) |
+<table>
+  <tr>
+    <th width="50%">original</th>
+    <th width="50%"><code>quality(5)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/quality-low.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -238,7 +263,7 @@ Examples: `redact_oval()`, `redact_oval(blur,20)`, `redact_oval(pixelate)`, `red
 
 Amount of color in each of the RGB channels in %. Can range from -100 to 100.
 
-![rgb(60,-30,-30)](/img/filters/rgb.jpg)
+<img src="/img/filters/rgb.jpg" width="33%" />
 
 ---
 
@@ -248,7 +273,7 @@ Rotates the given image according to the angle value.
 
 - `angle` — accepts `0`, `90`, `180`, `270`
 
-![rotate(90)](/img/filters/rotate.jpg)
+<img src="/img/filters/rotate.jpg" width="33%" />
 
 ---
 
@@ -259,7 +284,7 @@ Adds rounded corners to the image with the specified color as background.
 - `rx`, `ry` — amount of pixels to use as radius. `ry = rx` if `ry` is not provided
 - `color` — the color name or hexadecimal rgb expression without the `#` character
 
-![round_corner(40)](/img/filters/round-corner.jpg)
+<img src="/img/filters/round-corner.jpg" width="33%" />
 
 ---
 
@@ -269,9 +294,18 @@ Increases or decreases the image saturation.
 
 - `amount` — -100 to 100, the amount in % to increase or decrease the image saturation
 
-| `saturation(-80)` | original | `saturation(100)` |
-|:---:|:---:|:---:|
-| ![saturation(-80)](/img/filters/saturation-minus.jpg) | ![original](/img/filters/original.jpg) | ![saturation(100)](/img/filters/saturation-plus.jpg) |
+<table>
+  <tr>
+    <th width="33%"><code>saturation(-80)</code></th>
+    <th width="33%">original</th>
+    <th width="33%"><code>saturation(100)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/saturation-minus.jpg" /></td>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/saturation-plus.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -281,9 +315,16 @@ Sharpens the image.
 
 - `sigma` — sharpening sigma value
 
-| original | `sharpen(3)` |
-|:---:|:---:|
-| ![original](/img/filters/original.jpg) | ![sharpen(3)](/img/filters/sharpen.jpg) |
+<table>
+  <tr>
+    <th width="50%">original</th>
+    <th width="50%"><code>sharpen(3)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/sharpen.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -350,7 +391,7 @@ Enables upscaling for `fit-in` and `adaptive-fit-in` modes.
 
 Adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio.
 
-![watermark(gopher-front.png,right,bottom,0,30,30)](/img/filters/watermark.jpg)
+<img src="/img/filters/watermark.jpg" width="33%" />
 
 - `image` — watermark image URI, using the same image loader configured for imagor.
   Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
