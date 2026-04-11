@@ -1,23 +1,220 @@
 # Image Endpoint
 
-imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
+The imagor image endpoint is a series of URL parts that define image operations, followed by the image URI:
 
 ```
 /HASH|unsafe/trim/AxB:CxD/(adaptive-)(full-)fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
-- `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
-- `trim` removes surrounding space in images using top-left pixel color
-- `AxB:CxD` means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
-- `fit-in` means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `ExF`. If `full-fit-in` is specified, then the largest size is used for cropping (width instead of height, or the other way around). If `adaptive-fit-in` is specified, it inverts requested width and height if it would get a better image definition
-- `stretch` means resize the image to `ExF` without keeping its aspect ratios
-- `-Ex-F` means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
-- `GxH:IxJ` add left-top padding `GxH` and right-bottom padding `IxJ`
-- `HALIGN` is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
-- `VALIGN` is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
-- `smart` means using smart detection of focal points
-- `filters` a pipeline of image filter operations to be applied, see filters section
-- `IMAGE` is the image path or URI
-  - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
-  - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64). This encoding is  more robust if you have special characters in your image URL, and can fix encoding/signing issues in your setup.
-  - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](./color-image) section.
+- `HASH` — URL signature hash, or `unsafe` if unsafe mode is used
+- `IMAGE` — the image path or URI
+
+All other parts are optional and can be combined. They are described in detail below.
+
+---
+
+## Resize & Crop
+
+```
+/unsafe/WxH/IMAGE
+```
+
+Resizes the image to the given width `W` and height `H`, auto-cropping the excess to fill the box. The crop is centered by default.
+
+- Set `W` or `H` to `0` to auto-scale that dimension while preserving aspect ratio.
+
+```
+/unsafe/400x400/IMAGE    → resize to 400×400, center-crop to fill
+/unsafe/400x0/IMAGE      → resize to width 400, height proportional
+/unsafe/0x400/IMAGE      → resize to height 400, width proportional
+```
+
+![Resize & Crop](/img/endpoint/resize-crop.jpg)
+
+### Alignment
+
+Control where the auto-crop is anchored using `HALIGN` and `VALIGN`:
+
+- `HALIGN` — `left`, `center` (default), or `right`
+- `VALIGN` — `top`, `middle` (default), or `bottom`
+
+| `left/top` | `center/middle` | `right/bottom` |
+|:---:|:---:|:---:|
+| ![left/top](/img/endpoint/align-left-top.jpg) | ![center/middle](/img/endpoint/align-center.jpg) | ![right/bottom](/img/endpoint/align-right-bottom.jpg) |
+
+```
+/unsafe/400x400/left/top/IMAGE
+/unsafe/400x400/center/middle/IMAGE
+/unsafe/400x400/right/bottom/IMAGE
+```
+
+### Smart Crop
+
+`smart` uses focal point detection to find the most visually important part of the image for cropping:
+
+```
+/unsafe/400x400/smart/IMAGE
+```
+
+![Smart Crop](/img/endpoint/smart-crop.jpg)
+
+---
+
+## Fit-in
+
+```
+/unsafe/fit-in/WxH/IMAGE
+```
+
+Resizes the image to fit **within** the given dimensions without cropping. The result may be letterboxed; use the [`fill()`](./filters#fillcolor) filter to add a background:
+
+| No fill | `fill(white)` | `fill(blur)` |
+|:---:|:---:|:---:|
+| ![fit-in](/img/endpoint/fit-in.jpg) | ![fit-in fill white](/img/endpoint/fit-in-fill-white.jpg) | ![fit-in fill blur](/img/endpoint/fit-in-fill-blur.jpg) |
+
+```
+/unsafe/fit-in/400x300/IMAGE
+/unsafe/fit-in/400x300/filters:fill(white)/IMAGE
+/unsafe/fit-in/400x300/filters:fill(blur)/IMAGE
+```
+
+### Full Fit-in
+
+```
+/unsafe/full-fit-in/WxH/IMAGE
+```
+
+Like `fit-in` but uses the **larger** dimension for fitting — the image always fills at least one edge of the box.
+
+![Full fit-in](/img/endpoint/full-fit-in.jpg)
+
+### Adaptive Fit-in
+
+```
+/unsafe/adaptive-fit-in/WxH/IMAGE
+```
+
+Like `fit-in` but automatically swaps width and height if it produces better image coverage.
+
+![Adaptive fit-in](/img/endpoint/adaptive-fit-in.jpg)
+
+---
+
+## Stretch
+
+```
+/unsafe/stretch/WxH/IMAGE
+```
+
+Resizes the image to exactly `W×H` without preserving the aspect ratio. The image is distorted to fill the box.
+
+![Stretch](/img/endpoint/stretch.jpg)
+
+```
+/unsafe/stretch/400x300/IMAGE
+```
+
+---
+
+## Flip
+
+Prefix width or height with `-` to flip the image:
+
+| Flip horizontal (`-400x300`) | Flip vertical (`400x-300`) |
+|:---:|:---:|
+| ![flip horizontal](/img/endpoint/flip-h.jpg) | ![flip vertical](/img/endpoint/flip-v.jpg) |
+
+```
+/unsafe/-400x300/IMAGE    → flip horizontally
+/unsafe/400x-300/IMAGE    → flip vertically
+/unsafe/-400x-300/IMAGE   → flip both
+```
+
+---
+
+## Manual Crop
+
+```
+/unsafe/AxB:CxD/IMAGE
+```
+
+Manually crops the image at left-top point `AxB` to right-bottom point `CxD` **before** resizing.
+
+- Coordinates can be integer pixels or float values between `0.0`–`1.0` (percentage of image dimensions).
+
+![Manual crop](/img/endpoint/manual-crop.jpg)
+
+```
+/unsafe/100x50:900x600/400x300/IMAGE     → crop region then resize to 400×300
+/unsafe/0.1x0.1:0.9x0.9/IMAGE           → crop inner 80% using relative coordinates
+```
+
+---
+
+## Padding
+
+```
+/unsafe/GxH:IxJ/WxH/IMAGE
+```
+
+Adds padding around the image after resizing:
+
+- `GxH` — left and top padding in pixels
+- `IxJ` — right and bottom padding in pixels
+
+```
+/unsafe/20x20:20x20/400x300/IMAGE    → 20px padding on all sides
+```
+
+---
+
+## Trim
+
+```
+/unsafe/trim/IMAGE
+/unsafe/trim:top-right/IMAGE
+```
+
+Removes surrounding border/whitespace based on the color of the corner pixel:
+
+- `trim` uses the top-left pixel color by default
+- `trim:top-right` uses the top-right pixel color instead
+
+```
+/unsafe/trim/400x300/IMAGE
+```
+
+---
+
+## Filters
+
+```
+/unsafe/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
+```
+
+Filters are a pipeline of image operations applied after resizing. Multiple filters can be chained:
+
+```
+/unsafe/400x300/filters:grayscale():quality(80)/IMAGE
+/unsafe/fit-in/400x300/filters:fill(white):format(jpeg)/IMAGE
+```
+
+See [Filters](./filters) for the full list of available filters.
+
+---
+
+## Image URI
+
+The `IMAGE` path at the end supports several special forms:
+
+- **Plain URL** — `raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png`
+- **URL with query string** — encode with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) if the URL contains `?`
+- **Base64 URL** — use `b64:` prefix with [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding for URLs with special characters:
+  ```
+  /unsafe/400x300/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc=/
+  ```
+- **Color image** — use `color:<color>` to generate a solid color image without a source. See [Color Image](./color-image).
+  ```
+  /unsafe/400x300/color:ff8800
+  /unsafe/400x300/color:transparent
+  ```
