@@ -6,7 +6,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 /HASH|unsafe/trim/AxB:CxD/(adaptive-)(full-)fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
-- `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
+- [`HASH`](./security#url-signature) is the URL signature hash, or `unsafe` if unsafe mode is used
 - [`trim`](#trim) removes surrounding space in images using top-left pixel color
 - [`AxB:CxD`](#manual-crop) means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
 - [`fit-in`](#fit-in) means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `WxH`. If `full-fit-in` is specified, then the largest size is used for cropping. If `adaptive-fit-in` is specified, it inverts requested width and height if it would get a better image definition
