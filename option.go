@@ -1,6 +1,7 @@
 package imagor
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/cshum/imagor/imagorpath"
@@ -233,6 +234,30 @@ func WithSigner(signer imagorpath.Signer) Option {
 		if signer != nil {
 			app.Signer = signer
 		}
+	}
+}
+
+// WithGetSigner sets a per-request signer for multi-tenant use.
+// Follows the same convention as crypto/tls.Config.GetCertificate.
+// The function receives the full *http.Request (including Host header) and returns
+// the appropriate Signer for that request's space/tenant.
+// If it returns nil, the request is rejected with ErrSignatureMismatch.
+// When set, GetSigner takes precedence over Signer.
+func WithGetSigner(fn func(*http.Request) imagorpath.Signer) Option {
+	return func(app *Imagor) {
+		app.GetSigner = fn
+	}
+}
+
+// WithGetResultKey sets a per-request result key function for multi-tenant use.
+// The function receives the full *http.Request and parsed params, and returns the
+// key used for both singleflight deduplication and result storage.
+// This MUST be set in multi-tenant deployments to prevent cross-tenant
+// singleflight collisions (which would cause data leaks between tenants).
+// When set, GetResultKey takes precedence over ResultStoragePathStyle.
+func WithGetResultKey(fn func(*http.Request, imagorpath.Params) string) Option {
+	return func(app *Imagor) {
+		app.GetResultKey = fn
 	}
 }
 

@@ -82,6 +82,8 @@ type Processor interface {
 type Imagor struct {
 	Unsafe                 bool
 	Signer                 imagorpath.Signer
+	GetSigner              func(*http.Request) imagorpath.Signer
+	GetResultKey           func(*http.Request, imagorpath.Params) string
 	StoragePathStyle       imagorpath.StorageHasher
 	ResultStoragePathStyle imagorpath.ResultStorageHasher
 	BasePathRedirect       string
@@ -136,7 +138,7 @@ func New(options ...Option) *Imagor {
 	if app.Debug {
 		app.debugLog()
 	}
-	if app.Signer == nil {
+	if app.Signer == nil && app.GetSigner == nil {
 		app.Signer = imagorpath.NewDefaultSigner("")
 	}
 	app.BaseParams = strings.TrimSpace(app.BaseParams)
@@ -278,8 +280,19 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		contextDefer(ctx, cancel)
 		r = r.WithContext(ctx)
 	}
-	if !(app.Unsafe && p.Unsafe) && app.Signer != nil && p.Path != "" {
-		if hash := app.Signer.Sign(p.Path); hash != p.Hash {
+	signer := app.Signer
+	if app.GetSigner != nil {
+		signer = app.GetSigner(r)
+		if signer == nil {
+			err = ErrSignatureMismatch
+			if app.Debug {
+				app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("reason", "GetSigner returned nil"))
+			}
+			return
+		}
+	}
+	if !(app.Unsafe && p.Unsafe) && signer != nil && p.Path != "" {
+		if hash := signer.Sign(p.Path); hash != p.Hash {
 			err = ErrSignatureMismatch
 			if app.Debug {
 				app.Logger.Debug("sign-mismatch", zap.Any("params", p), zap.String("expected", hash))
@@ -368,6 +381,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		} else {
 			resultKey = p.Path
 		}
+	}
+	if app.GetResultKey != nil {
+		resultKey = app.GetResultKey(r, p)
 	}
 	load := func(image string) (*Blob, error) {
 		blob, _, err := app.loadStorage(r, image)

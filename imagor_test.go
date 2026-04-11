@@ -2867,3 +2867,121 @@ func TestResponseRawOnError(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "timeout")
 	})
 }
+
+func TestGetSigner(t *testing.T) {
+	secrets := map[string]string{
+		"space-a.example.com": "secret-a",
+		"space-b.example.com": "secret-b",
+	}
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("fake")), nil
+		})),
+		WithGetSigner(func(r *http.Request) imagorpath.Signer {
+			secret, ok := secrets[r.Host]
+			if !ok {
+				return nil
+			}
+			return imagorpath.NewHMACSigner(sha256.New, 0, secret)
+		}),
+	)
+
+	// Valid request for space-a
+	signerA := imagorpath.NewHMACSigner(sha256.New, 0, "secret-a")
+	path := imagorpath.Generate(imagorpath.Params{Image: "photo.jpg", Width: 300, Height: 200}, signerA)
+	req := httptest.NewRequest(http.MethodGet, "/"+path, nil)
+	req.Host = "space-a.example.com"
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, req)
+	assert.Equal(t, 200, w.Code)
+
+	// Space-A HMAC on space-B request → signature mismatch
+	req2 := httptest.NewRequest(http.MethodGet, "/"+path, nil)
+	req2.Host = "space-b.example.com"
+	w2 := httptest.NewRecorder()
+	app.ServeHTTP(w2, req2)
+	assert.Equal(t, 403, w2.Code)
+	assert.Equal(t, jsonStr(ErrSignatureMismatch), w2.Body.String())
+
+	// Unknown host → nil signer → signature mismatch
+	req3 := httptest.NewRequest(http.MethodGet, "/"+path, nil)
+	req3.Host = "unknown.example.com"
+	w3 := httptest.NewRecorder()
+	app.ServeHTTP(w3, req3)
+	assert.Equal(t, 403, w3.Code)
+	assert.Equal(t, jsonStr(ErrSignatureMismatch), w3.Body.String())
+
+	// Valid request for space-b with space-b signer
+	signerB := imagorpath.NewHMACSigner(sha256.New, 0, "secret-b")
+	pathB := imagorpath.Generate(imagorpath.Params{Image: "photo.jpg", Width: 300, Height: 200}, signerB)
+	req4 := httptest.NewRequest(http.MethodGet, "/"+pathB, nil)
+	req4.Host = "space-b.example.com"
+	w4 := httptest.NewRecorder()
+	app.ServeHTTP(w4, req4)
+	assert.Equal(t, 200, w4.Code)
+}
+
+func TestGetResultKey(t *testing.T) {
+	baseDomain := ".example.com"
+	app := New(
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("fake")), nil
+		})),
+		WithGetResultKey(func(r *http.Request, p imagorpath.Params) string {
+			host := r.Host
+			if strings.HasSuffix(host, baseDomain) {
+				spaceKey := strings.TrimSuffix(host, baseDomain)
+				if spaceKey != "" && p.Image != "" {
+					return spaceKey + "/" + p.Path
+				}
+			}
+			return p.Path
+		}),
+	)
+
+	// Same path, different hosts → different result keys, different responses
+	reqA := httptest.NewRequest(http.MethodGet, "/unsafe/300x200/photo.jpg", nil)
+	reqA.Host = "space-a.example.com"
+	wA := httptest.NewRecorder()
+	app.ServeHTTP(wA, reqA)
+	assert.Equal(t, 200, wA.Code)
+
+	reqB := httptest.NewRequest(http.MethodGet, "/unsafe/300x200/photo.jpg", nil)
+	reqB.Host = "space-b.example.com"
+	wB := httptest.NewRecorder()
+	app.ServeHTTP(wB, reqB)
+	assert.Equal(t, 200, wB.Code)
+
+	// Verify GetResultKey is scoping correctly by checking with result storage:
+	// space-a and space-b result keys must be distinct
+	resultStore := newMapStore()
+	appWithStorage := New(
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("data-" + r.Host)), nil
+		})),
+		WithResultStorages(resultStore),
+		WithGetResultKey(func(r *http.Request, p imagorpath.Params) string {
+			host := r.Host
+			if strings.HasSuffix(host, baseDomain) {
+				spaceKey := strings.TrimSuffix(host, baseDomain)
+				if spaceKey != "" && p.Image != "" {
+					return spaceKey + "/" + p.Path
+				}
+			}
+			return p.Path
+		}),
+	)
+
+	reqA2 := httptest.NewRequest(http.MethodGet, "/unsafe/photo.jpg", nil)
+	reqA2.Host = "space-a.example.com"
+	wA2 := httptest.NewRecorder()
+	appWithStorage.ServeHTTP(wA2, reqA2)
+	time.Sleep(time.Millisecond * 20) // wait for async save
+	assert.Equal(t, 200, wA2.Code)
+
+	// Result for space-a is stored under "space-a/photo.jpg", not "photo.jpg"
+	assert.NotNil(t, resultStore.Map["space-a/photo.jpg"])
+	assert.Nil(t, resultStore.Map["photo.jpg"])
+}
