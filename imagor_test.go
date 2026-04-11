@@ -2986,7 +2986,10 @@ func TestGetSigner(t *testing.T) {
 		"space-a.example.com": "secret-a",
 		"space-b.example.com": "secret-b",
 	}
+	// WithDebug(true) is required here so the nil-signer debug-log branch is covered.
 	app := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
 		WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
 			return NewBlobFromBytes([]byte("fake")), nil
 		})),
@@ -3008,7 +3011,7 @@ func TestGetSigner(t *testing.T) {
 	app.ServeHTTP(w, req)
 	assert.Equal(t, 200, w.Code)
 
-	// Space-A HMAC on space-B request → signature mismatch
+	// Space-A HMAC on space-B request → signature mismatch (wrong hash, not nil signer)
 	req2 := httptest.NewRequest(http.MethodGet, "/"+path, nil)
 	req2.Host = "space-b.example.com"
 	w2 := httptest.NewRecorder()
@@ -3016,7 +3019,7 @@ func TestGetSigner(t *testing.T) {
 	assert.Equal(t, 403, w2.Code)
 	assert.Equal(t, jsonStr(ErrSignatureMismatch), w2.Body.String())
 
-	// Unknown host → nil signer → signature mismatch
+	// Unknown host → GetSigner returns nil → ErrSignatureMismatch (debug branch covered)
 	req3 := httptest.NewRequest(http.MethodGet, "/"+path, nil)
 	req3.Host = "unknown.example.com"
 	w3 := httptest.NewRecorder()
@@ -3032,6 +3035,28 @@ func TestGetSigner(t *testing.T) {
 	w4 := httptest.NewRecorder()
 	app.ServeHTTP(w4, req4)
 	assert.Equal(t, 200, w4.Code)
+
+	// Unsafe mode + nil GetSigner → still 403.
+	// GetSigner returning nil means "tenant not recognised" — this is a hard deny
+	// regardless of unsafe mode. Unsafe only bypasses the HMAC hash check, not
+	// tenant identity resolution.
+	appUnsafe := New(
+		WithDebug(true),
+		WithLogger(zap.NewExample()),
+		WithUnsafe(true),
+		WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("fake")), nil
+		})),
+		WithGetSigner(func(r *http.Request) imagorpath.Signer {
+			return nil // always unknown tenant
+		}),
+	)
+	reqUnsafe := httptest.NewRequest(http.MethodGet, "/unsafe/photo.jpg", nil)
+	reqUnsafe.Host = "unknown.example.com"
+	wUnsafe := httptest.NewRecorder()
+	appUnsafe.ServeHTTP(wUnsafe, reqUnsafe)
+	assert.Equal(t, 403, wUnsafe.Code, "nil GetSigner must deny even in unsafe mode")
+	assert.Equal(t, jsonStr(ErrSignatureMismatch), wUnsafe.Body.String())
 }
 
 func TestGetResultKey(t *testing.T) {
