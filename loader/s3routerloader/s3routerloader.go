@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/storage/s3storage"
 )
@@ -18,7 +19,7 @@ type S3RouterLoader struct {
 	dynamicLoaders sync.Map // bucket name → *s3storage.S3Storage, for passthrough mode
 }
 
-type S3StorageFactory func(cfg aws.Config, bucket string) *s3storage.S3Storage
+type S3StorageFactory func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage
 
 func New(
 	baseCfg aws.Config,
@@ -34,7 +35,11 @@ func New(
 
 	for _, bucketCfg := range router.AllConfigs() {
 		awsCfg := createAWSConfig(baseCfg, bucketCfg)
-		l.loaders[bucketCfg.Name] = storageFactory(awsCfg, bucketCfg.Name)
+		var extraOpts []s3storage.Option
+		if bucketCfg.Endpoint != "" {
+			extraOpts = append(extraOpts, s3storage.WithEndpoint(bucketCfg.Endpoint))
+		}
+		l.loaders[bucketCfg.Name] = storageFactory(awsCfg, bucketCfg.Name, extraOpts...)
 	}
 
 	for _, fb := range router.Fallbacks() {
@@ -51,6 +56,14 @@ func createAWSConfig(baseCfg aws.Config, bucketCfg *BucketConfig) aws.Config {
 
 	if bucketCfg.Region != "" {
 		cfg.Region = bucketCfg.Region
+	}
+
+	if bucketCfg.AccessKeyID != "" && bucketCfg.SecretAccessKey != "" {
+		cfg.Credentials = credentials.NewStaticCredentialsProvider(
+			bucketCfg.AccessKeyID,
+			bucketCfg.SecretAccessKey,
+			bucketCfg.SessionToken,
+		)
 	}
 
 	return cfg
