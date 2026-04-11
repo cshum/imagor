@@ -32,6 +32,11 @@ Applies gaussian blur to the image.
 
 - `sigma` — blur sigma value
 
+<table width="33%">
+  <tr><th><code>blur(5)</code></th></tr>
+  <tr><td><img src="/img/filters/blur.jpg" /></td></tr>
+</table>
+
 ---
 
 ### `brightness(amount)`
@@ -40,6 +45,19 @@ Increases or decreases the image brightness.
 
 - `amount` — -100 to 100, the amount in % to increase or decrease the image brightness
 
+<table>
+  <tr>
+    <th width="33%"><code>brightness(-50)</code></th>
+    <th width="33%"><code>brightness(0)</code></th>
+    <th width="33%"><code>brightness(50)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/brightness-minus.jpg" /></td>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/brightness-plus.jpg" /></td>
+  </tr>
+</table>
+
 ---
 
 ### `contrast(amount)`
@@ -47,6 +65,19 @@ Increases or decreases the image brightness.
 Increases or decreases the image contrast.
 
 - `amount` — -100 to 100, the amount in % to increase or decrease the image contrast
+
+<table>
+  <tr>
+    <th width="33%"><code>contrast(-50)</code></th>
+    <th width="33%"><code>contrast(0)</code></th>
+    <th width="33%"><code>contrast(50)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/contrast-minus.jpg" /></td>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/contrast-plus.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -73,12 +104,25 @@ Specifies the DPI to render at for PDF and SVG.
 
 ### `fill(color)`
 
-Fills the missing area or transparent image with the specified color.
+Fills the missing area or transparent image with the specified color. Commonly used with [`fit-in`](./image-endpoint#fit-in) to fill the letterboxed areas.
 
 - `color` — color name or hexadecimal rgb expression without the `#` character
   - `blur` — missing parts are filled with a blurred original image
   - `auto` — the top left image pixel will be chosen as the filling color
   - `none` — the filling becomes fully transparent
+
+<table>
+  <tr>
+    <th width="33%"><code>fit-in/400x400/IMAGE</code></th>
+    <th width="33%"><code>fill(red)</code></th>
+    <th width="33%"><code>fill(blur)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/endpoint/fit-in.jpg" /></td>
+    <td><img src="/img/endpoint/fit-in-fill-red.jpg" /></td>
+    <td><img src="/img/endpoint/fit-in-fill-blur.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -103,6 +147,11 @@ Specifies the output format of the image.
 
 Changes the image to grayscale.
 
+<table width="33%">
+  <tr><th><code>grayscale()</code></th></tr>
+  <tr><td><img src="/img/filters/grayscale.jpg" /></td></tr>
+</table>
+
 ---
 
 ### `hue(angle)`
@@ -110,6 +159,11 @@ Changes the image to grayscale.
 Increases or decreases the image hue.
 
 - `angle` — the angle in degrees to increase or decrease the hue rotation
+
+<table width="33%">
+  <tr><th><code>hue(90)</code></th></tr>
+  <tr><td><img src="/img/filters/hue.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -138,6 +192,19 @@ Composites a processed image onto the current image with full imagor transformat
   - Float between 0–1 represents percentage e.g. `0.5` for center
 - `alpha` — transparency level, 0 (fully opaque) to 100 (fully transparent)
 - `blend_mode` — compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
+
+<table>
+  <tr>
+    <th width="33%"><code>image(/fit-in/100x100/IMAGE,center,center)</code></th>
+    <th width="33%"><code>image(/fit-in/100x100/IMAGE,center,center,50)</code></th>
+    <th width="33%">Recursive: <code>image(filters:image(…)/OUTER,10,10)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/image-center.jpg" /></td>
+    <td><img src="/img/filters/image-alpha.jpg" /></td>
+    <td><img src="/img/filters/image-nested.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -179,6 +246,11 @@ Applies a pixelate effect to the whole image by downscaling to 1/`block_size` th
 
 - `block_size` — pixel block size in pixels, defaults to 10
 
+<table width="33%">
+  <tr><th><code>pixelate(10)</code></th></tr>
+  <tr><td><img src="/img/filters/pixelate.jpg" /></td></tr>
+</table>
+
 ---
 
 ### `proportion(percentage)`
@@ -192,6 +264,17 @@ Scales the image to the specified proportion percentage of the image dimensions.
 Changes the overall quality of the image. Does nothing for PNG.
 
 - `amount` — 0 to 100, the quality level in %
+
+<table>
+  <tr>
+    <th width="33%"><code>quality(80)</code></th>
+    <th width="33%"><code>quality(5)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/quality-high.jpg" /></td>
+    <td><img src="/img/filters/quality-low.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -218,6 +301,11 @@ Examples: `redact_oval()`, `redact_oval(blur,20)`, `redact_oval(pixelate)`, `red
 
 Amount of color in each of the RGB channels in %. Can range from -100 to 100.
 
+<table width="33%">
+  <tr><th><code>rgb(60,-30,-30)</code></th></tr>
+  <tr><td><img src="/img/filters/rgb.jpg" /></td></tr>
+</table>
+
 ---
 
 ### `rotate(angle)`
@@ -225,6 +313,11 @@ Amount of color in each of the RGB channels in %. Can range from -100 to 100.
 Rotates the given image according to the angle value.
 
 - `angle` — accepts `0`, `90`, `180`, `270`
+
+<table width="33%">
+  <tr><th><code>rotate(90)</code></th></tr>
+  <tr><td><img src="/img/filters/rotate.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -235,6 +328,11 @@ Adds rounded corners to the image with the specified color as background.
 - `rx`, `ry` — amount of pixels to use as radius. `ry = rx` if `ry` is not provided
 - `color` — the color name or hexadecimal rgb expression without the `#` character
 
+<table width="33%">
+  <tr><th><code>round_corner(50)</code></th></tr>
+  <tr><td><img src="/img/filters/round-corner.png" /></td></tr>
+</table>
+
 ---
 
 ### `saturation(amount)`
@@ -243,6 +341,19 @@ Increases or decreases the image saturation.
 
 - `amount` — -100 to 100, the amount in % to increase or decrease the image saturation
 
+<table>
+  <tr>
+    <th width="33%"><code>saturation(-80)</code></th>
+    <th width="33%"><code>saturation(0)</code></th>
+    <th width="33%"><code>saturation(100)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/saturation-minus.jpg" /></td>
+    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/saturation-plus.jpg" /></td>
+  </tr>
+</table>
+
 ---
 
 ### `sharpen(sigma)`
@@ -250,6 +361,11 @@ Increases or decreases the image saturation.
 Sharpens the image.
 
 - `sigma` — sharpening sigma value
+
+<table width="33%">
+  <tr><th><code>sharpen(3)</code></th></tr>
+  <tr><td><img src="/img/filters/sharpen.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -296,6 +412,17 @@ Renders a text overlay onto the image with full multi-line and Pango font suppor
 - `spacing` — additional line spacing in pixels
 - `dpi` — render DPI, defaults to 72 (where 1pt = 1px)
 
+<table>
+  <tr>
+    <th width="50%"><code>text(IMAGOR,20,20,sans-bold-36,white,0)</code></th>
+    <th width="50%"><code>text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,-20,20,sans-24,yellow,0,,180,high)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/text-basic.jpg" /></td>
+    <td><img src="/img/filters/text-multiline.jpg" /></td>
+  </tr>
+</table>
+
 ---
 
 ### `to_colorspace(profile)`
@@ -331,6 +458,17 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 - `alpha` — watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent)
 - `w_ratio` — percentage of the width of the image the watermark should fit-in
 - `h_ratio` — percentage of the height of the image the watermark should fit-in
+
+<table>
+  <tr>
+    <th width="50%"><code>watermark(IMAGE,-20,-20,0,30,30)</code></th>
+    <th width="50%"><code>watermark(IMAGE,repeat,bottom,30,30,30)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/watermark.jpg" /></td>
+    <td><img src="/img/filters/watermark-repeat.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
