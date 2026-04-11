@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
         "storage-filesystem",
         "storage-s3",
         "storage-gcloud",
+        "loader-http",
       ],
     },
     {

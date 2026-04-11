@@ -61,32 +61,6 @@ VIPS_MAX_HEIGHT=5000
 
 ## Allowed Sources and Base URL
 
-Whitelist specific hosts to restrict loading images only from the allowed sources using `HTTP_LOADER_ALLOWED_SOURCES` or `HTTP_LOADER_ALLOWED_SOURCE_REGEXP`.
+Restricting which hosts the HTTP Loader can fetch from is an important security measure. Use `HTTP_LOADER_ALLOWED_SOURCES` (glob pattern) or `HTTP_LOADER_ALLOWED_SOURCE_REGEXP` (regex) to whitelist allowed sources. You can also set `HTTP_LOADER_BASE_URL` to lock loading to a single origin and keep image URLs shorter.
 
-- `HTTP_LOADER_ALLOWED_SOURCES` accepts csv wth glob pattern e.g.:
-
-  ```dotenv
-  HTTP_LOADER_ALLOWED_SOURCES=*.foobar.com,my.foobar.com,mybucket.s3.amazonaws.com
-  ```
-
-- `HTTP_LOADER_ALLOWED_SOURCE_REGEXP` accepts a regular expression matching on the full URL e.g.:
-
-  ```dotenv
-  HTTP_LOADER_ALLOWED_SOURCE_REGEXP='^https://raw\.githubusercontent\.com/cshum/imagor/.*'
-  ```
-
-Alternatively, it is possible to set a base URL for loading images strictly from one HTTP source. This also trims down the base URL from image endpoint:
-
-Example URL:
-```
-http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,0,40,40)/raw.githubusercontent.com/cshum/imagor/master/testdata/dancing-banana.gif
-```
-
-With HTTP Loader Base URL config:
-```
-HTTP_LOADER_BASE_URL=https://raw.githubusercontent.com/cshum/imagor/master
-```
-
-The example URL then becomes:
-```
-http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(testdata/gopher-front.png,repeat,bottom,0,40,40)/testdata/dancing-banana.gif
+See [HTTP Loader](./loader-http) for full configuration details.
