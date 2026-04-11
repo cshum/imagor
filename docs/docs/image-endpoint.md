@@ -29,7 +29,10 @@ Resizes the image to the given width `W` and height `H`, auto-cropping the exces
 /unsafe/0x400/IMAGE      → resize to height 400, width proportional
 ```
 
-<img src="/img/endpoint/resize-crop.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>400x400/IMAGE</code></th></tr>
+  <tr><td><img src="/img/endpoint/resize-crop.jpg" /></td></tr>
+</table>
 
 ### Alignment
 
@@ -65,7 +68,10 @@ Control where the auto-crop is anchored using `HALIGN` and `VALIGN`:
 /unsafe/400x400/smart/IMAGE
 ```
 
-<img src="/img/endpoint/smart-crop.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>400x400/smart/IMAGE</code></th></tr>
+  <tr><td><img src="/img/endpoint/smart-crop.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -75,25 +81,17 @@ Control where the auto-crop is anchored using `HALIGN` and `VALIGN`:
 /unsafe/fit-in/WxH/IMAGE
 ```
 
-Resizes the image to fit **within** the given dimensions without cropping. The result may be letterboxed; use the [`fill()`](./filters#fillcolor) filter to add a background:
+Resizes the image to fit **within** the given dimensions without cropping. The result may be letterboxed; use the [`fill()`](./filters#fillcolor) filter to add a background.
 
-<table>
-  <tr>
-    <th width="33%">No fill</th>
-    <th width="33%"><code>fill(eeeeee)</code></th>
-    <th width="33%"><code>fill(blur)</code></th>
-  </tr>
-  <tr>
-    <td><img src="/img/endpoint/fit-in.jpg" /></td>
-    <td><img src="/img/endpoint/fit-in-fill-grey.jpg" /></td>
-    <td><img src="/img/endpoint/fit-in-fill-blur.jpg" /></td>
-  </tr>
+<table width="33%">
+  <tr><th><code>fit-in/400x400/IMAGE</code></th></tr>
+  <tr><td><img src="/img/endpoint/fit-in.jpg" /></td></tr>
 </table>
 
 ```
-/unsafe/fit-in/400x400/IMAGE
-/unsafe/fit-in/400x400/filters:fill(eeeeee)/IMAGE
+/unsafe/fit-in/400x400/filters:fill(red)/IMAGE
 /unsafe/fit-in/400x400/filters:fill(blur)/IMAGE
+/unsafe/fit-in/400x400/filters:fill(white)/IMAGE
 ```
 
 ### Full Fit-in
@@ -122,7 +120,10 @@ Like `fit-in` but automatically swaps width and height if it produces better ima
 
 Resizes the image to exactly `W×H` without preserving the aspect ratio. The image is distorted to fill the box.
 
-<img src="/img/endpoint/stretch.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>stretch/400x400/IMAGE</code></th></tr>
+  <tr><td><img src="/img/endpoint/stretch.jpg" /></td></tr>
+</table>
 
 ```
 /unsafe/stretch/400x400/IMAGE
@@ -136,8 +137,8 @@ Prefix width or height with `-` to flip the image:
 
 <table>
   <tr>
-    <th width="50%">Flip horizontal (<code>-400x400</code>)</th>
-    <th width="50%">Flip vertical (<code>400x-400</code>)</th>
+    <th width="50%"><code>-400x400/IMAGE</code></th>
+    <th width="50%"><code>400x-400/IMAGE</code></th>
   </tr>
   <tr>
     <td><img src="/img/endpoint/flip-h.jpg" /></td>
@@ -163,7 +164,10 @@ Manually crops the image at left-top point `AxB` to right-bottom point `CxD` **b
 
 - Coordinates can be integer pixels or float values between `0.0`–`1.0` (percentage of image dimensions).
 
-<img src="/img/endpoint/manual-crop.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>100x50:1800x1200/400x400/IMAGE</code></th></tr>
+  <tr><td><img src="/img/endpoint/manual-crop.jpg" /></td></tr>
+</table>
 
 ```
 /unsafe/100x50:1800x1200/400x400/IMAGE   → crop region then resize to 400×400
@@ -217,7 +221,7 @@ Filters are a pipeline of image operations applied after resizing. Multiple filt
 
 ```
 /unsafe/400x400/filters:grayscale():quality(80)/IMAGE
-/unsafe/fit-in/400x400/filters:fill(eeeeee):format(jpeg)/IMAGE
+/unsafe/fit-in/400x400/filters:fill(blur):format(jpeg)/IMAGE
 ```
 
 See [Filters](./filters) for the full list of available filters.

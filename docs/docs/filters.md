@@ -32,7 +32,10 @@ Applies gaussian blur to the image.
 
 - `sigma` — blur sigma value
 
-<img src="/img/filters/blur.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>blur(5)</code></th></tr>
+  <tr><td><img src="/img/filters/blur.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -45,7 +48,7 @@ Increases or decreases the image brightness.
 <table>
   <tr>
     <th width="33%"><code>brightness(-50)</code></th>
-    <th width="33%">original</th>
+    <th width="33%"><code>brightness(0)</code></th>
     <th width="33%"><code>brightness(50)</code></th>
   </tr>
   <tr>
@@ -66,7 +69,7 @@ Increases or decreases the image contrast.
 <table>
   <tr>
     <th width="33%"><code>contrast(-50)</code></th>
-    <th width="33%">original</th>
+    <th width="33%"><code>contrast(0)</code></th>
     <th width="33%"><code>contrast(50)</code></th>
   </tr>
   <tr>
@@ -101,12 +104,25 @@ Specifies the DPI to render at for PDF and SVG.
 
 ### `fill(color)`
 
-Fills the missing area or transparent image with the specified color.
+Fills the missing area or transparent image with the specified color. Commonly used with [`fit-in`](./image-endpoint#fit-in) to fill the letterboxed areas.
 
 - `color` — color name or hexadecimal rgb expression without the `#` character
   - `blur` — missing parts are filled with a blurred original image
   - `auto` — the top left image pixel will be chosen as the filling color
   - `none` — the filling becomes fully transparent
+
+<table>
+  <tr>
+    <th width="33%"><code>fit-in/400x400/IMAGE</code></th>
+    <th width="33%"><code>fill(red)</code></th>
+    <th width="33%"><code>fill(blur)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/endpoint/fit-in.jpg" /></td>
+    <td><img src="/img/endpoint/fit-in-fill-red.jpg" /></td>
+    <td><img src="/img/endpoint/fit-in-fill-blur.jpg" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -131,7 +147,10 @@ Specifies the output format of the image.
 
 Changes the image to grayscale.
 
-<img src="/img/filters/grayscale.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>grayscale()</code></th></tr>
+  <tr><td><img src="/img/filters/grayscale.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -141,7 +160,10 @@ Increases or decreases the image hue.
 
 - `angle` — the angle in degrees to increase or decrease the hue rotation
 
-<img src="/img/filters/hue.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>hue(90)</code></th></tr>
+  <tr><td><img src="/img/filters/hue.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -211,7 +233,10 @@ Applies a pixelate effect to the whole image by downscaling to 1/`block_size` th
 
 - `block_size` — pixel block size in pixels, defaults to 10
 
-<img src="/img/filters/pixelate.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>pixelate(10)</code></th></tr>
+  <tr><td><img src="/img/filters/pixelate.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -229,11 +254,11 @@ Changes the overall quality of the image. Does nothing for PNG.
 
 <table>
   <tr>
-    <th width="50%">original</th>
-    <th width="50%"><code>quality(5)</code></th>
+    <th width="33%"><code>quality(80)</code></th>
+    <th width="33%"><code>quality(5)</code></th>
   </tr>
   <tr>
-    <td><img src="/img/filters/original.jpg" /></td>
+    <td><img src="/img/filters/quality-high.jpg" /></td>
     <td><img src="/img/filters/quality-low.jpg" /></td>
   </tr>
 </table>
@@ -263,7 +288,10 @@ Examples: `redact_oval()`, `redact_oval(blur,20)`, `redact_oval(pixelate)`, `red
 
 Amount of color in each of the RGB channels in %. Can range from -100 to 100.
 
-<img src="/img/filters/rgb.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>rgb(60,-30,-30)</code></th></tr>
+  <tr><td><img src="/img/filters/rgb.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -273,7 +301,10 @@ Rotates the given image according to the angle value.
 
 - `angle` — accepts `0`, `90`, `180`, `270`
 
-<img src="/img/filters/rotate.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>rotate(90)</code></th></tr>
+  <tr><td><img src="/img/filters/rotate.jpg" /></td></tr>
+</table>
 
 ---
 
@@ -284,7 +315,10 @@ Adds rounded corners to the image with the specified color as background.
 - `rx`, `ry` — amount of pixels to use as radius. `ry = rx` if `ry` is not provided
 - `color` — the color name or hexadecimal rgb expression without the `#` character
 
-<img src="/img/filters/round-corner.jpg" width="33%" />
+<table width="33%">
+  <tr><th><code>round_corner(50)</code></th></tr>
+  <tr><td><img src="/img/filters/round-corner.png" /></td></tr>
+</table>
 
 ---
 
@@ -297,7 +331,7 @@ Increases or decreases the image saturation.
 <table>
   <tr>
     <th width="33%"><code>saturation(-80)</code></th>
-    <th width="33%">original</th>
+    <th width="33%"><code>saturation(0)</code></th>
     <th width="33%"><code>saturation(100)</code></th>
   </tr>
   <tr>
@@ -315,15 +349,9 @@ Sharpens the image.
 
 - `sigma` — sharpening sigma value
 
-<table>
-  <tr>
-    <th width="50%">original</th>
-    <th width="50%"><code>sharpen(3)</code></th>
-  </tr>
-  <tr>
-    <td><img src="/img/filters/original.jpg" /></td>
-    <td><img src="/img/filters/sharpen.jpg" /></td>
-  </tr>
+<table width="33%">
+  <tr><th><code>sharpen(3)</code></th></tr>
+  <tr><td><img src="/img/filters/sharpen.jpg" /></td></tr>
 </table>
 
 ---
@@ -391,8 +419,6 @@ Enables upscaling for `fit-in` and `adaptive-fit-in` modes.
 
 Adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio.
 
-<img src="/img/filters/watermark.jpg" width="33%" />
-
 - `image` — watermark image URI, using the same image loader configured for imagor.
   Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
 - `x` — horizontal position:
@@ -408,6 +434,11 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 - `alpha` — watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent)
 - `w_ratio` — percentage of the width of the image the watermark should fit-in
 - `h_ratio` — percentage of the height of the image the watermark should fit-in
+
+<table width="33%">
+  <tr><th><code>watermark(gopher-front.png,right,bottom,0,30,30)</code></th></tr>
+  <tr><td><img src="/img/filters/watermark.jpg" /></td></tr>
+</table>
 
 ---
 
