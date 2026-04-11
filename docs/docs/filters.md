@@ -193,6 +193,19 @@ Composites a processed image onto the current image with full imagor transformat
 - `alpha` — transparency level, 0 (fully opaque) to 100 (fully transparent)
 - `blend_mode` — compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
 
+<table>
+  <tr>
+    <th width="33%"><code>image(/fit-in/100x100/IMAGE,center,center)</code></th>
+    <th width="33%"><code>image(/fit-in/100x100/IMAGE,center,center,50)</code></th>
+    <th width="33%">Recursive: <code>image(filters:image(…)/OUTER,10,10)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/image-center.jpg" /></td>
+    <td><img src="/img/filters/image-alpha.jpg" /></td>
+    <td><img src="/img/filters/image-nested.jpg" /></td>
+  </tr>
+</table>
+
 ---
 
 ### `max_bytes(amount)`
@@ -399,6 +412,17 @@ Renders a text overlay onto the image with full multi-line and Pango font suppor
 - `spacing` — additional line spacing in pixels
 - `dpi` — render DPI, defaults to 72 (where 1pt = 1px)
 
+<table>
+  <tr>
+    <th width="50%"><code>text(IMAGOR,20,20,sans-bold-36,white,0)</code></th>
+    <th width="50%"><code>text(b64:SGVsbG8gV29ybGQgZnJvbSBpbWFnb3I,-20,20,sans-24,yellow,0,,180,high)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/text-basic.jpg" /></td>
+    <td><img src="/img/filters/text-multiline.jpg" /></td>
+  </tr>
+</table>
+
 ---
 
 ### `to_colorspace(profile)`
@@ -435,9 +459,15 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 - `w_ratio` — percentage of the width of the image the watermark should fit-in
 - `h_ratio` — percentage of the height of the image the watermark should fit-in
 
-<table width="33%">
-  <tr><th><code>watermark(gopher-front.png,right,bottom,0,30,30)</code></th></tr>
-  <tr><td><img src="/img/filters/watermark.jpg" /></td></tr>
+<table>
+  <tr>
+    <th width="50%"><code>watermark(IMAGE,-20,-20,0,30,30)</code></th>
+    <th width="50%"><code>watermark(IMAGE,repeat,bottom,30,30,30)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/filters/watermark.jpg" /></td>
+    <td><img src="/img/filters/watermark-repeat.jpg" /></td>
+  </tr>
 </table>
 
 ---
