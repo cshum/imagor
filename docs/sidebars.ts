@@ -21,8 +21,11 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Storage",
       collapsed: false,
+      link: {
+        type: "doc",
+        id: "storage",
+      },
       items: [
-        "storage",
         "storage-filesystem",
         "storage-s3",
         "storage-gcloud",
@@ -37,18 +40,20 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Advanced",
+      link: {
+        type: "generated-index",
+        description:
+          "Advanced topics covering metadata, color profiles, in-memory caching, performance tuning, file upload, and build variants.",
+      },
       items: [
         "metadata-and-exif",
         "color-image",
         "in-memory-cache",
         "vips-performance",
         "post-upload",
+        "mozjpeg-support",
+        "imagemagick-support",
       ],
-    },
-    {
-      type: "category",
-      label: "imagor Variants",
-      items: ["mozjpeg-support", "imagemagick-support"],
     },
     {
       type: "category",

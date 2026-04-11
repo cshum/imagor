@@ -1,3 +1,7 @@
+---
+description: Tune libvips concurrency and threading to optimize image processing performance for your deployment.
+---
+
 # VIPS Performance Tuning
 
 imagor uses [libvips](https://github.com/libvips/libvips) for image processing. libvips provides several configuration options to tune performance and resource usage:

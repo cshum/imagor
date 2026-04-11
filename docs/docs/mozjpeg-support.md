@@ -1,3 +1,7 @@
+---
+description: Build variant using MozJPEG for improved JPEG compression efficiency, reducing file sizes up to 30% at the cost of slower encoding.
+---
+
 # MozJPEG Support
 
 By default, imagor uses libjpeg-turbo for JPEG encoding, which provides fast compression. For enhanced JPEG compression at the cost of slower encoding speed, imagor provides a MozJPEG-enabled variant that includes [MozJPEG](https://github.com/mozilla/mozjpeg) support through libvips.

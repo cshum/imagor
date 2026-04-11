@@ -1,3 +1,7 @@
+---
+description: Generate solid color or transparent images on-the-fly using color:<color> as the image path, without loading from any source.
+---
+
 # Color Image
 
 Use `color:<color>` as the image path to generate a solid color or transparent image on-the-fly, without loading from any source. This is useful for creating background canvases, placeholder images, or base layers for further composition.

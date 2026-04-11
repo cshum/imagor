@@ -1,3 +1,7 @@
+---
+description: Cache decoded image pixels in memory with LRU eviction to avoid repeated I/O and decoding of the same source image across requests.
+---
+
 # In-Memory Cache
 
 Imagor maintains an in-memory cache of decoded image pixels, keyed by image path. This avoids repeated I/O and decode for the same source image across different requests — base images, `watermark()` and `image()` filter overlays all share the same cache.

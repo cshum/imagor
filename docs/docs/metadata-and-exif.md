@@ -1,3 +1,7 @@
+---
+description: Extract image format, resolution and Exif metadata via the /meta endpoint, and compute BlurHash, ThumbHash and average color.
+---
+
 # Metadata and Exif
 
 ## Metadata Endpoint

@@ -1,3 +1,7 @@
+---
+description: Process and transform images via HTTP POST upload, an opt-in feature for trusted internal environments.
+---
+
 # POST Upload
 
 imagor supports POST uploads for direct image processing and transformation. 

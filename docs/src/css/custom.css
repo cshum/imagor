@@ -236,6 +236,16 @@ a:hover {
   color: var(--ifm-color-primary);
 }
 
+/* Generated-index category page cards — no underline on hover */
+[class*="cardContainer"]:hover {
+  text-decoration: none;
+}
+
+[class*="cardContainer"]:hover [class*="cardTitle"],
+[class*="cardContainer"]:hover h2 {
+  text-decoration: none;
+}
+
 /* Footer link hover - keep light color on dark footer */
 .footer__link-item:hover {
   color: var(--ifm-footer-link-color) !important;

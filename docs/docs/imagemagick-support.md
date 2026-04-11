@@ -1,3 +1,7 @@
+---
+description: Build variant adding ImageMagick support through libvips, enabling processing of additional formats like PSD, BMP and XCF that libvips cannot handle natively.
+---
+
 # ImageMagick Support
 
 imagor uses [libvips](https://github.com/libvips/libvips) which is typically 4-8x [faster](https://github.com/libvips/libvips/wiki/Speed-and-memory-use) than ImageMagick with better memory efficiency and security. However, there are image formats that libvips cannot handle natively, such as PSD, BMP, XCF and other legacy formats.
