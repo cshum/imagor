@@ -378,8 +378,14 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 	return img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
 }
 
-// avgColor returns the average color of img as an AvgColor with RGBA components.
-func avgColor(_ context.Context, img *vips.Image) (*AvgColor, error) {
+// avgColorRGB computes the average RGB color of img by:
+//  1. Flattening any alpha channel against a white background (255,255,255)
+//     so transparent areas contribute white rather than black to the average.
+//  2. Downscaling to at most 64px wide for fast stats.
+//  3. Running vips Stats and reading the per-band mean values.
+//
+// The returned slice is [R, G, B] as float64 in the 0–255 range.
+func avgColorRGB(img *vips.Image) ([]float64, error) {
 	thumb, err := img.Copy(nil)
 	if err != nil {
 		return nil, err
@@ -387,7 +393,8 @@ func avgColor(_ context.Context, img *vips.Image) (*AvgColor, error) {
 	defer thumb.Close()
 	normalizeSrgb(thumb)
 	if thumb.HasAlpha() {
-		if err := thumb.Flatten(vips.DefaultFlattenOptions()); err != nil {
+		// Flatten against white so transparent pixels don't skew the average dark.
+		if err := thumb.Flatten(&vips.FlattenOptions{Background: []float64{255, 255, 255}}); err != nil {
 			return nil, err
 		}
 	}
@@ -410,10 +417,23 @@ func avgColor(_ context.Context, img *vips.Image) (*AvgColor, error) {
 	if err != nil {
 		return nil, err
 	}
+	return []float64{
+		math.Round(rMean[0]),
+		math.Round(gMean[0]),
+		math.Round(bMean[0]),
+	}, nil
+}
+
+// avgColor returns the average color of img as an AvgColor with RGB components.
+func avgColor(_ context.Context, img *vips.Image) (*AvgColor, error) {
+	rgb, err := avgColorRGB(img)
+	if err != nil {
+		return nil, err
+	}
 	return &AvgColor{
-		R: uint8(math.Round(rMean[0])),
-		G: uint8(math.Round(gMean[0])),
-		B: uint8(math.Round(bMean[0])),
+		R: uint8(rgb[0]),
+		G: uint8(rgb[1]),
+		B: uint8(rgb[2]),
 	}, nil
 }
 

@@ -108,17 +108,17 @@ Fills the missing area or transparent image with the specified color. Commonly u
 
 - `color` — color name or hexadecimal rgb expression without the `#` character
   - `blur` — missing parts are filled with a blurred original image
-  - `auto` — the top left image pixel will be chosen as the filling color
+  - `auto` — the average color of the image will be used as the filling color
   - `none` — the filling becomes fully transparent
 
 <table>
   <tr>
-    <th width="33%"><code>fit-in/400x400/IMAGE</code></th>
+    <th width="33%"><code>fill(auto)</code></th>
     <th width="33%"><code>fill(red)</code></th>
     <th width="33%"><code>fill(blur)</code></th>
   </tr>
   <tr>
-    <td><img src="/img/endpoint/fit-in.jpg" /></td>
+    <td><img src="/img/filters/fill-auto.jpg" /></td>
     <td><img src="/img/endpoint/fit-in-fill-red.jpg" /></td>
     <td><img src="/img/endpoint/fit-in-fill-blur.jpg" /></td>
   </tr>

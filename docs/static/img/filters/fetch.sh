@@ -18,6 +18,7 @@ curl -s "$BASE/400x400/filters:rgb(60,-30,-30):format(jpeg)/$IMG" -o "$OUT/rgb.j
 curl -s "$BASE/400x400/filters:pixelate(10):format(jpeg)/$IMG" -o "$OUT/pixelate.jpg" && echo "pixelate ok"
 curl -s "$BASE/400x400/filters:sharpen(3):format(jpeg)/$IMG" -o "$OUT/sharpen.jpg" && echo "sharpen ok"
 curl -s "$BASE/400x400/filters:rotate(90):format(jpeg)/$IMG" -o "$OUT/rotate.jpg" && echo "rotate ok"
+curl -s "$BASE/fit-in/400x400/filters:fill(auto):format(jpeg)/$IMG" -o "$OUT/fill-auto.jpg" && echo "fill-auto ok"
 curl -s "$BASE/fit-in/400x400/filters:fill(white):round_corner(40):format(jpeg)/$IMG" -o "$OUT/round-corner.jpg" && echo "round-corner ok"
 curl -s "$BASE/400x400/filters:watermark($GOPHER,-20,-20,0,30,30):format(jpeg)/$IMG" -o "$OUT/watermark.jpg" && echo "watermark ok"
 curl -s "$BASE/400x400/filters:watermark($GOPHER,repeat,bottom,30,30,30):format(jpeg)/$IMG" -o "$OUT/watermark-repeat.jpg" && echo "watermark-repeat ok"
