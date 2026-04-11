@@ -98,30 +98,17 @@ func newColorImage(width, height int, c []float64) (*vips.Image, error) {
 	return img, nil
 }
 
-// getColor parses a color string and returns RGB values as float64 slice
+// getColor parses a color string and returns RGB values as float64 slice.
 // Supports: color names (e.g., "red"), hex codes (e.g., "#ff0000" or "ff0000"),
-// and "auto" which samples the image at top-left or bottom-right
+// and "auto" which uses the average color of the image (Thumbor feature parity).
+// For transparent images the alpha is flattened against white before averaging.
 func getColor(img *vips.Image, color string) []float64 {
 	var vc = make([]float64, 3)
-	args := strings.Split(strings.ToLower(color), ",")
-	mode := ""
-	name := strings.TrimPrefix(args[0], "#")
-	if len(args) > 1 {
-		mode = args[1]
-	}
+	name := strings.TrimPrefix(strings.ToLower(strings.SplitN(color, ",", 2)[0]), "#")
 	if name == "auto" {
 		if img != nil {
-			x := 0
-			y := 0
-			if mode == "bottom-right" {
-				x = img.Width() - 1
-				y = img.PageHeight() - 1
-			}
-			p, _ := img.Getpoint(x, y, nil)
-			if len(p) >= 3 {
-				vc[0] = p[0]
-				vc[1] = p[1]
-				vc[2] = p[2]
+			if rgb, err := avgColorRGB(img); err == nil {
+				return rgb
 			}
 		}
 	} else if c, ok := colornames.Map[name]; ok {

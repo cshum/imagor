@@ -108,7 +108,7 @@ Fills the missing area or transparent image with the specified color. Commonly u
 
 - `color` — color name or hexadecimal rgb expression without the `#` character
   - `blur` — missing parts are filled with a blurred original image
-  - `auto` — the top left image pixel will be chosen as the filling color
+  - `auto` — the average color of the image will be used as the filling color
   - `none` — the filling becomes fully transparent
 
 <table>
