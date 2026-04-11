@@ -1,10 +1,8 @@
 # Metadata and Exif
 
-:::note
-The metadata filters (`blurhash`, `thumbhash`, `avgcolor`) documented on this page are used exclusively with the `/meta` endpoint. For image processing and utility filters, see [Filters](./filters).
-:::
+## Metadata Endpoint
 
-imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
+imagor provides a metadata endpoint that extracts information such as image format, resolution and Exif metadata.
 Under the hood, it tries to retrieve data just enough to extract the header, without reading and processing the whole image in memory.
 
 To use the metadata endpoint, add `/meta` right after the URL signature hash before the image operations. Example:
@@ -37,14 +35,16 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
 }
 ```
 
+## Params Endpoint
+
 Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for previewing the endpoint parameters. Example:
 ```bash
 curl 'http://localhost:8000/params/g5bMqZvxaQK65qFPaP1qlJOTuLM=/fit-in/500x400/0x20/filters:fill(white)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png'
 ```
 
-## Metadata Options
+## Metadata Filters
 
-These optional filters add computed values to the metadata response. Because all of them require downloading and fully decoding the image, they are **noticeably slower** than a standard metadata request.
+These filters add computed values to the metadata response. They require the full image to be downloaded and decoded.
 
 ### `blurhash(x,y)`
 

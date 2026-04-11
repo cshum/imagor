@@ -12,7 +12,7 @@ Filters are grouped into:
 
 - [Processing Filters](#processing-filters) — image transforms
 - [Utility Filters](#utility-filters) — pipeline control
-- [Metadata Filters](./metadata-and-exif#metadata-options) — for the `/meta` endpoint
+- [Metadata Filters](./metadata-and-exif#metadata-filters) — for the `/meta` endpoint
 
 ## Processing Filters
 
@@ -364,7 +364,7 @@ Responds with a raw unprocessed and unchecked source image. Image still loads fr
 
 ## Metadata Filters
 
-The following filters are used exclusively with the [`/meta` endpoint](./metadata-and-exif) and add computed values to the metadata response. Because they require downloading and fully decoding the image, they are **noticeably slower** than a standard metadata request.
+These filters add computed values to the metadata response. They require the full image to be downloaded and decoded.
 
 - [`blurhash(x,y)`](./metadata-and-exif#blurhashxy) — computes a [BlurHash](https://blurha.sh) string
 - [`thumbhash()`](./metadata-and-exif#thumbhash) — computes a [ThumbHash](https://evanw.github.io/thumbhash/) string
