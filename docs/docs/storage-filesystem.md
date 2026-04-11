@@ -1,8 +1,14 @@
 # File System
 
-## Docker Compose Example
+imagor supports local file system storage using mounted volumes for Loader, Storage, and Result Storage.
 
-Docker Compose example with file system, using mounted volume:
+Enable each role by setting the corresponding base directory environment variable:
+
+- `FILE_LOADER_BASE_DIR` — load source images from the local file system
+- `FILE_STORAGE_BASE_DIR` — cache source images to the local file system
+- `FILE_RESULT_STORAGE_BASE_DIR` — store processed results to the local file system
+
+## Docker Compose Example
 
 ```yaml
 version: "3"

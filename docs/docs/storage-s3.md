@@ -1,8 +1,14 @@
 # AWS S3
 
-## Docker Compose Example
+imagor supports AWS S3 for Loader, Storage, and Result Storage. It is also compatible with S3-compatible services such as [MinIO](https://min.io) and DigitalOcean Spaces.
 
-Docker Compose example with AWS S3. Also works with S3 compatible such as MinIO, DigitalOcean Space.
+Enable each role by setting the corresponding bucket environment variable:
+
+- `S3_LOADER_BUCKET` — load source images from S3
+- `S3_STORAGE_BUCKET` — cache source images to S3
+- `S3_RESULT_STORAGE_BUCKET` — store processed results to S3
+
+## Docker Compose Example
 
 ```yaml
 version: "3"

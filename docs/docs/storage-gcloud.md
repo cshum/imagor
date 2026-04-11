@@ -1,8 +1,14 @@
 # Google Cloud Storage
 
-## Docker Compose Example
+imagor supports Google Cloud Storage for Loader, Storage, and Result Storage.
 
-Docker Compose example with Google Cloud Storage:
+Enable each role by setting the corresponding bucket environment variable:
+
+- `GCLOUD_LOADER_BUCKET` — load source images from GCS
+- `GCLOUD_STORAGE_BUCKET` — cache source images to GCS
+- `GCLOUD_RESULT_STORAGE_BUCKET` — store processed results to GCS
+
+## Docker Compose Example
 
 ```yaml
 version: "3"
