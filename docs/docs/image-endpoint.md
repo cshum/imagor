@@ -179,17 +179,24 @@ Manually crops the image at left-top point `AxB` to right-bottom point `CxD` **b
 ## Padding
 
 ```
-/unsafe/GxH:IxJ/WxH/IMAGE
+/unsafe/fit-in/WxH/GxH:IxJ/IMAGE
 ```
 
-Adds padding around the image after resizing:
+Adds padding around the image **after** resizing, where:
 
 - `GxH` — left and top padding in pixels
 - `IxJ` — right and bottom padding in pixels
 
+Combined with `fit-in` and [`fill()`](./filters#fillcolor), padding adds a colored border around the transparent or letterboxed content:
+
 ```
-/unsafe/20x20:20x20/400x400/IMAGE    → 20px padding on all sides
+/unsafe/fit-in/360x360/20x20:20x20/filters:fill(yellow)/IMAGE    → 20px yellow padding on all sides
 ```
+
+<table width="33%">
+  <tr><th><code>fit-in/360x360/20x20:20x20/filters:fill(yellow)/IMAGE</code></th></tr>
+  <tr><td><img src="/img/endpoint/padding.jpg" /></td></tr>
+</table>
 
 ---
 
