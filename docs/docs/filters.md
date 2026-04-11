@@ -113,12 +113,12 @@ Fills the missing area or transparent image with the specified color. Commonly u
 
 <table>
   <tr>
-    <th width="33%"><code>fit-in/400x400/IMAGE</code></th>
+    <th width="33%"><code>fill(auto)</code></th>
     <th width="33%"><code>fill(red)</code></th>
     <th width="33%"><code>fill(blur)</code></th>
   </tr>
   <tr>
-    <td><img src="/img/endpoint/fit-in.jpg" /></td>
+    <td><img src="/img/filters/fill-auto.jpg" /></td>
     <td><img src="/img/endpoint/fit-in-fill-red.jpg" /></td>
     <td><img src="/img/endpoint/fit-in-fill-blur.jpg" /></td>
   </tr>
