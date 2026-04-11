@@ -2868,6 +2868,119 @@ func TestResponseRawOnError(t *testing.T) {
 	})
 }
 
+// TestWithGetSignerOption verifies that WithGetSigner correctly wires the
+// function into the Imagor struct and that the static Signer is NOT set
+// (so New() won't install the default signer and shadow it).
+func TestWithGetSignerOption(t *testing.T) {
+	staticSigner := imagorpath.NewDefaultSigner("abc")
+
+	t.Run("sets GetSigner field", func(t *testing.T) {
+		fn := func(*http.Request) imagorpath.Signer { return staticSigner }
+		app := New(WithGetSigner(fn))
+		assert.NotNil(t, app.GetSigner, "GetSigner must be set")
+		assert.Nil(t, app.Signer, "Signer must be nil when GetSigner is provided")
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		assert.Equal(t, staticSigner, app.GetSigner(req))
+	})
+
+	t.Run("nil fn is no-op — default signer still installed", func(t *testing.T) {
+		app := New() // no WithGetSigner → default signer
+		assert.Nil(t, app.GetSigner)
+		assert.NotNil(t, app.Signer, "default signer should be set when GetSigner absent")
+	})
+
+	t.Run("GetSigner overrides static Signer — static is ignored", func(t *testing.T) {
+		otherSigner := imagorpath.NewDefaultSigner("xyz")
+		fn := func(*http.Request) imagorpath.Signer { return otherSigner }
+		// WithSigner sets app.Signer; WithGetSigner should take runtime priority
+		app := New(
+			WithSigner(staticSigner),
+			WithGetSigner(fn),
+		)
+		assert.NotNil(t, app.GetSigner)
+		assert.NotNil(t, app.Signer, "static Signer may still be set, but GetSigner wins at runtime")
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		assert.Equal(t, otherSigner, app.GetSigner(req))
+	})
+
+	t.Run("returns different signer per host", func(t *testing.T) {
+		signerA := imagorpath.NewDefaultSigner("a")
+		signerB := imagorpath.NewDefaultSigner("b")
+		fn := func(r *http.Request) imagorpath.Signer {
+			switch r.Host {
+			case "a.example.com":
+				return signerA
+			case "b.example.com":
+				return signerB
+			}
+			return nil
+		}
+		app := New(WithGetSigner(fn))
+		reqA := httptest.NewRequest(http.MethodGet, "/", nil)
+		reqA.Host = "a.example.com"
+		reqB := httptest.NewRequest(http.MethodGet, "/", nil)
+		reqB.Host = "b.example.com"
+		reqC := httptest.NewRequest(http.MethodGet, "/", nil)
+		reqC.Host = "c.example.com"
+		assert.Equal(t, signerA, app.GetSigner(reqA))
+		assert.Equal(t, signerB, app.GetSigner(reqB))
+		assert.Nil(t, app.GetSigner(reqC), "unknown host should return nil")
+	})
+}
+
+// TestWithGetResultKeyOption verifies that WithGetResultKey correctly wires the
+// function into the Imagor struct and that the function is callable as expected.
+func TestWithGetResultKeyOption(t *testing.T) {
+	t.Run("sets GetResultKey field", func(t *testing.T) {
+		fn := func(r *http.Request, p imagorpath.Params) string {
+			return "tenant/" + p.Path
+		}
+		app := New(WithUnsafe(true), WithGetResultKey(fn))
+		assert.NotNil(t, app.GetResultKey, "GetResultKey must be set")
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		key := app.GetResultKey(req, imagorpath.Params{Path: "300x200/image.jpg"})
+		assert.Equal(t, "tenant/300x200/image.jpg", key)
+	})
+
+	t.Run("nil fn leaves GetResultKey unset", func(t *testing.T) {
+		app := New(WithUnsafe(true))
+		assert.Nil(t, app.GetResultKey)
+	})
+
+	t.Run("returns per-request scoped key", func(t *testing.T) {
+		fn := func(r *http.Request, p imagorpath.Params) string {
+			return r.Host + "/" + p.Path
+		}
+		app := New(WithUnsafe(true), WithGetResultKey(fn))
+		reqA := httptest.NewRequest(http.MethodGet, "/", nil)
+		reqA.Host = "space-a.example.com"
+		reqB := httptest.NewRequest(http.MethodGet, "/", nil)
+		reqB.Host = "space-b.example.com"
+		p := imagorpath.Params{Path: "filters:format(webp)/photo.jpg"}
+		keyA := app.GetResultKey(reqA, p)
+		keyB := app.GetResultKey(reqB, p)
+		assert.Equal(t, "space-a.example.com/filters:format(webp)/photo.jpg", keyA)
+		assert.Equal(t, "space-b.example.com/filters:format(webp)/photo.jpg", keyB)
+		assert.NotEqual(t, keyA, keyB, "different hosts must produce different result keys")
+	})
+
+	t.Run("empty path returns empty key (disables result storage)", func(t *testing.T) {
+		fn := func(r *http.Request, p imagorpath.Params) string {
+			if p.Image == "" {
+				return "" // no image → no result key
+			}
+			return "tenant/" + p.Path
+		}
+		app := New(WithUnsafe(true), WithGetResultKey(fn))
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		assert.Equal(t, "", app.GetResultKey(req, imagorpath.Params{}))
+		assert.Equal(t, "tenant/200x200/photo.jpg", app.GetResultKey(req, imagorpath.Params{
+			Image: "photo.jpg",
+			Path:  "200x200/photo.jpg",
+		}))
+	})
+}
+
 func TestGetSigner(t *testing.T) {
 	secrets := map[string]string{
 		"space-a.example.com": "secret-a",
