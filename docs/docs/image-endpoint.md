@@ -17,7 +17,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - [`VALIGN`](#alignment) is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 - [`smart`](#smart-crop) means using smart detection of focal points
 - [`filters`](./filters) a pipeline of image filter operations to be applied, see [Filters](./filters) section
-- `IMAGE` is the image path or URI
+- [`IMAGE`](#image-uri) is the image path or URI
   - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
   - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64)
   - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](./color-image) section.
