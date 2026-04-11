@@ -20,6 +20,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Storage",
+      collapsed: false,
       items: [
         "storage",
         "storage-filesystem",
@@ -52,6 +53,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Plugins",
+      collapsed: false,
       items: ["imagorvideo", "imagorface"],
     },
     {
