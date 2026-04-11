@@ -5,6 +5,10 @@ slug: /
 
 # Getting Started
 
+[![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/cshum/imagor)](https://codecov.io/gh/cshum/imagor)
+[![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
+
 imagor is a fast, secure image processing server and Go library.
 
 imagor uses one of the most efficient image processing library
@@ -13,7 +17,7 @@ imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-st
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
 
-imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
+imagor is a Go library built with speed, security and extensibility in mind. Alongside there is [imagorvideo](./imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
 ```bash
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp

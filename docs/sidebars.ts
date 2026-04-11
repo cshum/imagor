@@ -50,6 +50,11 @@ const sidebars: SidebarsConfig = {
       items: ["mozjpeg-support", "imagemagick-support"],
     },
     {
+      type: "category",
+      label: "Plugins",
+      items: ["imagorvideo", "imagorface"],
+    },
+    {
       type: "doc",
       id: "configuration",
       label: "Configuration",

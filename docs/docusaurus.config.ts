@@ -88,7 +88,7 @@ const config: Config = {
           items: [
             {
               label: "imagor",
-              href: "https://github.com/cshum/imagor",
+              to: "/",
             },
             {
               label: "imagor Studio",
@@ -96,11 +96,11 @@ const config: Config = {
             },
             {
               label: "imagorvideo",
-              href: "https://github.com/cshum/imagorvideo",
+              to: "/imagorvideo",
             },
             {
               label: "imagorface",
-              href: "https://github.com/cshum/imagorface",
+              to: "/imagorface",
             },
           ],
         },
@@ -128,7 +128,7 @@ const config: Config = {
           items: [
             {
               label: "imagor",
-              href: "https://github.com/cshum/imagor",
+              to: "/",
             },
             {
               label: "imagor Studio",
@@ -136,11 +136,11 @@ const config: Config = {
             },
             {
               label: "imagorvideo",
-              href: "https://github.com/cshum/imagorvideo",
+              to: "/imagorvideo",
             },
             {
               label: "imagorface",
-              href: "https://github.com/cshum/imagorface",
+              to: "/imagorface",
             },
           ],
         },

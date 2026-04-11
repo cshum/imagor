@@ -92,7 +92,7 @@ Crops the image after resizing.
 
 ### `draw_detections()`
 
-Draws color-coded bounding boxes on detected regions. Each class name is automatically assigned a distinct colour via hash-based palette. For use with detection plugins such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured.
+Draws color-coded bounding boxes on detected regions. Each class name is automatically assigned a distinct colour via hash-based palette. For use with detection plugins such as [imagorface](./imagorface). No-op when no Detector is configured.
 
 ---
 
@@ -280,7 +280,7 @@ Changes the overall quality of the image. Does nothing for PNG.
 
 ### `redact([mode[, strength]])`
 
-Obscures all detected regions for privacy/anonymisation (e.g. GDPR face blurring, legal document redaction). Requires a detection plugin such as [imagorface](https://github.com/cshum/imagorface). No-op when no Detector is configured or no regions are detected. Skips animated images.
+Obscures all detected regions for privacy/anonymisation (e.g. GDPR face blurring, legal document redaction). Requires a detection plugin such as [imagorface](./imagorface). No-op when no Detector is configured or no regions are detected. Skips animated images.
 
 - `mode` — `blur` (default), `pixelate`, or any color name/hex for solid fill (e.g. `black`, `white`, `ff0000`)
 - `strength` — blur sigma (default 15) or pixelate block size in pixels (default 10). Not used for solid color mode.
@@ -291,7 +291,7 @@ Examples: `redact()`, `redact(blur,20)`, `redact(pixelate)`, `redact(pixelate,15
 
 ### `redact_oval([mode[, strength]])`
 
-Identical to [`redact`](#redactmode-strength) but applies an elliptical mask to each region, producing a rounded/oval redaction shape. This is the most natural shape for face anonymisation as it closely follows the contour of a face. Same arguments and defaults as `redact`.
+Identical to [`redact`](#redactmode-strength) but applies an elliptical mask to each region, producing a rounded/oval redaction shape. This is the most natural shape for face anonymisation as it closely follows the contour of a face. Same arguments and defaults as `redact`. Requires a detection plugin such as [imagorface](./imagorface).
 
 Examples: `redact_oval()`, `redact_oval(blur,20)`, `redact_oval(pixelate)`, `redact_oval(pixelate,15)`, `redact_oval(black)`, `redact_oval(white)`, `redact_oval(ff0000)`
 
