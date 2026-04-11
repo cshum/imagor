@@ -5,6 +5,10 @@
 - **[imagorvideo](./imagorvideo)** — Video thumbnail server using ffmpeg C bindings
 - **[imagorface](./imagorface)** — Fast, on-the-fly face detection for smart crop and privacy redaction
 
+## Go Libraries
+
+- **[vipsgen](https://github.com/cshum/vipsgen)** — Go binding for libvips, the image processing library powering imagor. Use this for low-level image operations directly in Go.
+
 ## Projects
 
 The imagor ecosystem includes several community-contributed projects that extend and integrate with imagor:
