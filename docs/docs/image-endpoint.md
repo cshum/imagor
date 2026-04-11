@@ -1,15 +1,26 @@
 # Image Endpoint
 
-The imagor image endpoint is a series of URL parts that define image operations, followed by the image URI:
+imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
 
 ```
 /HASH|unsafe/trim/AxB:CxD/(adaptive-)(full-)fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
-- `HASH` — URL signature hash, or `unsafe` if unsafe mode is used
-- `IMAGE` — the image path or URI
-
-All other parts are optional and can be combined. They are described in detail below.
+- `HASH` is the URL signature hash, or `unsafe` if unsafe mode is used
+- [`trim`](#trim) removes surrounding space in images using top-left pixel color
+- [`AxB:CxD`](#manual-crop) means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
+- [`fit-in`](#fit-in) means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `WxH`. If `full-fit-in` is specified, then the largest size is used for cropping. If `adaptive-fit-in` is specified, it inverts requested width and height if it would get a better image definition
+- [`stretch`](#stretch) means resize the image to `WxH` without keeping its aspect ratio
+- [`-Ex-F`](#resize--crop) means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
+- [`GxH:IxJ`](#padding) add left-top padding `GxH` and right-bottom padding `IxJ`, placed **after** the resize dimensions in the URL
+- [`HALIGN`](#alignment) is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
+- [`VALIGN`](#alignment) is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
+- [`smart`](#smart-crop) means using smart detection of focal points
+- [`filters`](./filters) a pipeline of image filter operations to be applied, see [Filters](./filters) section
+- `IMAGE` is the image path or URI
+  - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
+  - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64)
+  - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](./color-image) section.
 
 ---
 
