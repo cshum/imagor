@@ -1,6 +1,7 @@
 package imagor
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/cshum/imagor/imagorpath"
@@ -233,6 +234,18 @@ func WithSigner(signer imagorpath.Signer) Option {
 		if signer != nil {
 			app.Signer = signer
 		}
+	}
+}
+
+func WithGetSigner(fn func(*http.Request) imagorpath.Signer) Option {
+	return func(app *Imagor) {
+		app.GetSigner = fn
+	}
+}
+
+func WithGetResultKey(fn func(*http.Request, imagorpath.Params) string) Option {
+	return func(app *Imagor) {
+		app.GetResultKey = fn
 	}
 }
 
