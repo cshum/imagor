@@ -1,23 +1,19 @@
 # Configuration
 
-imagor supports command-line arguments and environment variables for the arguments equivalent in capitalized snake case, see available options `imagor -h`.
-For instances `-imagor-secret` would become `IMAGOR_SECRET`:
+imagor supports command-line arguments and environment variables. Environment variables are the flag name in uppercase snake case — `-imagor-secret` becomes `IMAGOR_SECRET`:
 
 ```bash
 # both are equivalent
-
 imagor -debug -imagor-secret 1234
 
 DEBUG=1 IMAGOR_SECRET=1234 imagor
 ```
 
-Configuration can also be specified in a `.env` environment variable file and referenced with the `-config` flag:
+Configuration can also be loaded from a `.env` file using `-config`:
 
 ```bash
 imagor -config path/to/config.env
 ```
-
-config.env:
 
 ```dotenv
 PORT=8000
@@ -25,308 +21,256 @@ IMAGOR_SECRET=mysecret
 DEBUG=1
 ```
 
-## Available options
+Run `imagor -h` to print all available options with their defaults.
 
+---
+
+## General
+
+```dotenv
+PORT=8000                  # Server port (default 8000)
+DEBUG=1                    # Debug mode
+VERSION=1                  # Print imagor version
+CONFIG=path/to/config.env  # Load configuration from file (default .env)
+GOMAXPROCS=                # Go runtime CPU limit (default: all cores)
 ```
-imagor -h
-Usage of imagor:
-  -debug
-        Debug mode
-  -port int
-        Server port (default 8000)
-  -version
-        imagor version
-  -config string
-        Retrieve configuration from the given file (default ".env")
 
-  -imagor-secret string
-        Secret key for signing imagor URL
-  -imagor-unsafe
-        Unsafe imagor that does not require URL signature. Prone to URL tampering
-  -imagor-auto-webp
-        Output WebP format automatically if browser supports
-  -imagor-auto-avif
-        Output AVIF format automatically if browser supports (experimental)
-  -imagor-auto-jpeg
-        Output JPEG format automatically if JPEG or no specific format is requested
-  -imagor-base-params string
-        imagor endpoint base params that applies to all resulting images e.g. filters:watermark(example.jpg)
-  -imagor-signer-type string
-        imagor URL signature hasher type: sha1, sha256, sha512 (default "sha1")
-  -imagor-signer-truncate int
-        imagor URL signature truncate at length
-  -imagor-result-storage-path-style string
-        imagor result storage path style: original, digest, suffix (default "original")
-  -imagor-storage-path-style string
-        imagor storage path style: original, digest (default "original")
-  -imagor-cache-header-ttl duration
-        imagor HTTP cache header ttl for successful image response (default 168h0m0s)
-  -imagor-cache-header-swr duration
-        imagor HTTP Cache-Control header stale-while-revalidate for successful image response (default 24h0m0s)
-  -imagor-cache-header-no-cache
-        imagor HTTP Cache-Control header no-cache for successful image response
-  -imagor-request-timeout duration
-        Timeout for performing imagor request (default 30s)
-  -imagor-load-timeout duration
-        Timeout for imagor Loader request, should be smaller than imagor-request-timeout
-  -imagor-save-timeout duration
-        Timeout for saving image to imagor Storage
-  -imagor-process-timeout duration
-        Timeout for image processing
-  -imagor-process-concurrency int
-        Maximum number of image process to be executed simultaneously. Requests that exceed this limit are put in the queue. Set -1 for no limit (default -1)
-  -imagor-process-queue-size int
-        Maximum number of image process that can be put in the queue. Requests that exceed this limit are rejected with HTTP status 429
-  -imagor-base-path-redirect string
-        URL to redirect for imagor / base path e.g. https://www.google.com
-  -imagor-modified-time-check
-        Check modified time of result image against the source image. This eliminates stale result but require more lookups
-  -imagor-disable-params-endpoint
-        imagor disable /params endpoint
-  -imagor-disable-error-body
-        imagor disable response body on error
-  -imagor-response-raw-on-error
-        imagor response with a raw unprocessed and unchecked source image on error
+## Server
 
-  -server-address string
-        Server address
-  -server-cors
-        Enable CORS
-  -server-strip-query-string
-        Enable strip query string redirection
-  -server-path-prefix string
-        Server path prefix
-  -server-access-log
-        Enable server access log
+```dotenv
+BIND=myhost:8888           # Combined address:port shortcut, overrides SERVER_ADDRESS + PORT
+SERVER_ADDRESS=            # Server bind address (default all interfaces)
+SERVER_CORS=1              # Enable CORS
+SERVER_STRIP_QUERY_STRING=1  # Redirect stripping query string
+SERVER_PATH_PREFIX=        # Server path prefix
+SERVER_ACCESS_LOG=1        # Enable access log
+```
 
-  -prometheus-bind string
-        Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000
-  -prometheus-path string
-        Prometheus metrics path (default "/")
-        
-  -http-loader-allowed-sources string
-        HTTP Loader allowed hosts whitelist to load images from if set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
-  -http-loader-base-url string
-        HTTP Loader base URL that prepends onto existing image path. This overrides the default scheme option.
-  -http-loader-forward-headers string
-        Forward request header to HTTP Loader request by csv e.g. User-Agent,Accept
-  -http-loader-override-response-headers string
-        Override HTTP Loader response header to image response by csv e.g. Cache-Control,Expires
-  -http-loader-forward-client-headers
-        Forward browser client request headers to HTTP Loader request
-  -http-loader-insecure-skip-verify-transport
-        HTTP Loader to use HTTP transport with InsecureSkipVerify true
-  -http-loader-max-allowed-size int
-        HTTP Loader maximum allowed size in bytes for loading images if set
-  -http-loader-proxy-urls string
-        HTTP Loader Proxy URLs. Enable HTTP Loader proxy only if this value present. Accept csv of proxy urls e.g. http://user:pass@host:port,http://user:pass@host:port
-  -http-loader-allowed-source-regexp string
-        HTTP Loader allowed hosts regexp to load images from if set. Combines as OR with allowed host glob pattern sources.
-  -http-loader-proxy-allowed-sources string
-        HTTP Loader Proxy allowed hosts that enable proxy transport, if proxy URLs are set. Accept csv wth glob pattern e.g. *.google.com,*.github.com.
-  -http-loader-default-scheme string
-        HTTP Loader default scheme if not specified by image path. Set "nil" to disable default scheme. (default "https")
-  -http-loader-accept string
-        HTTP Loader set request Accept header and validate response Content-Type header (default "*/*") 
-  -http-loader-block-link-local-networks
-        HTTP Loader rejects connections to link local network IP addresses.
-  -http-loader-block-loopback-networks
-        HTTP Loader rejects connections to loopback network IP addresses.
-  -http-loader-block-private-networks
-        HTTP Loader rejects connections to private network IP addresses.
-  -http-loader-block-networks string
-        HTTP Loader rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g ::1/128,127.0.0.0/8.
-  -http-loader-disable
-        Disable HTTP Loader
+## imagor Core
 
-  -upload-loader-enable
-        Enable Upload Loader for POST uploads
-  -upload-loader-max-allowed-size int
-        Upload Loader maximum allowed size in bytes for uploaded images (default 33554432)
-  -upload-loader-accept string
-        Upload Loader accepted Content-Type for uploads (default "image/*")
-  -upload-loader-form-field-name string
-        Upload Loader form field name for multipart uploads (default "image")
+```dotenv
+IMAGOR_SECRET=             # Secret key for URL signing
+IMAGOR_UNSAFE=1            # Disable URL signature check (development only)
 
-  -file-safe-chars string
-        File safe characters to be excluded from image key escape. Set -- for no-op
-  -file-loader-base-dir string
-        Base directory for File Loader. Enable File Loader only if this value present
-  -file-loader-path-prefix string
-        Base path prefix for File Loader
-  -file-result-storage-base-dir string
-        Base directory for File Result Storage. Enable File Result Storage only if this value present
-  -file-result-storage-mkdir-permission string
-        File Result Storage mkdir permission (default "0755")
-  -file-result-storage-path-prefix string
-        Base path prefix for File Result Storage
-  -file-result-storage-write-permission string
-        File Storage write permission (default "0666")
-  -file-result-storage-expiration duration
-        File Result Storage expiration duration e.g. 24h. Default no expiration
-  -file-storage-base-dir string
-        Base directory for File Storage. Enable File Storage only if this value present
-  -file-storage-path-prefix string
-        Base path prefix for File Storage
-  -file-storage-mkdir-permission string
-        File Storage mkdir permission (default "0755")
-  -file-storage-write-permission string
-        File Storage write permission (default "0666")
-  -file-storage-expiration duration
-        File Storage expiration duration e.g. 24h. Default no expiration
+IMAGOR_AUTO_WEBP=1         # Serve WebP automatically if browser supports
+IMAGOR_AUTO_AVIF=1         # Serve AVIF automatically if browser supports (experimental)
+IMAGOR_AUTO_JPEG=1         # Serve JPEG automatically if JPEG or no format requested
 
-  -aws-access-key-id string
-        AWS Access Key ID. Required if using S3 Loader or S3 Storage
-  -aws-region string
-        AWS Region. Required if using S3 Loader or S3 Storage
-  -aws-secret-access-key string
-        AWS Secret Access Key. Required if using S3 Loader or S3 Storage
-  -aws-session-token string
-        AWS Session Token. Optional temporary credentials token
-  -s3-endpoint string
-        Optional S3 Endpoint to override default
-  -s3-safe-chars string
-        S3 safe characters to be excluded from image key escape. Set -- for no-op
-  -s3-force-path-style
-        S3 force the request to use path-style addressing s3.amazonaws.com/bucket/key, instead of bucket.s3.amazonaws.com/key
-  -s3-loader-bucket string
-        S3 Bucket for S3 Loader. Enable S3 Loader only if this value present
-  -s3-loader-base-dir string
-        Base directory for S3 Loader
-  -s3-loader-path-prefix string
-        Base path prefix for S3 Loader
-  -s3-loader-bucket-router-config string
-        YAML config file for S3 Loader bucket routing based on pattern matching
-  -s3-result-storage-bucket string
-        S3 Bucket for S3 Result Storage. Enable S3 Result Storage only if this value present
-  -s3-result-storage-base-dir string
-        Base directory for S3 Result Storage
-  -s3-result-storage-path-prefix string
-        Base path prefix for S3 Result Storage
-  -s3-result-storage-acl string
-        Upload ACL for S3 Result Storage (default "public-read")
-  -s3-result-storage-expiration duration
-        S3 Result Storage expiration duration e.g. 24h. Default no expiration
-  -s3-storage-bucket string
-        S3 Bucket for S3 Storage. Enable S3 Storage only if this value present
-  -s3-storage-base-dir string
-        Base directory for S3 Storage
-  -s3-storage-path-prefix string
-        Base path prefix for S3 Storage
-  -s3-storage-acl string
-        Upload ACL for S3 Storage (default "public-read")
-  -s3-storage-expiration duration
-        S3 Storage expiration duration e.g. 24h. Default no expiration
-        
-  -aws-loader-access-key-id string
-        AWS Access Key ID for S3 Loader to override global config
-  -aws-loader-region string
-        AWS Region for S3 Loader to override global config
-  -aws-loader-secret-access-key string
-        AWS Secret Access Key for S3 Loader to override global config
-  -aws-loader-session-token string
-        AWS Session Token for S3 Loader to override global config
-  -s3-loader-endpoint string
-        Optional S3 Loader Endpoint to override default
-  -aws-storage-access-key-id string
-        AWS Access Key ID for S3 Storage to override global config
-  -aws-storage-region string
-        AWS Region for S3 Storage to override global config
-  -aws-storage-secret-access-key string
-        AWS Secret Access Key for S3 Storage to override global config
-  -aws-storage-session-token string
-        AWS Session Token for S3 Storage to override global config
-  -s3-storage-endpoint string
-        Optional S3 Storage Endpoint to override default
-  -aws-result-storage-access-key-id string
-        AWS Access Key ID for S3 Result Storage to override global config
-  -aws-result-storage-region string
-        AWS Region for S3 Result Storage to override global config
-  -aws-result-storage-secret-access-key string
-        AWS Secret Access Key for S3 Result Storage to override global config
-  -aws-result-storage-session-token string
-        AWS Session Token for S3 Result Storage to override global config
-  -s3-result-storage-endpoint string
-        Optional S3 Storage Endpoint to override default
+IMAGOR_BASE_PARAMS=        # Base params applied to all images e.g. filters:watermark(logo.png)
+IMAGOR_SIGNER_TYPE=sha1    # URL signature algorithm: sha1, sha256, sha512 (default sha1)
+IMAGOR_SIGNER_TRUNCATE=    # Truncate URL signature to this length
 
-  -s3-http-max-idle-conns-per-host int
-        S3 HTTP client max idle connections per host (default 100, Go default is 2)
+IMAGOR_RESULT_STORAGE_PATH_STYLE=original  # Result storage path style: original, digest, suffix
+IMAGOR_STORAGE_PATH_STYLE=original         # Loader storage path style: original, digest
 
-  -gcloud-safe-chars string
-        Google Cloud safe characters to be excluded from image key escape. Set -- for no-op
-  -gcloud-loader-base-dir string
-        Base directory for Google Cloud Loader
-  -gcloud-loader-bucket string
-        Bucket name for Google Cloud Storage Loader. Enable Google Cloud Loader only if this value present
-  -gcloud-loader-path-prefix string
-        Base path prefix for Google Cloud Loader
-  -gcloud-result-storage-acl string
-        Upload ACL for Google Cloud Result Storage
-  -gcloud-result-storage-base-dir string
-        Base directory for Google Cloud Result Storage
-  -gcloud-result-storage-bucket string
-        Bucket name for Google Cloud Result Storage. Enable Google Cloud Result Storage only if this value present
-  -gcloud-result-storage-expiration duration
-        Google Cloud Result Storage expiration duration e.g. 24h. Default no expiration
-  -gcloud-result-storage-path-prefix string
-        Base path prefix for Google Cloud Result Storage
-  -gcloud-storage-acl string
-        Upload ACL for Google Cloud Storage
-  -gcloud-storage-base-dir string
-        Base directory for Google Cloud
-  -gcloud-storage-bucket string
-        Bucket name for Google Cloud Storage. Enable Google Cloud Storage only if this value present
-  -gcloud-storage-expiration duration
-        Google Cloud Storage expiration duration e.g. 24h. Default no expiration
-  -gcloud-storage-path-prefix string
-        Base path prefix for Google Cloud Storage
-        
-  -vips-concurrency int
-        VIPS concurrency. Set -1 to be the number of CPU cores (default 1)
-  -vips-max-cache-files int
-        VIPS max cache files (default 0)
-  -vips-max-cache-mem int
-        VIPS max cache mem in bytes (default 0)
-  -vips-max-cache-size int
-        VIPS max cache size (default 0)
-  -vips-max-animation-frames int
-        VIPS maximum number of animation frames to be loaded. Set 1 to disable animation, -1 for unlimited
-  -vips-disable-blur
-        VIPS disable blur operations for vips processor
-  -vips-disable-filters string
-        VIPS disable filters by csv e.g. blur,watermark,rgb
-  -vips-max-filter-ops int
-        VIPS maximum number of filter operations allowed. Set -1 for unlimited (default -1)
-  -vips-max-width int
-        VIPS max image width
-  -vips-max-height int
-        VIPS max image height
-  -vips-max-resolution int
-        VIPS max image resolution
-  -vips-mozjpeg
-        VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed
-  -vips-avif-speed int
-        VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 5).
-  -vips-detector-probe-size int
-        VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop region detection. Lower values are faster, higher values improve detection of small regions (default 400)
-  -vips-strip-metadata
-        VIPS strips all metadata from the resulting image
-  -vips-unlimited
-    	VIPS bypass image max resolution check and remove all denial of service limits
-  -vips-cache-size int
-        VIPS in-memory image cache size in bytes. Set 0 to disable (default). Caches decoded image pixels keyed by image path to avoid repeated I/O and decode for base images, watermark() and image() filters
-  -vips-cache-max-width int
-        VIPS image cache maximum width. Images wider than this are not cached (default 2400)
-  -vips-cache-max-height int
-        VIPS image cache maximum height. Images taller than this are not cached (default 2000)
-  -vips-cache-ttl duration
-        VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry
-  -vips-cache-format string
-        VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)
-        
-  -sentry-dsn
-        include sentry dsn to integrate imagor with sentry
-        
-  -log-ecs
-        Enable ECS (Elastic Common Schema) log format
+IMAGOR_CACHE_HEADER_TTL=168h              # HTTP Cache-Control max-age for successful responses (default 7d)
+IMAGOR_CACHE_HEADER_SWR=24h              # HTTP Cache-Control stale-while-revalidate (default 24h)
+IMAGOR_CACHE_HEADER_NO_CACHE=1           # Set Cache-Control: no-cache on responses
+
+IMAGOR_REQUEST_TIMEOUT=30s    # Overall request timeout (default 30s)
+IMAGOR_LOAD_TIMEOUT=          # Loader fetch timeout (should be < request timeout)
+IMAGOR_SAVE_TIMEOUT=          # Storage save timeout
+IMAGOR_PROCESS_TIMEOUT=       # Image processing timeout
+
+IMAGOR_PROCESS_CONCURRENCY=-1   # Max concurrent image operations (-1 = unlimited)
+IMAGOR_PROCESS_QUEUE_SIZE=0     # Max queued requests before returning 429 (0 = unlimited)
+
+IMAGOR_BASE_PATH_REDIRECT=     # Redirect / base path to this URL
+IMAGOR_MODIFIED_TIME_CHECK=1   # Compare result vs source modified time to avoid stale results
+IMAGOR_DISABLE_PARAMS_ENDPOINT=1  # Disable /params debug endpoint
+IMAGOR_DISABLE_ERROR_BODY=1    # Omit response body on errors
+IMAGOR_RESPONSE_RAW_ON_ERROR=1 # Return raw source image on processing error
+```
+
+## HTTP Loader
+
+```dotenv
+HTTP_LOADER_ALLOWED_SOURCES=*.github.com,*.example.com  # Allowlist of hosts (glob, csv)
+HTTP_LOADER_ALLOWED_SOURCE_REGEXP=                       # Allowlist of hosts (regexp, OR-ed with glob)
+HTTP_LOADER_BASE_URL=                  # Prepend this base URL to all image paths
+HTTP_LOADER_DEFAULT_SCHEME=https       # Default scheme when not specified in path. Set "nil" to disable
+
+HTTP_LOADER_FORWARD_HEADERS=           # Forward these request headers to loader (csv)
+HTTP_LOADER_OVERRIDE_RESPONSE_HEADERS= # Copy these loader response headers to image response (csv)
+HTTP_LOADER_FORWARD_CLIENT_HEADERS=1   # Forward all browser client headers to loader
+
+HTTP_LOADER_ACCEPT=*/*                 # Set Accept header and validate Content-Type response
+HTTP_LOADER_MAX_ALLOWED_SIZE=          # Max response size in bytes (0 = unlimited)
+HTTP_LOADER_INSECURE_SKIP_VERIFY_TRANSPORT=1  # Skip TLS verification (not recommended)
+
+HTTP_LOADER_PROXY_URLS=                # Proxy URLs for loader (csv). Proxy is only used if set
+HTTP_LOADER_PROXY_ALLOWED_SOURCES=     # Hosts that use proxy transport (glob, csv)
+
+HTTP_LOADER_BLOCK_LOOPBACK_NETWORKS=1  # Block loopback addresses (127.0.0.0/8, ::1)
+HTTP_LOADER_BLOCK_LINK_LOCAL_NETWORKS=1  # Block link-local addresses (169.254.0.0/16)
+HTTP_LOADER_BLOCK_PRIVATE_NETWORKS=1   # Block private network addresses (RFC 1918)
+HTTP_LOADER_BLOCK_NETWORKS=::1/128,127.0.0.0/8  # Block specific CIDRs (csv)
+
+HTTP_LOADER_DISABLE=1                  # Disable HTTP Loader entirely
+```
+
+## File System
+
+```dotenv
+FILE_SAFE_CHARS=           # Characters excluded from path escaping. Set -- for no-op
+
+# File Loader
+FILE_LOADER_BASE_DIR=      # Base directory. Enables File Loader when set
+FILE_LOADER_PATH_PREFIX=   # Path prefix for File Loader
+
+# File Storage
+FILE_STORAGE_BASE_DIR=     # Base directory. Enables File Storage when set
+FILE_STORAGE_PATH_PREFIX=  # Path prefix for File Storage
+FILE_STORAGE_MKDIR_PERMISSION=0755   # Directory permission (default 0755)
+FILE_STORAGE_WRITE_PERMISSION=0666   # File write permission (default 0666)
+FILE_STORAGE_EXPIRATION=   # Expiration duration e.g. 24h. Default no expiration
+
+# File Result Storage
+FILE_RESULT_STORAGE_BASE_DIR=      # Base directory. Enables File Result Storage when set
+FILE_RESULT_STORAGE_PATH_PREFIX=   # Path prefix
+FILE_RESULT_STORAGE_MKDIR_PERMISSION=0755
+FILE_RESULT_STORAGE_WRITE_PERMISSION=0666
+FILE_RESULT_STORAGE_EXPIRATION=    # Expiration duration e.g. 24h. Default no expiration
+```
+
+## AWS / S3
+
+```dotenv
+# Global AWS credentials (used for all S3 operations unless overridden)
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_SESSION_TOKEN=           # Optional temporary session token
+AWS_REGION=
+
+S3_ENDPOINT=                 # Override default S3 endpoint (for S3-compatible storage)
+S3_SAFE_CHARS=               # Characters excluded from key escaping. Set -- for no-op
+S3_FORCE_PATH_STYLE=1        # Use path-style addressing (s3.amazonaws.com/bucket/key)
+
+S3_HTTP_MAX_IDLE_CONNS_PER_HOST=100  # S3 HTTP client max idle connections per host
+
+# S3 Loader
+S3_LOADER_BUCKET=            # S3 bucket. Enables S3 Loader when set
+S3_LOADER_BASE_DIR=          # Key prefix directory
+S3_LOADER_PATH_PREFIX=       # URL path prefix
+S3_LOADER_BUCKET_ROUTER_CONFIG=  # YAML config for multi-bucket routing by pattern
+S3_LOADER_ENDPOINT=          # Override S3 endpoint for Loader only
+
+# Per-component AWS credential overrides for Loader
+AWS_LOADER_ACCESS_KEY_ID=
+AWS_LOADER_SECRET_ACCESS_KEY=
+AWS_LOADER_SESSION_TOKEN=
+AWS_LOADER_REGION=
+
+# S3 Storage
+S3_STORAGE_BUCKET=           # S3 bucket. Enables S3 Storage when set
+S3_STORAGE_BASE_DIR=
+S3_STORAGE_PATH_PREFIX=
+S3_STORAGE_ACL=public-read   # Upload ACL (default public-read)
+S3_STORAGE_CLASS=STANDARD    # Storage class: STANDARD (default), REDUCED_REDUNDANCY, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, GLACIER, DEEP_ARCHIVE
+S3_STORAGE_EXPIRATION=       # Expiration duration e.g. 24h. Default no expiration
+S3_STORAGE_ENDPOINT=         # Override S3 endpoint for Storage only
+
+# Per-component AWS credential overrides for Storage
+AWS_STORAGE_ACCESS_KEY_ID=
+AWS_STORAGE_SECRET_ACCESS_KEY=
+AWS_STORAGE_SESSION_TOKEN=
+AWS_STORAGE_REGION=
+
+# S3 Result Storage
+S3_RESULT_STORAGE_BUCKET=    # S3 bucket. Enables S3 Result Storage when set
+S3_RESULT_STORAGE_BASE_DIR=
+S3_RESULT_STORAGE_PATH_PREFIX=
+S3_RESULT_STORAGE_ACL=public-read
+S3_RESULT_STORAGE_EXPIRATION=
+S3_RESULT_STORAGE_ENDPOINT=
+
+# Per-component AWS credential overrides for Result Storage
+AWS_RESULT_STORAGE_ACCESS_KEY_ID=
+AWS_RESULT_STORAGE_SECRET_ACCESS_KEY=
+AWS_RESULT_STORAGE_SESSION_TOKEN=
+AWS_RESULT_STORAGE_REGION=
+```
+
+## Google Cloud Storage
+
+```dotenv
+GCLOUD_SAFE_CHARS=           # Characters excluded from key escaping. Set -- for no-op
+
+# Google Cloud Loader
+GCLOUD_LOADER_BUCKET=        # Bucket name. Enables Google Cloud Loader when set
+GCLOUD_LOADER_BASE_DIR=
+GCLOUD_LOADER_PATH_PREFIX=
+
+# Google Cloud Storage
+GCLOUD_STORAGE_BUCKET=       # Bucket name. Enables Google Cloud Storage when set
+GCLOUD_STORAGE_BASE_DIR=
+GCLOUD_STORAGE_PATH_PREFIX=
+GCLOUD_STORAGE_ACL=          # Upload ACL
+GCLOUD_STORAGE_EXPIRATION=   # Expiration duration e.g. 24h. Default no expiration
+
+# Google Cloud Result Storage
+GCLOUD_RESULT_STORAGE_BUCKET=  # Bucket name. Enables Google Cloud Result Storage when set
+GCLOUD_RESULT_STORAGE_BASE_DIR=
+GCLOUD_RESULT_STORAGE_PATH_PREFIX=
+GCLOUD_RESULT_STORAGE_ACL=
+GCLOUD_RESULT_STORAGE_EXPIRATION=
+```
+
+## Upload Loader
+
+```dotenv
+UPLOAD_LOADER_ENABLE=1                  # Enable POST upload (opt-in, trusted environments only)
+UPLOAD_LOADER_MAX_ALLOWED_SIZE=33554432 # Max upload size in bytes (default 32 MiB)
+UPLOAD_LOADER_ACCEPT=image/*            # Accepted Content-Type (default image/*)
+UPLOAD_LOADER_FORM_FIELD_NAME=image     # Multipart form field name (default image)
+```
+
+## VIPS / Image Processing
+
+```dotenv
+VIPS_CONCURRENCY=1           # libvips thread count per operation. -1 = auto (all CPU cores)
+
+# Safety limits
+VIPS_MAX_WIDTH=              # Maximum image width in pixels
+VIPS_MAX_HEIGHT=             # Maximum image height in pixels
+VIPS_MAX_RESOLUTION=         # Maximum image resolution (width × height)
+VIPS_UNLIMITED=1             # Bypass all resolution limits (not recommended for public endpoints)
+VIPS_MAX_ANIMATION_FRAMES=   # Max animation frames to load. 1 = disable animation, -1 = unlimited
+VIPS_MAX_FILTER_OPS=-1       # Max filter operations per request (-1 = unlimited)
+VIPS_DISABLE_BLUR=1          # Disable all blur operations
+VIPS_DISABLE_FILTERS=blur,watermark  # Disable specific filters (csv)
+
+# Output
+VIPS_MOZJPEG=1               # Use MozJPEG for JPEG encoding (requires imagor-mozjpeg build)
+VIPS_AVIF_SPEED=5            # AVIF encode speed: 0 (smallest) to 9 (fastest). Default 5
+VIPS_STRIP_METADATA=1        # Strip all metadata from output images
+
+# Smart crop
+VIPS_DETECTOR_PROBE_SIZE=400  # Probe image size for smart crop detection (default 400)
+
+# libvips operation cache (rarely useful for imagor workloads — leave at defaults)
+VIPS_MAX_CACHE_MEM=0         # libvips op cache max memory (0 = disabled)
+VIPS_MAX_CACHE_SIZE=0        # libvips op cache max entries (0 = disabled)
+VIPS_MAX_CACHE_FILES=0       # libvips op cache max open files (0 = disabled)
+
+# In-memory pixel cache (see In-Memory Cache docs for details)
+VIPS_CACHE_SIZE=0            # Cache budget in bytes. 0 = disabled (default)
+VIPS_CACHE_MAX_WIDTH=2400    # Max image width to cache (default 2400)
+VIPS_CACHE_MAX_HEIGHT=2000   # Max image height to cache (default 2000)
+VIPS_CACHE_TTL=              # Cache entry TTL. 0 = no expiry (LRU eviction only)
+VIPS_CACHE_FORMAT=pixel      # Cache format: pixel (default), png (lossless), webp (lossy)
+```
+
+## Monitoring
+
+```dotenv
+# Prometheus metrics
+PROMETHEUS_BIND=:5000        # Address to expose Prometheus metrics. Disabled if not set
+PROMETHEUS_PATH=/            # Metrics path (default /)
+
+# Sentry error tracking
+SENTRY_DSN=                  # Sentry DSN. Enables Sentry integration when set
+
+# Logging
+LOG_ECS=1                    # Use Elastic Common Schema (ECS) log format
 ```
