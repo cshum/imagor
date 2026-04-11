@@ -1,5 +1,9 @@
 # Metadata and Exif
 
+:::note
+The metadata filters (`blurhash`, `thumbhash`, `avgcolor`) documented on this page are used exclusively with the `/meta` endpoint. For image processing and utility filters, see [Filters](./filters).
+:::
+
 imagor provides metadata endpoint that extracts information such as image format, resolution and Exif metadata.
 Under the hood, it tries to retrieve data just enough to extract the header, without reading and processing the whole image in memory.
 
