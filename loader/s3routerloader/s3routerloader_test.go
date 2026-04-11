@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/cshum/imagor/storage/s3storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func TestS3RouterLoader_RoutesToCorrectBucket(t *testing.T) {
 	require.NoError(t, err)
 
 	createdBuckets := make(map[string]bool)
-	factory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+	factory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
 		createdBuckets[bucket] = true
 		return s3storage.New(cfg, bucket)
 	}
@@ -48,7 +49,7 @@ func TestS3RouterLoader_Get_NoMatchingLoader(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	factory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+	factory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
 		return s3storage.New(cfg, bucket)
 	}
 
@@ -77,7 +78,7 @@ func TestS3RouterLoader_Get_UsesKeyForWithPathGroup(t *testing.T) {
 	require.NoError(t, err)
 
 	receivedKeys := make(map[string]string) // bucket -> key
-	factory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+	factory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
 		return s3storage.New(cfg, bucket)
 	}
 
@@ -110,7 +111,7 @@ func TestS3RouterLoader_PassthroughMode(t *testing.T) {
 	require.NoError(t, err)
 
 	createdBuckets := make(map[string]bool)
-	factory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+	factory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
 		createdBuckets[bucket] = true
 		return s3storage.New(cfg, bucket)
 	}
@@ -162,7 +163,7 @@ func TestS3RouterLoader_CreatesClientsForAllConfigs(t *testing.T) {
 	require.NoError(t, err)
 
 	regions := make(map[string]string)
-	factory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
+	factory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
 		regions[bucket] = cfg.Region
 		return s3storage.New(cfg, bucket)
 	}
@@ -172,4 +173,73 @@ func TestS3RouterLoader_CreatesClientsForAllConfigs(t *testing.T) {
 	assert.Equal(t, "us-east-1", regions["default"])
 	assert.Equal(t, "ap-southeast-1", regions["sg"])
 	assert.Equal(t, "eu-west-1", regions["fallback"])
+}
+
+func TestS3RouterLoader_PerBucketEndpoint(t *testing.T) {
+	bucket1 := &BucketConfig{Name: "bucket1", Endpoint: "http://minio1:9000"}
+	bucket2 := &BucketConfig{Name: "bucket2"}
+
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)\/(?P<path>.+)$`,
+		[]MatchRule{
+			{Match: "bucket1", Config: bucket1},
+			{Match: "bucket2", Config: bucket2},
+		},
+		nil,
+		nil,
+	)
+	require.NoError(t, err)
+
+	endpoints := make(map[string]string)
+	factory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
+		s := s3storage.New(cfg, bucket, extraOpts...)
+		endpoints[bucket] = s.Endpoint
+		return s
+	}
+
+	_ = New(aws.Config{Region: "us-east-1"}, router, factory)
+
+	assert.Equal(t, "http://minio1:9000", endpoints["bucket1"])
+	assert.Equal(t, "", endpoints["bucket2"])
+}
+
+func TestS3RouterLoader_PerBucketCredentials(t *testing.T) {
+	bucket1 := &BucketConfig{
+		Name:            "bucket1",
+		AccessKeyID:     "bucket1-key",
+		SecretAccessKey: "bucket1-secret",
+	}
+	bucket2 := &BucketConfig{
+		Name: "bucket2",
+	}
+
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)\/(?P<path>.+)$`,
+		[]MatchRule{
+			{Match: "bucket1", Config: bucket1},
+			{Match: "bucket2", Config: bucket2},
+		},
+		nil,
+		nil,
+	)
+	require.NoError(t, err)
+
+	configs := make(map[string]aws.Config)
+	factory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
+		configs[bucket] = cfg
+		return s3storage.New(cfg, bucket, extraOpts...)
+	}
+
+	globalCreds := credentials.NewStaticCredentialsProvider("global-key", "global-secret", "")
+	_ = New(aws.Config{Region: "us-east-1", Credentials: globalCreds}, router, factory)
+
+	creds1, err := configs["bucket1"].Credentials.Retrieve(nil)
+	require.NoError(t, err)
+	assert.Equal(t, "bucket1-key", creds1.AccessKeyID)
+	assert.Equal(t, "bucket1-secret", creds1.SecretAccessKey)
+
+	creds2, err := configs["bucket2"].Credentials.Retrieve(nil)
+	require.NoError(t, err)
+	assert.Equal(t, "global-key", creds2.AccessKeyID)
+	assert.Equal(t, "global-secret", creds2.SecretAccessKey)
 }

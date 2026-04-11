@@ -199,14 +199,16 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				endpoint = *s3Endpoint
 			}
 
-			storageFactory := func(cfg aws.Config, bucket string) *s3storage.S3Storage {
-				return s3storage.New(cfg, bucket,
+			storageFactory := func(cfg aws.Config, bucket string, extraOpts ...s3storage.Option) *s3storage.S3Storage {
+				opts := []s3storage.Option{
 					s3storage.WithPathPrefix(*s3LoaderPathPrefix),
 					s3storage.WithBaseDir(*s3LoaderBaseDir),
 					s3storage.WithSafeChars(*s3SafeChars),
 					s3storage.WithEndpoint(endpoint),
 					s3storage.WithForcePathStyle(*s3ForcePathStyle),
-				)
+				}
+				opts = append(opts, extraOpts...)
+				return s3storage.New(cfg, bucket, opts...)
 			}
 
 			loader := s3routerloader.New(loaderCfg, router, storageFactory)
