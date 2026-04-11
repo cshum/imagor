@@ -60,7 +60,17 @@ const config: Config = {
     ],
   ],
 
-  themes: ["@docusaurus/theme-mermaid"],
+  themes: [
+    "@docusaurus/theme-mermaid",
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      {
+        hashed: true,
+        indexBlog: false,
+        docsRouteBasePath: "/",
+      },
+    ],
+  ],
 
   themeConfig: {
     navbar: {
@@ -93,6 +103,10 @@ const config: Config = {
               href: "https://github.com/cshum/imagorface",
             },
           ],
+        },
+        {
+          type: "search",
+          position: "right",
         },
         {
           href: "https://github.com/cshum/imagor",
