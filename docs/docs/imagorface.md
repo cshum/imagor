@@ -11,7 +11,7 @@ imagorface brings fast, on-the-fly face detection to imagor. Built on [pigo](htt
 - **Metadata API** — detected face regions exposed through imagor `/meta` endpoint
 - **Self-hosted** — no third-party API, no per-call cost, no data egress
 
-imagorface implements the imagor [`Detector` interface](https://github.com/cshum/imagor/blob/master/detector.go), integrating with imagor [loader, storage and result storage](./storage), and supporting all [image endpoint](./image-endpoint) operations and [filters](./filters) out of the box.
+imagorface implements the imagor [`Detector` interface](https://github.com/cshum/imagor/blob/master/detector.go), integrating with imagor [loader, storage and result storage](./storage.md), and supporting all [image endpoint](./image-endpoint.md) operations and [filters](./filters.md) out of the box.
 
 :::info
 **GitHub:** [cshum/imagorface](https://github.com/cshum/imagorface)  
@@ -63,7 +63,7 @@ services:
 
 ## Smart Crop
 
-When `-face-detector` is enabled, imagorface runs face detection before the crop step. If one or more faces are detected, their bounding boxes become the focal region for [smart crop](./image-endpoint#smart-crop), replacing the default libvips attention heuristic. When no faces are found, imagor falls back to standard attention-based crop.
+When `-face-detector` is enabled, imagorface runs face detection before the crop step. If one or more faces are detected, their bounding boxes become the focal region for [smart crop](./image-endpoint.md#smart-crop), replacing the default libvips attention heuristic. When no faces are found, imagor falls back to standard attention-based crop.
 
 Face detection runs on a downscaled greyscale probe derived from raw decoded pixels, keeping overhead minimal.
 
@@ -82,7 +82,7 @@ Face detection runs on a downscaled greyscale probe derived from raw decoded pix
 
 ## Filters
 
-imagorface adds the following filters to the imagor pipeline. See [Filters](./filters) for the full filter reference.
+imagorface adds the following filters to the imagor pipeline. See [Filters](./filters.md) for the full filter reference.
 
 ### `draw_detections()`
 
@@ -141,7 +141,7 @@ http://localhost:8000/unsafe/500x250/smart/filters:redact_oval(black)/IMAGE     
 
 ## Metadata
 
-imagorface exposes detected face regions through imagor's [metadata](./metadata-and-exif) endpoint. Each region is returned in absolute pixel coordinates relative to the output image, along with a detection score and label.
+imagorface exposes detected face regions through imagor's [metadata](./metadata-and-exif.md) endpoint. Each region is returned in absolute pixel coordinates relative to the output image, along with a detection score and label.
 
 Detection only runs when the URL semantically requests it — via `smart`, `draw_detections()`, or `redact()`.
 
@@ -186,7 +186,7 @@ Enable when the same source images are frequently requested at different crop si
 
 ## Configuration
 
-Configuration options specific to imagorface. See [Configuration](./configuration) for all imagor options.
+Configuration options specific to imagorface. See [Configuration](./configuration.md) for all imagor options.
 The `-vips-detector-probe-size` option (default `400`) controls the maximum dimension of the downscaled probe image passed to any detector.
 
 ```

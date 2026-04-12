@@ -4,9 +4,9 @@
 [![Codecov](https://img.shields.io/codecov/c/github/cshum/imagorvideo)](https://codecov.io/gh/cshum/imagorvideo)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagorvideo-blue.svg)](https://hub.docker.com/r/shumc/imagorvideo/)
 
-imagorvideo brings video thumbnail capability to imagor through ffmpeg C bindings. It extracts video thumbnails by selecting the best frame using RMSE histogram analysis, then passes the frame through the full imagor pipeline for [cropping, resizing](./image-endpoint) and [filters](./filters).
+imagorvideo brings video thumbnail capability to imagor through ffmpeg C bindings. It extracts video thumbnails by selecting the best frame using RMSE histogram analysis, then passes the frame through the full imagor pipeline for [cropping, resizing](./image-endpoint.md) and [filters](./filters.md).
 
-imagorvideo implements ffmpeg read and seek I/O callbacks with imagor [loader, storage and result storage](./storage), supporting HTTP(s), File System, AWS S3 and Google Cloud Storage out of the box. For non-seekable sources such as HTTP and S3, imagorvideo simulates seek using memory or temp file buffer.
+imagorvideo implements ffmpeg read and seek I/O callbacks with imagor [loader, storage and result storage](./storage.md), supporting HTTP(s), File System, AWS S3 and Google Cloud Storage out of the box. For non-seekable sources such as HTTP and S3, imagorvideo simulates seek using memory or temp file buffer.
 
 :::info
 **GitHub:** [cshum/imagorvideo](https://github.com/cshum/imagorvideo)  
@@ -61,7 +61,7 @@ services:
 
 ## Filters
 
-imagorvideo adds the following filters, usable alongside all standard [imagor filters](./filters):
+imagorvideo adds the following filters, usable alongside all standard [imagor filters](./filters.md):
 
 ### `frame(n)`
 
@@ -131,7 +131,7 @@ http://localhost:8000/unsafe/meta/https://test-videos.co.uk/vids/bigbuckbunny/mp
 
 ## Configuration
 
-Configuration options specific to imagorvideo. See [Configuration](./configuration) for all imagor options.
+Configuration options specific to imagorvideo. See [Configuration](./configuration.md) for all imagor options.
 
 ```
   -ffmpeg-fallback-image string

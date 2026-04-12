@@ -12,7 +12,7 @@ Filters are grouped into:
 
 - [Processing Filters](#processing-filters) — image transforms
 - [Utility Filters](#utility-filters) — pipeline control
-- [Metadata Filters](./metadata-and-exif#metadata-filters) — for the `/meta` endpoint
+- [Metadata Filters](./metadata-and-exif.md#metadata-filters) — for the `/meta` endpoint
 
 ## Processing Filters
 
@@ -90,7 +90,7 @@ Crops the image after resizing.
 
 ### `draw_detections()`
 
-Draws color-coded bounding boxes on detected regions. Each class name is automatically assigned a distinct colour via hash-based palette. For use with detection plugins such as [imagorface](./imagorface). No-op when no Detector is configured.
+Draws color-coded bounding boxes on detected regions. Each class name is automatically assigned a distinct colour via hash-based palette. For use with detection plugins such as [imagorface](./imagorface.md). No-op when no Detector is configured.
 
 ---
 
@@ -102,7 +102,7 @@ Specifies the DPI to render at for PDF and SVG.
 
 ### `fill(color)`
 
-Fills the missing area or transparent image with the specified color. Commonly used with [`fit-in`](./image-endpoint#fit-in) to fill the letterboxed areas.
+Fills the missing area or transparent image with the specified color. Commonly used with [`fit-in`](./image-endpoint.md#fit-in) to fill the letterboxed areas.
 
 - `color` — color name or hexadecimal rgb expression without the `#` character
   - `blur` — missing parts are filled with a blurred original image
@@ -278,7 +278,7 @@ Changes the overall quality of the image. Does nothing for PNG.
 
 ### `redact([mode[, strength]])`
 
-Obscures all detected regions for privacy/anonymisation (e.g. GDPR face blurring, legal document redaction). Requires a detection plugin such as [imagorface](./imagorface). No-op when no Detector is configured or no regions are detected. Skips animated images.
+Obscures all detected regions for privacy/anonymisation (e.g. GDPR face blurring, legal document redaction). Requires a detection plugin such as [imagorface](./imagorface.md). No-op when no Detector is configured or no regions are detected. Skips animated images.
 
 - `mode` — `blur` (default), `pixelate`, or any color name/hex for solid fill (e.g. `black`, `white`, `ff0000`)
 - `strength` — blur sigma (default 15) or pixelate block size in pixels (default 10). Not used for solid color mode.
@@ -289,7 +289,7 @@ Examples: `redact()`, `redact(blur,20)`, `redact(pixelate)`, `redact(pixelate,15
 
 ### `redact_oval([mode[, strength]])`
 
-Identical to [`redact`](#redactmode-strength) but applies an elliptical mask to each region, producing a rounded/oval redaction shape. This is the most natural shape for face anonymisation as it closely follows the contour of a face. Same arguments and defaults as `redact`. Requires a detection plugin such as [imagorface](./imagorface).
+Identical to [`redact`](#redactmode-strength) but applies an elliptical mask to each region, producing a rounded/oval redaction shape. This is the most natural shape for face anonymisation as it closely follows the contour of a face. Same arguments and defaults as `redact`. Requires a detection plugin such as [imagorface](./imagorface.md).
 
 Examples: `redact_oval()`, `redact_oval(blur,20)`, `redact_oval(pixelate)`, `redact_oval(pixelate,15)`, `redact_oval(black)`, `redact_oval(white)`, `redact_oval(ff0000)`
 
@@ -488,7 +488,7 @@ Adds expiration time to the content. `timestamp` is the unix milliseconds timest
 
 ### `preview()`
 
-Skips the result storage even if result storage is enabled, and opts the request into the [in-memory cache](./in-memory-cache) when configured. Useful for preview contexts where the same source image is served at multiple transformations.
+Skips the result storage even if result storage is enabled, and opts the request into the [in-memory cache](./in-memory-cache.md) when configured. Useful for preview contexts where the same source image is served at multiple transformations.
 
 ---
 
@@ -502,8 +502,8 @@ Responds with a raw unprocessed and unchecked source image. Image still loads fr
 
 These filters add computed values to the metadata response. They require the full image to be downloaded and decoded.
 
-- [`blurhash(x,y)`](./metadata-and-exif#blurhashxy) — computes a [BlurHash](https://blurha.sh) string
-- [`thumbhash()`](./metadata-and-exif#thumbhash) — computes a [ThumbHash](https://evanw.github.io/thumbhash/) string
-- [`avgcolor()`](./metadata-and-exif#avgcolor) — computes the average color of the image
+- [`blurhash(x,y)`](./metadata-and-exif.md#blurhashxy) — computes a [BlurHash](https://blurha.sh) string
+- [`thumbhash()`](./metadata-and-exif.md#thumbhash) — computes a [ThumbHash](https://evanw.github.io/thumbhash/) string
+- [`avgcolor()`](./metadata-and-exif.md#avgcolor) — computes the average color of the image
 
-See [Metadata & Exif](./metadata-and-exif) for full documentation and examples.
+See [Metadata & Exif](./metadata-and-exif.md) for full documentation and examples.

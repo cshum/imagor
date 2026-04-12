@@ -6,7 +6,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 /HASH|unsafe/trim/AxB:CxD/(adaptive-)(full-)fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE
 ```
 
-- [`HASH`](./security#url-signature) is the URL signature hash, or `unsafe` if unsafe mode is used
+- [`HASH`](./security.mdx#url-signature) is the URL signature hash, or `unsafe` if unsafe mode is used
 - [`trim`](#trim) removes surrounding space in images using top-left pixel color
 - [`AxB:CxD`](#manual-crop) means manually crop the image at left-top point `AxB` and right-bottom point `CxD`. Coordinates can also be provided as float values between 0 and 1 (percentage of image dimensions)
 - [`fit-in`](#fit-in) means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `WxH`. If `full-fit-in` is specified, then the largest size is used for cropping. If `adaptive-fit-in` is specified, it inverts requested width and height if it would get a better image definition
@@ -16,11 +16,11 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - [`HALIGN`](#alignment) is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
 - [`VALIGN`](#alignment) is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 - [`smart`](#smart-crop) means using smart detection of focal points
-- [`filters`](./filters) a pipeline of image filter operations to be applied, see [Filters](./filters) section
+- [`filters`](./filters.md) a pipeline of image filter operations to be applied, see [Filters](./filters.md) section
 - [`IMAGE`](#image-uri) is the image path or URI
   - For image URI that contains `?` character, this will interfere the URL query and should be encoded with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) or equivalent
   - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64)
-  - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](./color-image) section.
+  - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](./color-image.md) section.
 
 ---
 
@@ -92,7 +92,7 @@ Control where the auto-crop is anchored using `HALIGN` and `VALIGN`:
 /unsafe/fit-in/WxH/IMAGE
 ```
 
-Resizes the image to fit **within** the given dimensions without cropping. The result may be letterboxed; use the [`fill()`](./filters#fillcolor) filter to add a background.
+Resizes the image to fit **within** the given dimensions without cropping. The result may be letterboxed; use the [`fill()`](./filters.md#fillcolor) filter to add a background.
 
 <table width="33%">
   <tr><th><code>fit-in/400x400/IMAGE</code></th></tr>
@@ -198,7 +198,7 @@ Adds padding around the image **after** resizing, where:
 - `GxH` — left and top padding in pixels
 - `IxJ` — right and bottom padding in pixels
 
-Combined with `fit-in` and [`fill()`](./filters#fillcolor), padding adds a colored border around the transparent or letterboxed content:
+Combined with `fit-in` and [`fill()`](./filters.md#fillcolor), padding adds a colored border around the transparent or letterboxed content:
 
 ```
 /unsafe/fit-in/360x360/20x20:20x20/filters:fill(yellow)/IMAGE    → 20px yellow padding on all sides
@@ -247,7 +247,7 @@ Filters are a pipeline of image operations applied after resizing. Multiple filt
 /unsafe/fit-in/400x400/filters:fill(blur):format(jpeg)/IMAGE
 ```
 
-See [Filters](./filters) for the full list of available filters.
+See [Filters](./filters.md) for the full list of available filters.
 
 ---
 
@@ -261,7 +261,7 @@ The `IMAGE` path at the end supports several special forms:
   ```
   /unsafe/400x400/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc=/
   ```
-- **Color image** — use `color:<color>` to generate a solid color image without a source. See [Color Image](./color-image).
+- **Color image** — use `color:<color>` to generate a solid color image without a source. See [Color Image](./color-image.md).
   ```
   /unsafe/400x400/color:ff8800
   /unsafe/400x400/color:transparent
