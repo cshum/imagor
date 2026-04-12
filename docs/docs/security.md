@@ -6,7 +6,7 @@ In production, always set `IMAGOR_SECRET` to require URL signatures on every req
 
 Set `IMAGOR_SECRET` to require every request URL to carry a valid HMAC signature. This prevents DDoS attacks that abuse arbitrary image operations and stops unauthenticated use of your imagor instance. Do not use `IMAGOR_UNSAFE` in production — it disables signature verification entirely.
 
-The signature hash is computed from the URL path (excluding `/unsafe/`) using the secret, then Base64 URL encoded and prepended to the path:
+The signature hash is computed from the URL path (excluding `/unsafe/`) using the secret, then Base64 URL encoded and prepended to the path. An example in Node.js:
 
 ```javascript
 const crypto = require('crypto');
@@ -23,22 +23,7 @@ console.log(sign('500x500/top/raw.githubusercontent.com/cshum/imagor/master/test
 // cST4Ko5_FqwT3BDn-Wf4gO3RFSk=/500x500/top/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png
 ```
 
-### URL Expiry
-
-Use the [`expire`](./filters#expiretimestamp) filter to give a signed URL a hard expiry time. The timestamp is unix milliseconds.
-
-```javascript
-// URL expires in 5 minutes
-const expiry = Date.now() + 5 * 60 * 1000;
-const path = `500x500/filters:expire(${expiry})/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png`;
-console.log(sign(path, 'mysecret'));
-```
-
-imagor rejects requests whose `expire` timestamp is in the past, even if the signature is otherwise valid.
-
----
-
-## Custom HMAC Signer
+### Custom HMAC Signer
 
 imagor uses SHA1 HMAC by default, the same algorithm used by [thumbor](https://thumbor.readthedocs.io/en/latest/security.html#hmac-method). SHA1 is not considered cryptographically secure today. Use `sha256` or `sha512` and optionally truncate the hash length:
 
@@ -110,6 +95,21 @@ VIPS_MAX_RESOLUTION=16800000
 VIPS_MAX_WIDTH=5000
 VIPS_MAX_HEIGHT=5000
 ```
+
+---
+
+## URL Expiry
+
+Use the [`expire`](./filters#expiretimestamp) filter to give a signed URL a hard expiry time. The timestamp is unix milliseconds.
+
+```javascript
+// URL expires in 5 minutes
+const expiry = Date.now() + 5 * 60 * 1000;
+const path = `500x500/filters:expire(${expiry})/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png`;
+console.log(sign(path, 'mysecret'));
+```
+
+imagor rejects requests whose `expire` timestamp is in the past, even if the signature is otherwise valid.
 
 ---
 
