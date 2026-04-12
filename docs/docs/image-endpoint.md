@@ -215,13 +215,18 @@ Combined with `fit-in` and [`fill()`](./filters#fillcolor), padding adds a color
 
 ```
 /unsafe/trim/IMAGE
-/unsafe/trim:top-right/IMAGE
+/unsafe/trim:bottom-right/IMAGE
+/unsafe/trim:100/IMAGE
+/unsafe/trim:bottom-right:100/IMAGE
 ```
 
-Removes surrounding border/whitespace based on the color of the corner pixel:
+Removes surrounding border/whitespace by detecting the background color from a corner pixel:
 
-- `trim` uses the top-left pixel color by default
-- `trim:top-right` uses the top-right pixel color instead
+- `trim` — uses the top-left corner pixel as the background color reference (default)
+- `trim:bottom-right` — uses the bottom-right corner pixel instead
+- `:TOLERANCE` — optional integer controlling how much color variation is still considered background
+
+Trim is applied before any resize, so it does not affect the final output dimensions:
 
 ```
 /unsafe/trim/400x400/IMAGE
