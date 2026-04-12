@@ -3,7 +3,7 @@ import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
-  title: "imagor",
+  title: "imagor documentation",
   tagline: "Fast, secure image processing server and Go library",
   favicon: "img/icon.png",
 
