@@ -59,6 +59,11 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Plugins",
       collapsed: false,
+      link: {
+        type: "generated-index",
+        description:
+          "Extend imagor with additional capabilities through plugins.",
+      },
       items: ["imagorvideo", "imagorface"],
     },
     {

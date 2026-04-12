@@ -1,3 +1,7 @@
+---
+description: Extends imagor with face detection — enables face-centred smart crop and privacy redaction for images.
+---
+
 # imagorface
 
 [![Test Status](https://github.com/cshum/imagorface/workflows/test/badge.svg)](https://github.com/cshum/imagorface/actions/workflows/test.yml)

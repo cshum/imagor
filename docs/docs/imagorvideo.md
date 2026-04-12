@@ -1,3 +1,7 @@
+---
+description: Extends imagor with video thumbnail extraction — pull frames from video files and process them through the full imagor pipeline.
+---
+
 # imagorvideo
 
 [![Test Status](https://github.com/cshum/imagorvideo/workflows/test/badge.svg)](https://github.com/cshum/imagorvideo/actions/workflows/test.yml)
