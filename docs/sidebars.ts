@@ -43,7 +43,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: "generated-index",
         description:
-          "Advanced topics covering metadata, color profiles, in-memory caching, performance tuning, file upload, and build variants.",
+          "Advanced topics covering metadata, in-memory caching, color profiles, performance tuning, file upload, and build variants.",
       },
       items: [
         "metadata-and-exif",

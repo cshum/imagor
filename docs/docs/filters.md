@@ -16,8 +16,6 @@ Filters are grouped into:
 
 ## Processing Filters
 
-imagor supports the following filters:
-
 ### `background_color(color)`
 
 Sets the background color of a transparent image.
