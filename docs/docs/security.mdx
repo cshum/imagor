@@ -187,17 +187,17 @@ Use the [`expire`](./filters#expiretimestamp) filter to give a signed URL a hard
         ```
     </TabItem>
     <TabItem value="go" label="Go">
-        ```go
-        import (
+    ```go
+    import (
         "fmt"
         "time"
-        )
+    )
 
-        // URL expires in 5 minutes
-        expiry := time.Now().UnixMilli() + 5*60*1000
-        path := fmt.Sprintf("500x500/filters:expire(%d)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png", expiry)
-        fmt.Println(sign(path, "mysecret"))
-        ```
+    // URL expires in 5 minutes
+    expiry := time.Now().UnixMilli() + 5*60*1000
+    path := fmt.Sprintf("500x500/filters:expire(%d)/raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png", expiry)
+    fmt.Println(sign(path, "mysecret"))
+    ```
     </TabItem>
 </Tabs>
 
