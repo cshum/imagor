@@ -10,13 +10,13 @@ imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS 
 
 ## Loader
 
-- [HTTP Loader](./loader-http) — Default loader for remote HTTP/HTTPS images
+- [HTTP Loader](./loader-http.md) — Default loader for remote HTTP/HTTPS images
 
 ## Storage
 
-- [File System](./storage-filesystem) — Local file system storage using mounted volumes
+- [File System](./storage-filesystem.md) — Local file system storage using mounted volumes
 - [AWS S3](./storage-s3) — Amazon S3 and S3-compatible storage (MinIO, DigitalOcean Spaces)
-- [Google Cloud Storage](./storage-gcloud) — Google Cloud Storage buckets
+- [Google Cloud Storage](./storage-gcloud.md) — Google Cloud Storage buckets
 
 ## Storage and Result Storage Path Style
 

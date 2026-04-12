@@ -17,7 +17,7 @@ imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-st
 
 imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
 
-imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](./imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
+imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](./imagorvideo.md) bringing video thumbnail capability through ffmpeg C bindings.
 
 ```bash
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
@@ -49,8 +49,8 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 **What's Next**
 
-- [**Image Endpoint**](./image-endpoint) — URL syntax for cropping, resizing, fitting, padding and smart crop
-- [**Filters**](./filters) — full filter reference: blur, watermark, format conversion, text overlay and more
-- [**Storage**](./storage) — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
-- [**Security**](./security) — enable URL signing, restrict image sources and harden for production
-- [**Configuration**](./configuration) — full configuration reference for all flags and environment variables
+- [**Image Endpoint**](./image-endpoint.md) — URL syntax for cropping, resizing, fitting, padding and smart crop
+- [**Filters**](./filters.md) — full filter reference: blur, watermark, format conversion, text overlay and more
+- [**Storage**](./storage.md) — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
+- [**Security**](./security.mdx) — enable URL signing, restrict image sources and harden for production
+- [**Configuration**](./configuration.md) — full configuration reference for all flags and environment variables
