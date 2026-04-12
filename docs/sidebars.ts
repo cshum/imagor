@@ -47,8 +47,8 @@ const sidebars: SidebarsConfig = {
       },
       items: [
         "metadata-and-exif",
-        "color-image",
         "in-memory-cache",
+        "color-image",
         "vips-performance",
         "post-upload",
         "mozjpeg-support",
