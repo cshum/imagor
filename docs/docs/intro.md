@@ -45,7 +45,9 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif" height="100" />
 
-## What's Next
+<br /><br />
+
+**What's Next**
 
 - [**Image Endpoint**](./image-endpoint) — URL syntax for cropping, resizing, fitting, padding and smart crop
 - [**Filters**](./filters) — full filter reference: blur, watermark, format conversion, text overlay and more
