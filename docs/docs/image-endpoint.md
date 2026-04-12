@@ -12,7 +12,7 @@ imagor endpoint is a series of URL parts which defines the image operations, fol
 - [`fit-in`](#fit-in) means that the generated image should not be auto-cropped and otherwise just fit in an imaginary box specified by `WxH`. If `full-fit-in` is specified, then the largest size is used for cropping. If `adaptive-fit-in` is specified, it inverts requested width and height if it would get a better image definition
 - [`stretch`](#stretch) means resize the image to `WxH` without keeping its aspect ratio
 - [`-Ex-F`](#resize--crop) means resize the image to be `ExF` of width per height size. The minus signs mean flip horizontally and vertically
-- [`GxH:IxJ`](#padding) add left-top padding `GxH` and right-bottom padding `IxJ`, placed **after** the resize dimensions in the URL
+- [`GxH:IxJ`](#padding) add left-top padding `GxH` and right-bottom padding `IxJ`, placed after the resize dimensions in the URL
 - [`HALIGN`](#alignment) is horizontal alignment of crop. Accepts `left`, `right` or `center`, defaults to `center`
 - [`VALIGN`](#alignment) is vertical alignment of crop. Accepts `top`, `bottom` or `middle`, defaults to `middle`
 - [`smart`](#smart-crop) means using smart detection of focal points
@@ -193,7 +193,7 @@ Manually crops the image at left-top point `AxB` to right-bottom point `CxD` **b
 /unsafe/fit-in/WxH/GxH:IxJ/IMAGE
 ```
 
-Adds padding around the image **after** resizing, where:
+Adds padding around the image after resizing, where:
 
 - `GxH` — left and top padding in pixels
 - `IxJ` — right and bottom padding in pixels
