@@ -15,7 +15,7 @@ imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS 
 ## Storage
 
 - [File System](./storage-filesystem.md) — Local file system storage using mounted volumes
-- [AWS S3](./storage-s3.md) — Amazon S3 and S3-compatible storage (MinIO, DigitalOcean Spaces)
+- [AWS S3](./storage-s3.md) — Amazon S3 and S3-compatible storage (Cloudflare R2, MinIO, DigitalOcean Spaces)
 - [Google Cloud Storage](./storage-gcloud.md) — Google Cloud Storage buckets
 
 ## [Storage and Result Storage Path Style](./storage-path-style.md)

@@ -1,6 +1,6 @@
 # AWS S3
 
-imagor supports AWS S3 for Loader, Storage, and Result Storage. It is also compatible with S3-compatible services such as [MinIO](https://min.io) and DigitalOcean Spaces.
+imagor supports AWS S3 for Loader, Storage, and Result Storage. It is also compatible with S3-compatible services such as Cloudflare R2, MinIO and DigitalOcean Spaces.
 
 Enable each role by setting the corresponding bucket environment variable:
 
@@ -38,7 +38,7 @@ services:
 
 ## Custom S3 Endpoint
 
-Configure custom S3 endpoint for S3 compatible such as MinIO, DigitalOcean Space:
+Configure custom S3 endpoint for S3-compatible services such as Cloudflare R2, MinIO, DigitalOcean Spaces:
 
 ```yaml
       S3_ENDPOINT: http://minio:9000
