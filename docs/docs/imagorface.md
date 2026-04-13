@@ -33,37 +33,44 @@ Original image:
 https://raw.githubusercontent.com/cshum/imagorface/refs/heads/main/testdata/people.jpg
 ```
 
-<img src="/img/imagorface/people.jpg" width="500" />
+<img src="/img/imagorface/people.jpg" width="300" />
 
 Try these URLs:
 ```
-http://localhost:8000/unsafe/500x250/smart/IMAGE
-http://localhost:8000/unsafe/500x250/smart/filters:draw_detections()/IMAGE
-http://localhost:8000/unsafe/500x250/smart/filters:redact()/IMAGE
-http://localhost:8000/unsafe/500x250/smart/filters:redact(pixelate)/IMAGE
-http://localhost:8000/unsafe/500x250/smart/filters:redact(black)/IMAGE
-http://localhost:8000/unsafe/500x250/smart/filters:redact_oval()/IMAGE
+http://localhost:8000/unsafe/500x250/smart/https://raw.githubusercontent.com/cshum/imagorface/refs/heads/main/testdata/people.jpg
+http://localhost:8000/unsafe/500x250/smart/filters:draw_detections()/https://raw.githubusercontent.com/cshum/imagorface/refs/heads/main/testdata/people.jpg
+http://localhost:8000/unsafe/500x250/smart/filters:redact()/https://raw.githubusercontent.com/cshum/imagorface/refs/heads/main/testdata/people.jpg
+http://localhost:8000/unsafe/500x250/smart/filters:redact(pixelate)/https://raw.githubusercontent.com/cshum/imagorface/refs/heads/main/testdata/people.jpg
+http://localhost:8000/unsafe/500x250/smart/filters:redact(black)/https://raw.githubusercontent.com/cshum/imagorface/refs/heads/main/testdata/people.jpg
+http://localhost:8000/unsafe/500x250/smart/filters:redact_oval()/https://raw.githubusercontent.com/cshum/imagorface/refs/heads/main/testdata/people.jpg
 ```
 
-## Docker Compose Example
-
-```yaml
-version: "3"
-services:
-  imagor:
-    image: shumc/imagorface:latest
-    environment:
-      PORT: 8000
-      IMAGOR_SECRET: mysecret
-
-      FACE_DETECTOR: 1                  # enable face detection for smart crop
-      FACE_DETECTOR_MIN_SIZE: 20        # min face size in pixels on probe image
-      FACE_DETECTOR_MIN_QUALITY: 5.0    # detection quality threshold
-      FACE_DETECTOR_CACHE_SIZE: 500     # cache detection results per source image
-      FACE_DETECTOR_CACHE_TTL: 1h       # cache TTL (0 = no expiry)
-    ports:
-      - "8000:8000"
-```
+<table>
+  <tr>
+    <th width="50%"><code>500x250/smart</code></th>
+    <th width="50%"><code>500x250/smart/filters:draw_detections()</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/imagorface/demo-smart-crop.jpg" /></td>
+    <td><img src="/img/imagorface/demo-draw-detections.jpg" /></td>
+  </tr>
+  <tr>
+    <th><code>filters:redact()</code></th>
+    <th><code>filters:redact(pixelate)</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/imagorface/demo-redact-blur.jpg" /></td>
+    <td><img src="/img/imagorface/demo-redact-pixelate.jpg" /></td>
+  </tr>
+  <tr>
+    <th><code>filters:redact(black)</code></th>
+    <th><code>filters:redact_oval()</code></th>
+  </tr>
+  <tr>
+    <td><img src="/img/imagorface/demo-redact-black.jpg" /></td>
+    <td><img src="/img/imagorface/demo-redact-oval.jpg" /></td>
+  </tr>
+</table>
 
 ## Smart Crop
 
@@ -187,6 +194,26 @@ FACE_DETECTOR_CACHE_TTL=1h    # cache TTL. 0 = no expiry (LRU eviction only)
 Enable when the same source images are frequently requested at different crop sizes. Set `FACE_DETECTOR_CACHE_TTL` if source images may change at the same path. Leave disabled for highly varied or user-supplied image paths.
 
 ---
+
+## Docker Compose Example
+
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagorface:latest
+    environment:
+      PORT: 8000
+      IMAGOR_SECRET: mysecret
+
+      FACE_DETECTOR: 1                  # enable face detection for smart crop
+      FACE_DETECTOR_MIN_SIZE: 20        # min face size in pixels on probe image
+      FACE_DETECTOR_MIN_QUALITY: 5.0    # detection quality threshold
+      FACE_DETECTOR_CACHE_SIZE: 500     # cache detection results per source image
+      FACE_DETECTOR_CACHE_TTL: 1h       # cache TTL (0 = no expiry)
+    ports:
+      - "8000:8000"
+```
 
 ## Configuration
 

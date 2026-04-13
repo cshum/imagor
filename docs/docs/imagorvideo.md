@@ -47,22 +47,6 @@ http://localhost:8000/unsafe/300x0/7x7/filters:frame(0.6):label(imagorvideo,10,-
 
 imagorvideo streams a limited number of frames from the video, calculates the histogram of each frame, and selects the best one based on Root Mean Square Error (RMSE). This skips black frames that commonly occur at the start of videos. The selected frame is converted to RGB and forwarded to the imagor libvips processor.
 
-## Docker Compose Example
-
-```yaml
-version: "3"
-services:
-  imagor:
-    image: shumc/imagorvideo:latest
-    environment:
-      PORT: 8000
-      IMAGOR_SECRET: mysecret
-
-      FFMPEG_FALLBACK_IMAGE: "path/to/fallback.jpg" # optional - fallback image on processing error
-    ports:
-      - "8000:8000"
-```
-
 ## Filters
 
 imagorvideo adds the following filters, usable alongside all standard [imagor filters](./filters.md):
@@ -132,6 +116,22 @@ http://localhost:8000/unsafe/meta/https://test-videos.co.uk/vids/bigbuckbunny/mp
 ```
 
 ---
+
+## Docker Compose Example
+
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagorvideo:latest
+    environment:
+      PORT: 8000
+      IMAGOR_SECRET: mysecret
+
+      FFMPEG_FALLBACK_IMAGE: "path/to/fallback.jpg" # optional - fallback image on processing error
+    ports:
+      - "8000:8000"
+```
 
 ## Configuration
 
