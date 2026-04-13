@@ -43,8 +43,6 @@ http://localhost:8000/unsafe/300x0/7x7/filters:frame(0.6):label(imagorvideo,10,-
   </tr>
 </table>
 
-## How It Works
-
 imagorvideo streams a limited number of frames from the video, calculates the histogram of each frame, and selects the best one based on Root Mean Square Error (RMSE). This skips black frames that commonly occur at the start of videos. The selected frame is converted to RGB and forwarded to the imagor libvips processor.
 
 ## Filters
