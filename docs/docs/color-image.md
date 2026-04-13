@@ -24,7 +24,7 @@ Examples:
 
 ```
 http://localhost:8000/unsafe/200x200/color:red
-http://localhost:8000/unsafe/100x100/filters:format(png)/color:transparent
+http://localhost:8000/unsafe/100x100/filters:format(png)/color:none
 http://localhost:8000/unsafe/300x300/filters:round_corner(20):format(png)/color:ff6600
 http://localhost:8000/unsafe/50x50/filters:format(png)/color:ff000080
 ```

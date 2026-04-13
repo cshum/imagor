@@ -264,5 +264,5 @@ The `IMAGE` path at the end supports several special forms:
 - **Color image** — use `color:<color>` to generate a solid color image without a source. See [Color Image](./color-image.md).
   ```
   /unsafe/400x400/color:ff8800
-  /unsafe/400x400/color:transparent
+  /unsafe/400x400/color:none
   ```
