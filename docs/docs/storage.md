@@ -15,27 +15,9 @@ imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS 
 ## Storage
 
 - [File System](./storage-filesystem.md) — Local file system storage using mounted volumes
-- [AWS S3](./storage-s3) — Amazon S3 and S3-compatible storage (MinIO, DigitalOcean Spaces)
+- [AWS S3](./storage-s3.md) — Amazon S3 and S3-compatible storage (MinIO, DigitalOcean Spaces)
 - [Google Cloud Storage](./storage-gcloud.md) — Google Cloud Storage buckets
 
-## Storage and Result Storage Path Style
+## [Storage and Result Storage Path Style](./storage-path-style.md)
 
-`Storage` and `Result Storage` path style enables additional hashing rules to the storage path when loading and saving images:
-
-`IMAGOR_STORAGE_PATH_STYLE=digest`
-
-* `foobar.jpg` becomes `e6/86/1a810ff186b4f747ef85f7c53946f0e6d8cb`
-
-`IMAGOR_RESULT_STORAGE_PATH_STYLE=digest`
-
-* `fit-in/16x17/foobar.jpg` becomes `61/4c/9ba1725e8cdd8263a4ad437c56b35f33deba`
-
-`IMAGOR_RESULT_STORAGE_PATH_STYLE=suffix`
-
-* `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e.jpg`
-* `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729`
-
-`IMAGOR_RESULT_STORAGE_PATH_STYLE=size`
-
-* `166x169/top/foobar.jpg` becomes `foobar.45d8ebb31bd4ed80c26e_166x169.jpg`
-* `17x19/smart/example.com/foobar` becomes `example.com/foobar.ddd349e092cda6d9c729_17x19`
+Enables additional hashing rules to the storage key when loading and saving images. Accepts `original` (default), `digest`, `suffix`, or `size`.

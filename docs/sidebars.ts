@@ -30,6 +30,11 @@ const sidebars: SidebarsConfig = {
         "storage-s3",
         "storage-gcloud",
         "loader-http",
+        {
+          type: "doc",
+          id: "storage-path-style",
+          label: "Path Style",
+        },
       ],
     },
     {
