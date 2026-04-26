@@ -1516,6 +1516,34 @@ func TestAutoAVIF(t *testing.T) {
 	})
 }
 
+func TestAutoAVIFFallsBackToWebPForLikelyAnimatedSources(t *testing.T) {
+	app := New(
+		WithDebug(true),
+		WithUnsafe(true),
+		WithAutoAVIF(true),
+		WithAutoWebP(true),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("foo")), nil
+		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			return NewBlobFromBytes([]byte(p.Path)), nil
+		})),
+	)
+
+	for _, image := range []string{"animated.gif", "animated.webp", "https://example.com/animated.gif"} {
+		t.Run(image, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(
+				http.MethodGet, "https://example.com/unsafe/"+image, nil)
+			r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+			app.ServeHTTP(w, r)
+			assert.Equal(t, 200, w.Code)
+			assert.Equal(t, "Accept", w.Header().Get("Vary"))
+			assert.Equal(t, "filters:format(webp)/"+image, w.Body.String())
+		})
+	}
+}
+
 func TestAutoJPEG(t *testing.T) {
 	factory := func(isAuto bool) *Imagor {
 		return New(

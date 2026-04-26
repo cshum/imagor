@@ -340,7 +340,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	// auto WebP / AVIF / JPEG
 	if !hasFormat && (app.AutoWebP || app.AutoAVIF || app.AutoJPEG) {
 		accept := r.Header.Get("Accept")
-		if app.AutoAVIF && strings.Contains(accept, "image/avif") {
+		mayBeAnimated := mayBeAnimatedSource(p.Image)
+		if app.AutoAVIF && strings.Contains(accept, "image/avif") && !mayBeAnimated {
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
 				Args: "avif",
@@ -795,6 +796,15 @@ func (app *Imagor) del(ctx context.Context, storages []Storage, key string) {
 	}
 	wg.Wait()
 	return
+}
+
+func mayBeAnimatedSource(image string) bool {
+	path := image
+	if u, err := url.Parse(image); err == nil && u.Path != "" {
+		path = u.Path
+	}
+	path = strings.ToLower(path)
+	return strings.HasSuffix(path, ".gif") || strings.HasSuffix(path, ".webp")
 }
 
 type suppressKey struct {
