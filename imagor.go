@@ -345,6 +345,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				Name: "format",
 				Args: "avif",
 			})
+			if app.AutoWebP && strings.Contains(accept, "image/webp") {
+				p.Filters = append(p.Filters, imagorpath.Filter{
+					Name: "fallback_format",
+					Args: "webp",
+				})
+			}
 			r.Header.Set("Imagor-Auto-Format", "avif") // response Vary: Accept header
 			isPathChanged = true
 		} else if app.AutoWebP && strings.Contains(accept, "image/webp") {

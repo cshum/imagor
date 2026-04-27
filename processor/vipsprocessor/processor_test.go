@@ -525,6 +525,36 @@ func TestProcessor(t *testing.T) {
 			})
 		}
 	})
+	t.Run("auto avif falls back to animated webp", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithAutoAVIF(true),
+			imagor.WithAutoWebP(true),
+			imagor.WithProcessors(NewProcessor()),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/unsafe/dancing-banana.gif", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+
+		require.Equal(t, 200, w.Code)
+		assert.Equal(t, "image/webp", w.Header().Get("Content-Type"))
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+
+		blob := imagor.NewBlobFromBytes(w.Body.Bytes())
+		assert.Equal(t, imagor.BlobTypeWEBP, blob.BlobType())
+
+		img, err := vips.NewImageFromBuffer(w.Body.Bytes(), &vips.LoadOptions{N: -1})
+		require.NoError(t, err)
+		defer img.Close()
+		assert.Greater(t, img.Height(), img.PageHeight(), "expected animated frames to be preserved")
+	})
 	t.Run("resolution exceeded bmp 2", func(t *testing.T) {
 		app := imagor.New(
 			imagor.WithLoaders(filestorage.New(testDataDir)),

@@ -37,6 +37,7 @@ func IsAnimationSupported(imageType vips.ImageType) bool {
 // exportParams holds parameters needed for image export
 type exportParams struct {
 	format        vips.ImageType
+	fallback      vips.ImageType
 	quality       int
 	compression   int
 	bitdepth      int
@@ -75,6 +76,7 @@ func (v *Processor) Process(
 	defer img.Close()
 
 	params := v.extractExportParams(p, blob, img)
+	v.applyAutoFormatFallback(img, params)
 
 	// Handle metadata response
 	if p.Meta {
@@ -189,6 +191,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		stripMetadata = v.StripMetadata
 		maxBytes      int
 		format        = vips.ImageTypeUnknown
+		fallback      = vips.ImageTypeUnknown
 	)
 
 	for _, f := range p.Filters {
@@ -199,6 +202,10 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		case "format":
 			if imageType, ok := imageTypeMap[f.Args]; ok {
 				format = supportedSaveFormat(imageType)
+			}
+		case "fallback_format":
+			if imageType, ok := imageTypeMap[f.Args]; ok {
+				fallback = supportedSaveFormat(imageType)
 			}
 		case "quality":
 			quality, _ = strconv.Atoi(f.Args)
@@ -230,6 +237,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 
 	return &exportParams{
 		format:        format,
+		fallback:      fallback,
 		quality:       quality,
 		compression:   compression,
 		bitdepth:      bitdepth,
@@ -237,6 +245,19 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		stripMetadata: stripMetadata,
 		maxBytes:      maxBytes,
 	}
+}
+
+func (v *Processor) applyAutoFormatFallback(img *vips.Image, params *exportParams) {
+	if params == nil || params.fallback == vips.ImageTypeUnknown {
+		return
+	}
+	if !isAnimated(img) {
+		return
+	}
+	if IsAnimationSupported(params.format) || !IsAnimationSupported(params.fallback) {
+		return
+	}
+	params.format = params.fallback
 }
 
 // loadAndProcess loads the image from blob and applies all transformations
@@ -310,6 +331,15 @@ func (v *Processor) loadAndProcess(
 	if blob != nil && !blob.SupportsAnimation() {
 		maxN = 1
 	}
+	fallbackFormat := vips.ImageTypeUnknown
+	for _, f := range p.Filters {
+		if f.Name != "fallback_format" {
+			continue
+		}
+		if imageType, ok := imageTypeMap[f.Args]; ok {
+			fallbackFormat = supportedSaveFormat(imageType)
+		}
+	}
 	for _, f := range p.Filters {
 		if v.disableFilters[f.Name] {
 			continue
@@ -318,7 +348,7 @@ func (v *Processor) loadAndProcess(
 		case "format":
 			if imageType, ok := imageTypeMap[f.Args]; ok {
 				format := supportedSaveFormat(imageType)
-				if !IsAnimationSupported(format) {
+				if !IsAnimationSupported(format) && !IsAnimationSupported(fallbackFormat) {
 					// no frames if export format not support animation
 					maxN = 1
 				}
