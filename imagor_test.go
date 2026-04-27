@@ -1633,7 +1633,7 @@ func TestAutoFormatPrecedence(t *testing.T) {
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "Accept", w.Header().Get("Vary"))
-		assert.Equal(t, "filters:format(avif)/abc.png", w.Body.String())
+		assert.Equal(t, "filters:format(avif):fallback_format(webp)/abc.png", w.Body.String())
 	})
 
 	t.Run("WebP takes precedence over JPEG when AVIF not supported", func(t *testing.T) {
