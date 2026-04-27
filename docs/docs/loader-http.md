@@ -11,34 +11,6 @@ By default, the HTTP Loader accepts requests to any URL. To restrict which hosts
 
 When either option is set, requests to unlisted sources will be rejected.
 
-## Docker Compose Example
-
-```yaml
-version: "3"
-services:
-  imagor:
-    image: shumc/imagor:latest
-    environment:
-      PORT: 8000
-      IMAGOR_SECRET: mysecret # secret key for URL signature
-
-      HTTP_LOADER_ALLOWED_SOURCES: "*.example.com,images.mysite.com" # restrict to allowed hosts
-
-      HTTP_LOADER_BASE_URL: https://images.mysite.com # optional - prepend base URL to image path
-      HTTP_LOADER_DEFAULT_SCHEME: https # optional - default scheme if not specified (default: https)
-
-      HTTP_LOADER_FORWARD_HEADERS: "Accept,Accept-Language" # optional - forward selected request headers
-      HTTP_LOADER_FORWARD_CLIENT_HEADERS: 0 # optional - forward all browser client headers
-
-      HTTP_LOADER_MAX_ALLOWED_SIZE: 20971520 # optional - max image size in bytes (e.g. 20MB)
-
-      HTTP_LOADER_BLOCK_LOOPBACK_NETWORKS: 1 # optional - block loopback IPs (SSRF protection)
-      HTTP_LOADER_BLOCK_PRIVATE_NETWORKS: 1 # optional - block private IPs (SSRF protection)
-      HTTP_LOADER_BLOCK_LINK_LOCAL_NETWORKS: 1 # optional - block link-local IPs (SSRF protection)
-    ports:
-      - "8000:8000"
-```
-
 ## Base URL
 
 Set `HTTP_LOADER_BASE_URL` to prepend a fixed base URL to all image paths. This is useful for serving images from a single origin — it trims the base URL from the image endpoint, keeping URLs shorter.
