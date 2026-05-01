@@ -497,6 +497,35 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("grayscale watermark regression", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(WithDebug(true))),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet,
+			"/unsafe/600x400/center/middle/filters:grayscale():watermark(gopher-front.png,-10,-10,0,13,none)/demo1.jpg",
+			nil,
+		))
+
+		require.Equal(t, 200, w.Code)
+		blob := imagor.NewBlobFromBytes(w.Body.Bytes())
+		assert.NotEqual(t, imagor.BlobTypeUnknown, blob.BlobType())
+
+		img, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
+		require.NoError(t, err)
+		defer img.Close()
+		assert.GreaterOrEqual(t, img.Bands(), 3)
+	})
 	t.Run("unlimited does not break loaders without unlimited support", func(t *testing.T) {
 		app := imagor.New(
 			imagor.WithLoaders(filestorage.New(testDataDir)),
