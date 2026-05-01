@@ -212,22 +212,27 @@ func parseOverlayPosition(arg string, canvasSize, overlaySize int, hAlign, vAlig
 	return pos, 1
 }
 
-// compositeOverlay transforms and composites overlay image onto the base image
-// Handles color space, alpha channel, positioning, repeat patterns, cropping, and animation frames
-// Returns early without compositing if overlay is completely outside canvas bounds
-func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64, blendMode vips.BlendMode) error {
-	// Composite requires a color base; grayscale filters can leave the image at 1 or 2 bands.
+func ensureCompositeColor(img *vips.Image) error {
 	if img.Bands() < 3 {
 		if err := img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+// compositeOverlay transforms and composites overlay image onto the base image
+// Handles color space, alpha channel, positioning, repeat patterns, cropping, and animation frames
+// Returns early without compositing if overlay is completely outside canvas bounds
+
+func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64, blendMode vips.BlendMode) error {
+	if err := ensureCompositeColor(img); err != nil {
+		return err
+	}
 
 	// Ensure overlay has proper color space and alpha
-	if overlay.Bands() < 3 {
-		if err := overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
-			return err
-		}
+	if err := ensureCompositeColor(overlay); err != nil {
+		return err
 	}
 	if !overlay.HasAlpha() {
 		if err := overlay.Addalpha(); err != nil {

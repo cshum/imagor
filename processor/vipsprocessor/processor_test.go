@@ -908,6 +908,67 @@ func TestProcessor(t *testing.T) {
 			{name: "redact_oval color hex", path: "filters:redact_oval(ff0000)/gopher-front.png"},
 		}, WithDetector(stub))
 	})
+	t.Run("grayscale round_corner regression", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(WithDebug(true))),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet,
+			"/unsafe/filters:grayscale():round_corner(20):format(png)/demo1.jpg",
+			nil,
+		))
+
+		require.Equal(t, 200, w.Code)
+		blob := imagor.NewBlobFromBytes(w.Body.Bytes())
+		assert.NotEqual(t, imagor.BlobTypeUnknown, blob.BlobType())
+
+		img, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
+		require.NoError(t, err)
+		defer img.Close()
+		assert.GreaterOrEqual(t, img.Bands(), 3)
+	})
+	t.Run("grayscale redact_oval regression", func(t *testing.T) {
+		stub := &stubDetector{regions: []imagor.DetectorRegion{{
+			Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face",
+		}}}
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(WithDebug(true), WithDetector(stub))),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet,
+			"/unsafe/filters:grayscale():redact_oval()/demo1.jpg",
+			nil,
+		))
+
+		require.Equal(t, 200, w.Code)
+		blob := imagor.NewBlobFromBytes(w.Body.Bytes())
+		assert.NotEqual(t, imagor.BlobTypeUnknown, blob.BlobType())
+
+		img, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
+		require.NoError(t, err)
+		defer img.Close()
+		assert.GreaterOrEqual(t, img.Bands(), 3)
+	})
 	t.Run("meta with detector", func(t *testing.T) {
 		stub := &stubDetector{regions: []imagor.DetectorRegion{
 			{Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face", Score: 9.5},
