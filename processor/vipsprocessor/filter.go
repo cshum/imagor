@@ -55,7 +55,7 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 			return
 		}
 	}
-	if err = ensureCompositeColor(img); err != nil {
+	if err = ensureCompositeSRGB(img); err != nil {
 		return
 	}
 	if err = img.Composite2(rounded, vips.BlendModeDestIn, nil); err != nil {

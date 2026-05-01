@@ -125,7 +125,7 @@ func parseRedactArgs(args []string) (mode string, strength int) {
 // the patch before compositing, producing a rounded redaction shape.
 func applyRedactRegion(img *vips.Image, left, top, rw, rh int, mode string, strength int, oval bool) error {
 	if oval {
-		if err := ensureCompositeColor(img); err != nil {
+		if err := ensureCompositeSRGB(img); err != nil {
 			return err
 		}
 	}

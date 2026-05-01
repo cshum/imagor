@@ -212,7 +212,7 @@ func parseOverlayPosition(arg string, canvasSize, overlaySize int, hAlign, vAlig
 	return pos, 1
 }
 
-func ensureCompositeColor(img *vips.Image) error {
+func ensureCompositeSRGB(img *vips.Image) error {
 	if img.Bands() < 3 {
 		if err := img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
 			return err
@@ -226,12 +226,12 @@ func ensureCompositeColor(img *vips.Image) error {
 // Returns early without compositing if overlay is completely outside canvas bounds
 
 func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64, blendMode vips.BlendMode) error {
-	if err := ensureCompositeColor(img); err != nil {
+	if err := ensureCompositeSRGB(img); err != nil {
 		return err
 	}
 
 	// Ensure overlay has proper color space and alpha
-	if err := ensureCompositeColor(overlay); err != nil {
+	if err := ensureCompositeSRGB(overlay); err != nil {
 		return err
 	}
 	if !overlay.HasAlpha() {
