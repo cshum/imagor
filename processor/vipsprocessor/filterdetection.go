@@ -124,6 +124,12 @@ func parseRedactArgs(args []string) (mode string, strength int) {
 // bounding-box region on img.  When oval is true an ellipse mask is applied to
 // the patch before compositing, producing a rounded redaction shape.
 func applyRedactRegion(img *vips.Image, left, top, rw, rh int, mode string, strength int, oval bool) error {
+	if oval {
+		if err := ensureCompositeSRGB(img); err != nil {
+			return err
+		}
+	}
+
 	switch mode {
 	case "pixelate":
 		blockSize := 10
