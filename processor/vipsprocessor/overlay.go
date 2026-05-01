@@ -216,6 +216,13 @@ func parseOverlayPosition(arg string, canvasSize, overlaySize int, hAlign, vAlig
 // Handles color space, alpha channel, positioning, repeat patterns, cropping, and animation frames
 // Returns early without compositing if overlay is completely outside canvas bounds
 func compositeOverlay(img *vips.Image, overlay *vips.Image, xArg, yArg string, alpha float64, blendMode vips.BlendMode) error {
+	// Composite requires a color base; grayscale filters can leave the image at 1 or 2 bands.
+	if img.Bands() < 3 {
+		if err := img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+			return err
+		}
+	}
+
 	// Ensure overlay has proper color space and alpha
 	if overlay.Bands() < 3 {
 		if err := overlay.Colourspace(vips.InterpretationSrgb, nil); err != nil {
