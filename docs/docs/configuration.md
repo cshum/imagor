@@ -267,6 +267,7 @@ VIPS_CACHE_FORMAT=pixel      # Cache format: pixel (default), png (lossless), we
 # Prometheus metrics
 PROMETHEUS_BIND=:5000        # Address to expose Prometheus metrics. Disabled if not set
 PROMETHEUS_PATH=/            # Metrics path (default /)
+PROMETHEUS_NAMESPACE=imagor  # Metrics namespace (default imagor)
 
 # Sentry error tracking
 SENTRY_DSN=                  # Sentry DSN. Enables Sentry integration when set

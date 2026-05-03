@@ -164,8 +164,9 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		sentryDsn = fs.String("sentry-dsn", "",
 			"Sentry DSN config")
 
-		prometheusBind = fs.String("prometheus-bind", "", "Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000")
-		prometheusPath = fs.String("prometheus-path", "/", "Prometheus metrics path")
+		prometheusBind      = fs.String("prometheus-bind", "", "Specify address and port to enable Prometheus metrics, e.g. :5000, prom:7000")
+		prometheusPath      = fs.String("prometheus-path", "/", "Prometheus metrics path")
+		prometheusNamespace = fs.String("prometheus-namespace", prometheusmetrics.DefaultNamespace, "Prometheus metrics namespace")
 	)
 
 	app = NewImagor(fs, func() (*zap.Logger, bool) {
@@ -226,6 +227,7 @@ func CreateServer(args []string, funcs ...Option) (srv *server.Server) {
 		pm = prometheusmetrics.New(
 			prometheusmetrics.WithAddr(*prometheusBind),
 			prometheusmetrics.WithPath(*prometheusPath),
+			prometheusmetrics.WithNamespace(*prometheusNamespace),
 			prometheusmetrics.WithLogger(logger),
 		)
 	}

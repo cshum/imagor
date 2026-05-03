@@ -21,6 +21,7 @@ func TestWithOption(t *testing.T) {
 		v := New()
 		assert.Empty(t, v.Addr)
 		assert.Equal(t, v.Path, "/")
+		assert.Equal(t, DefaultNamespace, v.Namespace)
 		assert.NotNil(t, v.Logger)
 	})
 
@@ -29,9 +30,11 @@ func TestWithOption(t *testing.T) {
 		v := New(
 			WithAddr("domain.example.com:1111"),
 			WithPath("/myprom"),
+			WithNamespace("custom"),
 			WithLogger(l),
 		)
 		assert.Equal(t, "/myprom", v.Path)
+		assert.Equal(t, "custom", v.Namespace)
 		assert.Equal(t, "domain.example.com:1111", v.Addr)
 		assert.Equal(t, &l, &v.Logger)
 		w := httptest.NewRecorder()
@@ -170,7 +173,7 @@ func TestHandle(t *testing.T) {
 	defer func() { prometheus.DefaultRegisterer = originalRegisterer }()
 
 	v := New()
-	
+
 	// Create a test handler
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -189,9 +192,9 @@ func TestHandle(t *testing.T) {
 	t.Run("middleware wraps handler", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/test", nil)
-		
+
 		wrappedHandler.ServeHTTP(w, r)
-		
+
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "test response", w.Body.String())
 	})
@@ -199,17 +202,54 @@ func TestHandle(t *testing.T) {
 	t.Run("metrics are collected", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodPost, "/api/test", nil)
-		
+
 		wrappedHandler.ServeHTTP(w, r)
-		
+
 		// Check that the wrapped handler still works correctly
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "test response", w.Body.String())
-		
+
 		// The metrics collection is tested by the fact that the middleware
 		// wraps the handler without errors and prometheus instrumentation
 		// is applied (verified by the successful startup and handler wrapping)
 	})
+}
+
+func TestWithNamespaceMetricName(t *testing.T) {
+	registry := prometheus.NewRegistry()
+	originalRegisterer := prometheus.DefaultRegisterer
+	prometheus.DefaultRegisterer = registry
+	defer func() { prometheus.DefaultRegisterer = originalRegisterer }()
+
+	v := New(
+		WithAddr(":0"),
+		WithNamespace("custom"),
+	)
+
+	ctx := context.Background()
+	err := v.Startup(ctx)
+	require.NoError(t, err)
+	defer v.Close()
+
+	wrappedHandler := v.Handle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+	}))
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	wrappedHandler.ServeHTTP(w, r)
+
+	metricFamilies, err := registry.Gather()
+	require.NoError(t, err)
+
+	found := false
+	for _, metricFamily := range metricFamilies {
+		if metricFamily.GetName() == "custom_http_request_duration_seconds" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected namespaced HTTP request duration metric")
 }
 
 func TestPrometheusMetricsIntegration(t *testing.T) {
@@ -239,7 +279,7 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 		v.Handler.ServeHTTP(w, r)
-		
+
 		assert.Equal(t, http.StatusOK, w.Code)
 		// Check that we get prometheus metrics output (the specific metric may not be visible
 		// until requests are made through the instrumented handler)
@@ -249,7 +289,7 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 		w = httptest.NewRecorder()
 		r = httptest.NewRequest(http.MethodGet, "/", nil)
 		v.Handler.ServeHTTP(w, r)
-		
+
 		assert.Equal(t, http.StatusPermanentRedirect, w.Code)
 		assert.Equal(t, "/metrics", w.Header().Get("Location"))
 
@@ -257,8 +297,8 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 		logEntries := logs.All()
 		found := false
 		for _, entry := range logEntries {
-			if entry.Message == "prometheus listen" && 
-			   strings.Contains(entry.ContextMap()["path"].(string), "/metrics") {
+			if entry.Message == "prometheus listen" &&
+				strings.Contains(entry.ContextMap()["path"].(string), "/metrics") {
 				found = true
 				break
 			}
@@ -292,4 +332,10 @@ func TestWithPath(t *testing.T) {
 	path := "/custom-metrics"
 	v := New(WithPath(path))
 	assert.Equal(t, path, v.Path)
+}
+
+func TestWithNamespace(t *testing.T) {
+	namespace := "custom"
+	v := New(WithNamespace(namespace))
+	assert.Equal(t, namespace, v.Namespace)
 }

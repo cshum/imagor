@@ -210,11 +210,13 @@ func TestPrometheusBind(t *testing.T) {
 		"-bind", ":2345",
 		"-prometheus-bind", ":6789",
 		"-prometheus-path", "/myprom",
+		"-prometheus-namespace", "custom",
 	})
 	assert.Equal(t, ":2345", srv.Addr)
 	pm := srv.Metrics.(*prometheusmetrics.PrometheusMetrics)
-	assert.Equal(t, pm.Path, "/myprom")
-	assert.Equal(t, pm.Addr, ":6789")
+	assert.Equal(t, "/myprom", pm.Path)
+	assert.Equal(t, "custom", pm.Namespace)
+	assert.Equal(t, ":6789", pm.Addr)
 }
 
 func TestUploadLoader(t *testing.T) {
