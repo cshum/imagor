@@ -9,29 +9,25 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	httpRequestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "http_request_duration_seconds",
-			Help: "A histogram of latencies for requests",
-		},
-		[]string{"code", "method"},
-	)
-)
+const DefaultNamespace = "imagor"
+
+var httpRequestDuration *prometheus.HistogramVec
 
 // PrometheusMetrics wraps the Service with additional http and app lifecycle handling
 type PrometheusMetrics struct {
 	http.Server
 
-	Path   string
-	Logger *zap.Logger
+	Path      string
+	Namespace string
+	Logger    *zap.Logger
 }
 
 // New create new metrics PrometheusMetrics
 func New(options ...Option) *PrometheusMetrics {
 	s := &PrometheusMetrics{
-		Path:   "/",
-		Logger: zap.NewNop(),
+		Path:      "/",
+		Namespace: DefaultNamespace,
+		Logger:    zap.NewNop(),
 	}
 	for _, option := range options {
 		option(s)
@@ -46,7 +42,21 @@ func New(options ...Option) *PrometheusMetrics {
 	} else {
 		s.Handler = promhttp.Handler()
 	}
+
+	s.prepareMetrics()
+
 	return s
+}
+
+func (s *PrometheusMetrics) prepareMetrics() {
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: s.Namespace,
+			Name:      "http_request_duration_seconds",
+			Help:      "A histogram of latencies for requests",
+		},
+		[]string{"code", "method"},
+	)
 }
 
 // Startup prometheus metrics server
@@ -83,6 +93,13 @@ func WithAddr(addr string) Option {
 func WithPath(path string) Option {
 	return func(s *PrometheusMetrics) {
 		s.Path = path
+	}
+}
+
+// WithNamespace with namespace option
+func WithNamespace(namespace string) Option {
+	return func(s *PrometheusMetrics) {
+		s.Namespace = namespace
 	}
 }
 
