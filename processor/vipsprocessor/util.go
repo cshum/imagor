@@ -12,6 +12,11 @@ import (
 // linearRGB applies linear RGB transformation to an image
 // Automatically handles alpha channel if present
 func linearRGB(img *vips.Image, a, b []float64) error {
+	if img.Bands() < 3 || img.Interpretation() != vips.InterpretationSrgb {
+		if err := img.Colourspace(vips.InterpretationSrgb, nil); err != nil {
+			return err
+		}
+	}
 	if img.HasAlpha() {
 		a = append(a, 1)
 		b = append(b, 0)
