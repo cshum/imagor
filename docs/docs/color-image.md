@@ -10,6 +10,8 @@ Use `color:<color>` as the image path to generate a solid color or transparent i
 /unsafe/{width}x{height}/color:{color}
 ```
 
+This behaves like any other imagor source image once generated, so you can still resize it, crop it, add rounded corners, composite it with `image()`, or change the output format.
+
 Supported color values:
 
 | Format | Example | Description |
@@ -29,4 +31,7 @@ http://localhost:8000/unsafe/300x300/filters:round_corner(20):format(png)/color:
 http://localhost:8000/unsafe/50x50/filters:format(png)/color:ff000080
 ```
 
-All existing filters and transformations work with color images. When no dimensions are specified, defaults to 1×1. When only width or height is specified, the other defaults to the same value.
+- Transparent outputs such as `color:none` usually make the most sense with a format that supports alpha, such as PNG.
+- All existing filters and transformations work with color images.
+- When no dimensions are specified, imagor defaults to a 1×1 image.
+- When only width or height is specified, the other dimension defaults to the same value.

@@ -255,13 +255,27 @@ See [Filters](./filters.md) for the full list of available filters.
 
 The `IMAGE` path at the end supports several special forms:
 
+- Use a plain path or URL when the source is already safe to place at the end of the endpoint.
+- Encode the full source URL with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) when it contains query parameters such as `?foo=bar`.
+- Use `b64:` when the source contains characters that are awkward to keep in the path form, or when you want the safest transport form for a full remote URL.
+
 - **Plain URL** — `raw.githubusercontent.com/cshum/imagor/master/testdata/gopher.png`
 - **URL with query string** — encode with [`encodeURIComponent`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent) if the URL contains `?`
+  ```
+  https%3A%2F%2Fexample.com%2Fimage.jpg%3Fv%3D123%26download%3D1
+  ```
 - **Base64 URL** — use `b64:` prefix with [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding for URLs with special characters:
+  ```
+  Source URL:
+  https://example.com/image.jpg?size=large&download=1
+
+  Endpoint form:
+  /unsafe/400x400/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc_c2l6ZT1sYXJnZSZkb3dubG9hZD0x/
+  ```
   ```
   /unsafe/400x400/b64:aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZS5qcGc=/
   ```
-- **Color image** — use `color:<color>` to generate a solid color image without a source. See [Color Image](./color-image.md).
+- **Color image** — use `color:<color>` to generate a solid color or transparent image without loading from a source. Supports named colors, `none`, and hex values with optional alpha. See [Color Image](./color-image.md).
   ```
   /unsafe/400x400/color:ff8800
   /unsafe/400x400/color:none
