@@ -131,6 +131,36 @@
   background-color: var(--ifm-color-emphasis-100);
 }
 
+/* Imagor Cloud navbar button */
+.navbar-buy-button {
+  background-color: var(--ifm-color-primary) !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+  margin-left: 0.5rem !important;
+  margin-right: 0.75rem !important;
+}
+
+.navbar-buy-button:hover {
+  background-color: var(--ifm-color-primary-light) !important;
+  color: white !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="dark"] .navbar-buy-button {
+  background-color: var(--ifm-color-primary) !important;
+  color: #0a0a0a !important;
+}
+
+[data-theme="dark"] .navbar-buy-button:hover {
+  background-color: var(--ifm-color-primary-light) !important;
+  color: #0a0a0a !important;
+}
+
 /* Screenshot image containers */
 .screenshot-container {
   max-width: 800px;
