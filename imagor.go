@@ -326,7 +326,6 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			r.Header.Set("Imagor-Raw", "1")
 			isRaw = true
 		case "preview":
-			r.Header.Set("Cache-Control", "no-cache")
 			hasPreview = true // disable result storage on preview() filter
 		}
 		// exclude utility filters from result path
