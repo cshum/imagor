@@ -2,9 +2,9 @@
 
 imagor `Loader`, `Storage` and `Result Storage` are the building blocks for loading and saving images from various sources:
 
-- `Loader` loads image. Enable `Loader` where you wish to load images from, but without modifying it e.g. static directory.
-- `Storage` loads and saves image. This allows subsequent requests for the same image loads directly from the storage, instead of HTTP source.
-- `Result Storage` loads and saves the processed image. This allows subsequent request of the same parameters loads from the result storage, saving processing resources.
+- `Loader` loads source images.
+- `Storage` loads and saves source images for reuse on later requests.
+- `Result Storage` loads and saves processed images for reuse on later requests.
 
 imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS S3 and Google Cloud Storage. By default, `HTTP Loader` is used as fallback. You can choose to enable additional adaptors that fit your use cases.
 
@@ -28,9 +28,9 @@ This keeps storage keys portable across backends, but literal filenames or objec
 
 Use the backend-specific safe chars setting to preserve additional literal characters:
 
-- `FILE_SAFE_CHARS`
-- `S3_SAFE_CHARS`
-- `GCLOUD_SAFE_CHARS`
+- [`FILE_SAFE_CHARS`](./storage-filesystem.md#path-escaping-and-safe-chars)
+- [`S3_SAFE_CHARS`](./storage-s3.md#key-escaping-and-safe-chars)
+- [`GCLOUD_SAFE_CHARS`](./storage-gcloud.md#key-escaping-and-safe-chars)
 
 For example, to preserve literal brackets in source keys:
 
