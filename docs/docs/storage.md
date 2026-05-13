@@ -42,6 +42,12 @@ GCLOUD_SAFE_CHARS=[]
 
 To disable escaping entirely, set the safe chars value to `--`.
 
+```dotenv
+FILE_SAFE_CHARS=--
+S3_SAFE_CHARS=--
+GCLOUD_SAFE_CHARS=--
+```
+
 ## [Storage and Result Storage Path Style](./storage-path-style.md)
 
 Enables additional hashing rules to the storage key when loading and saving images. Accepts `original` (default), `digest`, `suffix`, or `size`.
