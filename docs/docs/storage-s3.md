@@ -5,7 +5,7 @@ imagor supports AWS S3 for Loader, Storage, and Result Storage. It is also compa
 Enable each role by setting the corresponding bucket environment variable:
 
 - `S3_LOADER_BUCKET` — load source images from S3
-- `S3_STORAGE_BUCKET` — cache source images to S3
+- `S3_STORAGE_BUCKET` — store source images in S3
 - `S3_RESULT_STORAGE_BUCKET` — store processed results to S3
 
 ## Key Escaping And Safe Chars
@@ -45,35 +45,6 @@ S3_SAFE_CHARS=--
 ```
 
 For storage key naming options beyond safe chars, see [Storage and Result Storage Path Style](./storage-path-style.md).
-
-## Docker Compose Example
-
-```yaml
-version: "3"
-services:
-  imagor:
-    image: shumc/imagor:latest
-    environment:
-      PORT: 8000
-      IMAGOR_SECRET: mysecret # secret key for URL signature
-      AWS_ACCESS_KEY_ID: ...
-      AWS_SECRET_ACCESS_KEY: ...
-      AWS_REGION: ...
-      S3_SAFE_CHARS: "[]" # optional - preserve literal brackets in object keys
-
-      S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying bucket
-      S3_LOADER_BASE_DIR: images # optional
-
-      S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying bucket
-      S3_STORAGE_BASE_DIR: images # optional
-      S3_STORAGE_ACL: public-read # optional - see https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
-
-      S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
-      S3_RESULT_STORAGE_BASE_DIR: images/result # optional
-      S3_RESULT_STORAGE_ACL: public-read # optional
-    ports:
-      - "8000:8000"
-```
 
 ## Custom S3 Endpoint
 
@@ -218,6 +189,35 @@ services:
       AWS_SECRET_ACCESS_KEY: ...
       AWS_REGION: us-east-1
       S3_LOADER_BUCKET_ROUTER_CONFIG: /etc/imagor/bucket-routing.yaml
+    ports:
+      - "8000:8000"
+```
+
+## Docker Compose Example
+
+```yaml
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:latest
+    environment:
+      PORT: 8000
+      IMAGOR_SECRET: mysecret # secret key for URL signature
+      AWS_ACCESS_KEY_ID: ...
+      AWS_SECRET_ACCESS_KEY: ...
+      AWS_REGION: ...
+      S3_SAFE_CHARS: "[]" # optional - preserve literal brackets in object keys
+
+      S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying bucket
+      S3_LOADER_BASE_DIR: images # optional
+
+      S3_STORAGE_BUCKET: mybucket # enable S3 storage by specifying bucket
+      S3_STORAGE_BASE_DIR: images # optional
+      S3_STORAGE_ACL: public-read # optional - see https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
+
+      S3_RESULT_STORAGE_BUCKET: mybucket # enable S3 result storage by specifying bucket
+      S3_RESULT_STORAGE_BASE_DIR: images/result # optional
+      S3_RESULT_STORAGE_ACL: public-read # optional
     ports:
       - "8000:8000"
 ```

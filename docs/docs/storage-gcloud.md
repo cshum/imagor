@@ -5,7 +5,7 @@ imagor supports Google Cloud Storage for Loader, Storage, and Result Storage.
 Enable each role by setting the corresponding bucket environment variable:
 
 - `GCLOUD_LOADER_BUCKET` — load source images from GCS
-- `GCLOUD_STORAGE_BUCKET` — cache source images to GCS
+- `GCLOUD_STORAGE_BUCKET` — store source images in GCS
 - `GCLOUD_RESULT_STORAGE_BUCKET` — store processed results to GCS
 
 ## Key Escaping And Safe Chars
@@ -25,6 +25,18 @@ To disable escaping entirely:
 ```dotenv
 GCLOUD_SAFE_CHARS=--
 ```
+
+## Wildcard Bucket (Dynamic Bucket from Path)
+
+Google Cloud Storage supports the same `*` bucket paradigm as S3:
+
+```dotenv
+GCLOUD_LOADER_BUCKET=*          # enable GCS loader with dynamic bucket from path
+GCLOUD_STORAGE_BUCKET=*         # enable GCS storage with dynamic bucket from path
+GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket from path
+```
+
+A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
 
 ## Docker Compose Example
 
@@ -54,15 +66,3 @@ services:
     ports:
       - "8000:8000"
 ```
-
-## Wildcard Bucket (Dynamic Bucket from Path)
-
-Google Cloud Storage supports the same `*` bucket paradigm as S3:
-
-```dotenv
-GCLOUD_LOADER_BUCKET=*          # enable GCS loader with dynamic bucket from path
-GCLOUD_STORAGE_BUCKET=*         # enable GCS storage with dynamic bucket from path
-GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket from path
-```
-
-A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
