@@ -8,6 +8,24 @@ Enable each role by setting the corresponding bucket environment variable:
 - `GCLOUD_STORAGE_BUCKET` — cache source images to GCS
 - `GCLOUD_RESULT_STORAGE_BUCKET` — store processed results to GCS
 
+## Key Escaping And Safe Chars
+
+imagor normalizes object keys before using them for Google Cloud Loader, Storage, or Result Storage. Reserved characters are escaped by default.
+
+If your object keys contain literal reserved characters such as `[` and `]`, allow them with `GCLOUD_SAFE_CHARS`:
+
+```dotenv
+GCLOUD_SAFE_CHARS=[]
+```
+
+Example: an object stored as `images/aa[1].gif` requires `GCLOUD_SAFE_CHARS=[]`.
+
+To disable escaping entirely:
+
+```dotenv
+GCLOUD_SAFE_CHARS=--
+```
+
 ## Docker Compose Example
 
 ```yaml
@@ -21,6 +39,7 @@ services:
       PORT: 8000
       IMAGOR_SECRET: mysecret # secret key for URL signature
       GOOGLE_APPLICATION_CREDENTIALS: /etc/secrets/google/appcredentials.json # google cloud secrets file
+      GCLOUD_SAFE_CHARS: "[]" # optional - preserve literal brackets in object keys
 
       GCLOUD_LOADER_BUCKET: mybucket # enable loader by specifying bucket
       GCLOUD_LOADER_BASE_DIR: images # optional

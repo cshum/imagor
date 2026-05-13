@@ -18,6 +18,30 @@ imagor provides built-in adaptors that support HTTP(s), Proxy, File System, AWS 
 - [AWS S3](./storage-s3.md) — Amazon S3 and S3-compatible storage (Cloudflare R2, MinIO, DigitalOcean Spaces)
 - [Google Cloud Storage](./storage-gcloud.md) — Google Cloud Storage buckets
 
+## Storage Key Normalization
+
+imagor normalizes image keys before passing them to File System, S3, or Google Cloud Storage.
+
+By default, imagor preserves alphanumeric characters, `/`, and the standard unreserved URL characters `-`, `_`, `.`, and `~`. Other characters are escaped unless you allow them with the backend-specific safe chars setting.
+
+This keeps storage keys portable across backends, but literal filenames or object keys containing reserved characters such as `[` and `]` will not match unless those characters are configured as safe.
+
+Use the backend-specific safe chars setting to preserve additional literal characters:
+
+- `FILE_SAFE_CHARS`
+- `S3_SAFE_CHARS`
+- `GCLOUD_SAFE_CHARS`
+
+For example, to preserve literal brackets in source keys:
+
+```dotenv
+FILE_SAFE_CHARS=[]
+S3_SAFE_CHARS=[]
+GCLOUD_SAFE_CHARS=[]
+```
+
+To disable escaping entirely, set the safe chars value to `--`.
+
 ## [Storage and Result Storage Path Style](./storage-path-style.md)
 
 Enables additional hashing rules to the storage key when loading and saving images. Accepts `original` (default), `digest`, `suffix`, or `size`.

@@ -111,6 +111,8 @@ HTTP_LOADER_DISABLE=1                  # Disable HTTP Loader entirely
 
 ## File System
 
+`FILE_SAFE_CHARS`, `S3_SAFE_CHARS`, and `GCLOUD_SAFE_CHARS` control which extra literal characters imagor preserves when normalizing storage keys. Use `[]` to preserve brackets, or `--` to disable escaping.
+
 ```dotenv
 FILE_SAFE_CHARS=           # Characters excluded from path escaping. Set -- for no-op
 

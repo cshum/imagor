@@ -8,6 +8,44 @@ Enable each role by setting the corresponding bucket environment variable:
 - `S3_STORAGE_BUCKET` — cache source images to S3
 - `S3_RESULT_STORAGE_BUCKET` — store processed results to S3
 
+## Key Escaping And Safe Chars
+
+imagor normalizes object keys before using them for S3 Loader, Storage, or Result Storage. In addition to alphanumeric characters, `/`, `-`, `_`, `.`, and `~`, imagor also preserves `!"()*` for S3 by default. Other characters are escaped unless allowed with `S3_SAFE_CHARS`.
+
+For AWS object key guidance, see the AWS documentation on [safe characters in object keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters).
+
+For result storage with the default path style, the processed image key is based on the request path in normalized form.
+
+Example:
+
+```text
+fit-in/1800x1800/filters:format(jpeg):quality(90)/test.jpg
+```
+
+becomes:
+
+```text
+fit-in/1800x1800/filters%3Aformat%28jpeg%29%3Aquality%2890%29/test.jpg
+```
+
+This is because `:()` are escaped by default.
+
+If your object keys contain literal reserved characters such as `[` and `]`, allow them with:
+
+```dotenv
+S3_SAFE_CHARS=[]
+```
+
+Example: an object stored as `images/aa[1].gif` requires `S3_SAFE_CHARS=[]`.
+
+To disable escaping entirely:
+
+```dotenv
+S3_SAFE_CHARS=--
+```
+
+For storage key naming options beyond safe chars, see [Storage and Result Storage Path Style](./storage-path-style.md).
+
 ## Docker Compose Example
 
 ```yaml
@@ -21,6 +59,7 @@ services:
       AWS_ACCESS_KEY_ID: ...
       AWS_SECRET_ACCESS_KEY: ...
       AWS_REGION: ...
+      S3_SAFE_CHARS: "[]" # optional - preserve literal brackets in object keys
 
       S3_LOADER_BUCKET: mybucket # enable S3 loader by specifying bucket
       S3_LOADER_BASE_DIR: images # optional

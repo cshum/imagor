@@ -2,6 +2,8 @@
 
 `Storage` and `Result Storage` path style enables additional hashing rules to the storage path when loading and saving images. By default (`original`), the image path is used as-is.
 
+The examples below show the logical storage path style output before backend-specific key normalization. File System, S3, and Google Cloud Storage may still escape characters according to their safe chars settings.
+
 ## Storage Path Style
 
 `IMAGOR_STORAGE_PATH_STYLE` controls the key used when loading or saving the source image in storage. Accepts `original` (default) or `digest`.
@@ -29,6 +31,8 @@ IMAGOR_STORAGE_PATH_STYLE=digest
 ### `original` (default)
 
 The full request path including processing parameters is used as the result storage key unchanged.
+
+On backends that normalize keys, reserved characters in that path may still be escaped unless configured as safe.
 
 ### `digest`
 
