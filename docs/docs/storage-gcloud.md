@@ -8,24 +8,6 @@ Enable each role by setting the corresponding bucket environment variable:
 - `GCLOUD_STORAGE_BUCKET` — store source images in GCS
 - `GCLOUD_RESULT_STORAGE_BUCKET` — store processed results to GCS
 
-## Key Escaping And Safe Chars
-
-imagor normalizes object keys before using them for Google Cloud Loader, Storage, or Result Storage. Reserved characters are escaped by default.
-
-If your object keys contain literal reserved characters such as `[` and `]`, allow them with `GCLOUD_SAFE_CHARS`:
-
-```dotenv
-GCLOUD_SAFE_CHARS=[]
-```
-
-Example: an object stored as `images/aa[1].gif` requires `GCLOUD_SAFE_CHARS=[]`.
-
-To disable escaping entirely:
-
-```dotenv
-GCLOUD_SAFE_CHARS=--
-```
-
 ## Base Directory And Path Prefix
 
 These settings control different parts of the lookup flow:
@@ -53,17 +35,29 @@ Settings:
 - `GCLOUD_STORAGE_PATH_PREFIX`
 - `GCLOUD_RESULT_STORAGE_PATH_PREFIX`
 
-## Wildcard Bucket (Dynamic Bucket from Path)
+## Key Escaping And Safe Chars
 
-Google Cloud Storage supports the same `*` bucket paradigm as S3:
+imagor normalizes object keys before using them for Google Cloud Loader, Storage, or Result Storage. Reserved characters are escaped by default.
+
+If your object keys contain literal reserved characters such as `[` and `]`, allow them with `GCLOUD_SAFE_CHARS`:
 
 ```dotenv
-GCLOUD_LOADER_BUCKET=*          # enable GCS loader with dynamic bucket from path
-GCLOUD_STORAGE_BUCKET=*         # enable GCS storage with dynamic bucket from path
-GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket from path
+GCLOUD_SAFE_CHARS=[]
 ```
 
-A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
+Example: an object stored as `images/aa[1].gif` requires `GCLOUD_SAFE_CHARS=[]`.
+
+To disable escaping entirely:
+
+```dotenv
+GCLOUD_SAFE_CHARS=--
+```
+
+## ACL
+
+`GCLOUD_STORAGE_ACL` and `GCLOUD_RESULT_STORAGE_ACL` are optional.
+
+Set these only when your Google Cloud Storage bucket policy requires a specific predefined ACL on writes.
 
 ## Expiration
 
@@ -79,6 +73,18 @@ GCLOUD_RESULT_STORAGE_EXPIRATION=168h
 ```
 
 If you want old objects removed, use Google Cloud Storage lifecycle management or your own bucket retention workflow.
+
+## Wildcard Bucket (Dynamic Bucket from Path)
+
+Google Cloud Storage supports the same `*` bucket paradigm as S3:
+
+```dotenv
+GCLOUD_LOADER_BUCKET=*          # enable GCS loader with dynamic bucket from path
+GCLOUD_STORAGE_BUCKET=*         # enable GCS storage with dynamic bucket from path
+GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket from path
+```
+
+A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
 
 ## Docker Compose Example
 

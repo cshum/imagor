@@ -8,26 +8,6 @@ Enable each role by setting the corresponding base directory environment variabl
 - `FILE_STORAGE_BASE_DIR` — store source images in the local file system
 - `FILE_RESULT_STORAGE_BASE_DIR` — store processed results to the local file system
 
-## Path Escaping And Safe Chars
-
-imagor normalizes file paths before using them for File Loader, Storage, or Result Storage. Reserved characters are escaped by default.
-
-For safety, file paths containing dotfile-style segments such as `/.git` are rejected by default.
-
-If your filenames contain literal reserved characters, allow them with `FILE_SAFE_CHARS`.
-
-```dotenv
-FILE_SAFE_CHARS=[]
-```
-
-Example: a file named `photos/aa[1].gif` requires `FILE_SAFE_CHARS=[]`.
-
-To disable escaping entirely:
-
-```dotenv
-FILE_SAFE_CHARS=--
-```
-
 ## Base Directory And Path Prefix
 
 These settings control different parts of the lookup flow:
@@ -51,6 +31,26 @@ Settings:
 - `FILE_LOADER_PATH_PREFIX`
 - `FILE_STORAGE_PATH_PREFIX`
 - `FILE_RESULT_STORAGE_PATH_PREFIX`
+
+## Path Escaping And Safe Chars
+
+imagor normalizes file paths before using them for File Loader, Storage, or Result Storage. Reserved characters are escaped by default.
+
+For safety, file paths containing dotfile-style segments such as `/.git` are rejected by default.
+
+If your filenames contain literal reserved characters, allow them with `FILE_SAFE_CHARS`.
+
+```dotenv
+FILE_SAFE_CHARS=[]
+```
+
+Example: a file named `photos/aa[1].gif` requires `FILE_SAFE_CHARS=[]`.
+
+To disable escaping entirely:
+
+```dotenv
+FILE_SAFE_CHARS=--
+```
 
 ## Expiration
 

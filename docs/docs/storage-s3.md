@@ -8,83 +8,6 @@ Enable each role by setting the corresponding bucket environment variable:
 - `S3_STORAGE_BUCKET` — store source images in S3
 - `S3_RESULT_STORAGE_BUCKET` — store processed results to S3
 
-## Key Escaping And Safe Chars
-
-imagor normalizes object keys before using them for S3 Loader, Storage, or Result Storage. In addition to alphanumeric characters, `/`, `-`, `_`, `.`, and `~`, imagor also preserves `!"()*` for S3 by default. Other characters are escaped unless allowed with `S3_SAFE_CHARS`.
-
-For AWS object key guidance, see the AWS documentation on [safe characters in object keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters).
-
-For result storage with the default path style, the processed image key is based on the request path in normalized form.
-
-Example:
-
-```text
-fit-in/1800x1800/filters:format(jpeg):quality(90)/test.jpg
-```
-
-becomes:
-
-```text
-fit-in/1800x1800/filters%3Aformat%28jpeg%29%3Aquality%2890%29/test.jpg
-```
-
-This is because `:()` are escaped by default.
-
-If your object keys contain literal reserved characters such as `[` and `]`, allow them with:
-
-```dotenv
-S3_SAFE_CHARS=[]
-```
-
-Example: an object stored as `images/aa[1].gif` requires `S3_SAFE_CHARS=[]`.
-
-To disable escaping entirely:
-
-```dotenv
-S3_SAFE_CHARS=--
-```
-
-For storage key naming options beyond safe chars, see [Storage and Result Storage Path Style](./storage-path-style.md).
-
-## Base Directory And Path Prefix
-
-These settings control different parts of the lookup flow:
-
-- `S3_*_BASE_DIR` selects the key prefix inside the bucket where imagor reads or writes.
-- `S3_*_PATH_PREFIX` restricts which normalized request paths that role accepts.
-
-imagor first normalizes the request path, checks that it starts with `S3_*_PATH_PREFIX`, removes that prefix, and then joins the remaining path under `S3_*_BASE_DIR` to build the final object key.
-
-Use them together when one bucket contains multiple logical path trees and imagor should only handle one of them.
-
-Example:
-
-- Request path: `avatars/user-1.jpg`
-- `S3_STORAGE_PATH_PREFIX=avatars`
-- `S3_STORAGE_BASE_DIR=source`
-- Stored object key: `source/user-1.jpg`
-
-Settings:
-
-- `S3_LOADER_BASE_DIR`
-- `S3_STORAGE_BASE_DIR`
-- `S3_RESULT_STORAGE_BASE_DIR`
-- `S3_LOADER_PATH_PREFIX`
-- `S3_STORAGE_PATH_PREFIX`
-- `S3_RESULT_STORAGE_PATH_PREFIX`
-
-## Storage Class
-
-`S3_STORAGE_CLASS` controls the storage class used when saving source and result objects.
-
-Supported values are `STANDARD`, `REDUCED_REDUNDANCY`, `STANDARD_IA`, `ONEZONE_IA`, `INTELLIGENT_TIERING`, `GLACIER`, and `DEEP_ARCHIVE`.
-
-## ACL
-
-`S3_STORAGE_ACL` and `S3_RESULT_STORAGE_ACL` are optional.
-
-By default, imagor does not send an ACL header on S3 writes. Set these only when your bucket policy and S3 backend require a specific canned ACL.
-
 ## Custom S3 Endpoint
 
 Configure custom S3 endpoint for S3-compatible services such as Cloudflare R2, MinIO, DigitalOcean Spaces:
@@ -129,6 +52,118 @@ AWS_RESULT_STORAGE_SECRET_ACCESS_KEY
 AWS_RESULT_STORAGE_SESSION_TOKEN
 S3_RESULT_STORAGE_ENDPOINT
 ```
+
+## Base Directory And Path Prefix
+
+These settings control different parts of the lookup flow:
+
+- `S3_*_BASE_DIR` selects the key prefix inside the bucket where imagor reads or writes.
+- `S3_*_PATH_PREFIX` restricts which normalized request paths that role accepts.
+
+imagor first normalizes the request path, checks that it starts with `S3_*_PATH_PREFIX`, removes that prefix, and then joins the remaining path under `S3_*_BASE_DIR` to build the final object key.
+
+Use them together when one bucket contains multiple logical path trees and imagor should only handle one of them.
+
+Example:
+
+- Request path: `avatars/user-1.jpg`
+- `S3_STORAGE_PATH_PREFIX=avatars`
+- `S3_STORAGE_BASE_DIR=source`
+- Stored object key: `source/user-1.jpg`
+
+Settings:
+
+- `S3_LOADER_BASE_DIR`
+- `S3_STORAGE_BASE_DIR`
+- `S3_RESULT_STORAGE_BASE_DIR`
+- `S3_LOADER_PATH_PREFIX`
+- `S3_STORAGE_PATH_PREFIX`
+- `S3_RESULT_STORAGE_PATH_PREFIX`
+
+## Key Escaping And Safe Chars
+
+imagor normalizes object keys before using them for S3 Loader, Storage, or Result Storage. In addition to alphanumeric characters, `/`, `-`, `_`, `.`, and `~`, imagor also preserves `!"()*` for S3 by default. Other characters are escaped unless allowed with `S3_SAFE_CHARS`.
+
+For AWS object key guidance, see the AWS documentation on [safe characters in object keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html#object-key-guidelines-safe-characters).
+
+For result storage with the default path style, the processed image key is based on the request path in normalized form.
+
+Example:
+
+```text
+fit-in/1800x1800/filters:format(jpeg):quality(90)/test.jpg
+```
+
+becomes:
+
+```text
+fit-in/1800x1800/filters%3Aformat%28jpeg%29%3Aquality%2890%29/test.jpg
+```
+
+This is because `:()` are escaped by default.
+
+If your object keys contain literal reserved characters such as `[` and `]`, allow them with:
+
+```dotenv
+S3_SAFE_CHARS=[]
+```
+
+Example: an object stored as `images/aa[1].gif` requires `S3_SAFE_CHARS=[]`.
+
+To disable escaping entirely:
+
+```dotenv
+S3_SAFE_CHARS=--
+```
+
+For storage key naming options beyond safe chars, see [Storage and Result Storage Path Style](./storage-path-style.md).
+
+## Storage Class
+
+`S3_STORAGE_CLASS` controls the storage class used when saving source and result objects.
+
+Supported values are `STANDARD`, `REDUCED_REDUNDANCY`, `STANDARD_IA`, `ONEZONE_IA`, `INTELLIGENT_TIERING`, `GLACIER`, and `DEEP_ARCHIVE`.
+
+## ACL
+
+`S3_STORAGE_ACL` and `S3_RESULT_STORAGE_ACL` are optional.
+
+By default, imagor does not send an ACL header on S3 writes. Set these only when your bucket policy and S3 backend require a specific canned ACL.
+
+## Object Tagging For S3 Writes
+
+`S3_STORAGE_TAGGING` and `S3_RESULT_STORAGE_TAGGING` let imagor attach S3 object tags when writing source or result objects.
+
+The value must use the same query-string format accepted by the S3 `PutObject` Tagging field.
+
+On AWS S3, the writing identity must also have `s3:PutObjectTagging` permission when tagging is enabled.
+Enable this only on AWS S3 or another backend you have verified supports S3 object tagging on `PutObject`.
+
+Example:
+
+```dotenv
+S3_STORAGE_TAGGING=source=imagor&lifecycle=generated
+S3_RESULT_STORAGE_TAGGING=source=imagor&lifecycle=derived
+```
+
+This is mainly useful when you want downstream automation or lifecycle rules to distinguish imagor-managed objects from everything else in the bucket.
+
+For example, you can tag generated or derived objects separately from original assets and use those tags in S3 lifecycle policies.
+
+## Expiration
+
+`S3_STORAGE_EXPIRATION` and `S3_RESULT_STORAGE_EXPIRATION` only make imagor treat older objects as expired during retrieval, based on the object last modified time.
+
+They do not delete old objects from S3.
+
+Example:
+
+```dotenv
+S3_STORAGE_EXPIRATION=24h
+S3_RESULT_STORAGE_EXPIRATION=168h
+```
+
+If you want old objects removed, use [S3 lifecycle configuration](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-expire-general-considerations.html) or the equivalent retention feature in your S3-compatible storage.
 
 ## S3 Wildcard Bucket (Dynamic Bucket from Path)
 
@@ -230,41 +265,6 @@ services:
     ports:
       - "8000:8000"
 ```
-
-## Expiration
-
-`S3_STORAGE_EXPIRATION` and `S3_RESULT_STORAGE_EXPIRATION` only make imagor treat older objects as expired during retrieval, based on the object last modified time.
-
-They do not delete old objects from S3.
-
-Example:
-
-```dotenv
-S3_STORAGE_EXPIRATION=24h
-S3_RESULT_STORAGE_EXPIRATION=168h
-```
-
-If you want old objects removed, use [S3 lifecycle configuration](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-expire-general-considerations.html) or the equivalent retention feature in your S3-compatible storage.
-
-## Object Tagging For S3 Writes
-
-`S3_STORAGE_TAGGING` and `S3_RESULT_STORAGE_TAGGING` let imagor attach S3 object tags when writing source or result objects.
-
-The value must use the same query-string format accepted by the S3 `PutObject` Tagging field.
-
-On AWS S3, the writing identity must also have `s3:PutObjectTagging` permission when tagging is enabled.
-Enable this only on AWS S3 or another backend you have verified supports S3 object tagging on `PutObject`.
-
-Example:
-
-```dotenv
-S3_STORAGE_TAGGING=source=imagor&lifecycle=generated
-S3_RESULT_STORAGE_TAGGING=source=imagor&lifecycle=derived
-```
-
-This is mainly useful when you want downstream automation or lifecycle rules to distinguish imagor-managed objects from everything else in the bucket.
-
-For example, you can tag generated or derived objects separately from original assets and use those tags in S3 lifecycle policies.
 
 ## Docker Compose Example
 
