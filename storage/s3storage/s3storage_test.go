@@ -2,6 +2,7 @@ package s3storage
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -263,6 +264,33 @@ func TestExpiration(t *testing.T) {
 	b, _ = s.Get(&http.Request{}, "/foo/bar/asdf")
 	_, err = b.ReadAll()
 	require.ErrorIs(t, err, imagor.ErrExpired)
+}
+
+func TestPut_WithTagging(t *testing.T) {
+	var receivedTagging string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedTagging = r.Header.Get("X-Amz-Tagging")
+		_, _ = io.Copy(io.Discard, r.Body)
+		_ = r.Body.Close()
+		w.Header().Set("ETag", `"etag"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ctx := context.Background()
+	s := New(
+		aws.Config{
+			Region:      "eu-central-1",
+			Credentials: credentials.NewStaticCredentialsProvider("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
+		},
+		"test",
+		WithTagging("lifecycle=generated&source=imagor"),
+		WithEndpoint(ts.URL),
+		WithForcePathStyle(true),
+	)
+
+	require.NoError(t, s.Put(ctx, "/foo/bar.png", imagor.NewBlobFromBytes([]byte("bar"))))
+	assert.Equal(t, "lifecycle=generated&source=imagor", receivedTagging)
 }
 
 func TestWithEndpoint(t *testing.T) {

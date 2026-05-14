@@ -1,6 +1,7 @@
 package s3storage
 
 import (
+	"net/url"
 	"strings"
 	"time"
 
@@ -50,6 +51,19 @@ func WithACL(acl string) Option {
 	return func(h *S3Storage) {
 		if aclValuesMap[acl] {
 			h.ACL = acl
+		}
+	}
+}
+
+// WithTagging with S3 object tagging query string option.
+func WithTagging(tagging string) Option {
+	return func(h *S3Storage) {
+		tagging = strings.TrimSpace(tagging)
+		if tagging == "" {
+			return
+		}
+		if _, err := url.ParseQuery(tagging); err == nil {
+			h.Tagging = tagging
 		}
 	}
 }
