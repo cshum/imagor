@@ -142,7 +142,15 @@ This works identically for loader, storage, and result storage — all three use
 
 ## S3 Loader Bucket Routing
 
-For multi-tenant or multi-bucket setups, you can route image requests to different S3 buckets based on pattern matching. Each bucket can have its own region, endpoint, and credentials. Create a YAML configuration file:
+For multi-tenant or multi-bucket setups, you can route image requests to different S3 buckets based on pattern matching. Each bucket can have its own region, endpoint, and credentials.
+
+Activate bucket routing by setting:
+
+```dotenv
+S3_LOADER_BUCKET_ROUTER_CONFIG=/path/to/bucket-routing.yaml
+```
+
+Then create the YAML configuration file:
 
 ```yaml
 # Regex pattern with named capture group (?P<bucket>...)
@@ -185,18 +193,6 @@ rules:
 | Region-based naming | `(?P<bucket>[a-z]{2}-[a-z]+-\d)` | `eu-west-1-img.jpg` | `eu-west-1` | `eu-west-1-img.jpg` |
 | Path-prefix routing (strip prefix) | `^(?P<bucket>mysite-[a-z]+)\/(?P<path>.+)$` | `mysite-test/images/photo.jpg` | `mysite-test` | `images/photo.jpg` |
 | Passthrough (any bucket, no rules) | `^(?P<bucket>[^/]+)\/(?P<path>.+)$` | `any-bucket/images/photo.jpg` | `any-bucket` | `images/photo.jpg` |
-
-Then specify the config file path:
-
-```dotenv
-S3_LOADER_BUCKET_ROUTER_CONFIG=/path/to/bucket-routing.yaml
-```
-
-Or via command line:
-
-```bash
-imagor -s3-loader-bucket-router-config /path/to/bucket-routing.yaml
-```
 
 Routing behavior:
 - The `routing_pattern` must contain a named capture group `(?P<bucket>...)` to extract the bucket identifier
@@ -243,6 +239,23 @@ S3_RESULT_STORAGE_EXPIRATION=168h
 ```
 
 If you want old objects removed, use [S3 lifecycle configuration](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-expire-general-considerations.html) or the equivalent retention feature in your S3-compatible storage.
+
+## Object Tagging For S3 Writes
+
+`S3_STORAGE_TAGGING` and `S3_RESULT_STORAGE_TAGGING` let imagor attach S3 object tags when writing source or result objects.
+
+The value must use the same query-string format accepted by the S3 `PutObject` Tagging field.
+
+Example:
+
+```dotenv
+S3_STORAGE_TAGGING=source=imagor&lifecycle=generated
+S3_RESULT_STORAGE_TAGGING=source=imagor&lifecycle=derived
+```
+
+This is mainly useful when you want downstream automation or lifecycle rules to distinguish imagor-managed objects from everything else in the bucket.
+
+For example, you can tag generated or derived objects separately from original assets and use those tags in S3 lifecycle policies.
 
 ## Docker Compose Example
 

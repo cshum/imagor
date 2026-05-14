@@ -85,6 +85,8 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"Base path prefix for S3 Storage")
 		s3StorageACL = fs.String("s3-storage-acl", "public-read",
 			"Upload ACL for S3 Storage")
+		s3StorageTagging = fs.String("s3-storage-tagging", "",
+			"S3 object tagging query string for S3 Storage writes, e.g. key=value&ttl=generated")
 		s3StorageExpiration = fs.Duration("s3-storage-expiration", 0,
 			"S3 Storage expiration duration e.g. 24h. Default no expiration")
 
@@ -96,6 +98,8 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"Base path prefix for S3 Result Storage")
 		s3ResultStorageACL = fs.String("s3-result-storage-acl", "public-read",
 			"Upload ACL for S3 Result Storage")
+		s3ResultStorageTagging = fs.String("s3-result-storage-tagging", "",
+			"S3 object tagging query string for S3 Result Storage writes, e.g. key=value&ttl=generated")
 		s3ResultStorageExpiration = fs.Duration("s3-result-storage-expiration", 0,
 			"S3 Result Storage expiration duration e.g. 24h. Default no expiration")
 		s3StorageClass = fs.String("s3-storage-class", "STANDARD",
@@ -178,6 +182,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				s3storage.WithPathPrefix(*s3StoragePathPrefix),
 				s3storage.WithBaseDir(*s3StorageBaseDir),
 				s3storage.WithACL(*s3StorageACL),
+				s3storage.WithTagging(*s3StorageTagging),
 				s3storage.WithSafeChars(*s3SafeChars),
 				s3storage.WithExpiration(*s3StorageExpiration),
 				s3storage.WithStorageClass(*s3StorageClass),
@@ -240,6 +245,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 				s3storage.WithPathPrefix(*s3ResultStoragePathPrefix),
 				s3storage.WithBaseDir(*s3ResultStorageBaseDir),
 				s3storage.WithACL(*s3ResultStorageACL),
+				s3storage.WithTagging(*s3ResultStorageTagging),
 				s3storage.WithSafeChars(*s3SafeChars),
 				s3storage.WithExpiration(*s3ResultStorageExpiration),
 				s3storage.WithStorageClass(*s3StorageClass),

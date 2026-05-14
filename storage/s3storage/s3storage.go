@@ -26,6 +26,7 @@ type S3Storage struct {
 	BaseDir        string
 	PathPrefix     string
 	ACL            string
+	Tagging        string
 	SafeChars      string
 	StorageClass   string
 	Expiration     time.Duration
@@ -204,6 +205,9 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	}
 	if s.ACL != "" {
 		input.ACL = types.ObjectCannedACL(s.ACL)
+	}
+	if s.Tagging != "" {
+		input.Tagging = aws.String(s.Tagging)
 	}
 	_, err = s.Client.PutObject(ctx, input)
 	return err
