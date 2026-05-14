@@ -246,6 +246,8 @@ If you want old objects removed, use [S3 lifecycle configuration](https://docs.a
 
 The value must use the same query-string format accepted by the S3 `PutObject` Tagging field.
 
+Enable this only on AWS S3 or another backend you have verified supports S3 object tagging on `PutObject`.
+
 Example:
 
 ```dotenv

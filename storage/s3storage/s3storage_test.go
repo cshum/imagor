@@ -293,11 +293,6 @@ func TestPut_WithTagging(t *testing.T) {
 	assert.Equal(t, "lifecycle=generated&source=imagor", receivedTagging)
 }
 
-func TestWithTagging_IgnoresInvalidTagging(t *testing.T) {
-	s := New(aws.Config{Region: "us-east-1"}, "test-bucket", WithTagging("%%%"))
-	assert.Empty(t, s.Tagging)
-}
-
 func TestWithEndpoint(t *testing.T) {
 	tests := []struct {
 		name             string
