@@ -2,6 +2,8 @@
 
 imagor supports Google Cloud Storage for Loader, Storage, and Result Storage.
 
+## Basic Setup
+
 Enable each role by setting the corresponding bucket environment variable:
 
 - `GCLOUD_LOADER_BUCKET` — load source images from GCS

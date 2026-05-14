@@ -2,6 +2,8 @@
 
 imagor supports AWS S3 for Loader, Storage, and Result Storage. It is also compatible with S3-compatible services such as Cloudflare R2, MinIO and DigitalOcean Spaces.
 
+## Basic Setup
+
 Enable each role by setting the corresponding bucket environment variable:
 
 - `S3_LOADER_BUCKET` — load source images from S3

@@ -2,6 +2,8 @@
 
 imagor supports local file system storage using mounted volumes for Loader, Storage, and Result Storage.
 
+## Basic Setup
+
 Enable each role by setting the corresponding base directory environment variable:
 
 - `FILE_LOADER_BASE_DIR` — load source images from the local file system
