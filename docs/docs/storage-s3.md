@@ -14,9 +14,9 @@ Enable each role by setting the corresponding bucket environment variable:
 
 Configure custom S3 endpoint for S3-compatible services such as Cloudflare R2, MinIO, DigitalOcean Spaces:
 
-```yaml
-      S3_ENDPOINT: http://minio:9000
-      S3_FORCE_PATH_STYLE: 1
+```dotenv
+S3_ENDPOINT=http://minio:9000
+S3_FORCE_PATH_STYLE=1
 ```
 
 By default, S3 prepends bucket name as subdomain to the request URL:
