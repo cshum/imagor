@@ -43,6 +43,7 @@ type exportParams struct {
 	bitdepth      int
 	palette       bool
 	stripMetadata bool
+	lossless      bool
 	maxBytes      int
 }
 
@@ -142,11 +143,11 @@ func (v *Processor) Process(
 	// Export with max_bytes retry loop
 	params.format = supportedSaveFormat(params.format)
 	for {
-		buf, err := v.export(img, params.format, params.compression, params.quality, params.palette, params.bitdepth, params.stripMetadata)
+		buf, err := v.export(img, params.format, params.compression, params.quality, params.palette, params.bitdepth, params.stripMetadata, params.lossless)
 		if err != nil {
 			return nil, WrapErr(err)
 		}
-		if params.maxBytes > 0 && (params.quality > 10 || params.quality == 0) && params.format != vips.ImageTypePng {
+		if params.maxBytes > 0 && !params.lossless && (params.quality > 10 || params.quality == 0) && params.format != vips.ImageTypePng {
 			ln := len(buf)
 			if v.Debug {
 				v.Logger.Debug("max_bytes",
@@ -189,6 +190,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		compression   int
 		palette       bool
 		stripMetadata = v.StripMetadata
+		lossless      bool
 		maxBytes      int
 		format        = vips.ImageTypeUnknown
 		fallback      = vips.ImageTypeUnknown
@@ -223,6 +225,8 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 			}
 		case "strip_metadata":
 			stripMetadata = true
+		case "lossless":
+			lossless = true
 		}
 	}
 
@@ -243,6 +247,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		bitdepth:      bitdepth,
 		palette:       palette,
 		stripMetadata: stripMetadata,
+		lossless:      lossless,
 		maxBytes:      maxBytes,
 	}
 }
@@ -860,7 +865,7 @@ func supportedSaveFormat(format vips.ImageType) vips.ImageType {
 }
 
 func (v *Processor) export(
-	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool,
+	image *vips.Image, format vips.ImageType, compression int, quality int, palette bool, bitdepth int, stripMetadata bool, lossless bool,
 ) ([]byte, error) {
 	if _, err := v.CheckResolution(image, nil); err != nil {
 		return nil, err
@@ -881,7 +886,9 @@ func (v *Processor) export(
 		return image.PngsaveBuffer(opts)
 	case vips.ImageTypeWebp:
 		opts := &vips.WebpsaveBufferOptions{
-			Q: quality,
+			Q:        quality,
+			Lossless: lossless,
+			Exact:    lossless,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
@@ -891,7 +898,8 @@ func (v *Processor) export(
 		return image.WebpsaveBuffer(opts)
 	case vips.ImageTypeJxl:
 		opts := &vips.JxlsaveBufferOptions{
-			Q: quality,
+			Q:        quality,
+			Lossless: lossless,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
@@ -921,6 +929,7 @@ func (v *Processor) export(
 		opts := &vips.HeifsaveBufferOptions{
 			Q:           quality,
 			Compression: vips.HeifCompressionAv1,
+			Lossless:    lossless,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
@@ -931,7 +940,8 @@ func (v *Processor) export(
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeHeif:
 		opts := &vips.HeifsaveBufferOptions{
-			Q: quality,
+			Q:        quality,
+			Lossless: lossless,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
@@ -941,7 +951,8 @@ func (v *Processor) export(
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeJp2k:
 		opts := &vips.Jp2ksaveBufferOptions{
-			Q: quality,
+			Q:        quality,
+			Lossless: lossless,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone

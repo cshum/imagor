@@ -117,6 +117,51 @@ func TestProcessor(t *testing.T) {
 			{name: "export heif", path: "filters:format(heif):quality(70)/gopher-front.png", checkTypeOnly: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
+	t.Run("vips lossless filter", func(t *testing.T) {
+		var resultDir = filepath.Join(testDataDir, "golden")
+		doGoldenTests(t, resultDir, []test{
+			{name: "lossless webp", path: "filters:format(webp):lossless()/gopher-front.png", arm64Golden: true},
+			{name: "lossless webp with quality", path: "filters:format(webp):lossless():quality(60)/gopher-front.png", arm64Golden: true},
+			{name: "lossless noop jpeg", path: "filters:format(jpeg):lossless():quality(70)/gopher-front.png"},
+			{name: "lossless noop png", path: "filters:format(png):lossless()/gopher-front.png"},
+			{name: "lossless skips max_bytes retry", path: "filters:format(webp):lossless():max_bytes(100)/gopher-front.png", arm64Golden: true},
+		}, WithDebug(true), WithLogger(zap.NewExample()))
+	})
+	t.Run("vips lossless round-trip pixel-exact", func(t *testing.T) {
+		src, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
+		require.NoError(t, err)
+		defer src.Close()
+
+		for _, f := range []struct {
+			name   string
+			format vips.ImageType
+		}{
+			{"webp", vips.ImageTypeWebp},
+			{"jxl", vips.ImageTypeJxl},
+			{"avif", vips.ImageTypeAvif},
+			{"heif", vips.ImageTypeHeif},
+			{"jp2k", vips.ImageTypeJp2k},
+		} {
+			t.Run(f.name, func(t *testing.T) {
+				buf, err := v.export(src, f.format, 0, 0, false, 0, false, true)
+				require.NoError(t, err)
+
+				out, err := vips.NewImageFromBuffer(buf, nil)
+				require.NoError(t, err)
+				defer out.Close()
+
+				require.Equal(t, src.Width(), out.Width(), "width must match")
+				require.Equal(t, src.Height(), out.Height(), "height must match")
+				require.Equal(t, src.Bands(), out.Bands(), "band count must match")
+
+				require.NoError(t, out.Subtract(src))
+				require.NoError(t, out.Abs())
+				maxDiff, err := out.Max(nil)
+				require.NoError(t, err)
+				require.Equal(t, 0.0, maxDiff, "non-zero pixel diff means encoding was lossy")
+			})
+		}
+	})
 	t.Run("meta", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{

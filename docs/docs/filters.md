@@ -206,6 +206,14 @@ Composites a processed image onto the current image with full imagor transformat
 
 ---
 
+### `lossless()`
+
+Enables lossless pixel-exact encoding for formats that support it: `webp`, `jxl`, `avif`, `heif`, `jp2`. No-op for `jpeg` (lossy only) and `png` (already lossless). When set, the `max_bytes` quality-degrade retry is skipped, since lossless output cannot be reduced by lowering quality.
+
+For `webp`, libvips [reinterprets](https://github.com/libvips/libvips/issues/3881) the [`quality`](#qualityamount) filter as a compression-effort knob in lossless mode with higher values producing smaller files but encode slower. `quality(100)` gives the smallest output.
+
+---
+
 ### `max_bytes(amount)`
 
 Automatically degrades the quality of the image until the image is under the specified `amount` of bytes.
