@@ -51,7 +51,6 @@ func New(cfg aws.Config, bucket string, options ...Option) *S3Storage {
 
 		BaseDir:    baseDir,
 		PathPrefix: "/",
-		ACL:        string(types.ObjectCannedACLPublicRead),
 	}
 	for _, option := range options {
 		option(s)

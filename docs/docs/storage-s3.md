@@ -79,6 +79,12 @@ Settings:
 
 Supported values are `STANDARD`, `REDUCED_REDUNDANCY`, `STANDARD_IA`, `ONEZONE_IA`, `INTELLIGENT_TIERING`, `GLACIER`, and `DEEP_ARCHIVE`.
 
+## ACL
+
+`S3_STORAGE_ACL` and `S3_RESULT_STORAGE_ACL` are optional.
+
+By default, imagor does not send an ACL header on S3 writes. Set these only when your bucket policy and S3 backend require a specific canned ACL.
+
 ## Custom S3 Endpoint
 
 Configure custom S3 endpoint for S3-compatible services such as Cloudflare R2, MinIO, DigitalOcean Spaces:

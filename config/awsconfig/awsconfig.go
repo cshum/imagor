@@ -83,7 +83,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"Base directory for S3 Storage")
 		s3StoragePathPrefix = fs.String("s3-storage-path-prefix", "",
 			"Base path prefix for S3 Storage")
-		s3StorageACL = fs.String("s3-storage-acl", "public-read",
+		s3StorageACL = fs.String("s3-storage-acl", "",
 			"Upload ACL for S3 Storage")
 		s3StorageTagging = fs.String("s3-storage-tagging", "",
 			"S3 object tagging query string for S3 Storage writes, e.g. key=value&ttl=generated")
@@ -96,7 +96,7 @@ func WithAWS(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"Base directory for S3 Result Storage")
 		s3ResultStoragePathPrefix = fs.String("s3-result-storage-path-prefix", "",
 			"Base path prefix for S3 Result Storage")
-		s3ResultStorageACL = fs.String("s3-result-storage-acl", "public-read",
+		s3ResultStorageACL = fs.String("s3-result-storage-acl", "",
 			"Upload ACL for S3 Result Storage")
 		s3ResultStorageTagging = fs.String("s3-result-storage-tagging", "",
 			"S3 object tagging query string for S3 Result Storage writes, e.g. key=value&ttl=generated")
