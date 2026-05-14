@@ -54,6 +54,28 @@ To disable escaping entirely:
 FILE_SAFE_CHARS=--
 ```
 
+## Write Permissions
+
+`FILE_STORAGE_MKDIR_PERMISSION` and `FILE_RESULT_STORAGE_MKDIR_PERMISSION` control the permission mode used when imagor creates parent directories during file writes.
+
+`FILE_STORAGE_WRITE_PERMISSION` and `FILE_RESULT_STORAGE_WRITE_PERMISSION` control the permission mode used for newly written files.
+
+Defaults:
+
+- directory creation: `0755`
+- file writes: `0666`
+
+These settings apply only to File Storage and File Result Storage writes. They do not affect File Loader.
+
+Example:
+
+```dotenv
+FILE_STORAGE_MKDIR_PERMISSION=0755
+FILE_STORAGE_WRITE_PERMISSION=0666
+FILE_RESULT_STORAGE_MKDIR_PERMISSION=0755
+FILE_RESULT_STORAGE_WRITE_PERMISSION=0666
+```
+
 ## Expiration
 
 `FILE_STORAGE_EXPIRATION` and `FILE_RESULT_STORAGE_EXPIRATION` only make imagor treat older files as expired during retrieval, based on file modified time.
