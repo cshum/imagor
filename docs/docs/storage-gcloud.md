@@ -26,6 +26,33 @@ To disable escaping entirely:
 GCLOUD_SAFE_CHARS=--
 ```
 
+## Base Directory And Path Prefix
+
+These settings control different parts of the lookup flow:
+
+- `GCLOUD_*_BASE_DIR` selects the key prefix inside the bucket where imagor reads or writes.
+- `GCLOUD_*_PATH_PREFIX` restricts which normalized request paths that role accepts.
+
+imagor first normalizes the request path, checks that it starts with `GCLOUD_*_PATH_PREFIX`, removes that prefix, and then joins the remaining path under `GCLOUD_*_BASE_DIR` to build the final object key.
+
+Use them together when one bucket contains multiple logical path trees and imagor should only handle one of them.
+
+Example:
+
+- Request path: `avatars/user-1.jpg`
+- `GCLOUD_STORAGE_PATH_PREFIX=avatars`
+- `GCLOUD_STORAGE_BASE_DIR=source`
+- Stored object key: `source/user-1.jpg`
+
+Settings:
+
+- `GCLOUD_LOADER_BASE_DIR`
+- `GCLOUD_STORAGE_BASE_DIR`
+- `GCLOUD_RESULT_STORAGE_BASE_DIR`
+- `GCLOUD_LOADER_PATH_PREFIX`
+- `GCLOUD_STORAGE_PATH_PREFIX`
+- `GCLOUD_RESULT_STORAGE_PATH_PREFIX`
+
 ## Wildcard Bucket (Dynamic Bucket from Path)
 
 Google Cloud Storage supports the same `*` bucket paradigm as S3:
@@ -38,7 +65,24 @@ GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket 
 
 A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
 
+## Expiration
+
+`GCLOUD_STORAGE_EXPIRATION` and `GCLOUD_RESULT_STORAGE_EXPIRATION` only make imagor treat older objects as expired during retrieval, based on the object updated time.
+
+They do not delete old objects from the bucket.
+
+Example:
+
+```dotenv
+GCLOUD_STORAGE_EXPIRATION=24h
+GCLOUD_RESULT_STORAGE_EXPIRATION=168h
+```
+
+If you want old objects removed, use Google Cloud Storage lifecycle management or your own bucket retention workflow.
+
 ## Docker Compose Example
+
+This example summarizes the Google Cloud Storage settings described above in a single Docker Compose configuration.
 
 ```yaml
 version: "3"

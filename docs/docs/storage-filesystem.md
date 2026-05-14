@@ -12,6 +12,8 @@ Enable each role by setting the corresponding base directory environment variabl
 
 imagor normalizes file paths before using them for File Loader, Storage, or Result Storage. Reserved characters are escaped by default.
 
+For safety, file paths containing dotfile-style segments such as `/.git` are rejected by default.
+
 If your filenames contain literal reserved characters, allow them with `FILE_SAFE_CHARS`.
 
 ```dotenv
@@ -26,7 +28,48 @@ To disable escaping entirely:
 FILE_SAFE_CHARS=--
 ```
 
+## Base Directory And Path Prefix
+
+These settings control different parts of the lookup flow:
+
+- `FILE_*_BASE_DIR` selects where imagor reads or writes on disk.
+- `FILE_*_PATH_PREFIX` restricts which normalized request paths that role accepts.
+
+imagor first normalizes the request path, checks that it starts with `FILE_*_PATH_PREFIX`, removes that prefix, and then joins the remaining path under `FILE_*_BASE_DIR`.
+
+Use path prefixes when one file system mount contains multiple logical image trees and imagor should only handle one of them.
+
+Example:
+
+- Request path: `avatars/user-1.jpg`
+- `FILE_STORAGE_PATH_PREFIX=avatars`
+- `FILE_STORAGE_BASE_DIR=/mnt/data/source`
+- Stored file path: `/mnt/data/source/user-1.jpg`
+
+Settings:
+
+- `FILE_LOADER_PATH_PREFIX`
+- `FILE_STORAGE_PATH_PREFIX`
+- `FILE_RESULT_STORAGE_PATH_PREFIX`
+
+## Expiration
+
+`FILE_STORAGE_EXPIRATION` and `FILE_RESULT_STORAGE_EXPIRATION` only make imagor treat older files as expired during retrieval, based on file modified time.
+
+They do not delete old files from disk.
+
+Example:
+
+```dotenv
+FILE_STORAGE_EXPIRATION=24h
+FILE_RESULT_STORAGE_EXPIRATION=168h
+```
+
+If you want old files removed, use your own cleanup process, for example a cron job or another file system retention workflow.
+
 ## Docker Compose Example
+
+This example summarizes the file storage settings described above in a single Docker Compose configuration.
 
 ```yaml
 version: "3"

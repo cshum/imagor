@@ -46,6 +46,39 @@ S3_SAFE_CHARS=--
 
 For storage key naming options beyond safe chars, see [Storage and Result Storage Path Style](./storage-path-style.md).
 
+## Base Directory And Path Prefix
+
+These settings control different parts of the lookup flow:
+
+- `S3_*_BASE_DIR` selects the key prefix inside the bucket where imagor reads or writes.
+- `S3_*_PATH_PREFIX` restricts which normalized request paths that role accepts.
+
+imagor first normalizes the request path, checks that it starts with `S3_*_PATH_PREFIX`, removes that prefix, and then joins the remaining path under `S3_*_BASE_DIR` to build the final object key.
+
+Use them together when one bucket contains multiple logical path trees and imagor should only handle one of them.
+
+Example:
+
+- Request path: `avatars/user-1.jpg`
+- `S3_STORAGE_PATH_PREFIX=avatars`
+- `S3_STORAGE_BASE_DIR=source`
+- Stored object key: `source/user-1.jpg`
+
+Settings:
+
+- `S3_LOADER_BASE_DIR`
+- `S3_STORAGE_BASE_DIR`
+- `S3_RESULT_STORAGE_BASE_DIR`
+- `S3_LOADER_PATH_PREFIX`
+- `S3_STORAGE_PATH_PREFIX`
+- `S3_RESULT_STORAGE_PATH_PREFIX`
+
+## Storage Class
+
+`S3_STORAGE_CLASS` controls the storage class used when saving source and result objects.
+
+Supported values are `STANDARD`, `REDUCED_REDUNDANCY`, `STANDARD_IA`, `ONEZONE_IA`, `INTELLIGENT_TIERING`, `GLACIER`, and `DEEP_ARCHIVE`.
+
 ## Custom S3 Endpoint
 
 Configure custom S3 endpoint for S3-compatible services such as Cloudflare R2, MinIO, DigitalOcean Spaces:
@@ -75,16 +108,19 @@ Set the following environment variables to override the global AWS Credentials f
 AWS_LOADER_REGION
 AWS_LOADER_ACCESS_KEY_ID
 AWS_LOADER_SECRET_ACCESS_KEY
+AWS_LOADER_SESSION_TOKEN
 S3_LOADER_ENDPOINT
 
 AWS_STORAGE_REGION
 AWS_STORAGE_ACCESS_KEY_ID
 AWS_STORAGE_SECRET_ACCESS_KEY
+AWS_STORAGE_SESSION_TOKEN
 S3_STORAGE_ENDPOINT
 
 AWS_RESULT_STORAGE_REGION
 AWS_RESULT_STORAGE_ACCESS_KEY_ID
 AWS_RESULT_STORAGE_SECRET_ACCESS_KEY
+AWS_RESULT_STORAGE_SESSION_TOKEN
 S3_RESULT_STORAGE_ENDPOINT
 ```
 
@@ -193,7 +229,24 @@ services:
       - "8000:8000"
 ```
 
+## Expiration
+
+`S3_STORAGE_EXPIRATION` and `S3_RESULT_STORAGE_EXPIRATION` only make imagor treat older objects as expired during retrieval, based on the object last modified time.
+
+They do not delete old objects from S3.
+
+Example:
+
+```dotenv
+S3_STORAGE_EXPIRATION=24h
+S3_RESULT_STORAGE_EXPIRATION=168h
+```
+
+If you want old objects removed, use [S3 lifecycle configuration](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-expire-general-considerations.html) or the equivalent retention feature in your S3-compatible storage.
+
 ## Docker Compose Example
+
+This example summarizes the S3 storage settings described above in a single Docker Compose configuration.
 
 ```yaml
 version: "3"
