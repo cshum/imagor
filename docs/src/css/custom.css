@@ -41,7 +41,7 @@
 
   /* Navbar */
   --ifm-navbar-background-color: rgba(255, 255, 255, 0.95);
-  --ifm-navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --ifm-navbar-shadow: none;
 
   /* Footer */
   --ifm-footer-background-color: #fafafa;
@@ -63,6 +63,7 @@
 
   /* Background and foreground */
   --ifm-background-color: #0a0a0a;
+  --ifm-background-surface-color: #0a0a0a;
   --ifm-font-color-base: #fafafa;
 
   /* Muted colors - inverted */
@@ -85,11 +86,11 @@
   --ifm-toc-border-color: #404040;
 
   /* Navbar */
-  --ifm-navbar-background-color: rgba(10, 10, 10, 0.95);
-  --ifm-navbar-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
+  --ifm-navbar-background-color: #0a0a0a;
+  --ifm-navbar-shadow: none;
 
   /* Footer */
-  --ifm-footer-background-color: #171717;
+  --ifm-footer-background-color: #0a0a0a;
   --ifm-footer-color: #a3a3a3;
   --ifm-footer-link-color: #d4d4d4;
   --ifm-footer-title-color: #fafafa;
@@ -98,10 +99,21 @@
 /* Additional styling for consistency */
 .navbar {
   border-bottom: 1px solid var(--ifm-toc-border-color);
+  box-shadow: none;
 }
 
 .footer {
   border-top: 1px solid var(--ifm-toc-border-color);
+}
+
+[data-theme="dark"] .footer--dark {
+  background-color: var(--ifm-navbar-background-color);
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] .main-wrapper,
+[data-theme="dark"] .container {
+  background-color: var(--ifm-navbar-background-color);
 }
 
 /* Button styling to match imagor.net */
@@ -148,7 +160,6 @@
   background-color: var(--ifm-color-primary-light) !important;
   color: white !important;
   text-decoration: none !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 [data-theme="dark"] .navbar-buy-button {
