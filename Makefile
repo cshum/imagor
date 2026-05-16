@@ -1,3 +1,5 @@
+IMAGOR_BASE_IMAGE ?= ghcr.io/cshum/imagor-base:vips8.18.2
+
 build:
 	CGO_CFLAGS_ALLOW=-Xpreprocessor go build -o bin/imagor ./cmd/imagor/main.go
 
@@ -14,7 +16,7 @@ get:
 	go get -v -t -d ./...
 
 docker-dev-build:
-	docker build -t imagor:dev .
+	docker build --build-arg BASE_IMAGE=$(IMAGOR_BASE_IMAGE) -t imagor:dev .
 
 docker-dev-run:
 	touch .env
@@ -23,7 +25,7 @@ docker-dev-run:
 docker-dev: docker-dev-build docker-dev-run
 
 docker-magick-build:
-	docker build --build-arg ENABLE_MAGICK=true -t imagor:magick .
+	docker build --build-arg BASE_IMAGE=$(IMAGOR_BASE_IMAGE)-magick --build-arg ENABLE_MAGICK=true -t imagor:magick .
 
 docker-magick-run:
 	touch .env
@@ -32,7 +34,7 @@ docker-magick-run:
 docker-magick: docker-magick-build docker-magick-run
 
 docker-mozjpeg-build:
-	docker build --build-arg ENABLE_MOZJPEG=true -t imagor:mozjpeg .
+	docker build --build-arg BASE_IMAGE=$(IMAGOR_BASE_IMAGE)-mozjpeg -t imagor:mozjpeg .
 
 docker-mozjpeg-run:
 	touch .env
