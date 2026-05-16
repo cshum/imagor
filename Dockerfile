@@ -2,6 +2,8 @@ ARG GOLANG_VERSION=1.26.3
 ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2
 ARG RUNTIME_BASE_IMAGE=ubuntu:noble
 
+FROM golang:${GOLANG_VERSION}-bookworm AS golang-base
+
 FROM ${BASE_IMAGE} AS native-base
 
 FROM ${BASE_IMAGE} AS builder
@@ -9,7 +11,7 @@ FROM ${BASE_IMAGE} AS builder
 ARG GOLANG_VERSION
 ARG ENABLE_MAGICK=false
 
-COPY --from=golang:${GOLANG_VERSION}-bookworm /usr/local/go /usr/local/go
+COPY --from=golang-base /usr/local/go /usr/local/go
 
 ENV GOPATH=/go
 ENV PATH=/usr/local/go/bin:/go/bin:$PATH
