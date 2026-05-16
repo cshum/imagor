@@ -1,6 +1,5 @@
 ARG GOLANG_VERSION=1.26.3
-ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2
-ARG RUNTIME_BASE_IMAGE=ubuntu:noble
+ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r1
 
 FROM golang:${GOLANG_VERSION}-bookworm AS golang-base
 
@@ -40,7 +39,7 @@ COPY . .
 
 RUN CGO_CFLAGS_ALLOW=-Xpreprocessor go build -o /opt/imagor/bin/imagor ./cmd/imagor/main.go
 
-FROM ${RUNTIME_BASE_IMAGE} AS runtime
+FROM native-base AS runtime
 LABEL maintainer="adrian@cshum.com"
 
 ARG ENABLE_MAGICK=false
@@ -48,12 +47,6 @@ ARG ENABLE_MAGICK=false
 RUN apt-get update \
   && apt-get upgrade -y \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    bash \
-    ca-certificates \
-    fontconfig-config \
-    fonts-dejavu-core \
-    libjemalloc2 \
-    libstdc++6 \
     media-types \
   && if [ "$ENABLE_MAGICK" = "true" ]; then \
     apt-get install -y --no-install-recommends imagemagick; \
