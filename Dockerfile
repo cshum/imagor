@@ -61,6 +61,7 @@ ENV XDG_CACHE_HOME=/tmp
 
 ENV PORT 8000
 
+# use unprivileged user
 USER nobody
 
 ENTRYPOINT ["/usr/local/bin/imagor"]
