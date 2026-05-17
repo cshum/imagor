@@ -24,6 +24,15 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     git \
+    libcfitsio-dev \
+    libfftw3-dev \
+    libgsf-1-dev \
+    libimagequant-dev \
+    libmatio-dev \
+    libopenjp2-7-dev \
+    libopenslide-dev \
+    liborc-0.4-dev \
+    libpoppler-glib-dev \
     pkg-config \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
