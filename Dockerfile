@@ -1,11 +1,12 @@
 ARG GOLANG_VERSION=1.26.3
 ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r5
+ARG DEV_BASE_IMAGE=${BASE_IMAGE}-dev
 
 FROM golang:${GOLANG_VERSION}-bookworm AS golang-base
 
 FROM ${BASE_IMAGE} AS native-base
 
-FROM ${BASE_IMAGE} AS builder
+FROM ${DEV_BASE_IMAGE} AS builder
 
 ARG GOLANG_VERSION
 ARG ENABLE_MAGICK=false
@@ -18,24 +19,6 @@ ENV CGO_ENABLED=1
 ENV PKG_CONFIG_PATH=/opt/imagor/lib/pkgconfig
 ENV CGO_CFLAGS=-I/opt/imagor/include
 ENV CGO_LDFLAGS="-L/opt/imagor/lib -Wl,-rpath,/opt/imagor/lib"
-
-RUN apt-get update \
-  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    build-essential \
-    ca-certificates \
-    git \
-    libcfitsio-dev \
-    libfftw3-dev \
-    libgsf-1-dev \
-    libimagequant-dev \
-    libmatio-dev \
-    libopenjp2-7-dev \
-    libopenslide-dev \
-    liborc-0.4-dev \
-    libpoppler-glib-dev \
-    pkg-config \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR ${GOPATH}/src/github.com/cshum/imagor
 
