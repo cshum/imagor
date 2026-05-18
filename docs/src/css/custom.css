@@ -94,6 +94,9 @@
   --ifm-footer-color: #a3a3a3;
   --ifm-footer-link-color: #d4d4d4;
   --ifm-footer-title-color: #fafafa;
+
+  /* Local search */
+  --search-local-highlight-color: #404040;
 }
 
 /* Additional styling for consistency */
