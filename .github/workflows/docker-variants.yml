@@ -21,24 +21,25 @@ jobs:
         variant:
           - name: magick
             build_args: |
+              BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r7-magick
               ENABLE_MAGICK=true
           - name: mozjpeg
             build_args: |
-              ENABLE_MOZJPEG=true
+              BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r7-mozjpeg
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
       - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -46,7 +47,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/cshum/imagor-${{ matrix.variant.name }}
           tags: |
@@ -55,7 +56,7 @@ jobs:
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
