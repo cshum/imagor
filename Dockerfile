@@ -39,6 +39,7 @@ ARG ENABLE_MAGICK=false
 RUN apt-get update \
   && apt-get upgrade -y \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    curl \
     media-types \
   && if [ "$ENABLE_MAGICK" = "true" ]; then \
     apt-get install -y --no-install-recommends imagemagick; \
