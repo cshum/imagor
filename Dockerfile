@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.26.3
-ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r7
+ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r9
 ARG DEV_BASE_IMAGE=${BASE_IMAGE}-dev
 
 FROM golang:${GOLANG_VERSION}-bookworm AS golang-base
@@ -49,7 +49,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /etc/fonts/conf.d/10-sub-pixel-rgb.conf /etc/fonts/conf.d/11-lcdfilter-default.conf
 
-COPY --from=builder /opt/imagor /opt/imagor
+COPY --from=builder /opt/imagor/bin/imagor /opt/imagor/bin/imagor
 RUN ln -s /opt/imagor/bin/imagor /usr/local/bin/imagor
 
 ENV VIPS_WARNING=0
@@ -61,7 +61,6 @@ ENV XDG_CACHE_HOME=/tmp
 
 ENV PORT 8000
 
-# use unprivileged user
 USER nobody
 
 ENTRYPOINT ["/usr/local/bin/imagor"]
