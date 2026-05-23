@@ -14,7 +14,8 @@ imagorvideo implements ffmpeg read and seek I/O callbacks with imagor [loader, s
 
 :::info
 **GitHub:** [cshum/imagorvideo](https://github.com/cshum/imagorvideo)  
-**Docker:** [shumc/imagorvideo](https://hub.docker.com/r/shumc/imagorvideo)
+**Docker:** [ghcr.io/cshum/imagorvideo](https://github.com/cshum/imagorvideo/pkgs/container/imagorvideo)  
+**Docker Variants:** [ghcr.io/cshum/imagorvideo-mozjpeg](https://github.com/cshum/imagorvideo/pkgs/container/imagorvideo-mozjpeg), [ghcr.io/cshum/imagorvideo-magick](https://github.com/cshum/imagorvideo/pkgs/container/imagorvideo-magick)
 :::
 
 ## Quick Start
@@ -22,6 +23,16 @@ imagorvideo implements ffmpeg read and seek I/O callbacks with imagor [loader, s
 ```bash
 docker run -p 8000:8000 shumc/imagorvideo -imagor-unsafe
 ```
+
+## Docker Variants
+
+imagorvideo publishes three Docker image families:
+
+- `ghcr.io/cshum/imagorvideo`: default `ffmpeg` variant. This is the recommended baseline.
+- `ghcr.io/cshum/imagorvideo-mozjpeg`: `mozjpeg-ffmpeg` variant for deployments that want the MozJPEG-backed JPEG stack.
+- `ghcr.io/cshum/imagorvideo-magick`: `magick-ffmpeg` variant for deployments that need ImageMagick support in addition to ffmpeg.
+
+All variants include video thumbnail extraction through ffmpeg. The difference is the imagor native stack used for the image-processing stage after frame extraction.
 
 With a sample video:
 ```

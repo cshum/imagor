@@ -19,7 +19,8 @@ imagorface implements the imagor [`Detector` interface](https://github.com/cshum
 
 :::info
 **GitHub:** [cshum/imagorface](https://github.com/cshum/imagorface)  
-**Docker:** [shumc/imagorface](https://hub.docker.com/r/shumc/imagorface)
+**Docker:** [ghcr.io/cshum/imagorface](https://github.com/cshum/imagorface/pkgs/container/imagorface)  
+**Docker Variants:** [ghcr.io/cshum/imagorface-mozjpeg](https://github.com/cshum/imagorface/pkgs/container/imagorface-mozjpeg), [ghcr.io/cshum/imagorface-magick](https://github.com/cshum/imagorface/pkgs/container/imagorface-magick)
 :::
 
 ## Quick Start
@@ -27,6 +28,16 @@ imagorface implements the imagor [`Detector` interface](https://github.com/cshum
 ```bash
 docker run -p 8000:8000 shumc/imagorface -imagor-unsafe -face-detector
 ```
+
+## Docker Variants
+
+imagorface publishes three Docker image families:
+
+- `ghcr.io/cshum/imagorface`: default variant. This is the recommended baseline.
+- `ghcr.io/cshum/imagorface-mozjpeg`: `mozjpeg` variant for deployments that want the MozJPEG-backed JPEG stack.
+- `ghcr.io/cshum/imagorface-magick`: `magick` variant for deployments that need ImageMagick support.
+
+All variants include face detection. The difference is the imagor native image-processing stack used underneath.
 
 Original image:
 ```
