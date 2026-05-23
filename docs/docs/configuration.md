@@ -244,7 +244,7 @@ VIPS_DISABLE_FILTERS=blur,watermark  # Disable specific filters (csv)
 
 # Output
 VIPS_MOZJPEG=1               # Use MozJPEG for JPEG encoding (requires imagor-mozjpeg build)
-VIPS_AVIF_SPEED=5            # AVIF encode speed: 0 (smallest) to 9 (fastest). Default 5
+VIPS_AVIF_SPEED=8            # AVIF encode speed: 0 (smallest) to 9 (fastest). Default 8
 VIPS_STRIP_METADATA=1        # Strip all metadata from output images
 
 # Smart crop

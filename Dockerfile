@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.26.3
-ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r9
+ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r10
 ARG DEV_BASE_IMAGE=${BASE_IMAGE}-dev
 
 FROM golang:${GOLANG_VERSION}-bookworm AS golang-base
@@ -39,6 +39,7 @@ ARG ENABLE_MAGICK=false
 RUN apt-get update \
   && apt-get upgrade -y \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    curl \
     media-types \
   && if [ "$ENABLE_MAGICK" = "true" ]; then \
     apt-get install -y --no-install-recommends imagemagick; \
