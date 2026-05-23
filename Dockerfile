@@ -29,7 +29,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_CFLAGS_ALLOW=-Xpreprocessor go build -o /opt/imagor/bin/imagor ./cmd/imagor/main.go
+RUN CGO_CFLAGS_ALLOW=-Xpreprocessor go build -ldflags "-s -w" -o /opt/imagor/bin/imagor ./cmd/imagor/main.go
 
 FROM native-base AS runtime
 LABEL maintainer="adrian@cshum.com"
@@ -59,7 +59,7 @@ ENV LD_LIBRARY_PATH=/opt/imagor/lib
 ENV FONTCONFIG_PATH=/etc/fonts
 ENV XDG_CACHE_HOME=/tmp
 
-ENV PORT 8000
+ENV PORT=8000
 
 USER nobody
 
