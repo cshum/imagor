@@ -1,0 +1,65 @@
+name: docker-perf
+
+on:
+  push:
+    branches:
+      - perf
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Perf image tag
+        required: false
+        default: perf-vipsgen-handle
+      platforms:
+        description: Target platforms
+        required: false
+        default: linux/amd64,linux/arm64
+
+jobs:
+  build:
+    name: Docker Perf
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve perf image settings
+        id: vars
+        shell: bash
+        run: |
+          IMAGE_TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'perf-vipsgen-handle' }}"
+          PLATFORMS="${{ github.event_name == 'workflow_dispatch' && inputs.platforms || 'linux/amd64,linux/arm64' }}"
+          echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"
+          echo "tags=ghcr.io/${{ github.repository }}:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push perf Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ steps.vars.outputs.platforms }}
+          push: true
+          tags: ${{ steps.vars.outputs.tags }}
+          build-args: |
+            BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.2-r10
+            ENABLE_MAGICK=false
