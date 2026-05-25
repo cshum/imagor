@@ -437,3 +437,69 @@ func TestBlobReaderError(t *testing.T) {
 	assert.Equal(t, 500, len(buf))
 	assert.Equal(t, e, err)
 }
+
+func TestBlobUnknownSizeReusesSniffedReaderForFirstRead(t *testing.T) {
+	buf, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
+
+	var calls int
+	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		calls++
+		return io.NopCloser(bytes.NewReader(buf)), 0, nil
+	})
+
+	assert.Equal(t, BlobTypeJPEG, b.BlobType())
+	assert.Equal(t, 1, calls, "sniff should open the source once")
+
+	r, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r.Close()
+	assert.Zero(t, size)
+
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data)
+	assert.Equal(t, 1, calls, "first reader should reuse the sniffed source")
+
+	r2, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r2.Close()
+	assert.Zero(t, size)
+
+	data2, err := io.ReadAll(r2)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data2)
+	assert.Equal(t, 2, calls, "subsequent readers still reopen the source")
+}
+
+func TestBlobKnownSizeFanoutStillAvoidsReopenAfterSniff(t *testing.T) {
+	buf, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
+
+	var calls int
+	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		calls++
+		return io.NopCloser(bytes.NewReader(buf)), int64(len(buf)), nil
+	})
+
+	assert.Equal(t, BlobTypeJPEG, b.BlobType())
+	assert.Equal(t, 1, calls, "sniff should open the source once")
+
+	r1, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r1.Close()
+	assert.Equal(t, int64(len(buf)), size)
+
+	r2, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r2.Close()
+	assert.Equal(t, int64(len(buf)), size)
+
+	data1, err := io.ReadAll(r1)
+	require.NoError(t, err)
+	data2, err := io.ReadAll(r2)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data1)
+	assert.Equal(t, buf, data2)
+	assert.Equal(t, 1, calls, "fanout path should keep sharing the original source")
+}

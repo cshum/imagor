@@ -52,6 +52,8 @@ type Blob struct {
 	newReadSeeker  func() (rs io.ReadSeekCloser, size int64, err error)
 	fanout         bool
 	fanoutInstance *fanoutreader.Fanout
+	readerMu       sync.Mutex
+	initReader     io.ReadCloser
 	once           sync.Once
 	sniffBuf       []byte
 	err            error
@@ -256,6 +258,39 @@ func newEmptyReader() (io.ReadCloser, int64, error) {
 	return &readSeekNopCloser{bytes.NewReader(nil)}, 0, nil
 }
 
+type prefixedReadCloser struct {
+	prefix *bytes.Reader
+	reader io.ReadCloser
+}
+
+func (r *prefixedReadCloser) Read(p []byte) (int, error) {
+	if r.prefix != nil {
+		n, err := r.prefix.Read(p)
+		if err == nil {
+			return n, nil
+		}
+		if err != io.EOF {
+			return n, err
+		}
+		if n > 0 {
+			r.prefix = nil
+			return n, nil
+		}
+		r.prefix = nil
+	}
+	if r.reader == nil {
+		return 0, io.EOF
+	}
+	return r.reader.Read(p)
+}
+
+func (r *prefixedReadCloser) Close() error {
+	if r.reader != nil {
+		return r.reader.Close()
+	}
+	return nil
+}
+
 func (b *Blob) init() {
 	b.once.Do(b.doInit)
 }
@@ -309,11 +344,14 @@ func (b *Blob) doInit() {
 		}
 	} else {
 		b.fanout = false
+		b.initReader = reader
 	}
 	// sniff first 512 bytes for type sniffing
 	b.sniffBuf = make([]byte, 512)
 	n, err := io.ReadAtLeast(reader, b.sniffBuf, 512)
-	_ = reader.Close()
+	if b.fanout {
+		_ = reader.Close()
+	}
 	if n < 512 {
 		b.sniffBuf = b.sniffBuf[:n]
 	}
@@ -513,6 +551,19 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	if b.newReader == nil {
 		return nil, 0, b.err
 	}
+	b.readerMu.Lock()
+	if b.initReader != nil {
+		reader = &prefixedReadCloser{
+			prefix: bytes.NewReader(b.sniffBuf),
+			reader: b.initReader,
+		}
+		b.initReader = nil
+		size = b.size
+		err = b.err
+		b.readerMu.Unlock()
+		return reader, size, err
+	}
+	b.readerMu.Unlock()
 	return b.newReader()
 }
 
