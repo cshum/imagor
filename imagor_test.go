@@ -1995,6 +1995,39 @@ func TestBlobFanoutCanBeEnabledAfterLoaderPreInit(t *testing.T) {
 	assert.Equal(t, 1, storage.Reads())
 }
 
+func TestBlobFanoutCanBeEnabledAfterSeekableLoaderPreInit(t *testing.T) {
+	data := []byte("late-fanout-seekable-source-data")
+	var calls int
+	storage := &countingReaderStorage{}
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			blob := NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return &readSeekNopCloser{ReadSeeker: bytes.NewReader(data)}, int64(len(data)), nil
+			})
+			_ = blob.ContentType()
+			return blob, nil
+		})),
+		WithStorages(storage),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.True(t, blob.fanout)
+			buf, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+			return NewBlobFromBytes(buf), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "late fanout should rewind and share the seekable source after pre-init")
+	assert.Equal(t, 1, storage.Reads())
+}
+
 func TestBlobStorageHitStaysNonFanoutAndSupportsRepeatedReads(t *testing.T) {
 	data := []byte("storage-hit-data")
 	var calls int
