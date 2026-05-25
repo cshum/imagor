@@ -136,6 +136,20 @@ func TestUploadLoader_RawUpload_Success(t *testing.T) {
 	if blob.ContentType() != "image/jpeg" {
 		t.Errorf("expected content type 'image/jpeg', got %s", blob.ContentType())
 	}
+
+	reader2, _, err := blob.NewReader()
+	if err != nil {
+		t.Errorf("unexpected error creating second reader: %v", err)
+	}
+	defer reader2.Close()
+
+	data2, err := io.ReadAll(reader2)
+	if err != nil {
+		t.Errorf("unexpected error reading second reader: %v", err)
+	}
+	if !bytes.Equal(data2, imageData) {
+		t.Errorf("expected second reader data %v, got %v", imageData, data2)
+	}
 }
 
 func TestUploadLoader_RawUpload_UnsupportedFormat(t *testing.T) {
@@ -223,6 +237,20 @@ func TestUploadLoader_MultipartUpload_Success(t *testing.T) {
 	
 	if !bytes.Equal(data, imageData) {
 		t.Errorf("expected data %v, got %v", imageData, data)
+	}
+
+	reader2, _, err := blob.NewReader()
+	if err != nil {
+		t.Errorf("unexpected error creating second reader: %v", err)
+	}
+	defer reader2.Close()
+
+	data2, err := io.ReadAll(reader2)
+	if err != nil {
+		t.Errorf("unexpected error reading second reader: %v", err)
+	}
+	if !bytes.Equal(data2, imageData) {
+		t.Errorf("expected second reader data %v, got %v", imageData, data2)
 	}
 }
 
