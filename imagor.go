@@ -688,7 +688,7 @@ func (app *Imagor) fromStoragesAndLoaders(
 				for _, loader := range loaders {
 					b, e := loader.Get(r, image)
 					if b != nil {
-						b.setFanout(len(storages) > 0)
+						b.setFanout(image != "" && len(storages) > 0)
 					}
 					b, e = checkBlob(b, e)
 					if !isBlobEmpty(b) {
@@ -722,7 +722,7 @@ func (app *Imagor) fromStoragesAndLoaders(
 	for _, loader := range loaders {
 		b, e := loader.Get(r, image)
 		if b != nil {
-			b.setFanout(len(storages) > 0)
+			b.setFanout(image != "" && len(storages) > 0)
 		}
 		b, e = checkBlob(b, e)
 		if !isBlobEmpty(b) {
