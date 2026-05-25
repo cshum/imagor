@@ -866,6 +866,36 @@ func TestProcessor(t *testing.T) {
 		assert.Greater(t, img.Width(), 0)
 		assert.Greater(t, img.Height(), 0)
 	})
+	t.Run("avif and heif thumbnail source loads", func(t *testing.T) {
+		ctx := context.Background()
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		for _, tc := range []struct {
+			name string
+			file string
+			typ  imagor.BlobType
+		}{
+			{name: "avif", file: "gopher-front.avif", typ: imagor.BlobTypeAVIF},
+			{name: "heif", file: "gopher-front.heif", typ: imagor.BlobTypeHEIF},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, tc.file))
+				require.Equal(t, tc.typ, blob.BlobType())
+
+				img, err := p.NewThumbnail(ctx, blob, 67, 67, vips.InterestingNone, vips.SizeDown, 1, 1, 0)
+				require.NoError(t, err)
+				require.NotNil(t, img)
+				defer img.Close()
+
+				assert.Greater(t, img.Width(), 0)
+				assert.Greater(t, img.PageHeight(), 0)
+				assert.LessOrEqual(t, img.Width(), 67)
+				assert.LessOrEqual(t, img.PageHeight(), 67)
+			})
+		}
+	})
 	t.Run("cr2 is BlobTypeCR2 and IsRaw", func(t *testing.T) {
 		// BlobTypeCR2 must be detected by TIFF header + "CR" at [8:10].
 		// IsRaw() must return true (CR2 is a camera RAW format).

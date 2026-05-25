@@ -25,6 +25,7 @@ func TestWithOption(t *testing.T) {
 			WithMozJPEG(true),
 			WithAvifSpeed(9),
 			WithVectorDisableTargets(167772160),
+			WithStripColorProfile(true),
 			WithStripMetadata(true),
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
@@ -50,6 +51,7 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, 1666667, v.MaxResolution)
 		assert.Equal(t, 3, v.MaxAnimationFrames)
 		assert.Equal(t, true, v.MozJPEG)
+		assert.Equal(t, true, v.StripColorProfile)
 		assert.Equal(t, true, v.StripMetadata)
 		assert.Equal(t, true, v.Unlimited)
 		assert.Equal(t, 9, v.AvifSpeed)

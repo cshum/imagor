@@ -42,6 +42,7 @@ type exportParams struct {
 	compression   int
 	bitdepth      int
 	palette       bool
+	stripColorProfile bool
 	stripMetadata bool
 	lossless      bool
 	maxBytes      int
@@ -131,10 +132,10 @@ func (v *Processor) Process(
 		return imagor.NewBlobFromJsonMarshal(m), nil
 	}
 
-	// Strip ICC profile before export when strip_metadata is requested.
-	// This ensures proper colour conversion to sRGB before the ICC profile
-	// is removed, matching the behaviour of the strip_icc filter.
-	if params.stripMetadata {
+	// Strip ICC profile before export when requested directly or as part of
+	// strip_metadata. This ensures proper colour conversion to sRGB before the
+	// ICC profile is removed, matching the behaviour of the strip_icc filter.
+	if params.stripColorProfile || params.stripMetadata {
 		if err := stripIcc(ctx, img, load); err != nil {
 			return nil, WrapErr(err)
 		}
@@ -189,6 +190,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		bitdepth      int
 		compression   int
 		palette       bool
+		stripColorProfile = v.StripColorProfile
 		stripMetadata = v.StripMetadata
 		lossless      bool
 		maxBytes      int
@@ -225,6 +227,8 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 			}
 		case "strip_metadata":
 			stripMetadata = true
+		case "strip_icc":
+			stripColorProfile = true
 		case "lossless":
 			lossless = true
 		}
@@ -246,6 +250,7 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 		compression:   compression,
 		bitdepth:      bitdepth,
 		palette:       palette,
+		stripColorProfile: stripColorProfile,
 		stripMetadata: stripMetadata,
 		lossless:      lossless,
 		maxBytes:      maxBytes,

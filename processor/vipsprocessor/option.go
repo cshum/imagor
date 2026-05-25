@@ -82,6 +82,13 @@ func WithStripMetadata(enabled bool) Option {
 	}
 }
 
+// WithStripColorProfile strips embedded ICC color profiles from output images.
+func WithStripColorProfile(enabled bool) Option {
+	return func(v *Processor) {
+		v.StripColorProfile = enabled
+	}
+}
+
 // WithAvifSpeed with avif speed option
 func WithAvifSpeed(avifSpeed int) Option {
 	return func(v *Processor) {

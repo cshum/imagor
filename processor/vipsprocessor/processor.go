@@ -43,6 +43,7 @@ type Processor struct {
 	MaxResolution        int
 	MaxAnimationFrames   int
 	MozJPEG              bool
+	StripColorProfile    bool
 	StripMetadata        bool
 	AvifSpeed            int
 	VectorDisableTargets int64
@@ -327,6 +328,12 @@ func (v *Processor) NewThumbnail(
 	if dpi > 0 {
 		options.Dpi = dpi
 	}
+	if blob != nil {
+		switch blob.BlobType() {
+		case imagor.BlobTypeAVIF, imagor.BlobTypeHEIF:
+			options.Thumbnail = true
+		}
+	}
 	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
 	var err error
 	var img *vips.Image
@@ -366,8 +373,9 @@ func (v *Processor) NewThumbnail(
 		}
 	} else {
 		switch blob.BlobType() {
-		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP:
-			// only allow real thumbnail for jpeg gif webp
+		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP,
+			imagor.BlobTypeAVIF, imagor.BlobTypeHEIF:
+			// Use libvips thumbnail-source loaders when the format supports it.
 			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
 		default:
 			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, options)
