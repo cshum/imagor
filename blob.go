@@ -295,11 +295,54 @@ func (b *Blob) init() {
 	b.once.Do(b.doInit)
 }
 
+func (b *Blob) installFanoutLocked(reader io.ReadCloser, size int64) {
+	fanout := fanoutreader.New(reader, int(size))
+	b.fanoutInstance = fanout
+	b.newReader = func() (io.ReadCloser, int64, error) {
+		return fanout.NewReader(), size, nil
+	}
+	if b.newReadSeeker != nil {
+		newReadSeeker := b.newReadSeeker
+		b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
+			return &hybridReadSeeker{
+				reader:        fanout.NewReader(),
+				newReadSeeker: newReadSeeker,
+			}, size, nil
+		}
+	}
+}
+
+func (b *Blob) promoteInitReaderToFanoutLocked() bool {
+	if b.initReader == nil || b.fanoutInstance != nil || b.size <= 0 || b.size >= maxMemorySize {
+		return false
+	}
+	reader := b.initReader
+	if seeker, ok := reader.(io.Seeker); ok {
+		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+			reader = &prefixedReadCloser{
+				prefix: bytes.NewReader(b.sniffBuf),
+				reader: b.initReader,
+			}
+		}
+	} else {
+		reader = &prefixedReadCloser{
+			prefix: bytes.NewReader(b.sniffBuf),
+			reader: b.initReader,
+		}
+	}
+	b.installFanoutLocked(reader, b.size)
+	b.initReader = nil
+	return true
+}
+
 // setFanout selects whether init should promote the source to a shared fanout reader.
 // It is intended to be set before the blob is initialized.
 func (b *Blob) setFanout(enabled bool) {
 	b.readerMu.Lock()
 	b.fanout = enabled
+	if enabled {
+		b.promoteInitReaderToFanoutLocked()
+	}
 	b.readerMu.Unlock()
 }
 
@@ -335,21 +378,8 @@ func (b *Blob) doInit() {
 	if b.fanout && size > 0 && size < maxMemorySize && err == nil {
 		// use fan-out reader if buf size known and within memory size
 		// otherwise create new readers
-		fanout := fanoutreader.New(reader, int(size))
-		b.fanoutInstance = fanout
-		b.newReader = func() (io.ReadCloser, int64, error) {
-			return fanout.NewReader(), size, nil
-		}
-		reader = fanout.NewReader()
-		if b.newReadSeeker != nil {
-			newReadSeeker := b.newReadSeeker
-			b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
-				return &hybridReadSeeker{
-					reader:        fanout.NewReader(),
-					newReadSeeker: newReadSeeker,
-				}, size, nil
-			}
-		}
+		b.installFanoutLocked(reader, size)
+		reader = b.fanoutInstance.NewReader()
 	} else {
 		b.fanout = false
 		b.initReader = reader
