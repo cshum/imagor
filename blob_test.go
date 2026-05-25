@@ -503,3 +503,27 @@ func TestBlobKnownSizeFanoutStillAvoidsReopenAfterSniff(t *testing.T) {
 	assert.Equal(t, buf, data2)
 	assert.Equal(t, 1, calls, "fanout path should keep sharing the original source")
 }
+
+func TestBlobKnownSizeNonFanoutPreservesSeekableFirstReader(t *testing.T) {
+	buf, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
+
+	b := NewBlobFromBytes(buf)
+
+	assert.Equal(t, BlobTypeJPEG, b.BlobType())
+
+	r, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r.Close()
+	assert.Equal(t, int64(len(buf)), size)
+
+	seeker, ok := r.(io.Seeker)
+	require.True(t, ok, "first reader should remain seekable")
+
+	_, err = seeker.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data)
+}

@@ -561,15 +561,25 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	}
 	b.readerMu.Lock()
 	if b.initReader != nil {
-		reader = &prefixedReadCloser{
-			prefix: bytes.NewReader(b.sniffBuf),
-			reader: b.initReader,
+		if seeker, ok := b.initReader.(io.Seeker); ok {
+			if _, err = seeker.Seek(0, io.SeekStart); err == nil {
+				reader = b.initReader
+			} else {
+				reader = &prefixedReadCloser{
+					prefix: bytes.NewReader(b.sniffBuf),
+					reader: b.initReader,
+				}
+			}
+		} else {
+			reader = &prefixedReadCloser{
+				prefix: bytes.NewReader(b.sniffBuf),
+				reader: b.initReader,
+			}
 		}
 		b.initReader = nil
 		size = b.size
-		err = b.err
 		b.readerMu.Unlock()
-		return reader, size, err
+		return reader, size, b.err
 	}
 	b.readerMu.Unlock()
 	return b.newReader()

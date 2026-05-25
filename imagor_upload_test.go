@@ -417,3 +417,27 @@ func TestImagor_PostUpload_DoesNotEnableFanoutWithStorages(t *testing.T) {
 	assert.Equal(t, 1, calls, "POST upload should reuse the sniffed source without fanout")
 	assert.Equal(t, 0, storage.Reads(), "POST upload should not trigger source storage save")
 }
+
+func TestImagor_PostUpload_ResponseRawOnError(t *testing.T) {
+	imageData := []byte("fake-jpeg-data")
+	app := New(
+		WithUnsafe(true),
+		WithEnablePostRequests(true),
+		WithLoaders(createMockUploadLoader()),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			return nil, ErrMaxResolutionExceeded
+		})),
+		WithResponseRawOnError(true),
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
+	req.Header.Set("Content-Type", "image/jpeg")
+	req.ContentLength = int64(len(imageData))
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, req)
+
+	assert.Equal(t, ErrMaxResolutionExceeded.Code, w.Code)
+	assert.Equal(t, imageData, w.Body.Bytes())
+	assert.Equal(t, "image/jpeg", w.Header().Get("Content-Type"))
+}

@@ -1962,6 +1962,41 @@ func TestBlobFanoutStaysEnabledForConcurrentSourceSave(t *testing.T) {
 	assert.Equal(t, 1, storage.Reads())
 }
 
+func TestBlobStorageHitStaysNonFanoutAndSupportsRepeatedReads(t *testing.T) {
+	data := []byte("storage-hit-data")
+	var calls int
+	store := newMapStore()
+	store.Map["test"] = NewBlob(func() (io.ReadCloser, int64, error) {
+		calls++
+		return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+	})
+
+	app := New(
+		WithStorages(store),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.False(t, blob.fanout)
+
+			buf1, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf1)
+
+			buf2, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf2)
+
+			return NewBlobFromBytes(buf2), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 2, calls, "storage-hit path should reuse the sniffed source once and reopen only for later reads")
+}
+
 func newLoaderWithStat() *loaderWithStat {
 	return &loaderWithStat{
 		data:    make(map[string]*Blob),

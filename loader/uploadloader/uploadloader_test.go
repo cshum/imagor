@@ -45,7 +45,7 @@ func TestUploadLoader_NewWithOptions(t *testing.T) {
 func TestUploadLoader_Get_NonPOST(t *testing.T) {
 	loader := New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	
+
 	blob, err := loader.Get(req, "")
 	if blob != nil {
 		t.Error("expected nil blob for non-POST request")
@@ -59,7 +59,7 @@ func TestUploadLoader_Get_InvalidKey(t *testing.T) {
 	loader := New()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("test"))
 	req.Header.Set("Content-Type", "image/jpeg")
-	
+
 	// Test with non-empty key - should return ErrInvalid
 	blob, err := loader.Get(req, "some-key")
 	if blob != nil {
@@ -76,7 +76,7 @@ func TestUploadLoader_Get_EmptyKeyValid(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
 	req.Header.Set("Content-Type", "image/jpeg")
 	req.ContentLength = int64(len(imageData))
-	
+
 	// Test with empty key - should work normally
 	blob, err := loader.Get(req, "")
 	if err != nil {
@@ -90,7 +90,7 @@ func TestUploadLoader_Get_EmptyKeyValid(t *testing.T) {
 func TestUploadLoader_Get_MissingContentType(t *testing.T) {
 	loader := New()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("test"))
-	
+
 	blob, err := loader.Get(req, "")
 	if blob != nil {
 		t.Error("expected nil blob for missing Content-Type")
@@ -106,7 +106,7 @@ func TestUploadLoader_RawUpload_Success(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
 	req.Header.Set("Content-Type", "image/jpeg")
 	req.ContentLength = int64(len(imageData))
-	
+
 	blob, err := loader.Get(req, "")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -114,19 +114,19 @@ func TestUploadLoader_RawUpload_Success(t *testing.T) {
 	if blob == nil {
 		t.Fatal("expected blob, got nil")
 	}
-	
+
 	// Read blob data
 	reader, size, err := blob.NewReader()
 	if err != nil {
 		t.Errorf("unexpected error reading blob: %v", err)
 	}
 	defer reader.Close()
-	
+
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		t.Errorf("unexpected error reading data: %v", err)
 	}
-	
+
 	if !bytes.Equal(data, imageData) {
 		t.Errorf("expected data %v, got %v", imageData, data)
 	}
@@ -157,7 +157,7 @@ func TestUploadLoader_RawUpload_UnsupportedFormat(t *testing.T) {
 	imageData := []byte("fake-png-data")
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
 	req.Header.Set("Content-Type", "image/png")
-	
+
 	blob, err := loader.Get(req, "")
 	if blob != nil {
 		t.Error("expected nil blob for unsupported format")
@@ -173,7 +173,7 @@ func TestUploadLoader_RawUpload_SizeExceeded(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
 	req.Header.Set("Content-Type", "image/jpeg")
 	req.ContentLength = int64(len(imageData))
-	
+
 	blob, err := loader.Get(req, "")
 	if blob != nil {
 		t.Error("expected nil blob for size exceeded")
@@ -185,11 +185,11 @@ func TestUploadLoader_RawUpload_SizeExceeded(t *testing.T) {
 
 func TestUploadLoader_MultipartUpload_Success(t *testing.T) {
 	loader := New()
-	
+
 	// Create multipart form
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-	
+
 	// Create form file with proper content type header
 	h := make(map[string][]string)
 	h["Content-Type"] = []string{"image/jpeg"}
@@ -200,21 +200,21 @@ func TestUploadLoader_MultipartUpload_Success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	imageData := []byte("fake-jpeg-data")
 	_, err = part.Write(imageData)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	err = writer.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	
+
 	blob, err := loader.Get(req, "")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -222,19 +222,19 @@ func TestUploadLoader_MultipartUpload_Success(t *testing.T) {
 	if blob == nil {
 		t.Fatal("expected blob, got nil")
 	}
-	
+
 	// Read blob data
 	reader, _, err := blob.NewReader()
 	if err != nil {
 		t.Errorf("unexpected error reading blob: %v", err)
 	}
 	defer reader.Close()
-	
+
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		t.Errorf("unexpected error reading data: %v", err)
 	}
-	
+
 	if !bytes.Equal(data, imageData) {
 		t.Errorf("expected data %v, got %v", imageData, data)
 	}
@@ -256,29 +256,29 @@ func TestUploadLoader_MultipartUpload_Success(t *testing.T) {
 
 func TestUploadLoader_MultipartUpload_MissingField(t *testing.T) {
 	loader := New()
-	
+
 	// Create multipart form with wrong field name
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-	
+
 	part, err := writer.CreateFormFile("wrong_field", "test.jpg")
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	_, err = part.Write([]byte("fake-jpeg-data"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	err = writer.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	
+
 	blob, err := loader.Get(req, "")
 	if blob != nil {
 		t.Error("expected nil blob for missing field")
@@ -304,7 +304,7 @@ func TestUploadLoader_ValidateContentType(t *testing.T) {
 		{"multiple accepts match", "image/jpeg,image/png", "image/png", true},
 		{"multiple accepts no match", "image/jpeg,image/png", "image/gif", false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			loader := New(WithAccept(tt.accept))
@@ -327,7 +327,7 @@ func TestParseContentType(t *testing.T) {
 		{"", ""},
 		{"invalid", "invalid"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			result := parseContentType(tt.input)
@@ -341,29 +341,29 @@ func TestParseContentType(t *testing.T) {
 func TestUploadLoader_EdgeCases(t *testing.T) {
 	t.Run("multipart upload with non-empty key", func(t *testing.T) {
 		loader := New()
-		
+
 		// Create multipart form
 		var buf bytes.Buffer
 		writer := multipart.NewWriter(&buf)
-		
+
 		part, err := writer.CreateFormFile("image", "test.jpg")
 		if err != nil {
 			t.Fatal(err)
 		}
-		
+
 		_, err = part.Write([]byte("fake-jpeg-data"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		
+
 		err = writer.Close()
 		if err != nil {
 			t.Fatal(err)
 		}
-		
+
 		req := httptest.NewRequest(http.MethodPost, "/", &buf)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
-		
+
 		// Test with non-empty key - should return ErrInvalid even for multipart
 		blob, err := loader.Get(req, "non-empty-key")
 		if blob != nil {
@@ -373,11 +373,11 @@ func TestUploadLoader_EdgeCases(t *testing.T) {
 			t.Errorf("expected ErrInvalid for non-empty key, got %v", err)
 		}
 	})
-	
+
 	t.Run("various invalid key formats", func(t *testing.T) {
 		loader := New()
 		imageData := []byte("fake-jpeg-data")
-		
+
 		invalidKeys := []string{
 			"some-key",
 			"path/to/image.jpg",
@@ -387,13 +387,13 @@ func TestUploadLoader_EdgeCases(t *testing.T) {
 			".",
 			"..",
 		}
-		
+
 		for _, key := range invalidKeys {
 			t.Run("key: "+key, func(t *testing.T) {
 				req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
 				req.Header.Set("Content-Type", "image/jpeg")
 				req.ContentLength = int64(len(imageData))
-				
+
 				blob, err := loader.Get(req, key)
 				if blob != nil {
 					t.Errorf("expected nil blob for key '%s'", key)
