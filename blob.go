@@ -295,6 +295,14 @@ func (b *Blob) init() {
 	b.once.Do(b.doInit)
 }
 
+// setFanout selects whether init should promote the source to a shared fanout reader.
+// It is intended to be set before the blob is initialized.
+func (b *Blob) setFanout(enabled bool) {
+	b.readerMu.Lock()
+	b.fanout = enabled
+	b.readerMu.Unlock()
+}
+
 func (b *Blob) doInit() {
 	if b.err != nil {
 		return

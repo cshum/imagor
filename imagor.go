@@ -648,7 +648,11 @@ func fromStorages(
 	r *http.Request, storages []Storage, key string,
 ) (blob *Blob, origin Storage, err error) {
 	for _, storage := range storages {
-		b, e := checkBlob(storage.Get(r, key))
+		b, e := storage.Get(r, key)
+		if b != nil {
+			b.setFanout(false)
+		}
+		b, e = checkBlob(b, e)
 		if !isBlobEmpty(b) {
 			blob = b
 			if e == nil {
@@ -682,7 +686,11 @@ func (app *Imagor) fromStoragesAndLoaders(
 			// For POST uploads, try loaders even with empty image key
 			if r.Method == http.MethodPost {
 				for _, loader := range loaders {
-					b, e := checkBlob(loader.Get(r, image))
+					b, e := loader.Get(r, image)
+					if b != nil {
+						b.setFanout(len(storages) > 0)
+					}
+					b, e = checkBlob(b, e)
 					if !isBlobEmpty(b) {
 						blob = b
 						if e == nil {
@@ -712,7 +720,11 @@ func (app *Imagor) fromStoragesAndLoaders(
 		}
 	}
 	for _, loader := range loaders {
-		b, e := checkBlob(loader.Get(r, image))
+		b, e := loader.Get(r, image)
+		if b != nil {
+			b.setFanout(len(storages) > 0)
+		}
+		b, e = checkBlob(b, e)
 		if !isBlobEmpty(b) {
 			blob = b
 			if e == nil {
