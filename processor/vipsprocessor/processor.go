@@ -26,27 +26,28 @@ var processorCount int
 
 // Processor implements imagor.Processor interface
 type Processor struct {
-	Filters            FilterMap
-	FallbackFunc       FallbackFunc
-	Detectors          []imagor.Detector
-	DetectorProbeSize  int
-	DisableBlur        bool
-	DisableFilters     []string
-	MaxFilterOps       int
-	Logger             *zap.Logger
-	Concurrency        int
-	MaxCacheFiles      int
-	MaxCacheMem        int
-	MaxCacheSize       int
-	MaxWidth           int
-	MaxHeight          int
-	MaxResolution      int
-	MaxAnimationFrames int
-	MozJPEG            bool
-	StripMetadata      bool
-	AvifSpeed          int
-	Unlimited          bool
-	Debug              bool
+	Filters              FilterMap
+	FallbackFunc         FallbackFunc
+	Detectors            []imagor.Detector
+	DetectorProbeSize    int
+	DisableBlur          bool
+	DisableFilters       []string
+	MaxFilterOps         int
+	Logger               *zap.Logger
+	Concurrency          int
+	MaxCacheFiles        int
+	MaxCacheMem          int
+	MaxCacheSize         int
+	MaxWidth             int
+	MaxHeight            int
+	MaxResolution        int
+	MaxAnimationFrames   int
+	MozJPEG              bool
+	StripMetadata        bool
+	AvifSpeed            int
+	VectorDisableTargets int64
+	Unlimited            bool
+	Debug                bool
 
 	// Image cache settings
 	CacheSize      int64
@@ -143,10 +144,11 @@ func (v *Processor) Startup(ctx context.Context) error {
 			}, vips.LogLevelError)
 		}
 		vips.Startup(&vips.Config{
-			MaxCacheFiles:    v.MaxCacheFiles,
-			MaxCacheMem:      v.MaxCacheMem,
-			MaxCacheSize:     v.MaxCacheSize,
-			ConcurrencyLevel: v.Concurrency,
+			MaxCacheFiles:        v.MaxCacheFiles,
+			MaxCacheMem:          v.MaxCacheMem,
+			MaxCacheSize:         v.MaxCacheSize,
+			ConcurrencyLevel:     v.Concurrency,
+			VectorDisableTargets: v.VectorDisableTargets,
 		})
 	}
 	v.hasDcrawload = vips.HasOperation("dcrawload_source")

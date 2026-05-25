@@ -87,6 +87,8 @@ github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 h1:aBangftG7EVZoUb69Os
 github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2/go.mod h1:qwXFYgsP6T7XnJtbKlf1HP8AjxZZyzxMmc+Lq5GjlU4=
 github.com/cshum/vipsgen v1.3.10-0.20260524154013-383fc3fabd1f h1:xLvzCqwfJET2jonkSqJfsh3VmBfme3Y6+GWRFtDx6Mw=
 github.com/cshum/vipsgen v1.3.10-0.20260524154013-383fc3fabd1f/go.mod h1:AmCpW+vKfu16ZFPN/PBgtLsAl3kt7c0y2uA4bD5Lzk8=
+github.com/cshum/vipsgen v1.3.10-0.20260525073522-6bbb8a6385a2 h1:l68P6zCYWXKDjgFbMaIOWndXBazh7TTNh894x8J16xw=
+github.com/cshum/vipsgen v1.3.10-0.20260525073522-6bbb8a6385a2/go.mod h1:AmCpW+vKfu16ZFPN/PBgtLsAl3kt7c0y2uA4bD5Lzk8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=

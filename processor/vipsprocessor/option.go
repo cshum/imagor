@@ -91,6 +91,14 @@ func WithAvifSpeed(avifSpeed int) Option {
 	}
 }
 
+// WithVectorDisableTargets sets the libvips vector target disable bitmask.
+// This matches the semantics of the native VIPS_VECTOR environment variable.
+func WithVectorDisableTargets(targets int64) Option {
+	return func(v *Processor) {
+		v.VectorDisableTargets = targets
+	}
+}
+
 // WithMaxFilterOps with maximum number of filter operations option
 func WithMaxFilterOps(num int) Option {
 	return func(v *Processor) {
