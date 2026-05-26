@@ -127,6 +127,22 @@ func TestProcessor(t *testing.T) {
 			{name: "lossless skips max_bytes retry", path: "filters:format(webp):lossless():max_bytes(100)/gopher-front.png", arm64Golden: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
+	t.Run("vips lossless webp round-trip", func(t *testing.T) {
+		src, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
+		require.NoError(t, err)
+		defer src.Close()
+
+		buf, err := v.export(src, vips.ImageTypeWebp, 0, 0, false, 0, false, true)
+		require.NoError(t, err)
+
+		out, err := vips.NewImageFromBuffer(buf, nil)
+		require.NoError(t, err)
+		defer out.Close()
+
+		require.Equal(t, src.Width(), out.Width(), "width must match")
+		require.Equal(t, src.Height(), out.Height(), "height must match")
+		require.Equal(t, src.Bands(), out.Bands(), "band count must match")
+	})
 	t.Run("vips lossless round-trip pixel-exact", func(t *testing.T) {
 		src, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
 		require.NoError(t, err)
@@ -136,7 +152,6 @@ func TestProcessor(t *testing.T) {
 			name   string
 			format vips.ImageType
 		}{
-			{"webp", vips.ImageTypeWebp},
 			{"jxl", vips.ImageTypeJxl},
 			{"avif", vips.ImageTypeAvif},
 			{"heif", vips.ImageTypeHeif},

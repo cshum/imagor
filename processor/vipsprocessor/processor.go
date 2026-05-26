@@ -72,6 +72,7 @@ func NewProcessor(options ...Option) *Processor {
 		Concurrency:        1,
 		MaxFilterOps:       -1,
 		MaxAnimationFrames: -1,
+		AvifSpeed:          8,
 		Logger:             zap.NewNop(),
 		disableFilters:     map[string]bool{},
 		CacheMaxWidth:      2400,

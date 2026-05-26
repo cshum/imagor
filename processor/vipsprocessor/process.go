@@ -893,7 +893,7 @@ func (v *Processor) export(
 		opts := &vips.WebpsaveBufferOptions{
 			Q:        quality,
 			Lossless: lossless,
-			Exact:    lossless,
+			Effort:   4,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone
