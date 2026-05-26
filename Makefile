@@ -1,7 +1,4 @@
 IMAGOR_BASE_IMAGE ?= ghcr.io/cshum/imagor-base:vips8.18.2-r10
-PERF_TAG ?= imagor:perf-vipsgen-handle
-PERF_PUSH_TAG ?= ghcr.io/cshum/imagor:perf-vipsgen-handle
-PERF_PLATFORMS ?= linux/amd64,linux/arm64
 
 build:
 	CGO_CFLAGS_ALLOW=-Xpreprocessor go build -o bin/imagor ./cmd/imagor/main.go
@@ -44,17 +41,6 @@ docker-mozjpeg-run:
 	docker run --rm -p 8000:8000 --env-file .env imagor:mozjpeg -debug -imagor-unsafe -vips-mozjpeg
 
 docker-mozjpeg: docker-mozjpeg-build docker-mozjpeg-run
-
-docker-perf-build:
-	docker build --build-arg BASE_IMAGE=$(IMAGOR_BASE_IMAGE) -t $(PERF_TAG) .
-
-docker-perf-buildx-push:
-	docker buildx build \
-		--build-arg BASE_IMAGE=$(IMAGOR_BASE_IMAGE) \
-		--platform $(PERF_PLATFORMS) \
-		-t $(PERF_PUSH_TAG) \
-		--push \
-		.
 
 %-tag: VERSION:=$(if $(VERSION),$(VERSION),$$(./bin/imagor -version))
 
