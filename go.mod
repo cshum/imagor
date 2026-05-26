@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.101.0
 	github.com/aws/smithy-go v1.25.1
 	github.com/bbrks/go-blurhash v1.2.0
-	github.com/cshum/vipsgen v1.3.10-0.20260525073522-6bbb8a6385a2
+	github.com/cshum/vipsgen v1.3.10
 	github.com/fsouza/fake-gcs-server v1.54.0
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/johannesboyne/gofakes3 v0.0.0-20260208201424-4c385a1f6a73
