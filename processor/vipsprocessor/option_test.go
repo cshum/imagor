@@ -73,7 +73,7 @@ func TestWithOption(t *testing.T) {
 	t.Run("cache option defaults and guards", func(t *testing.T) {
 		// Defaults
 		v := NewProcessor()
-			assert.Equal(t, 8, v.AvifSpeed)
+		assert.Equal(t, 8, v.AvifSpeed)
 		assert.Equal(t, int64(0), v.CacheSize)
 		assert.Equal(t, 2400, v.CacheMaxWidth)
 		assert.Equal(t, 2000, v.CacheMaxHeight)
