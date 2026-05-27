@@ -266,6 +266,38 @@ func TestAsyncReadSeeker_ShortSourceClampsLenAndSizeAfterEOF(t *testing.T) {
 	assert.Equal(t, "012345", string(buf))
 }
 
+func TestAsyncReadSeeker_SeekAfterShortIntermediateReads(t *testing.T) {
+	source := &scriptedReadCloser{steps: []readStep{
+		{data: []byte("01")},
+		{data: []byte("2")},
+		{data: []byte("345")},
+		{data: []byte("67")},
+		{data: []byte("89")},
+	}}
+	rs := NewAsync(source, 10)
+	t.Cleanup(func() {
+		assert.NoError(t, rs.Close())
+	})
+
+	buf := make([]byte, 6)
+	n, err := rs.Read(buf)
+	require.NoError(t, err)
+	assert.Equal(t, "012345", string(buf[:n]))
+
+	_, err = rs.Seek(2, io.SeekStart)
+	require.NoError(t, err)
+
+	buf, err = io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, "23456789", string(buf))
+
+	_, err = rs.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+	buf, err = io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, "0123456789", string(buf))
+}
+
 func TestMemoryBuffer_Seek(t *testing.T) {
 	r := NewMemoryBuffer(10)
 	n, err := r.Write([]byte("0123456789"))

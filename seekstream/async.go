@@ -17,6 +17,7 @@ type AsyncReadSeeker struct {
 
 	mu         sync.Mutex
 	cond       *sync.Cond
+	chunkStart []int64
 	chunks     [][]byte
 	bytesRead  int64
 	finished   bool
@@ -53,6 +54,7 @@ func (s *AsyncReadSeeker) fill() {
 			return
 		}
 		if n > 0 {
+			s.chunkStart = append(s.chunkStart, s.bytesRead)
 			s.chunks = append(s.chunks, buf[:n])
 			s.bytesRead += int64(n)
 		}
@@ -93,9 +95,12 @@ func (s *AsyncReadSeeker) copyLocked(dst []byte, off int64) int {
 	if off >= s.bytesRead || len(dst) == 0 {
 		return 0
 	}
+	chunkIndex := 0
+	for chunkIndex+1 < len(s.chunkStart) && s.chunkStart[chunkIndex+1] <= off {
+		chunkIndex++
+	}
 	total := 0
-	chunkIndex := int(off / asyncChunkSize)
-	chunkOffset := int(off % asyncChunkSize)
+	chunkOffset := int(off - s.chunkStart[chunkIndex])
 	for total < len(dst) && chunkIndex < len(s.chunks) {
 		chunk := s.chunks[chunkIndex]
 		if chunkOffset >= len(chunk) {
