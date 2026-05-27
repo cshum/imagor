@@ -1962,6 +1962,52 @@ func TestBlobFanoutStaysEnabledForConcurrentSourceSave(t *testing.T) {
 	assert.Equal(t, 1, storage.Reads())
 }
 
+func TestBlobFanoutWithReadSeekerStaysSingleOpenForConcurrentSourceSave(t *testing.T) {
+	data := bytes.Repeat([]byte("shared-readseeker-source-data"), 8)
+	var calls int
+	storage := &countingReaderStorage{}
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+			}), nil
+		})),
+		WithStorages(storage),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.True(t, blob.fanout)
+
+			rs, size, err := blob.NewReadSeeker()
+			require.NoError(t, err)
+			defer rs.Close()
+			assert.Equal(t, int64(len(data)), size)
+
+			head := make([]byte, 15)
+			n, err := rs.Read(head)
+			require.NoError(t, err)
+			assert.Equal(t, data[:n], head[:n])
+
+			_, err = rs.Seek(0, io.SeekStart)
+			require.NoError(t, err)
+
+			buf, err := io.ReadAll(rs)
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+
+			return NewBlobFromBytes(buf), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "concurrent save with NewReadSeeker should still share one source stream")
+	assert.Equal(t, 1, storage.Reads())
+}
+
 func TestBlobFanoutCanBeEnabledAfterLoaderPreInit(t *testing.T) {
 	data := []byte("late-fanout-source-data")
 	var calls int

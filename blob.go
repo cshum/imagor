@@ -217,7 +217,10 @@ type readSeekNopCloser struct {
 
 func (readSeekNopCloser) Close() error { return nil }
 
-// hybridReadSeeker uses io.ReadCloser and switch to io.ReadSeekCloser only when seeked
+// hybridReadSeeker starts on a shared forward-only reader and only opens a
+// dedicated seekable clone if a caller actually seeks. This keeps the fanout
+// path cheap for read-only consumers while preserving seek support for the
+// rare seeking path on already-seekable sources.
 type hybridReadSeeker struct {
 	reader        io.ReadCloser
 	seeker        io.ReadSeekCloser
@@ -302,6 +305,8 @@ func (b *Blob) installFanoutLocked(reader io.ReadCloser, size int64) {
 		return fanout.NewReader(), size, nil
 	}
 	if b.newReadSeeker != nil {
+		// Keep fanout for shared forward reads and only reopen the dedicated
+		// seekable reader if a consumer actually calls Seek.
 		newReadSeeker := b.newReadSeeker
 		b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
 			return &hybridReadSeeker{
@@ -615,14 +620,19 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	return b.newReader()
 }
 
-// NewReadSeeker create read seeker if reader supports seek,
-// or attempts to simulate seek using memory or temp file buffer
+// NewReadSeeker creates a seekable reader for the blob.
+//
+// If the source already supports seek, it is reused directly. Otherwise imagor
+// chooses between the async in-memory seeker for small known-size sources and
+// the original buffered seekstream fallback for large or unknown-size sources.
 func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	b.init()
 	if b.newReadSeeker != nil {
 		return b.newReadSeeker()
 	}
-	// if source not seekable, simulate seek with seek stream
+	// For non-seekable sources, simulate seek over the existing reader rather than
+	// reopening upstream. The async path is the fast path for small known-size
+	// sources; temp-file-backed seekstream remains the safe fallback.
 	reader, size, err := b.NewReader()
 	if err != nil {
 		return nil, size, err
