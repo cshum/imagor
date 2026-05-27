@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/cshum/imagor/seekstream"
@@ -338,6 +339,86 @@ func TestBlobNewReadSeeker_UsesSeekStreamForUnknownOrLargeSize(t *testing.T) {
 		_, ok := rs.(*seekstream.SeekStream)
 		assert.True(t, ok)
 	})
+}
+
+func TestBlobFanoutNewReadSeeker_UsesAsyncOnSharedNonSeekableSource(t *testing.T) {
+	payload := bytes.Repeat([]byte("fanout-async-"), 64)
+	var sourceCalls atomic.Int32
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		sourceCalls.Add(1)
+		return nopReadCloser{Reader: bytes.NewReader(payload)}, int64(len(payload)), nil
+	})
+	b.setFanout(true)
+
+	r, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r.Close()
+	assert.Equal(t, int64(len(payload)), size)
+
+	head := make([]byte, 17)
+	n, err := io.ReadFull(r, head)
+	require.NoError(t, err)
+	assert.Equal(t, payload[:n], head[:n])
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+	assert.Equal(t, int64(len(payload)), size)
+	_, ok := rs.(*seekstream.AsyncReadSeeker)
+	assert.True(t, ok)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+
+	chunk := make([]byte, 23)
+	n, err = rs.Read(chunk)
+	require.NoError(t, err)
+	assert.Equal(t, payload[:n], chunk[:n])
+
+	_, err = rs.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+	all, err := io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, payload, all)
+
+	remainder, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, payload[len(head):], remainder)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+}
+
+func TestBlobFanoutNewReadSeeker_DefersSeekableCloneUntilSeek(t *testing.T) {
+	payload := bytes.Repeat([]byte("fanout-hybrid-"), 64)
+	var sourceCalls atomic.Int32
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		sourceCalls.Add(1)
+		return &readSeekNopCloser{ReadSeeker: bytes.NewReader(payload)}, int64(len(payload)), nil
+	})
+	b.setFanout(true)
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+	assert.Equal(t, int64(len(payload)), size)
+
+	hybrid, ok := rs.(*hybridReadSeeker)
+	require.True(t, ok)
+	assert.Nil(t, hybrid.seeker)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+
+	buf := make([]byte, 19)
+	n, err := rs.Read(buf)
+	require.NoError(t, err)
+	assert.Equal(t, payload[:n], buf[:n])
+	assert.Nil(t, hybrid.seeker)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+
+	_, err = rs.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+	require.NotNil(t, hybrid.seeker)
+	assert.Equal(t, int32(2), sourceCalls.Load())
+
+	all, err := io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, payload, all)
 }
 
 func TestNewBlobFromMemory(t *testing.T) {
