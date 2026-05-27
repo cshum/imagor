@@ -3,6 +3,7 @@ package vipsprocessor
 import (
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"runtime"
 	"strings"
@@ -207,6 +208,11 @@ func (v *Processor) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+func (v *Processor) newSourceReaderFromBlob(blob *imagor.Blob) (io.ReadCloser, error) {
+	reader, _, err := blob.NewReadSeeker()
+	return reader, err
+}
+
 func (v *Processor) newImageFromBlob(
 	ctx context.Context, blob *imagor.Blob, options *vips.LoadOptions,
 ) (*vips.Image, error) {
@@ -251,7 +257,7 @@ func (v *Processor) newImageFromBlob(
 		}
 		// dcrawload failed — it's a real TIFF or unsupported, proceed with normal loading
 	}
-	reader, _, err := blob.NewReader()
+	reader, err := v.newSourceReaderFromBlob(blob)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +273,7 @@ func (v *Processor) newImageFromBlob(
 
 // dcrawloadFromBlob loads a RAW camera image using vips_dcrawload_source.
 func (v *Processor) dcrawloadFromBlob(ctx context.Context, blob *imagor.Blob) (*vips.Image, error) {
-	reader, _, err := blob.NewReader()
+	reader, err := v.newSourceReaderFromBlob(blob)
 	if err != nil {
 		return nil, err
 	}
@@ -281,14 +287,14 @@ func (v *Processor) dcrawloadFromBlob(ctx context.Context, blob *imagor.Blob) (*
 	return img, nil
 }
 
-func newThumbnailFromBlob(
+func (v *Processor) newThumbnailFromBlob(
 	ctx context.Context, blob *imagor.Blob,
 	width, height int, crop vips.Interesting, size vips.Size, options *vips.LoadOptions,
 ) (*vips.Image, error) {
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
-	reader, _, err := blob.NewReader()
+	reader, err := v.newSourceReaderFromBlob(blob)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +383,7 @@ func (v *Processor) NewThumbnail(
 		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP,
 			imagor.BlobTypeAVIF, imagor.BlobTypeHEIF:
 			// Use libvips thumbnail-source loaders when the format supports it.
-			img, err = newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
+			img, err = v.newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
 		default:
 			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, options)
 		}

@@ -1,6 +1,7 @@
 package vipsprocessor
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -38,6 +39,12 @@ type test struct {
 	checkTypeOnly bool
 	arm64Golden   bool
 }
+
+type nonSeekableReadCloser struct {
+	io.Reader
+}
+
+func (r *nonSeekableReadCloser) Close() error { return nil }
 
 func TestMain(m *testing.M) {
 	vips.Startup(&vips.Config{
@@ -837,6 +844,20 @@ func TestProcessor(t *testing.T) {
 		img, err := p.newImageFromBlob(ctx, blob, &vips.LoadOptions{})
 		assert.Nil(t, img)
 		assert.Equal(t, imagor.ErrUnsupportedFormat, err)
+	})
+	t.Run("source reader prefers read seeker by default", func(t *testing.T) {
+		payload := []byte("plain-text-payload")
+		blob := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+			return &nonSeekableReadCloser{Reader: bytes.NewReader(payload)}, int64(len(payload)), nil
+		})
+
+		p := NewProcessor()
+		reader, err := p.newSourceReaderFromBlob(blob)
+		require.NoError(t, err)
+		defer func() { _ = reader.Close() }()
+
+		_, ok := reader.(io.ReadSeeker)
+		assert.True(t, ok, "default source reader should be seekable")
 	})
 	t.Run("raw routed to dcrawload when available", func(t *testing.T) {
 		// BlobTypeRAF (Fuji RAF) with hasDcrawload=true must be routed to dcrawload,

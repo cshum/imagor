@@ -99,6 +99,57 @@ func TestSeekStream_MemoryBuffer(t *testing.T) {
 	doSeekStreamTests(t, NewMemoryBuffer(10))
 }
 
+func TestAsyncReadSeeker(t *testing.T) {
+	buf := []byte("0123456789")
+	rs := NewAsync(io.NopCloser(bytes.NewReader(buf)), int64(len(buf)))
+
+	tests := []struct {
+		off     int64
+		seek    int
+		n       int
+		len     int
+		size    int
+		want    string
+		wantpos int64
+		readerr error
+		seekerr string
+	}{
+		{seek: -1, n: 3, len: 7, size: 10, want: "012"},
+		{seek: -1, n: 2, len: 5, size: 10, want: "34"},
+		{seek: io.SeekCurrent, off: 1, n: 1, len: 3, size: 10, want: "6"},
+		{seek: io.SeekCurrent, off: -1, n: 2, len: 2, size: 10, want: "67"},
+		{seek: io.SeekStart, off: 2, n: 2, len: 6, size: 10, want: "23"},
+		{seek: io.SeekEnd, off: -2, n: 20, size: 10, want: "89"},
+		{seek: io.SeekStart, off: 20, n: 2, size: 10, readerr: io.EOF},
+		{seek: io.SeekStart, off: -1, size: 10, seekerr: "invalid argument"},
+	}
+
+	for i, tt := range tests {
+		if tt.seek >= 0 {
+			pos, err := rs.Seek(tt.off, tt.seek)
+			if tt.seekerr != "" {
+				require.Error(t, err, i)
+				assert.Contains(t, err.Error(), tt.seekerr, i)
+			} else {
+				require.NoError(t, err, i)
+			}
+			if tt.wantpos != 0 {
+				assert.Equal(t, tt.wantpos, pos, i)
+			}
+		}
+		readBuf := make([]byte, tt.n)
+		n, err := rs.Read(readBuf)
+		assert.ErrorIs(t, err, tt.readerr, i)
+		assert.Equal(t, tt.want, string(readBuf[:n]), i)
+		assert.Equal(t, tt.len, rs.Len(), i)
+		assert.Equal(t, tt.size, int(rs.Size()), i)
+	}
+
+	assert.NoError(t, rs.Close())
+	_, err := rs.Seek(0, io.SeekStart)
+	assert.ErrorIs(t, err, io.ErrClosedPipe)
+}
+
 func TestMemoryBuffer_Seek(t *testing.T) {
 	r := NewMemoryBuffer(10)
 	n, err := r.Write([]byte("0123456789"))
