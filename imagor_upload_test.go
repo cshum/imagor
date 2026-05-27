@@ -2,10 +2,16 @@ package imagor
 
 import (
 	"bytes"
+	"context"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/cshum/imagor/imagorpath"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestImagor_PostUpload_UnsafeDisabled(t *testing.T) {
@@ -371,4 +377,67 @@ func TestImagor_PostUpload_Success_CustomUploadLoader(t *testing.T) {
 	if !bytes.Equal(responseData, imageData) {
 		t.Errorf("expected response data %v, got %v", imageData, responseData)
 	}
+}
+
+func TestImagor_PostUpload_DoesNotEnableFanoutWithStorages(t *testing.T) {
+	data := []byte("fake-jpeg-data")
+	var calls int
+	storage := &countingReaderStorage{}
+	app := New(
+		WithUnsafe(true),
+		WithEnablePostRequests(true),
+		WithLoaders(uploadLoaderFunc(func(r *http.Request, key string) (*Blob, error) {
+			if r.Method != http.MethodPost {
+				return nil, ErrNotFound
+			}
+			return NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+			}), nil
+		})),
+		WithStorages(storage),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.False(t, blob.fanout)
+			buf, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+			return NewBlobFromBytes(buf), nil
+		})),
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(data))
+	req.Header.Set("Content-Type", "image/jpeg")
+	req.ContentLength = int64(len(data))
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "POST upload should reuse the sniffed source without fanout")
+	assert.Equal(t, 0, storage.Reads(), "POST upload should not trigger source storage save")
+}
+
+func TestImagor_PostUpload_ResponseRawOnError(t *testing.T) {
+	imageData := []byte("fake-jpeg-data")
+	app := New(
+		WithUnsafe(true),
+		WithEnablePostRequests(true),
+		WithLoaders(createMockUploadLoader()),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			return nil, ErrMaxResolutionExceeded
+		})),
+		WithResponseRawOnError(true),
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(imageData))
+	req.Header.Set("Content-Type", "image/jpeg")
+	req.ContentLength = int64(len(imageData))
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, req)
+
+	assert.Equal(t, ErrMaxResolutionExceeded.Code, w.Code)
+	assert.Equal(t, imageData, w.Body.Bytes())
+	assert.Equal(t, "image/jpeg", w.Header().Get("Content-Type"))
 }

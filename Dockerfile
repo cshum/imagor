@@ -59,6 +59,7 @@ ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
 ENV LD_LIBRARY_PATH=/opt/imagor/lib
 ENV FONTCONFIG_PATH=/etc/fonts
 ENV XDG_CACHE_HOME=/tmp
+ENV VIPS_VECTOR=167772160
 
 ENV PORT=8000
 

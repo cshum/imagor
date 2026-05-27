@@ -1859,6 +1859,42 @@ func (f saverFunc) Put(ctx context.Context, image string, blob *Blob) error {
 	return f(ctx, image, blob)
 }
 
+type countingReaderStorage struct {
+	reads int
+	mu    sync.Mutex
+}
+
+func (s *countingReaderStorage) Get(r *http.Request, image string) (*Blob, error) {
+	return nil, ErrNotFound
+}
+
+func (s *countingReaderStorage) Stat(ctx context.Context, image string) (*Stat, error) {
+	return nil, ErrNotFound
+}
+
+func (s *countingReaderStorage) Delete(ctx context.Context, image string) error {
+	return nil
+}
+
+func (s *countingReaderStorage) Put(ctx context.Context, image string, blob *Blob) error {
+	r, _, err := blob.NewReader()
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	_, err = io.ReadAll(r)
+	s.mu.Lock()
+	s.reads++
+	s.mu.Unlock()
+	return err
+}
+
+func (s *countingReaderStorage) Reads() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.reads
+}
+
 // loaderWithStat implements both Loader and Stater interfaces for testing
 type loaderWithStat struct {
 	data      map[string]*Blob
@@ -1866,6 +1902,211 @@ type loaderWithStat struct {
 	statErr   error
 	statCalls int
 	mu        sync.Mutex
+}
+
+func TestBlobFanoutIsDisabledWithoutSourceStorage(t *testing.T) {
+	data := []byte("jpeg-data-like-source")
+	var calls int
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+			}), nil
+		})),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.False(t, blob.fanout)
+			buf, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+			return NewBlobFromBytes(buf), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "single-consumer path should reuse the sniffed source without fanout")
+}
+
+func TestBlobFanoutStaysEnabledForConcurrentSourceSave(t *testing.T) {
+	data := []byte("shared-source-data")
+	var calls int
+	storage := &countingReaderStorage{}
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+			}), nil
+		})),
+		WithStorages(storage),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.True(t, blob.fanout)
+			buf, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+			return NewBlobFromBytes(buf), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "concurrent save path should still share one source stream")
+	assert.Equal(t, 1, storage.Reads())
+}
+
+func TestBlobFanoutWithReadSeekerStaysSingleOpenForConcurrentSourceSave(t *testing.T) {
+	data := bytes.Repeat([]byte("shared-readseeker-source-data"), 8)
+	var calls int
+	storage := &countingReaderStorage{}
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+			}), nil
+		})),
+		WithStorages(storage),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.True(t, blob.fanout)
+
+			rs, size, err := blob.NewReadSeeker()
+			require.NoError(t, err)
+			defer rs.Close()
+			assert.Equal(t, int64(len(data)), size)
+
+			head := make([]byte, 15)
+			n, err := rs.Read(head)
+			require.NoError(t, err)
+			assert.Equal(t, data[:n], head[:n])
+
+			_, err = rs.Seek(0, io.SeekStart)
+			require.NoError(t, err)
+
+			buf, err := io.ReadAll(rs)
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+
+			return NewBlobFromBytes(buf), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "concurrent save with NewReadSeeker should still share one source stream")
+	assert.Equal(t, 1, storage.Reads())
+}
+
+func TestBlobFanoutCanBeEnabledAfterLoaderPreInit(t *testing.T) {
+	data := []byte("late-fanout-source-data")
+	var calls int
+	storage := &countingReaderStorage{}
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			blob := NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+			})
+			_ = blob.ContentType()
+			return blob, nil
+		})),
+		WithStorages(storage),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.True(t, blob.fanout)
+			buf, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+			return NewBlobFromBytes(buf), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "late fanout should still share one source stream after pre-init")
+	assert.Equal(t, 1, storage.Reads())
+}
+
+func TestBlobFanoutCanBeEnabledAfterSeekableLoaderPreInit(t *testing.T) {
+	data := []byte("late-fanout-seekable-source-data")
+	var calls int
+	storage := &countingReaderStorage{}
+	app := New(
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			blob := NewBlob(func() (io.ReadCloser, int64, error) {
+				calls++
+				return &readSeekNopCloser{ReadSeeker: bytes.NewReader(data)}, int64(len(data)), nil
+			})
+			_ = blob.ContentType()
+			return blob, nil
+		})),
+		WithStorages(storage),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.True(t, blob.fanout)
+			buf, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf)
+			return NewBlobFromBytes(buf), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 1, calls, "late fanout should rewind and share the seekable source after pre-init")
+	assert.Equal(t, 1, storage.Reads())
+}
+
+func TestBlobStorageHitStaysNonFanoutAndSupportsRepeatedReads(t *testing.T) {
+	data := []byte("storage-hit-data")
+	var calls int
+	store := newMapStore()
+	store.Map["test"] = NewBlob(func() (io.ReadCloser, int64, error) {
+		calls++
+		return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+	})
+
+	app := New(
+		WithStorages(store),
+		WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+			assert.False(t, blob.fanout)
+
+			buf1, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf1)
+
+			buf2, err := blob.ReadAll()
+			require.NoError(t, err)
+			assert.Equal(t, data, buf2)
+
+			return NewBlobFromBytes(buf2), nil
+		})),
+		WithUnsafe(true),
+	)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "https://example.com/unsafe/test", nil))
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, string(data), w.Body.String())
+	assert.Equal(t, 2, calls, "storage-hit path should reuse the sniffed source once and reopen only for later reads")
 }
 
 func newLoaderWithStat() *loaderWithStat {

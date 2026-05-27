@@ -1,6 +1,7 @@
 package vipsprocessor
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -38,6 +39,12 @@ type test struct {
 	checkTypeOnly bool
 	arm64Golden   bool
 }
+
+type nonSeekableReadCloser struct {
+	io.Reader
+}
+
+func (r *nonSeekableReadCloser) Close() error { return nil }
 
 func TestMain(m *testing.M) {
 	vips.Startup(&vips.Config{
@@ -127,6 +134,22 @@ func TestProcessor(t *testing.T) {
 			{name: "lossless skips max_bytes retry", path: "filters:format(webp):lossless():max_bytes(100)/gopher-front.png", arm64Golden: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
+	t.Run("vips lossless webp round-trip", func(t *testing.T) {
+		src, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
+		require.NoError(t, err)
+		defer src.Close()
+
+		buf, err := v.export(src, vips.ImageTypeWebp, 0, 0, false, 0, false, true)
+		require.NoError(t, err)
+
+		out, err := vips.NewImageFromBuffer(buf, nil)
+		require.NoError(t, err)
+		defer out.Close()
+
+		require.Equal(t, src.Width(), out.Width(), "width must match")
+		require.Equal(t, src.Height(), out.Height(), "height must match")
+		require.Equal(t, src.Bands(), out.Bands(), "band count must match")
+	})
 	t.Run("vips lossless round-trip pixel-exact", func(t *testing.T) {
 		src, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
 		require.NoError(t, err)
@@ -136,7 +159,6 @@ func TestProcessor(t *testing.T) {
 			name   string
 			format vips.ImageType
 		}{
-			{"webp", vips.ImageTypeWebp},
 			{"jxl", vips.ImageTypeJxl},
 			{"avif", vips.ImageTypeAvif},
 			{"heif", vips.ImageTypeHeif},
@@ -823,6 +845,20 @@ func TestProcessor(t *testing.T) {
 		assert.Nil(t, img)
 		assert.Equal(t, imagor.ErrUnsupportedFormat, err)
 	})
+	t.Run("source reader prefers read seeker by default", func(t *testing.T) {
+		payload := []byte("plain-text-payload")
+		blob := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+			return &nonSeekableReadCloser{Reader: bytes.NewReader(payload)}, int64(len(payload)), nil
+		})
+
+		p := NewProcessor()
+		reader, err := p.newSourceReaderFromBlob(blob)
+		require.NoError(t, err)
+		defer func() { _ = reader.Close() }()
+
+		_, ok := reader.(io.ReadSeeker)
+		assert.True(t, ok, "default source reader should be seekable")
+	})
 	t.Run("raw routed to dcrawload when available", func(t *testing.T) {
 		// BlobTypeRAF (Fuji RAF) with hasDcrawload=true must be routed to dcrawload,
 		// not fall through to ImageMagick. Fake data causes a dcrawload parse
@@ -865,6 +901,36 @@ func TestProcessor(t *testing.T) {
 		defer img.Close()
 		assert.Greater(t, img.Width(), 0)
 		assert.Greater(t, img.Height(), 0)
+	})
+	t.Run("avif and heif thumbnail source loads", func(t *testing.T) {
+		ctx := context.Background()
+		p := NewProcessor(WithDebug(true))
+		require.NoError(t, p.Startup(ctx))
+		defer func() { assert.NoError(t, p.Shutdown(ctx)) }()
+
+		for _, tc := range []struct {
+			name string
+			file string
+			typ  imagor.BlobType
+		}{
+			{name: "avif", file: "gopher-front.avif", typ: imagor.BlobTypeAVIF},
+			{name: "heif", file: "gopher-front.heif", typ: imagor.BlobTypeHEIF},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, tc.file))
+				require.Equal(t, tc.typ, blob.BlobType())
+
+				img, err := p.NewThumbnail(ctx, blob, 67, 67, vips.InterestingNone, vips.SizeDown, 1, 1, 0)
+				require.NoError(t, err)
+				require.NotNil(t, img)
+				defer img.Close()
+
+				assert.Greater(t, img.Width(), 0)
+				assert.Greater(t, img.PageHeight(), 0)
+				assert.LessOrEqual(t, img.Width(), 67)
+				assert.LessOrEqual(t, img.PageHeight(), 67)
+			})
+		}
 	})
 	t.Run("cr2 is BlobTypeCR2 and IsRaw", func(t *testing.T) {
 		// BlobTypeCR2 must be detected by TIFF header + "CR" at [8:10].

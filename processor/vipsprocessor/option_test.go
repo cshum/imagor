@@ -24,6 +24,8 @@ func TestWithOption(t *testing.T) {
 			WithMaxResolution(1666667),
 			WithMozJPEG(true),
 			WithAvifSpeed(9),
+			WithVectorDisableTargets(167772160),
+			WithStripColorProfile(true),
 			WithStripMetadata(true),
 			WithDebug(true),
 			WithMaxAnimationFrames(3),
@@ -49,9 +51,11 @@ func TestWithOption(t *testing.T) {
 		assert.Equal(t, 1666667, v.MaxResolution)
 		assert.Equal(t, 3, v.MaxAnimationFrames)
 		assert.Equal(t, true, v.MozJPEG)
+		assert.Equal(t, true, v.StripColorProfile)
 		assert.Equal(t, true, v.StripMetadata)
 		assert.Equal(t, true, v.Unlimited)
 		assert.Equal(t, 9, v.AvifSpeed)
+		assert.Equal(t, int64(167772160), v.VectorDisableTargets)
 		assert.Equal(t, []string{"rgb", "fill", "watermark"}, v.DisableFilters)
 		assert.NotNil(t, v.FallbackFunc)
 		assert.Equal(t, int64(52428800), v.CacheSize)
@@ -69,6 +73,7 @@ func TestWithOption(t *testing.T) {
 	t.Run("cache option defaults and guards", func(t *testing.T) {
 		// Defaults
 		v := NewProcessor()
+		assert.Equal(t, 8, v.AvifSpeed)
 		assert.Equal(t, int64(0), v.CacheSize)
 		assert.Equal(t, 2400, v.CacheMaxWidth)
 		assert.Equal(t, 2000, v.CacheMaxHeight)

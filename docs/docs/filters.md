@@ -383,7 +383,7 @@ Removes Exif metadata from the resulting image.
 
 ### `strip_icc()`
 
-Removes ICC profile information from the resulting image. The image is first converted to sRGB color space to preserve correct colors before the profile is removed.
+Removes the embedded ICC color profile from the resulting image. The image is first converted to sRGB color space to preserve correct colors before the profile is removed.
 
 ---
 

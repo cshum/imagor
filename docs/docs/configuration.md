@@ -245,7 +245,9 @@ VIPS_DISABLE_FILTERS=blur,watermark  # Disable specific filters (csv)
 # Output
 VIPS_MOZJPEG=1               # Use MozJPEG for JPEG encoding (requires imagor-mozjpeg build)
 VIPS_AVIF_SPEED=8            # AVIF encode speed: 0 (smallest) to 9 (fastest). Default 8
+VIPS_STRIP_COLOR_PROFILE=1   # Strip embedded ICC color profiles while preserving other metadata
 VIPS_STRIP_METADATA=1        # Strip all metadata from output images
+VIPS_VECTOR=167772160        # libvips vector target disable bitmask; matches native VIPS_VECTOR semantics
 
 # Smart crop
 VIPS_DETECTOR_PROBE_SIZE=400  # Probe image size for smart crop detection (default 400)

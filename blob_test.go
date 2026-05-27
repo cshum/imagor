@@ -6,11 +6,19 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
 	"testing"
 
+	"github.com/cshum/imagor/seekstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type nopReadCloser struct {
+	io.Reader
+}
+
+func (n nopReadCloser) Close() error { return nil }
 
 func doTestBlobReaders(t *testing.T, b *Blob, buf []byte) {
 	r, size, err := b.NewReader()
@@ -273,6 +281,146 @@ func TestNewEmptyBlob(t *testing.T) {
 	assert.Empty(t, buf)
 }
 
+func TestBlobNewReadSeeker_PrefersNativeSeeker(t *testing.T) {
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		return &readSeekNopCloser{ReadSeeker: bytes.NewReader([]byte("012345"))}, 6, nil
+	})
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+
+	assert.Equal(t, int64(6), size)
+	_, ok := rs.(*seekstream.AsyncReadSeeker)
+	assert.False(t, ok)
+	_, ok = rs.(*seekstream.SeekStream)
+	assert.False(t, ok)
+}
+
+func TestBlobNewReadSeeker_UsesAsyncForSmallKnownSize(t *testing.T) {
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		return nopReadCloser{Reader: bytes.NewReader([]byte("012345"))}, 6, nil
+	})
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+
+	assert.Equal(t, int64(6), size)
+	_, ok := rs.(*seekstream.AsyncReadSeeker)
+	assert.True(t, ok)
+}
+
+func TestBlobNewReadSeeker_UsesSeekStreamForUnknownOrLargeSize(t *testing.T) {
+	t.Run("unknown size", func(t *testing.T) {
+		b := NewBlob(func() (io.ReadCloser, int64, error) {
+			return nopReadCloser{Reader: bytes.NewReader([]byte("012345"))}, 0, nil
+		})
+
+		rs, size, err := b.NewReadSeeker()
+		require.NoError(t, err)
+		defer rs.Close()
+
+		assert.Equal(t, int64(0), size)
+		_, ok := rs.(*seekstream.SeekStream)
+		assert.True(t, ok)
+	})
+
+	t.Run("large size", func(t *testing.T) {
+		b := NewBlob(func() (io.ReadCloser, int64, error) {
+			return nopReadCloser{Reader: bytes.NewReader([]byte("012345"))}, maxMemorySize, nil
+		})
+
+		rs, size, err := b.NewReadSeeker()
+		require.NoError(t, err)
+		defer rs.Close()
+
+		assert.Equal(t, maxMemorySize, size)
+		_, ok := rs.(*seekstream.SeekStream)
+		assert.True(t, ok)
+	})
+}
+
+func TestBlobFanoutNewReadSeeker_UsesAsyncOnSharedNonSeekableSource(t *testing.T) {
+	payload := bytes.Repeat([]byte("fanout-async-"), 64)
+	var sourceCalls atomic.Int32
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		sourceCalls.Add(1)
+		return nopReadCloser{Reader: bytes.NewReader(payload)}, int64(len(payload)), nil
+	})
+	b.setFanout(true)
+
+	r, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r.Close()
+	assert.Equal(t, int64(len(payload)), size)
+
+	head := make([]byte, 17)
+	n, err := io.ReadFull(r, head)
+	require.NoError(t, err)
+	assert.Equal(t, payload[:n], head[:n])
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+	assert.Equal(t, int64(len(payload)), size)
+	_, ok := rs.(*seekstream.AsyncReadSeeker)
+	assert.True(t, ok)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+
+	chunk := make([]byte, 23)
+	n, err = rs.Read(chunk)
+	require.NoError(t, err)
+	assert.Equal(t, payload[:n], chunk[:n])
+
+	_, err = rs.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+	all, err := io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, payload, all)
+
+	remainder, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, payload[len(head):], remainder)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+}
+
+func TestBlobFanoutNewReadSeeker_DefersSeekableCloneUntilSeek(t *testing.T) {
+	payload := bytes.Repeat([]byte("fanout-hybrid-"), 64)
+	var sourceCalls atomic.Int32
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		sourceCalls.Add(1)
+		return &readSeekNopCloser{ReadSeeker: bytes.NewReader(payload)}, int64(len(payload)), nil
+	})
+	b.setFanout(true)
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+	assert.Equal(t, int64(len(payload)), size)
+
+	hybrid, ok := rs.(*hybridReadSeeker)
+	require.True(t, ok)
+	assert.Nil(t, hybrid.seeker)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+
+	buf := make([]byte, 19)
+	n, err := rs.Read(buf)
+	require.NoError(t, err)
+	assert.Equal(t, payload[:n], buf[:n])
+	assert.Nil(t, hybrid.seeker)
+	assert.Equal(t, int32(1), sourceCalls.Load())
+
+	_, err = rs.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+	require.NotNil(t, hybrid.seeker)
+	assert.Equal(t, int32(2), sourceCalls.Load())
+
+	all, err := io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, payload, all)
+}
+
 func TestNewBlobFromMemory(t *testing.T) {
 	b := NewEmptyBlob()
 	data, width, height, bands, ok := b.Memory()
@@ -436,4 +584,94 @@ func TestBlobReaderError(t *testing.T) {
 	buf, err = b.ReadAll()
 	assert.Equal(t, 500, len(buf))
 	assert.Equal(t, e, err)
+}
+
+func TestBlobUnknownSizeReusesSniffedReaderForFirstRead(t *testing.T) {
+	buf, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
+
+	var calls int
+	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		calls++
+		return io.NopCloser(bytes.NewReader(buf)), 0, nil
+	})
+
+	assert.Equal(t, BlobTypeJPEG, b.BlobType())
+	assert.Equal(t, 1, calls, "sniff should open the source once")
+
+	r, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r.Close()
+	assert.Zero(t, size)
+
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data)
+	assert.Equal(t, 1, calls, "first reader should reuse the sniffed source")
+
+	r2, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r2.Close()
+	assert.Zero(t, size)
+
+	data2, err := io.ReadAll(r2)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data2)
+	assert.Equal(t, 2, calls, "subsequent readers still reopen the source")
+}
+
+func TestBlobKnownSizeFanoutStillAvoidsReopenAfterSniff(t *testing.T) {
+	buf, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
+
+	var calls int
+	b := NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+		calls++
+		return io.NopCloser(bytes.NewReader(buf)), int64(len(buf)), nil
+	})
+
+	assert.Equal(t, BlobTypeJPEG, b.BlobType())
+	assert.Equal(t, 1, calls, "sniff should open the source once")
+
+	r1, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r1.Close()
+	assert.Equal(t, int64(len(buf)), size)
+
+	r2, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r2.Close()
+	assert.Equal(t, int64(len(buf)), size)
+
+	data1, err := io.ReadAll(r1)
+	require.NoError(t, err)
+	data2, err := io.ReadAll(r2)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data1)
+	assert.Equal(t, buf, data2)
+	assert.Equal(t, 1, calls, "fanout path should keep sharing the original source")
+}
+
+func TestBlobKnownSizeNonFanoutPreservesSeekableFirstReader(t *testing.T) {
+	buf, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
+
+	b := NewBlobFromBytes(buf)
+
+	assert.Equal(t, BlobTypeJPEG, b.BlobType())
+
+	r, size, err := b.NewReader()
+	require.NoError(t, err)
+	defer r.Close()
+	assert.Equal(t, int64(len(buf)), size)
+
+	seeker, ok := r.(io.Seeker)
+	require.True(t, ok, "first reader should remain seekable")
+
+	_, err = seeker.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, buf, data)
 }

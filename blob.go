@@ -52,6 +52,8 @@ type Blob struct {
 	newReadSeeker  func() (rs io.ReadSeekCloser, size int64, err error)
 	fanout         bool
 	fanoutInstance *fanoutreader.Fanout
+	readerMu       sync.Mutex
+	initReader     io.ReadCloser
 	once           sync.Once
 	sniffBuf       []byte
 	err            error
@@ -215,7 +217,10 @@ type readSeekNopCloser struct {
 
 func (readSeekNopCloser) Close() error { return nil }
 
-// hybridReadSeeker uses io.ReadCloser and switch to io.ReadSeekCloser only when seeked
+// hybridReadSeeker starts on a shared forward-only reader and only opens a
+// dedicated seekable clone if a caller actually seeks. This keeps the fanout
+// path cheap for read-only consumers while preserving seek support for the
+// rare seeking path on already-seekable sources.
 type hybridReadSeeker struct {
 	reader        io.ReadCloser
 	seeker        io.ReadSeekCloser
@@ -256,8 +261,94 @@ func newEmptyReader() (io.ReadCloser, int64, error) {
 	return &readSeekNopCloser{bytes.NewReader(nil)}, 0, nil
 }
 
+type prefixedReadCloser struct {
+	prefix *bytes.Reader
+	reader io.ReadCloser
+}
+
+func (r *prefixedReadCloser) Read(p []byte) (int, error) {
+	if r.prefix != nil {
+		n, err := r.prefix.Read(p)
+		if err == nil {
+			return n, nil
+		}
+		if err != io.EOF {
+			return n, err
+		}
+		if n > 0 {
+			r.prefix = nil
+			return n, nil
+		}
+		r.prefix = nil
+	}
+	if r.reader == nil {
+		return 0, io.EOF
+	}
+	return r.reader.Read(p)
+}
+
+func (r *prefixedReadCloser) Close() error {
+	if r.reader != nil {
+		return r.reader.Close()
+	}
+	return nil
+}
+
 func (b *Blob) init() {
 	b.once.Do(b.doInit)
+}
+
+func (b *Blob) installFanoutLocked(reader io.ReadCloser, size int64) {
+	fanout := fanoutreader.New(reader, int(size))
+	b.fanoutInstance = fanout
+	b.newReader = func() (io.ReadCloser, int64, error) {
+		return fanout.NewReader(), size, nil
+	}
+	if b.newReadSeeker != nil {
+		// Keep fanout for shared forward reads and only reopen the dedicated
+		// seekable reader if a consumer actually calls Seek.
+		newReadSeeker := b.newReadSeeker
+		b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
+			return &hybridReadSeeker{
+				reader:        fanout.NewReader(),
+				newReadSeeker: newReadSeeker,
+			}, size, nil
+		}
+	}
+}
+
+func (b *Blob) promoteInitReaderToFanoutLocked() bool {
+	if b.initReader == nil || b.fanoutInstance != nil || b.size <= 0 || b.size >= maxMemorySize {
+		return false
+	}
+	reader := b.initReader
+	if seeker, ok := reader.(io.Seeker); ok {
+		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+			reader = &prefixedReadCloser{
+				prefix: bytes.NewReader(b.sniffBuf),
+				reader: b.initReader,
+			}
+		}
+	} else {
+		reader = &prefixedReadCloser{
+			prefix: bytes.NewReader(b.sniffBuf),
+			reader: b.initReader,
+		}
+	}
+	b.installFanoutLocked(reader, b.size)
+	b.initReader = nil
+	return true
+}
+
+// setFanout selects whether init should promote the source to a shared fanout reader.
+// It is intended to be set before the blob is initialized.
+func (b *Blob) setFanout(enabled bool) {
+	b.readerMu.Lock()
+	b.fanout = enabled
+	if enabled {
+		b.promoteInitReaderToFanoutLocked()
+	}
+	b.readerMu.Unlock()
 }
 
 func (b *Blob) doInit() {
@@ -292,28 +383,18 @@ func (b *Blob) doInit() {
 	if b.fanout && size > 0 && size < maxMemorySize && err == nil {
 		// use fan-out reader if buf size known and within memory size
 		// otherwise create new readers
-		fanout := fanoutreader.New(reader, int(size))
-		b.fanoutInstance = fanout
-		b.newReader = func() (io.ReadCloser, int64, error) {
-			return fanout.NewReader(), size, nil
-		}
-		reader = fanout.NewReader()
-		if b.newReadSeeker != nil {
-			newReadSeeker := b.newReadSeeker
-			b.newReadSeeker = func() (rs io.ReadSeekCloser, _ int64, err error) {
-				return &hybridReadSeeker{
-					reader:        fanout.NewReader(),
-					newReadSeeker: newReadSeeker,
-				}, size, nil
-			}
-		}
+		b.installFanoutLocked(reader, size)
+		reader = b.fanoutInstance.NewReader()
 	} else {
 		b.fanout = false
+		b.initReader = reader
 	}
 	// sniff first 512 bytes for type sniffing
 	b.sniffBuf = make([]byte, 512)
 	n, err := io.ReadAtLeast(reader, b.sniffBuf, 512)
-	_ = reader.Close()
+	if b.fanout {
+		_ = reader.Close()
+	}
 	if n < 512 {
 		b.sniffBuf = b.sniffBuf[:n]
 	}
@@ -513,31 +594,61 @@ func (b *Blob) NewReader() (reader io.ReadCloser, size int64, err error) {
 	if b.newReader == nil {
 		return nil, 0, b.err
 	}
+	b.readerMu.Lock()
+	if b.initReader != nil {
+		if seeker, ok := b.initReader.(io.Seeker); ok {
+			if _, err = seeker.Seek(0, io.SeekStart); err == nil {
+				reader = b.initReader
+			} else {
+				reader = &prefixedReadCloser{
+					prefix: bytes.NewReader(b.sniffBuf),
+					reader: b.initReader,
+				}
+			}
+		} else {
+			reader = &prefixedReadCloser{
+				prefix: bytes.NewReader(b.sniffBuf),
+				reader: b.initReader,
+			}
+		}
+		b.initReader = nil
+		size = b.size
+		b.readerMu.Unlock()
+		return reader, size, b.err
+	}
+	b.readerMu.Unlock()
 	return b.newReader()
 }
 
-// NewReadSeeker create read seeker if reader supports seek,
-// or attempts to simulate seek using memory or temp file buffer
+// NewReadSeeker creates a seekable reader for the blob.
+//
+// If the source already supports seek, it is reused directly. Otherwise imagor
+// chooses between the async in-memory seeker for small known-size sources and
+// the original buffered seekstream fallback for large or unknown-size sources.
 func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	b.init()
 	if b.newReadSeeker != nil {
 		return b.newReadSeeker()
 	}
-	// if source not seekable, simulate seek with seek stream
+	// For non-seekable sources, simulate seek over the existing reader rather than
+	// reopening upstream. The async path is the fast path for small known-size
+	// sources; temp-file-backed seekstream remains the safe fallback.
 	reader, size, err := b.NewReader()
 	if err != nil {
 		return nil, size, err
 	}
-	var buffer seekstream.Buffer
 	if size > 0 && size < maxMemorySize {
-		// in memory buffer if size is known and less then 100mb
-		buffer = seekstream.NewMemoryBuffer(size)
-	} else {
+		return seekstream.NewAsync(reader, size), size, nil
+	}
+	var buffer seekstream.Buffer
+	if size <= 0 || size >= maxMemorySize {
 		// otherwise temp file buffer
 		buffer, err = seekstream.NewTempFileBuffer("", "imagor-")
 		if err != nil {
 			return nil, size, err
 		}
+	} else {
+		buffer = seekstream.NewMemoryBuffer(size)
 	}
 	return seekstream.New(reader, buffer), size, err
 }

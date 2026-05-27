@@ -37,8 +37,12 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS enable maximum compression with MozJPEG. Requires mozjpeg to be installed")
 		vipsAvifSpeed = fs.Int("vips-avif-speed", 8,
 			"VIPS avif speed, the lowest is at 0 and the fastest is at 9 (Default 8).")
+		vipsVector = fs.Int64("vips-vector", 0,
+			"VIPS vector target disable bitmask. Matches the native libvips VIPS_VECTOR environment variable semantics")
 		vipsDetectorProbeSize = fs.Int("vips-detector-probe-size", 400,
 			"VIPS detector probe size: maximum dimension of the downscaled probe image used for smart crop region detection. Lower values are faster, higher values improve detection of small regions (default 400)")
+		vipsStripColorProfile = fs.Bool("vips-strip-color-profile", false,
+			"VIPS strips embedded ICC color profiles from the resulting image while preserving other metadata")
 		vipsStripMetadata = fs.Bool("vips-strip-metadata", false,
 			"VIPS strips all metadata from the resulting image")
 		vipsUnlimited = fs.Bool("vips-unlimited", false,
@@ -71,7 +75,9 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithMaxResolution(*vipsMaxResolution),
 			vipsprocessor.WithMozJPEG(*vipsMozJPEG),
 			vipsprocessor.WithAvifSpeed(*vipsAvifSpeed),
+			vipsprocessor.WithVectorDisableTargets(*vipsVector),
 			vipsprocessor.WithDetectorProbeSize(*vipsDetectorProbeSize),
+			vipsprocessor.WithStripColorProfile(*vipsStripColorProfile),
 			vipsprocessor.WithStripMetadata(*vipsStripMetadata),
 			vipsprocessor.WithUnlimited(*vipsUnlimited),
 			vipsprocessor.WithCacheSize(*vipsCacheSize),

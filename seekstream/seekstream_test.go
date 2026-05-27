@@ -2,13 +2,63 @@ package seekstream
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type countingReadCloser struct {
+	reader     io.Reader
+	closeCount atomic.Int32
+	closed     chan struct{}
+	closeOnce  sync.Once
+}
+
+func newCountingReadCloser(reader io.Reader) *countingReadCloser {
+	return &countingReadCloser{
+		reader: reader,
+		closed: make(chan struct{}),
+	}
+}
+
+func (r *countingReadCloser) Read(p []byte) (int, error) {
+	return r.reader.Read(p)
+}
+
+func (r *countingReadCloser) Close() error {
+	r.closeCount.Add(1)
+	r.closeOnce.Do(func() { close(r.closed) })
+	return nil
+}
+
+type scriptedReadCloser struct {
+	steps []readStep
+	index int
+}
+
+type readStep struct {
+	data []byte
+	err  error
+}
+
+func (r *scriptedReadCloser) Read(p []byte) (int, error) {
+	if r.index >= len(r.steps) {
+		return 0, io.EOF
+	}
+	step := r.steps[r.index]
+	r.index++
+	n := copy(p, step.data)
+	return n, step.err
+}
+
+func (r *scriptedReadCloser) Close() error { return nil }
 
 func doSeekStreamTests(t *testing.T, buffer Buffer) {
 	buf := []byte("0123456789")
@@ -97,6 +147,123 @@ func TestSeekStream_TempFileBuffer(t *testing.T) {
 
 func TestSeekStream_MemoryBuffer(t *testing.T) {
 	doSeekStreamTests(t, NewMemoryBuffer(10))
+}
+
+func TestAsyncReadSeeker(t *testing.T) {
+	buf := []byte("0123456789")
+	rs := NewAsync(io.NopCloser(bytes.NewReader(buf)), int64(len(buf)))
+
+	tests := []struct {
+		off     int64
+		seek    int
+		n       int
+		len     int
+		size    int
+		want    string
+		wantpos int64
+		readerr error
+		seekerr string
+	}{
+		{seek: -1, n: 3, len: 7, size: 10, want: "012"},
+		{seek: -1, n: 2, len: 5, size: 10, want: "34"},
+		{seek: io.SeekCurrent, off: 1, n: 1, len: 3, size: 10, want: "6"},
+		{seek: io.SeekCurrent, off: -1, n: 2, len: 2, size: 10, want: "67"},
+		{seek: io.SeekStart, off: 2, n: 2, len: 6, size: 10, want: "23"},
+		{seek: io.SeekEnd, off: -2, n: 20, size: 10, want: "89"},
+		{seek: io.SeekStart, off: 20, n: 2, size: 10, readerr: io.EOF},
+		{seek: io.SeekStart, off: -1, size: 10, seekerr: "invalid argument"},
+	}
+
+	for i, tt := range tests {
+		if tt.seek >= 0 {
+			pos, err := rs.Seek(tt.off, tt.seek)
+			if tt.seekerr != "" {
+				require.Error(t, err, i)
+				assert.Contains(t, err.Error(), tt.seekerr, i)
+			} else {
+				require.NoError(t, err, i)
+			}
+			if tt.wantpos != 0 {
+				assert.Equal(t, tt.wantpos, pos, i)
+			}
+		}
+		readBuf := make([]byte, tt.n)
+		n, err := rs.Read(readBuf)
+		assert.ErrorIs(t, err, tt.readerr, i)
+		assert.Equal(t, tt.want, string(readBuf[:n]), i)
+		assert.Equal(t, tt.len, rs.Len(), i)
+		assert.Equal(t, tt.size, int(rs.Size()), i)
+	}
+
+	assert.NoError(t, rs.Close())
+	_, err := rs.Seek(0, io.SeekStart)
+	assert.ErrorIs(t, err, io.ErrClosedPipe)
+}
+
+func TestAsyncReadSeeker_CloseAfterEOFClosesSourceOnce(t *testing.T) {
+	source := newCountingReadCloser(bytes.NewReader([]byte("0123456789")))
+	rs := NewAsync(source, 10)
+
+	buf, err := io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, "0123456789", string(buf))
+
+	select {
+	case <-source.closed:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for async source close")
+	}
+
+	assert.NoError(t, rs.Close())
+	assert.Equal(t, int32(1), source.closeCount.Load())
+	assert.NoError(t, rs.Close())
+	assert.Equal(t, int32(1), source.closeCount.Load())
+}
+
+func TestAsyncReadSeeker_PropagatesReadErrorAfterBufferedBytes(t *testing.T) {
+	boom := errors.New("boom")
+	source := &scriptedReadCloser{steps: []readStep{
+		{data: []byte("0123")},
+		{data: []byte("45"), err: boom},
+	}}
+	rs := NewAsync(source, 6)
+	t.Cleanup(func() {
+		assert.NoError(t, rs.Close())
+	})
+
+	buf := make([]byte, 8)
+	n, err := rs.Read(buf)
+	assert.NoError(t, err)
+	assert.Equal(t, "012345", string(buf[:n]))
+
+	n, err = rs.Read(buf)
+	assert.Zero(t, n)
+	assert.ErrorIs(t, err, boom)
+	assert.Equal(t, 0, rs.Len())
+	assert.Equal(t, int64(6), rs.Size())
+}
+
+func TestAsyncReadSeeker_ShortSourceClampsLenAndSizeAfterEOF(t *testing.T) {
+	rs := NewAsync(io.NopCloser(bytes.NewReader([]byte("012345"))), 10)
+	t.Cleanup(func() {
+		assert.NoError(t, rs.Close())
+	})
+
+	buf, err := io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, "012345", string(buf))
+	assert.Equal(t, 0, rs.Len())
+	assert.Equal(t, int64(6), rs.Size())
+
+	pos, err := rs.Seek(0, io.SeekEnd)
+	require.NoError(t, err)
+	assert.Equal(t, int64(6), pos)
+
+	_, err = rs.Seek(0, io.SeekStart)
+	require.NoError(t, err)
+	buf, err = io.ReadAll(rs)
+	require.NoError(t, err)
+	assert.Equal(t, "012345", string(buf))
 }
 
 func TestMemoryBuffer_Seek(t *testing.T) {

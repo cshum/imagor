@@ -36,15 +36,16 @@ func IsAnimationSupported(imageType vips.ImageType) bool {
 
 // exportParams holds parameters needed for image export
 type exportParams struct {
-	format        vips.ImageType
-	fallback      vips.ImageType
-	quality       int
-	compression   int
-	bitdepth      int
-	palette       bool
-	stripMetadata bool
-	lossless      bool
-	maxBytes      int
+	format            vips.ImageType
+	fallback          vips.ImageType
+	quality           int
+	compression       int
+	bitdepth          int
+	palette           bool
+	stripColorProfile bool
+	stripMetadata     bool
+	lossless          bool
+	maxBytes          int
 }
 
 // Process implements imagor.Processor interface
@@ -131,10 +132,10 @@ func (v *Processor) Process(
 		return imagor.NewBlobFromJsonMarshal(m), nil
 	}
 
-	// Strip ICC profile before export when strip_metadata is requested.
-	// This ensures proper colour conversion to sRGB before the ICC profile
-	// is removed, matching the behaviour of the strip_icc filter.
-	if params.stripMetadata {
+	// Strip the embedded ICC color profile before export when requested directly
+	// or as part of strip_metadata. This ensures proper colour conversion to
+	// sRGB before the profile is removed, matching strip_icc.
+	if params.stripColorProfile || params.stripMetadata {
 		if err := stripIcc(ctx, img, load); err != nil {
 			return nil, WrapErr(err)
 		}
@@ -185,15 +186,16 @@ func (v *Processor) Process(
 // extractExportParams extracts export-related parameters from filters
 func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, img *vips.Image) *exportParams {
 	var (
-		quality       int
-		bitdepth      int
-		compression   int
-		palette       bool
-		stripMetadata = v.StripMetadata
-		lossless      bool
-		maxBytes      int
-		format        = vips.ImageTypeUnknown
-		fallback      = vips.ImageTypeUnknown
+		quality           int
+		bitdepth          int
+		compression       int
+		palette           bool
+		stripColorProfile = v.StripColorProfile
+		stripMetadata     = v.StripMetadata
+		lossless          bool
+		maxBytes          int
+		format            = vips.ImageTypeUnknown
+		fallback          = vips.ImageTypeUnknown
 	)
 
 	for _, f := range p.Filters {
@@ -225,6 +227,8 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 			}
 		case "strip_metadata":
 			stripMetadata = true
+		case "strip_icc":
+			stripColorProfile = true
 		case "lossless":
 			lossless = true
 		}
@@ -240,15 +244,16 @@ func (v *Processor) extractExportParams(p imagorpath.Params, blob *imagor.Blob, 
 	}
 
 	return &exportParams{
-		format:        format,
-		fallback:      fallback,
-		quality:       quality,
-		compression:   compression,
-		bitdepth:      bitdepth,
-		palette:       palette,
-		stripMetadata: stripMetadata,
-		lossless:      lossless,
-		maxBytes:      maxBytes,
+		format:            format,
+		fallback:          fallback,
+		quality:           quality,
+		compression:       compression,
+		bitdepth:          bitdepth,
+		palette:           palette,
+		stripColorProfile: stripColorProfile,
+		stripMetadata:     stripMetadata,
+		lossless:          lossless,
+		maxBytes:          maxBytes,
 	}
 }
 
@@ -888,7 +893,7 @@ func (v *Processor) export(
 		opts := &vips.WebpsaveBufferOptions{
 			Q:        quality,
 			Lossless: lossless,
-			Exact:    lossless,
+			Effort:   4,
 		}
 		if stripMetadata {
 			opts.Keep = vips.KeepNone

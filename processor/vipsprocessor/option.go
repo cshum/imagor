@@ -82,12 +82,27 @@ func WithStripMetadata(enabled bool) Option {
 	}
 }
 
+// WithStripColorProfile strips embedded ICC color profiles from output images.
+func WithStripColorProfile(enabled bool) Option {
+	return func(v *Processor) {
+		v.StripColorProfile = enabled
+	}
+}
+
 // WithAvifSpeed with avif speed option
 func WithAvifSpeed(avifSpeed int) Option {
 	return func(v *Processor) {
 		if avifSpeed >= 0 && avifSpeed <= 9 {
 			v.AvifSpeed = avifSpeed
 		}
+	}
+}
+
+// WithVectorDisableTargets sets the libvips vector target disable bitmask.
+// This matches the semantics of the native VIPS_VECTOR environment variable.
+func WithVectorDisableTargets(targets int64) Option {
+	return func(v *Processor) {
+		v.VectorDisableTargets = targets
 	}
 }
 

@@ -124,22 +124,18 @@ func (u *UploadLoader) handleRawUpload(r *http.Request) (*imagor.Blob, error) {
 }
 
 func (u *UploadLoader) createBlobFromReader(reader io.Reader, size int64, contentType string) (*imagor.Blob, error) {
-	blob := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
-		// For uploads, we need to read the data once and store it
-		// since the request body can only be read once
-		data, err := io.ReadAll(reader)
-		if err != nil {
-			return nil, 0, err
-		}
+	// Upload bodies are one-shot streams, so materialize them once and return a
+	// replayable blob for sniffing, decode fallback, and any later reads.
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
 
-		// Check if we exceeded the size limit during reading
-		if len(data) > u.MaxAllowedSize {
-			return nil, 0, imagor.ErrMaxSizeExceeded
-		}
+	if len(data) > u.MaxAllowedSize {
+		return nil, imagor.ErrMaxSizeExceeded
+	}
 
-		actualSize := int64(len(data))
-		return io.NopCloser(strings.NewReader(string(data))), actualSize, nil
-	})
+	blob := imagor.NewBlobFromBytes(data)
 
 	if contentType != "" {
 		blob.SetContentType(contentType)

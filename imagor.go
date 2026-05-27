@@ -551,6 +551,19 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 	// Process the upload through normal imagor pipeline
 	blob, err := checkBlob(app.Do(r, p))
 	if err != nil {
+		if app.ResponseRawOnError && !isBlobEmpty(blob) {
+			e := WrapError(err)
+			app.Logger.Warn("response-raw-on-error",
+				zap.Any("params", p),
+				zap.Error(err),
+				zap.Int("status", e.Code))
+
+			w.WriteHeader(e.Code)
+			app.setResponseHeaders(w, r, blob, p)
+			reader, size, _ := blob.NewReader()
+			writeBody(w, r, reader, size)
+			return
+		}
 		app.handleErrorResponse(w, r, err)
 		return
 	}
@@ -648,7 +661,11 @@ func fromStorages(
 	r *http.Request, storages []Storage, key string,
 ) (blob *Blob, origin Storage, err error) {
 	for _, storage := range storages {
-		b, e := checkBlob(storage.Get(r, key))
+		b, e := storage.Get(r, key)
+		if b != nil {
+			b.setFanout(false)
+		}
+		b, e = checkBlob(b, e)
 		if !isBlobEmpty(b) {
 			blob = b
 			if e == nil {
@@ -682,7 +699,11 @@ func (app *Imagor) fromStoragesAndLoaders(
 			// For POST uploads, try loaders even with empty image key
 			if r.Method == http.MethodPost {
 				for _, loader := range loaders {
-					b, e := checkBlob(loader.Get(r, image))
+					b, e := loader.Get(r, image)
+					if b != nil {
+						b.setFanout(image != "" && len(storages) > 0)
+					}
+					b, e = checkBlob(b, e)
 					if !isBlobEmpty(b) {
 						blob = b
 						if e == nil {
@@ -712,7 +733,11 @@ func (app *Imagor) fromStoragesAndLoaders(
 		}
 	}
 	for _, loader := range loaders {
-		b, e := checkBlob(loader.Get(r, image))
+		b, e := loader.Get(r, image)
+		if b != nil {
+			b.setFanout(image != "" && len(storages) > 0)
+		}
+		b, e = checkBlob(b, e)
 		if !isBlobEmpty(b) {
 			blob = b
 			if e == nil {
