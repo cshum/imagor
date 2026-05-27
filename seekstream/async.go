@@ -21,6 +21,7 @@ type AsyncReadSeeker struct {
 	bytesRead int64
 	finished  bool
 	closed    bool
+	sourceDone bool
 	readErr   error
 }
 
@@ -63,13 +64,29 @@ func (s *AsyncReadSeeker) fill() {
 		}
 		s.cond.Broadcast()
 		done := s.finished
+		var src io.ReadCloser
+		if done {
+			src = s.detachSourceLocked()
+		}
 		s.mu.Unlock()
 
 		if done {
-			_ = source.Close()
+			if src != nil {
+				_ = src.Close()
+			}
 			return
 		}
 	}
+}
+
+func (s *AsyncReadSeeker) detachSourceLocked() io.ReadCloser {
+	if s.sourceDone {
+		return nil
+	}
+	s.sourceDone = true
+	src := s.source
+	s.source = nil
+	return src
 }
 
 func (s *AsyncReadSeeker) copyLocked(dst []byte, off int64) int {
@@ -183,8 +200,7 @@ func (s *AsyncReadSeeker) Close() error {
 	}
 	s.closed = true
 	s.chunks = nil
-	src := s.source
-	s.source = nil
+	src := s.detachSourceLocked()
 	s.cond.Broadcast()
 	s.mu.Unlock()
 	if src != nil {
@@ -198,7 +214,7 @@ func (s *AsyncReadSeeker) Len() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	limit := s.bytesRead
-	if s.expected > limit {
+	if !s.finished && s.expected > limit {
 		limit = s.expected
 	}
 	if s.pos >= limit {
@@ -211,7 +227,7 @@ func (s *AsyncReadSeeker) Len() int {
 func (s *AsyncReadSeeker) Size() int64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.expected > 0 {
+	if !s.finished && s.expected > 0 {
 		return s.expected
 	}
 	return s.bytesRead
