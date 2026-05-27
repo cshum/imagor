@@ -8,9 +8,16 @@ import (
 	"os"
 	"testing"
 
+	"github.com/cshum/imagor/seekstream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type nopReadCloser struct {
+	io.Reader
+}
+
+func (n nopReadCloser) Close() error { return nil }
 
 func doTestBlobReaders(t *testing.T, b *Blob, buf []byte) {
 	r, size, err := b.NewReader()
@@ -271,6 +278,66 @@ func TestNewEmptyBlob(t *testing.T) {
 	buf, err = b.ReadAll()
 	assert.NoError(t, err)
 	assert.Empty(t, buf)
+}
+
+func TestBlobNewReadSeeker_PrefersNativeSeeker(t *testing.T) {
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		return &readSeekNopCloser{ReadSeeker: bytes.NewReader([]byte("012345"))}, 6, nil
+	})
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+
+	assert.Equal(t, int64(6), size)
+	_, ok := rs.(*seekstream.AsyncReadSeeker)
+	assert.False(t, ok)
+	_, ok = rs.(*seekstream.SeekStream)
+	assert.False(t, ok)
+}
+
+func TestBlobNewReadSeeker_UsesAsyncForSmallKnownSize(t *testing.T) {
+	b := NewBlob(func() (io.ReadCloser, int64, error) {
+		return nopReadCloser{Reader: bytes.NewReader([]byte("012345"))}, 6, nil
+	})
+
+	rs, size, err := b.NewReadSeeker()
+	require.NoError(t, err)
+	defer rs.Close()
+
+	assert.Equal(t, int64(6), size)
+	_, ok := rs.(*seekstream.AsyncReadSeeker)
+	assert.True(t, ok)
+	}
+
+func TestBlobNewReadSeeker_UsesSeekStreamForUnknownOrLargeSize(t *testing.T) {
+	t.Run("unknown size", func(t *testing.T) {
+		b := NewBlob(func() (io.ReadCloser, int64, error) {
+			return nopReadCloser{Reader: bytes.NewReader([]byte("012345"))}, 0, nil
+		})
+
+		rs, size, err := b.NewReadSeeker()
+		require.NoError(t, err)
+		defer rs.Close()
+
+		assert.Equal(t, int64(0), size)
+		_, ok := rs.(*seekstream.SeekStream)
+		assert.True(t, ok)
+	})
+
+	t.Run("large size", func(t *testing.T) {
+		b := NewBlob(func() (io.ReadCloser, int64, error) {
+			return nopReadCloser{Reader: bytes.NewReader([]byte("012345"))}, maxMemorySize, nil
+		})
+
+		rs, size, err := b.NewReadSeeker()
+		require.NoError(t, err)
+		defer rs.Close()
+
+		assert.Equal(t, maxMemorySize, size)
+		_, ok := rs.(*seekstream.SeekStream)
+		assert.True(t, ok)
+	})
 }
 
 func TestNewBlobFromMemory(t *testing.T) {
