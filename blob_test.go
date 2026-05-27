@@ -309,7 +309,7 @@ func TestBlobNewReadSeeker_UsesAsyncForSmallKnownSize(t *testing.T) {
 	assert.Equal(t, int64(6), size)
 	_, ok := rs.(*seekstream.AsyncReadSeeker)
 	assert.True(t, ok)
-	}
+}
 
 func TestBlobNewReadSeeker_UsesSeekStreamForUnknownOrLargeSize(t *testing.T) {
 	t.Run("unknown size", func(t *testing.T) {

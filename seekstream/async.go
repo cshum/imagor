@@ -15,14 +15,14 @@ type AsyncReadSeeker struct {
 	expected int64
 	pos      int64
 
-	mu        sync.Mutex
-	cond      *sync.Cond
-	chunks    [][]byte
-	bytesRead int64
-	finished  bool
-	closed    bool
+	mu         sync.Mutex
+	cond       *sync.Cond
+	chunks     [][]byte
+	bytesRead  int64
+	finished   bool
+	closed     bool
 	sourceDone bool
-	readErr   error
+	readErr    error
 }
 
 // NewAsync creates an async chunk-buffered read seeker over source.
