@@ -213,6 +213,16 @@ func (v *Processor) newSourceReaderFromBlob(blob *imagor.Blob) (io.ReadCloser, e
 	return reader, err
 }
 
+func (v *Processor) newSourceFromBlob(ctx context.Context, blob *imagor.Blob) (*vips.Source, error) {
+	reader, err := v.newSourceReaderFromBlob(blob)
+	if err != nil {
+		return nil, err
+	}
+	src := vips.NewSource(reader)
+	contextDefer(ctx, src.Close)
+	return src, nil
+}
+
 func (v *Processor) newImageFromBlob(
 	ctx context.Context, blob *imagor.Blob, options *vips.LoadOptions,
 ) (*vips.Image, error) {
@@ -257,12 +267,10 @@ func (v *Processor) newImageFromBlob(
 		}
 		// dcrawload failed — it's a real TIFF or unsupported, proceed with normal loading
 	}
-	reader, err := v.newSourceReaderFromBlob(blob)
+	src, err := v.newSourceFromBlob(ctx, blob)
 	if err != nil {
 		return nil, err
 	}
-	src := vips.NewSource(reader)
-	contextDefer(ctx, src.Close)
 	img, err := vips.NewImageFromSource(src, options)
 	if err != nil && v.FallbackFunc != nil {
 		src.Close()
@@ -273,12 +281,10 @@ func (v *Processor) newImageFromBlob(
 
 // dcrawloadFromBlob loads a RAW camera image using vips_dcrawload_source.
 func (v *Processor) dcrawloadFromBlob(ctx context.Context, blob *imagor.Blob) (*vips.Image, error) {
-	reader, err := v.newSourceReaderFromBlob(blob)
+	src, err := v.newSourceFromBlob(ctx, blob)
 	if err != nil {
 		return nil, err
 	}
-	src := vips.NewSource(reader)
-	contextDefer(ctx, src.Close)
 	img, err := vips.NewDcrawloadSource(src, vips.DefaultDcrawloadSourceOptions())
 	if err != nil {
 		src.Close()
@@ -294,12 +300,10 @@ func (v *Processor) newThumbnailFromBlob(
 	if blob == nil || blob.IsEmpty() {
 		return nil, imagor.ErrNotFound
 	}
-	reader, err := v.newSourceReaderFromBlob(blob)
+	src, err := v.newSourceFromBlob(ctx, blob)
 	if err != nil {
 		return nil, err
 	}
-	src := vips.NewSource(reader)
-	contextDefer(ctx, src.Close)
 	var optionString string
 	if options != nil {
 		optionString = options.OptionString()
