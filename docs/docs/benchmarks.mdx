@@ -1,0 +1,125 @@
+---
+description: Benchmark overview for imagor, including methodology, measured results, and why imagor is one of the fastest libvips-based image processing servers.
+---
+
+# Benchmarks
+
+imagor is one of the fastest image processing servers available today.
+
+That comes from the combination of [libvips](https://github.com/libvips/libvips), the Go binding [vipsgen](https://github.com/cshum/vipsgen), and imagor's streamed processing path. imagor keeps the request path close to libvips, avoids unnecessary buffering and copies for common streamed inputs, and exposes a libvips-friendly source path that works well for resize and thumbnail workloads.
+
+## Why imagor is fast
+
+imagor uses libvips for image processing and [vipsgen](https://github.com/cshum/vipsgen) for low-level libvips integration from Go. vipsgen provides generated, type-safe libvips bindings with streaming support, which helps keep the integration robust while staying close to libvips. For streamed sources, imagor keeps the data path efficient before the image even reaches the processing stage.
+
+```mermaid
+flowchart LR
+  A[HTTP loader or other source] --> B[imagor blob]
+  B --> C[shared reader or seekable source]
+  C --> D[vipsgen]
+  D --> E[libvips decode and transform]
+  E --> F[encoded output]
+```
+
+In practice, the main speed advantages come from a few places:
+
+- imagor prepares streamed inputs in a way that libvips can consume efficiently
+- blob reuse reduces avoidable reader churn after content sniffing and source preparation
+- fanout and shared-reader handling reduce duplicated work around streamed sources
+- the seekable libvips source path lets libvips load and process common inputs more efficiently
+- libvips itself is highly optimized for resize, thumbnail, and transcode workloads
+
+## Benchmark summary
+
+:::info Result source
+Last updated: May 2026.
+
+This summary is based on recent reruns from the public [image-servers-benchmark](https://github.com/cshum/image-servers-benchmark) project. The committed summaries for this rerun are available in the [benchmark results](https://github.com/cshum/image-servers-benchmark/tree/master/results).
+:::
+
+On this benchmark set, imagor 1.9.1 is consistently faster than thumbor overall and competitive with imgproxy.
+
+Quick comparison:
+
+<div className="benchmark-chart-grid">
+  <div className="benchmark-chart-card">
+
+**JPEG**
+
+```mermaid
+xychart-beta
+  title "JPEG throughput on c7i.large (req/s)"
+  x-axis [imagor, imgproxy, thumbor]
+  y-axis "req/s" 0 --> 90
+  bar "JPEG" [74.35, 82.01, 59.45]
+```
+
+  </div>
+  <div className="benchmark-chart-card">
+
+**PNG**
+
+```mermaid
+xychart-beta
+  title "PNG throughput on c7i.large (req/s)"
+  x-axis [imagor, imgproxy, thumbor]
+  y-axis "req/s" 0 --> 25
+  bar "PNG" [18.56, 17.35, 10.23]
+```
+
+  </div>
+  <div className="benchmark-chart-card">
+
+**WebP**
+
+```mermaid
+xychart-beta
+  title "WebP throughput on c7i.large (req/s)"
+  x-axis [imagor, imgproxy, thumbor]
+  y-axis "req/s" 0 --> 30
+  bar "WebP" [21.23, 24.27, 15.80]
+```
+
+  </div>
+  <div className="benchmark-chart-card">
+
+**AVIF**
+
+```mermaid
+xychart-beta
+  title "AVIF throughput on c7i.large (req/s)"
+  x-axis [imagor, imgproxy, thumbor]
+  y-axis "req/s" 0 --> 20
+  bar "AVIF" [17.77, 17.15, 14.85]
+```
+
+  </div>
+</div>
+
+Benchmark shape:
+
+- AWS EC2 `c7i.large`
+- `2 VUs`, `5m`, `10s` warmup
+- resize to `512x512`
+- public `image-servers-benchmark` project with the rerun configuration documented in the linked benchmark summaries
+- compared runtimes:
+  - imagor: `ghcr.io/cshum/imagor:1.9.1`
+  - imgproxy: benchmark harness used `darthsim/imgproxy:latest`, corresponding to imgproxy `v4.0.3`
+  - thumbor: local `benchmark-thumbor:latest`, resolved from `thumbor/Dockerfile` to `thumbor 7.7.7`
+
+Representative throughput from the committed summaries:
+
+| Format | imagor | imgproxy | thumbor |
+| --- | ---: | ---: | ---: |
+| JPEG | 74.35 req/s | 82.01 req/s | 59.45 req/s |
+| PNG | 18.56 req/s | 17.35 req/s | 10.23 req/s |
+| WebP | 21.23 req/s | 24.27 req/s | 15.80 req/s |
+| AVIF | 17.77 req/s | 17.15 req/s | 14.85 req/s |
+
+The exact ranking still depends on image format, output settings, source shape, and deployment environment. The measured result from the current benchmark set is that imagor is one of the fastest image processing servers, clearly ahead of thumbor overall and competitive with imgproxy across common formats.
+
+## Notes
+
+- imagor and imgproxy are both libvips-based, so the gap is often determined by request-path overhead, source handling, and encoder settings rather than by the core image library alone
+- thumbor remains a strong compatibility reference, but its Pillow-based pipeline is generally slower on this workload
+- for AVIF, encoder settings matter a lot; benchmark conclusions should always be read together with the exact runtime configuration

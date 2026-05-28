@@ -296,3 +296,20 @@ a:hover {
   opacity: 0.8;
   text-decoration: underline;
 }
+
+.benchmark-chart-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  margin: 1.5rem 0;
+}
+
+.benchmark-chart-card {
+  min-width: 0;
+}
+
+@media (min-width: 996px) {
+  .benchmark-chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
