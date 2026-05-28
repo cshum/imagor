@@ -3,8 +3,8 @@ import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
-  title: "imagor documentation",
-  tagline: "Fast, secure image processing server and Go library",
+  title: "imagor docs",
+  tagline: "Fast, secure libvips-based image processing server and Go library",
   favicon: "img/icon.png",
 
   // Set the production url of your site here
@@ -69,6 +69,17 @@ const config: Config = {
   ],
 
   themeConfig: {
+    image: "img/icon.png",
+    metadata: [
+      {
+        property: "og:site_name",
+        content: "imagor docs",
+      },
+      {
+        name: "twitter:card",
+        content: "summary",
+      },
+    ],
     navbar: {
       title: "imagor",
       items: [
@@ -116,6 +127,27 @@ const config: Config = {
       style: "dark",
       links: [
         {
+          title: "Docs",
+          items: [
+            {
+              label: "Getting Started",
+              to: "/",
+            },
+            {
+              label: "Benchmarks",
+              to: "/benchmarks",
+            },
+            {
+              label: "Image Endpoint",
+              to: "/image-endpoint",
+            },
+            {
+              label: "Configuration",
+              to: "/configuration",
+            },
+          ],
+        },
+        {
           title: "Ecosystem",
           items: [
             {
@@ -146,6 +178,10 @@ const config: Config = {
             {
               label: "Docker Hub",
               href: "https://hub.docker.com/r/shumc/imagor",
+            },
+            {
+              label: "Benchmarks",
+              to: "/benchmarks",
             },
           ],
         },

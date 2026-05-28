@@ -1,3 +1,13 @@
+---
+description: Configure imagor HTTP Loader with allowed sources, base URL, proxying, header forwarding, SSRF protection, and size limits.
+keywords:
+  - imagor http loader
+  - imagor allowed sources
+  - imagor ssrf protection
+  - imagor base url
+  - imagor proxy
+---
+
 # HTTP Loader
 
 imagor includes an HTTP Loader that is **enabled by default**. It fetches source images from remote URLs over HTTP or HTTPS, and is used as the fallback loader when no other loader (e.g. File or S3) handles the request.

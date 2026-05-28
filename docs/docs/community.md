@@ -1,3 +1,13 @@
+---
+description: imagor ecosystem links including official plugins, related Go libraries, and community projects built around imagor.
+keywords:
+  - imagor community
+  - imagor plugins
+  - imagorvideo
+  - imagorface
+  - vipsgen
+---
+
 # Community
 
 ## Official Plugins

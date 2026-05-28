@@ -1,5 +1,10 @@
 ---
 description: Tune libvips concurrency and threading to optimize image processing performance for your deployment.
+keywords:
+  - imagor performance
+  - imagor libvips tuning
+  - imagor vips concurrency
+  - imagor benchmarks
 ---
 
 # VIPS Performance Tuning
@@ -21,5 +26,7 @@ VIPS_CONCURRENCY=4    # Use 4 threads
 - **Custom value**: Set to a specific number of threads for fine-tuned control.
 
 For high-traffic deployments, it's generally better to scale horizontally (more imagor instances) rather than increasing `VIPS_CONCURRENCY`.
+
+For measured throughput comparisons, see [Benchmarks](./benchmarks.mdx). For the full runtime option reference, see [Configuration](./configuration.md).
 
 libvips also has a built-in operation cache (`VIPS_MAX_CACHE_MEM`, `VIPS_MAX_CACHE_SIZE`, `VIPS_MAX_CACHE_FILES`) that reuses recently computed operations. For imagor's typical workload, each request processes a different source image so this cache rarely gets hits — the defaults (0 = disabled) are appropriate. See [libvips documentation](https://github.com/libvips/libvips/issues/1585) for details.

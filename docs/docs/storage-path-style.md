@@ -1,3 +1,12 @@
+---
+description: Control imagor storage and result-storage key layout with original, digest, suffix, and size path styles.
+keywords:
+  - imagor storage path style
+  - imagor result storage path style
+  - imagor digest path
+  - imagor suffix path
+---
+
 # Storage and Result Storage Path Style
 
 `Storage` and `Result Storage` path style enables additional hashing rules to the storage path when loading and saving images. By default (`original`), the image path is used as-is.

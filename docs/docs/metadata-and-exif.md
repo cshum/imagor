@@ -1,5 +1,11 @@
 ---
 description: Extract image format, resolution and Exif metadata via the /meta endpoint, and compute BlurHash, ThumbHash and average color.
+keywords:
+  - imagor metadata
+  - imagor exif
+  - imagor meta endpoint
+  - imagor blurhash
+  - imagor thumbhash
 ---
 
 # Metadata and Exif

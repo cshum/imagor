@@ -1,3 +1,13 @@
+---
+description: Complete imagor configuration reference covering command-line flags, environment variables, loaders, storage, security, processing, and deployment settings.
+keywords:
+  - imagor configuration
+  - imagor environment variables
+  - imagor flags
+  - imagor settings
+  - imagor config
+---
+
 # Configuration
 
 imagor supports command-line arguments and environment variables. Environment variables are the flag name in uppercase snake case — `-imagor-secret` becomes `IMAGOR_SECRET`:

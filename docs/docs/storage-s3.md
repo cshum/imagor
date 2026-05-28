@@ -1,3 +1,13 @@
+---
+description: Configure imagor with AWS S3 or S3-compatible storage for loader, source storage, result storage, routing, and key normalization.
+keywords:
+  - imagor s3
+  - imagor aws s3
+  - imagor s3 loader
+  - imagor s3 result storage
+  - imagor s3 compatible storage
+---
+
 # AWS S3
 
 imagor supports AWS S3 for Loader, Storage, and Result Storage. It is also compatible with S3-compatible services such as Cloudflare R2, MinIO and DigitalOcean Spaces.

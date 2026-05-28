@@ -1,3 +1,13 @@
+---
+description: Full imagor filter reference for format conversion, quality, watermarking, text overlays, color operations, metadata, and output control.
+keywords:
+  - imagor filters
+  - imagor watermark
+  - imagor format conversion
+  - imagor text overlay
+  - imagor image filters
+---
+
 # Filters
 
 Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations that will be sequentially applied to the image. Examples:

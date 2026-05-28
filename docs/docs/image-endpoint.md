@@ -1,6 +1,18 @@
+---
+description: imagor URL syntax reference for resize, crop, fit-in, smart crop, padding, trim, and image source paths.
+keywords:
+  - imagor image endpoint
+  - imagor url syntax
+  - imagor resize crop
+  - imagor fit-in
+  - imagor filters
+---
+
 # Image Endpoint
 
 imagor endpoint is a series of URL parts which defines the image operations, followed by the image URI:
+
+For production-safe URLs, see [Security](./security.mdx). For the full filter pipeline, see [Filters](./filters.md). For metadata output related to an endpoint, see [Metadata and Exif](./metadata-and-exif.md).
 
 ```
 /HASH|unsafe/trim/AxB:CxD/(adaptive-)(full-)fit-in/stretch/-Ex-F/GxH:IxJ/HALIGN/VALIGN/smart/filters:NAME(ARGS):NAME(ARGS):.../IMAGE

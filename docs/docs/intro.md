@@ -1,6 +1,13 @@
 ---
 sidebar_position: 1
 slug: /
+description: Fast, secure libvips-based image processing server and Go library with thumbor-compatible URLs, streaming, storage backends, and production-ready deployment options.
+keywords:
+  - imagor docs
+  - imagor
+  - libvips image server
+  - thumbor compatible image server
+  - go image processing server
 ---
 
 # Getting Started

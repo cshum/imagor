@@ -1,3 +1,12 @@
+---
+description: Configure imagor file system loader, source storage, and result storage using local mounted directories.
+keywords:
+  - imagor file system
+  - imagor local storage
+  - imagor file loader
+  - imagor result storage
+---
+
 # File System
 
 imagor supports local file system storage using mounted volumes for Loader, Storage, and Result Storage.

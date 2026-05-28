@@ -1,3 +1,13 @@
+---
+description: Configure imagor with Google Cloud Storage for loader, source storage, result storage, key normalization, and bucket path layout.
+keywords:
+  - imagor google cloud storage
+  - imagor gcs
+  - imagor gcloud loader
+  - imagor gcloud result storage
+  - imagor bucket path layout
+---
+
 # Google Cloud Storage
 
 imagor supports Google Cloud Storage for Loader, Storage, and Result Storage.
