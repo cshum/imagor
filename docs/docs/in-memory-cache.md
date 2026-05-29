@@ -1,5 +1,11 @@
 ---
 description: Cache decoded image pixels in memory with LRU eviction to avoid repeated I/O and decoding of the same source image across requests.
+keywords:
+    - imagor in memory cache
+    - imagor decoded image cache
+    - imagor vips cache size
+    - imagor watermark cache
+    - imagor overlay cache
 ---
 
 # In-Memory Cache

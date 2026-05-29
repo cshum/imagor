@@ -1,5 +1,11 @@
 ---
 description: Extends imagor with face detection — enables face-centred smart crop and privacy redaction for images.
+keywords:
+  - imagorface
+  - imagor face detection
+  - imagor smart crop faces
+  - imagor privacy redaction
+  - imagor meta detected regions
 ---
 
 # imagorface

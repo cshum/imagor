@@ -1,5 +1,11 @@
 ---
 description: Process and transform images via HTTP POST upload, an opt-in feature for trusted internal environments.
+keywords:
+  - imagor post upload
+  - imagor http post image upload
+  - imagor upload loader
+  - imagor internal upload api
+  - imagor direct image processing
 ---
 
 # POST Upload

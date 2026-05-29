@@ -1,5 +1,11 @@
 ---
 description: Extends imagor with video thumbnail extraction — pull frames from video files and process them through the full imagor pipeline.
+keywords:
+  - imagorvideo
+  - imagor video thumbnails
+  - imagor ffmpeg
+  - imagor frame extraction
+  - imagor video metadata
 ---
 
 # imagorvideo
