@@ -52,7 +52,7 @@ export const faqSchema = {
       name: 'Are the benchmark results reproducible?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. The benchmark harness and committed summaries are public, and the page links to the benchmark project and rerun result artifacts used for this summary.',
+        text: 'Yes. The benchmark setup and committed summaries are public, and the page links to the benchmark project and rerun result artifacts used for this summary.',
       },
     },
   ],
@@ -196,7 +196,7 @@ Benchmark shape:
 - public `image-servers-benchmark` project with the rerun configuration documented in the linked benchmark summaries
 - compared runtimes:
   - imagor: `ghcr.io/cshum/imagor:1.9.1`
-  - imgproxy: benchmark harness used `darthsim/imgproxy:latest`, corresponding to imgproxy `v4.0.3`
+  - imgproxy: benchmark project used `darthsim/imgproxy:latest`, corresponding to imgproxy `v4.0.3`
   - thumbor: local `benchmark-thumbor:latest`, resolved from `thumbor/Dockerfile` to `thumbor 7.7.7`
 
 Representative throughput from the committed summaries:
@@ -232,8 +232,8 @@ imagor combines libvips, generated vipsgen bindings, and a streamed request path
 
 ### How were these benchmarks run?
 
-The rerun used AWS EC2 `c7i.large`, `2 VUs`, `5m`, `10s` warmup, and a `512x512` resize workload. The benchmark harness and committed summaries are linked from the public repository so the setup can be reviewed and rerun.
+The rerun used AWS EC2 `c7i.large`, `2 VUs`, `5m`, `10s` warmup, and a `512x512` resize workload. The benchmark setup and committed summaries are linked from the public repository so the setup can be reviewed and rerun.
 
 ### Are the results reproducible?
 
-Yes. The page links to the public harness and the committed result summaries used for this write-up, so readers can inspect versions, workload shape, and output settings.
+Yes. The page links to the public benchmark project and the committed result summaries used for this write-up, so readers can inspect versions, workload shape, and output settings.
