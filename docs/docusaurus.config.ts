@@ -49,6 +49,14 @@ const config: Config = {
           routeBasePath: "/",
         },
         blog: false,
+        sitemap: {
+          ignorePatterns: ["/search", "/404.html"],
+          createSitemapItems: async ({ defaultCreateSitemapItems, ...rest }) => {
+            const items = await defaultCreateSitemapItems(rest);
+
+            return items.filter((item) => !item.url.includes("/category/"));
+          },
+        },
         theme: {
           customCss: "./src/css/custom.css",
         },

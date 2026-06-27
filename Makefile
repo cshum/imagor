@@ -1,4 +1,4 @@
-IMAGOR_BASE_IMAGE ?= ghcr.io/cshum/imagor-base:vips8.18.2-r10
+IMAGOR_BASE_IMAGE ?= ghcr.io/cshum/imagor-base:vips8.18.3-r13
 
 build:
 	CGO_CFLAGS_ALLOW=-Xpreprocessor go build -o bin/imagor ./cmd/imagor/main.go
