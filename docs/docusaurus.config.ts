@@ -97,7 +97,7 @@ const config: Config = {
           position: "left",
           items: [
             {
-              label: "Imagor Cloud",
+              label: "Imagor Studio",
               href: "https://imagor.net",
             },
             {
@@ -125,7 +125,7 @@ const config: Config = {
         },
         {
           href: "https://imagor.net",
-          label: "Imagor Cloud",
+          label: "Imagor Studio",
           position: "right",
           className: "navbar-buy-button",
         },
@@ -159,7 +159,7 @@ const config: Config = {
           title: "Ecosystem",
           items: [
             {
-              label: "Imagor Cloud",
+              label: "Imagor Studio",
               href: "https://imagor.net",
             },
             {
