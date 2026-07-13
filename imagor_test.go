@@ -1433,6 +1433,21 @@ func TestAutoWebP(t *testing.T) {
 		r.Header.Set("Accept", "image/apng,image/svg+xml,image/*,*/*;q=0.8")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, 200, w.Code)
+		// Source format was selected by looking at Accept: the response still varies
+		// on it, otherwise a shared cache would reuse this for WebP-capable clients.
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+	t.Run("no auto no vary", func(t *testing.T) {
+		app := factory(false)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		// Auto format off: Accept is never looked at, so no Vary.
+		assert.Empty(t, w.Header().Get("Vary"))
 		assert.Equal(t, w.Body.String(), "abc.png")
 	})
 	t.Run("explicit format no auto", func(t *testing.T) {
