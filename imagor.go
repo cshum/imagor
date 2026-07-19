@@ -339,6 +339,12 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	// auto WebP / AVIF / JPEG
 	if !hasFormat && (app.AutoWebP || app.AutoAVIF || app.AutoJPEG) {
 		accept := r.Header.Get("Accept")
+		// The selected representation depends on Accept even when negotiation ends up
+		// keeping the source format (e.g. Accept: */* with only auto-avif/webp on).
+		// Mark it upfront so such responses still carry Vary: Accept - without it a
+		// shared cache may reuse the source-format response for clients that would
+		// have been served AVIF/WebP.
+		r.Header.Set("Imagor-Auto-Format", "none")
 		if app.AutoAVIF && strings.Contains(accept, "image/avif") {
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
