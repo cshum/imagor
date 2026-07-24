@@ -748,6 +748,29 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/dancing-banana.gif", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("no memory leak when filter errors after image has been loaded", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithDebug(true),
+			imagor.WithLogger(zap.NewExample()),
+			imagor.WithProcessors(NewProcessor(
+				WithDebug(true),
+				WithFilter("error", func(_ context.Context, _ *vips.Image, _ imagor.LoadFunc, _ ...string) error {
+					return imagor.NewError("boom", 422)
+				}),
+			)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		// memory leaks are caught by the ReportLeaks check
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/filters:error()/gopher-front.png", nil))
+		assert.Equal(t, 422, w.Code)
+	})
 	t.Run("image cache — LoadFromCache returns cached blob", func(t *testing.T) {
 		// Verify that LoadFromCache returns the cached blob after Process populates the cache,
 		// and that Process can use it directly (no nil blob, no TOCTOU).

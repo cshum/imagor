@@ -506,6 +506,11 @@ func (v *Processor) loadAndProcess(
 		}
 	}
 
+	// caller never receives img on any following error and thus can not close it properly
+	if img != nil {
+		contextDefer(ctx, img.Close)
+	}
+
 	if orient > 0 {
 		// orient rotate before resize
 		if err = img.RotMultiPage(getAngle(orient)); err != nil {
