@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image/gif"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -685,6 +686,49 @@ func TestProcessor(t *testing.T) {
 		require.NoError(t, err)
 		defer img.Close()
 		assert.Greater(t, img.Height(), img.PageHeight(), "expected animated frames to be preserved")
+	})
+	t.Run("animated gif filters apply without dropping frames", func(t *testing.T) {
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithProcessors(NewProcessor()),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+
+		fetch := func(path string) []byte {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/unsafe/"+path, nil))
+			require.Equal(t, 200, w.Code)
+			return w.Body.Bytes()
+		}
+
+		baseline := fetch("dancing-banana.gif")
+		baseGIF, err := gif.DecodeAll(bytes.NewReader(baseline))
+		require.NoError(t, err)
+
+		for _, tt := range []struct {
+			name string
+			path string
+		}{
+			{name: "pixelate", path: "filters:pixelate(8)/dancing-banana.gif"},
+			{name: "saturation", path: "filters:saturation(-50)/dancing-banana.gif"},
+			{name: "hue", path: "filters:hue(60)/dancing-banana.gif"},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				body := fetch(tt.path)
+				assert.False(t, bytes.Equal(baseline, body), "filtered GIF must differ from baseline")
+
+				gotGIF, err := gif.DecodeAll(bytes.NewReader(body))
+				require.NoError(t, err)
+				assert.Len(t, gotGIF.Image, len(baseGIF.Image), "frame count must be preserved")
+				assert.Equal(t, baseGIF.Delay, gotGIF.Delay, "frame delays must be preserved")
+				assert.Equal(t, baseGIF.Disposal, gotGIF.Disposal, "disposal method must be preserved")
+				assert.Equal(t, baseGIF.LoopCount, gotGIF.LoopCount, "loop count must be preserved")
+			})
+		}
 	})
 	t.Run("resolution exceeded bmp 2", func(t *testing.T) {
 		app := imagor.New(
