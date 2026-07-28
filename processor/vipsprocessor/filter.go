@@ -257,8 +257,11 @@ func pixelateImage(img *vips.Image, blockSize int) error {
 
 func pixelateMultiPageImage(img *vips.Image, blockSize int) error {
 	pageHeight := img.PageHeight()
+	if pageHeight <= 0 {
+		return pixelateImage(img, blockSize)
+	}
 	pages := img.Height() / pageHeight
-	if pageHeight <= 0 || pages <= 1 {
+	if pages <= 1 {
 		return pixelateImage(img, blockSize)
 	}
 	src, err := img.Copy(nil)
@@ -303,9 +306,6 @@ func pixelate(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...str
 		if b, e := strconv.Atoi(args[0]); e == nil && b > 0 {
 			blockSize = b
 		}
-	}
-	if !isAnimated(img) {
-		return pixelateImage(img, blockSize)
 	}
 	return pixelateMultiPageImage(img, blockSize)
 }
