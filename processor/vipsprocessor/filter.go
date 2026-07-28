@@ -255,17 +255,59 @@ func pixelateImage(img *vips.Image, blockSize int) error {
 	return img.Zoom(blockSize, blockSize)
 }
 
-func pixelate(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
-	if isAnimated(img) {
-		return
+func pixelateMultiPageImage(img *vips.Image, blockSize int) error {
+	pageHeight := img.PageHeight()
+	pages := img.Height() / pageHeight
+	if pageHeight <= 0 || pages <= 1 {
+		return pixelateImage(img, blockSize)
 	}
+	src, err := img.Copy(nil)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	if err := img.ExtractArea(0, 0, src.Width(), pageHeight); err != nil {
+		return err
+	}
+	if err := pixelateImage(img, blockSize); err != nil {
+		return err
+	}
+	for page := 1; page < pages; page++ {
+		frame, err := src.Copy(nil)
+		if err != nil {
+			return err
+		}
+		if err := frame.ExtractArea(0, page*pageHeight, src.Width(), pageHeight); err != nil {
+			frame.Close()
+			return err
+		}
+		if err := pixelateImage(frame, blockSize); err != nil {
+			frame.Close()
+			return err
+		}
+		if err := img.Join(frame, vips.DirectionVertical, nil); err != nil {
+			frame.Close()
+			return err
+		}
+		frame.Close()
+	}
+	if err := img.SetPageHeight(img.Height() / pages); err != nil {
+		return err
+	}
+	return img.SetPages(pages)
+}
+
+func pixelate(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	blockSize := 10
 	if len(args) > 0 {
 		if b, e := strconv.Atoi(args[0]); e == nil && b > 0 {
 			blockSize = b
 		}
 	}
-	return pixelateImage(img, blockSize)
+	if !isAnimated(img) {
+		return pixelateImage(img, blockSize)
+	}
+	return pixelateMultiPageImage(img, blockSize)
 }
 
 func sharpen(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
