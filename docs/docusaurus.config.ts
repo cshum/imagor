@@ -97,12 +97,12 @@ const config: Config = {
           position: "left",
           items: [
             {
-              label: "Imagor Studio",
-              href: "https://imagor.net",
-            },
-            {
               label: "imagor",
               to: "/",
+            },
+            {
+              label: "Imagor Studio",
+              href: "https://imagor.net",
             },
             {
               label: "imagorvideo",
@@ -124,8 +124,8 @@ const config: Config = {
           position: "right",
         },
         {
-          href: "https://imagor.net",
-          label: "Imagor Studio",
+          href: "https://github.com/sponsors/cshum",
+          label: "Sponsor",
           position: "right",
           className: "navbar-buy-button",
         },
@@ -159,12 +159,12 @@ const config: Config = {
           title: "Ecosystem",
           items: [
             {
-              label: "Imagor Studio",
-              href: "https://imagor.net",
-            },
-            {
               label: "imagor",
               to: "/",
+            },
+            {
+              label: "Imagor Studio",
+              href: "https://imagor.net",
             },
             {
               label: "imagorvideo",
