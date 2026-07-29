@@ -38,6 +38,8 @@ Sets the background color of a transparent image.
 
 Applies gaussian blur to the image.
 
+This filter is a no-op for animated images.
+
 - `sigma` — blur sigma value
 
 <table width="33%">
@@ -375,6 +377,8 @@ Increases or decreases the image saturation.
 ### `sharpen(sigma)`
 
 Sharpens the image.
+
+This filter is a no-op for animated images.
 
 - `sigma` — sharpening sigma value
 
