@@ -191,7 +191,7 @@ S3_RESULT_STORAGE_BUCKET=*  # enable S3 result storage with dynamic bucket from 
 
 A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` bucket. A request for `/mysite-prod/assets/logo.png` will load `assets/logo.png` from the `mysite-prod` bucket. The first path segment of the source image path is used as the bucket name and the remainder as the object key.
 
-This works identically for loader, storage, and result storage — all three use the same `S3Storage` implementation. For result storage, when a request includes transforms such as `unsafe/1600x0/.../mysite-test/images/photo.jpg`, imagor still derives the wildcard bucket from the original source image path (`mysite-test/images/photo.jpg`) while storing the processed result under the transformed result key. This allows a single imagor instance to serve images from any bucket in the same AWS account without any additional configuration.
+This works identically for loader, storage, and result storage — all three use the same `S3Storage` implementation. For result storage, imagor derives the wildcard bucket from the original source image path, even when the stored result key includes processing parameters. This allows a single imagor instance to serve images from any bucket in the same AWS account without any additional configuration.
 
 ## S3 Loader Bucket Routing
 
