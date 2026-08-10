@@ -447,6 +447,74 @@ func TestWithForcePathStyleDefault(t *testing.T) {
 	assert.True(t, s2.ForcePathStyle)
 }
 
+func TestWithStorageClass(t *testing.T) {
+	tests := []struct {
+		name          string
+		storageClass  string
+		expectedClass string
+	}{
+		{
+			name:          "valid storage class",
+			storageClass:  "GLACIER",
+			expectedClass: "GLACIER",
+		},
+		{
+			name:          "invalid storage class falls back to STANDARD",
+			storageClass:  "NOT_A_CLASS",
+			expectedClass: "STANDARD",
+		},
+		{
+			name:          "empty storage class falls back to STANDARD",
+			storageClass:  "",
+			expectedClass: "STANDARD",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := aws.Config{Region: "us-east-1"}
+			s := New(cfg, "test-bucket", WithStorageClass(tt.storageClass))
+			assert.Equal(t, tt.expectedClass, s.StorageClass)
+		})
+	}
+}
+
+func TestWithTaggingOption(t *testing.T) {
+	tests := []struct {
+		name            string
+		tagging         string
+		initialTagging  string
+		expectedTagging string
+	}{
+		{
+			name:            "valid tagging is set",
+			tagging:         "foo=bar&source=imagor",
+			initialTagging:  "",
+			expectedTagging: "foo=bar&source=imagor",
+		},
+		{
+			name:            "whitespace only does not overwrite",
+			tagging:         "   ",
+			initialTagging:  "keep=this",
+			expectedTagging: "keep=this",
+		},
+		{
+			name:            "invalid query string does not overwrite",
+			tagging:         "%zz",
+			initialTagging:  "keep=this",
+			expectedTagging: "keep=this",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &S3Storage{Tagging: tt.initialTagging}
+			WithTagging(tt.tagging)(s)
+			assert.Equal(t, tt.expectedTagging, s.Tagging)
+		})
+	}
+}
+
 func TestWildcardBucket_Path(t *testing.T) {
 	tests := []struct {
 		name           string

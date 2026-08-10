@@ -2,17 +2,21 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -67,6 +71,40 @@ func (f loaderFunc) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	return f(r, image)
 }
 
+type failingService struct {
+	startupErr  error
+	shutdownErr error
+}
+
+func (f *failingService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	handleOk(w, r)
+}
+
+func (f *failingService) Startup(ctx context.Context) error {
+	return f.startupErr
+}
+
+func (f *failingService) Shutdown(ctx context.Context) error {
+	return f.shutdownErr
+}
+
+type failingMetrics struct {
+	startupErr  error
+	shutdownErr error
+}
+
+func (m *failingMetrics) Handle(next http.Handler) http.Handler {
+	return next
+}
+
+func (m *failingMetrics) Startup(ctx context.Context) error {
+	return m.startupErr
+}
+
+func (m *failingMetrics) Shutdown(ctx context.Context) error {
+	return m.shutdownErr
+}
+
 func TestServer_Run(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	processor := &testProcessor{}
@@ -85,6 +123,38 @@ func TestServer_Run(t *testing.T) {
 		done()
 	}()
 	s.RunContext(ctx)
+	assert.Equal(t, 1, processor.ShutdownCnt)
+}
+
+func TestServer_RunSignal(t *testing.T) {
+	processor := &testProcessor{}
+	app := imagor.New(imagor.WithProcessors(processor))
+	s := New(app,
+		WithDebug(true),
+		WithAddr("127.0.0.1:0"),
+		WithStartupTimeout(time.Second),
+		WithShutdownTimeout(time.Second),
+		WithMetrics(nil),
+		WithLogger(zap.NewExample()))
+
+	done := make(chan struct{})
+	go func() {
+		s.Run()
+		close(done)
+	}()
+
+	assert.Eventually(t, func() bool {
+		return processor.StartupCnt == 1
+	}, time.Second, 10*time.Millisecond)
+
+	require.NoError(t, syscall.Kill(os.Getpid(), syscall.SIGINT))
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for Run to stop after signal")
+	}
+
 	assert.Equal(t, 1, processor.ShutdownCnt)
 }
 
@@ -327,6 +397,77 @@ func TestServerShutdown(t *testing.T) {
 		assert.Equal(t, 1, processor.ShutdownCnt)
 		assert.Equal(t, 1, mockMetrics.ShutdownCnt)
 	})
+
+	t.Run("shutdown logs errors from metrics server and app", func(t *testing.T) {
+		core, logs := observer.New(zapcore.ErrorLevel)
+		logger := zap.New(core)
+
+		s := New(&failingService{shutdownErr: errors.New("app shutdown failure")},
+			WithLogger(logger),
+			WithMetrics(&failingMetrics{shutdownErr: errors.New("metrics shutdown failure")}),
+			WithShutdownTimeout(time.Second))
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		s.shutdown(ctx)
+
+		entries := logs.All()
+		assert.GreaterOrEqual(t, len(entries), 2)
+
+		messages := make(map[string]bool)
+		for _, entry := range entries {
+			messages[entry.Message] = true
+		}
+
+		assert.True(t, messages["metrics-shutdown"])
+		assert.True(t, messages["app-shutdown"])
+	})
+}
+
+func TestServerStartupErrorFatal(t *testing.T) {
+	core, logs := observer.New(zapcore.FatalLevel)
+	logger := zap.New(core, zap.WithFatalHook(zapcore.WriteThenPanic))
+
+	s := New(&failingService{startupErr: errors.New("startup failure")},
+		WithLogger(logger),
+		WithStartupTimeout(time.Second))
+
+	assert.Panics(t, func() {
+		s.startup(context.Background())
+	})
+
+	entries := logs.All()
+	assert.Len(t, entries, 1)
+	assert.Equal(t, "app-startup", entries[0].Message)
+}
+
+func TestServerRunContext_MetricsStartupErrorFatal(t *testing.T) {
+	core, logs := observer.New(zapcore.FatalLevel)
+	logger := zap.New(core, zap.WithFatalHook(zapcore.WriteThenPanic))
+
+	processor := &testProcessor{}
+	app := imagor.New(imagor.WithProcessors(processor))
+	s := New(app,
+		WithLogger(logger),
+		WithAddr("127.0.0.1:0"),
+		WithMetrics(&failingMetrics{startupErr: errors.New("metrics startup failure")}),
+		WithStartupTimeout(time.Second),
+		WithShutdownTimeout(time.Second),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	assert.Panics(t, func() {
+		s.RunContext(ctx)
+	})
+
+	// Ensure the listener started in RunContext is stopped after panic.
+	_ = s.Shutdown(context.Background())
+
+	entries := logs.All()
+	assert.NotEmpty(t, entries)
+	assert.Equal(t, "metrics-startup", entries[len(entries)-1].Message)
 }
 
 // Test listenAndServe method
@@ -334,9 +475,18 @@ func TestServerListenAndServe(t *testing.T) {
 	t.Run("HTTP server", func(t *testing.T) {
 		processor := &testProcessor{}
 		app := imagor.New(imagor.WithProcessors(processor))
-		s := New(app, WithAddr(":0"))
+		s := New(app, WithAddr("127.0.0.1:0"))
 
-		// Test that it would start HTTP server (not TLS)
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- s.listenAndServe()
+		}()
+
+		time.Sleep(20 * time.Millisecond)
+		require.NoError(t, s.Shutdown(context.Background()))
+		assert.ErrorIs(t, <-errCh, http.ErrServerClosed)
+
+		// Test that it starts HTTP server (not TLS)
 		assert.Empty(t, s.CertFile)
 		assert.Empty(t, s.KeyFile)
 	})
@@ -344,11 +494,15 @@ func TestServerListenAndServe(t *testing.T) {
 	t.Run("HTTPS server", func(t *testing.T) {
 		processor := &testProcessor{}
 		app := imagor.New(imagor.WithProcessors(processor))
-		s := New(app, WithAddr(":0"))
-		s.CertFile = "cert.pem"
-		s.KeyFile = "key.pem"
+		s := New(app, WithAddr("127.0.0.1:0"))
+		s.CertFile = "testdata/missing-cert.pem"
+		s.KeyFile = "testdata/missing-key.pem"
 
-		// Test that it would start HTTPS server
+		err := s.listenAndServe()
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, http.ErrServerClosed)
+
+		// Test that it attempts HTTPS branch when cert and key are set
 		assert.NotEmpty(t, s.CertFile)
 		assert.NotEmpty(t, s.KeyFile)
 	})

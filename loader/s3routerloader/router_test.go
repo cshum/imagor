@@ -146,6 +146,45 @@ func TestPatternRouter_Fallback(t *testing.T) {
 	assert.Equal(t, "my-default", router.Fallback())
 }
 
+func TestPatternRouter_Fallback_NoDefault(t *testing.T) {
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[A-Z]+)-`,
+		nil,
+		nil,
+		nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, "", router.Fallback())
+}
+
+func TestPatternRouter_DefaultConfig(t *testing.T) {
+	defaultCfg := &BucketConfig{Name: "default-bucket", Region: "us-east-1"}
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[A-Z]+)-`,
+		nil,
+		defaultCfg,
+		nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, defaultCfg, router.DefaultConfig())
+}
+
+func TestPatternRouter_BucketNameFor(t *testing.T) {
+	router, err := NewPatternRouter(
+		`^(?P<bucket>[^/]+)/(?P<path>.+)$`,
+		nil,
+		&BucketConfig{Name: "default"},
+		nil,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, "mysite-test", router.BucketNameFor("mysite-test/images/photo.jpg"))
+	assert.Equal(t, "mysite-prod", router.BucketNameFor("/mysite-prod/assets/logo.png"))
+	assert.Equal(t, "", router.BucketNameFor("no-slash-here"))
+}
+
 func TestPatternRouter_PrefixPattern(t *testing.T) {
 	bucket1 := &BucketConfig{Name: "bucket1"}
 	bucket2 := &BucketConfig{Name: "bucket2"}

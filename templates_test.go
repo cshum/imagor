@@ -1,7 +1,9 @@
 package imagor
 
 import (
+	"errors"
 	"encoding/json"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -281,6 +283,48 @@ func TestRenderLandingPageResponseHeaders(t *testing.T) {
 	contentType := w.Header().Get("Content-Type")
 	if contentType != "text/html" {
 		t.Errorf("Expected Content-Type to be 'text/html', got %s", contentType)
+	}
+}
+
+func TestRenderLandingPageTemplateError(t *testing.T) {
+	original := landingTemplate
+	t.Cleanup(func() {
+		landingTemplate = original
+	})
+
+	landingTemplate = template.Must(template.New("bad").Funcs(template.FuncMap{
+		"boom": func() (string, error) { return "", errors.New("boom") },
+	}).Parse(`{{boom}}`))
+
+	w := httptest.NewRecorder()
+	renderLandingPage(w)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected status 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Internal Server Error") {
+		t.Fatalf("Expected error response body, got %q", w.Body.String())
+	}
+}
+
+func TestRenderUploadFormTemplateError(t *testing.T) {
+	original := uploadTemplate
+	t.Cleanup(func() {
+		uploadTemplate = original
+	})
+
+	uploadTemplate = template.Must(template.New("bad").Funcs(template.FuncMap{
+		"boom": func() (string, error) { return "", errors.New("boom") },
+	}).Parse(`{{boom}}`))
+
+	w := httptest.NewRecorder()
+	renderUploadForm(w, "/unsafe/200x200/")
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected status 500, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Internal Server Error") {
+		t.Fatalf("Expected error response body, got %q", w.Body.String())
 	}
 }
 
