@@ -50,3 +50,18 @@ func TestDetachContext(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, ctx.Err(), context.DeadlineExceeded)
 }
+
+func TestSourceImageKeyContext(t *testing.T) {
+	ctx := context.Background()
+	assert.Equal(t, "", SourceImageKeyFromContext(ctx))
+
+	unchanged := ContextWithSourceImageKey(ctx, "")
+	assert.True(t, ctx == unchanged)
+	assert.Equal(t, "", SourceImageKeyFromContext(unchanged))
+
+	updated := ContextWithSourceImageKey(ctx, "/bucket-a/images/photo.jpg")
+	assert.Equal(t, "/bucket-a/images/photo.jpg", SourceImageKeyFromContext(updated))
+	assert.Equal(t, "", SourceImageKeyFromContext(ctx))
+	assert.Equal(t, "/bucket-a/images/photo.jpg", updated.Value(sourceImageKeyContextKey))
+	assert.Nil(t, updated.Value(contextKey{99}))
+}
