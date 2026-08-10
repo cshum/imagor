@@ -118,7 +118,9 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 			size = attrs.Size
 		}
 		reader, err = object.NewReader(ctx)
-		if err != nil {
+		if err != nil || reader == nil {
+			// Explicitly return nil reader with error to prevent nil pointer dereference.
+			// NewReader can return (nil, err) if context is cancelled or GCS API fails.
 			return nil, 0, err
 		}
 		return
