@@ -447,6 +447,38 @@ func TestWithForcePathStyleDefault(t *testing.T) {
 	assert.True(t, s2.ForcePathStyle)
 }
 
+func TestWithStorageClass(t *testing.T) {
+	tests := []struct {
+		name          string
+		storageClass  string
+		expectedClass string
+	}{
+		{
+			name:          "valid storage class",
+			storageClass:  "GLACIER",
+			expectedClass: "GLACIER",
+		},
+		{
+			name:          "invalid storage class falls back to STANDARD",
+			storageClass:  "NOT_A_CLASS",
+			expectedClass: "STANDARD",
+		},
+		{
+			name:          "empty storage class falls back to STANDARD",
+			storageClass:  "",
+			expectedClass: "STANDARD",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := aws.Config{Region: "us-east-1"}
+			s := New(cfg, "test-bucket", WithStorageClass(tt.storageClass))
+			assert.Equal(t, tt.expectedClass, s.StorageClass)
+		})
+	}
+}
+
 func TestWildcardBucket_Path(t *testing.T) {
 	tests := []struct {
 		name           string

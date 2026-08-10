@@ -6,13 +6,16 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -85,6 +88,38 @@ func TestServer_Run(t *testing.T) {
 		done()
 	}()
 	s.RunContext(ctx)
+	assert.Equal(t, 1, processor.ShutdownCnt)
+}
+
+func TestServer_RunSignal(t *testing.T) {
+	processor := &testProcessor{}
+	app := imagor.New(imagor.WithProcessors(processor))
+	s := New(app,
+		WithDebug(true),
+		WithAddr("127.0.0.1:0"),
+		WithStartupTimeout(time.Second),
+		WithShutdownTimeout(time.Second),
+		WithMetrics(nil),
+		WithLogger(zap.NewExample()))
+
+	done := make(chan struct{})
+	go func() {
+		s.Run()
+		close(done)
+	}()
+
+	assert.Eventually(t, func() bool {
+		return processor.StartupCnt == 1
+	}, time.Second, 10*time.Millisecond)
+
+	require.NoError(t, syscall.Kill(os.Getpid(), syscall.SIGINT))
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for Run to stop after signal")
+	}
+
 	assert.Equal(t, 1, processor.ShutdownCnt)
 }
 
@@ -334,9 +369,18 @@ func TestServerListenAndServe(t *testing.T) {
 	t.Run("HTTP server", func(t *testing.T) {
 		processor := &testProcessor{}
 		app := imagor.New(imagor.WithProcessors(processor))
-		s := New(app, WithAddr(":0"))
+		s := New(app, WithAddr("127.0.0.1:0"))
 
-		// Test that it would start HTTP server (not TLS)
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- s.listenAndServe()
+		}()
+
+		time.Sleep(20 * time.Millisecond)
+		require.NoError(t, s.Shutdown(context.Background()))
+		assert.ErrorIs(t, <-errCh, http.ErrServerClosed)
+
+		// Test that it starts HTTP server (not TLS)
 		assert.Empty(t, s.CertFile)
 		assert.Empty(t, s.KeyFile)
 	})
@@ -344,11 +388,15 @@ func TestServerListenAndServe(t *testing.T) {
 	t.Run("HTTPS server", func(t *testing.T) {
 		processor := &testProcessor{}
 		app := imagor.New(imagor.WithProcessors(processor))
-		s := New(app, WithAddr(":0"))
-		s.CertFile = "cert.pem"
-		s.KeyFile = "key.pem"
+		s := New(app, WithAddr("127.0.0.1:0"))
+		s.CertFile = "testdata/missing-cert.pem"
+		s.KeyFile = "testdata/missing-key.pem"
 
-		// Test that it would start HTTPS server
+		err := s.listenAndServe()
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, http.ErrServerClosed)
+
+		// Test that it attempts HTTPS branch when cert and key are set
 		assert.NotEmpty(t, s.CertFile)
 		assert.NotEmpty(t, s.KeyFile)
 	})
