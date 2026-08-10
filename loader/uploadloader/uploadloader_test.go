@@ -2,6 +2,7 @@ package uploadloader
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -295,12 +296,14 @@ func TestUploadLoader_ValidateContentType(t *testing.T) {
 		contentType string
 		expected    bool
 	}{
+		{"no restrictions accepts anything", "", "application/octet-stream", true},
 		{"accept all", "*/*", "image/jpeg", true},
 		{"exact match", "image/jpeg", "image/jpeg", true},
 		{"wildcard match", "image/*", "image/png", true},
 		{"wildcard no match", "image/*", "text/plain", false},
 		{"no match", "image/jpeg", "image/png", false},
 		{"empty content type", "image/*", "", false},
+		{"invalid content type parse error", "image/*", "image/jpeg; charset=\"", false},
 		{"multiple accepts match", "image/jpeg,image/png", "image/png", true},
 		{"multiple accepts no match", "image/jpeg,image/png", "image/gif", false},
 	}
@@ -326,6 +329,7 @@ func TestParseContentType(t *testing.T) {
 		{"  image/png  ", "image/png"},
 		{"", ""},
 		{"invalid", "invalid"},
+		{"image/jpeg; charset=\"", "image/jpeg; charset=\""},
 	}
 
 	for _, tt := range tests {
@@ -404,4 +408,108 @@ func TestUploadLoader_EdgeCases(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestUploadLoader_MultipartUpload_ParseError(t *testing.T) {
+	loader := New()
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("not-a-multipart-body"))
+	req.Header.Set("Content-Type", "multipart/form-data")
+
+	blob, err := loader.Get(req, "")
+	if blob != nil {
+		t.Fatal("expected nil blob when multipart parsing fails")
+	}
+	if err == nil || !strings.Contains(err.Error(), "failed to parse multipart form") {
+		t.Fatalf("expected multipart parse error, got %v", err)
+	}
+}
+
+func TestUploadLoader_MultipartUpload_UnsupportedFormat(t *testing.T) {
+	loader := New(WithAccept("image/jpeg"))
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreatePart(map[string][]string{
+		"Content-Disposition": {`form-data; name="image"; filename="test.txt"`},
+		"Content-Type":        {"text/plain"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = part.Write([]byte("not-an-image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	blob, err := loader.Get(req, "")
+	if blob != nil {
+		t.Fatal("expected nil blob for unsupported multipart content type")
+	}
+	if !errors.Is(err, imagor.ErrUnsupportedFormat) {
+		t.Fatalf("expected ErrUnsupportedFormat, got %v", err)
+	}
+}
+
+func TestUploadLoader_MultipartUpload_SizeExceeded(t *testing.T) {
+	loader := New(WithMaxAllowedSize(8))
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreatePart(map[string][]string{
+		"Content-Disposition": {`form-data; name="image"; filename="test.jpg"`},
+		"Content-Type":        {"image/jpeg"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = part.Write([]byte("1234567890"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	blob, err := loader.Get(req, "")
+	if blob != nil {
+		t.Fatal("expected nil blob for oversized multipart upload")
+	}
+	if !errors.Is(err, imagor.ErrMaxSizeExceeded) {
+		t.Fatalf("expected ErrMaxSizeExceeded, got %v", err)
+	}
+}
+
+type errReader struct{}
+
+func (errReader) Read(p []byte) (int, error) {
+	return 0, errors.New("read failed")
+}
+
+func TestUploadLoader_CreateBlobFromReader_ErrorPaths(t *testing.T) {
+	loader := New(WithMaxAllowedSize(5))
+
+	blob, err := loader.createBlobFromReader(errReader{}, 0, "image/jpeg")
+	if blob != nil {
+		t.Fatal("expected nil blob when reader returns an error")
+	}
+	if err == nil || !strings.Contains(err.Error(), "read failed") {
+		t.Fatalf("expected read failure error, got %v", err)
+	}
+
+	blob, err = loader.createBlobFromReader(strings.NewReader("123456"), -1, "image/jpeg")
+	if blob != nil {
+		t.Fatal("expected nil blob when body exceeds max size during read")
+	}
+	if !errors.Is(err, imagor.ErrMaxSizeExceeded) {
+		t.Fatalf("expected ErrMaxSizeExceeded, got %v", err)
+	}
 }

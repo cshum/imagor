@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -68,6 +69,39 @@ type loaderFunc func(r *http.Request, image string) (blob *imagor.Blob, err erro
 
 func (f loaderFunc) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	return f(r, image)
+}
+
+type failingService struct {
+	startupErr  error
+	shutdownErr error
+}
+
+func (f *failingService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	handleOk(w, r)
+}
+
+func (f *failingService) Startup(ctx context.Context) error {
+	return f.startupErr
+}
+
+func (f *failingService) Shutdown(ctx context.Context) error {
+	return f.shutdownErr
+}
+
+type failingMetrics struct {
+	shutdownErr error
+}
+
+func (m *failingMetrics) Handle(next http.Handler) http.Handler {
+	return next
+}
+
+func (m *failingMetrics) Startup(ctx context.Context) error {
+	return nil
+}
+
+func (m *failingMetrics) Shutdown(ctx context.Context) error {
+	return m.shutdownErr
 }
 
 func TestServer_Run(t *testing.T) {
@@ -362,6 +396,48 @@ func TestServerShutdown(t *testing.T) {
 		assert.Equal(t, 1, processor.ShutdownCnt)
 		assert.Equal(t, 1, mockMetrics.ShutdownCnt)
 	})
+
+	t.Run("shutdown logs errors from metrics server and app", func(t *testing.T) {
+		core, logs := observer.New(zapcore.ErrorLevel)
+		logger := zap.New(core)
+
+		s := New(&failingService{shutdownErr: errors.New("app shutdown failure")},
+			WithLogger(logger),
+			WithMetrics(&failingMetrics{shutdownErr: errors.New("metrics shutdown failure")}),
+			WithShutdownTimeout(time.Second))
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		s.shutdown(ctx)
+
+		entries := logs.All()
+		assert.GreaterOrEqual(t, len(entries), 2)
+
+		messages := make(map[string]bool)
+		for _, entry := range entries {
+			messages[entry.Message] = true
+		}
+
+		assert.True(t, messages["metrics-shutdown"])
+		assert.True(t, messages["app-shutdown"])
+	})
+}
+
+func TestServerStartupErrorFatal(t *testing.T) {
+	core, logs := observer.New(zapcore.FatalLevel)
+	logger := zap.New(core, zap.WithFatalHook(zapcore.WriteThenPanic))
+
+	s := New(&failingService{startupErr: errors.New("startup failure")},
+		WithLogger(logger),
+		WithStartupTimeout(time.Second))
+
+	assert.Panics(t, func() {
+		s.startup(context.Background())
+	})
+
+	entries := logs.All()
+	assert.Len(t, entries, 1)
+	assert.Equal(t, "app-startup", entries[0].Message)
 }
 
 // Test listenAndServe method

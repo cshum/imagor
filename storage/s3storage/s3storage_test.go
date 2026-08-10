@@ -479,6 +479,42 @@ func TestWithStorageClass(t *testing.T) {
 	}
 }
 
+func TestWithTaggingOption(t *testing.T) {
+	tests := []struct {
+		name            string
+		tagging         string
+		initialTagging  string
+		expectedTagging string
+	}{
+		{
+			name:            "valid tagging is set",
+			tagging:         "foo=bar&source=imagor",
+			initialTagging:  "",
+			expectedTagging: "foo=bar&source=imagor",
+		},
+		{
+			name:            "whitespace only does not overwrite",
+			tagging:         "   ",
+			initialTagging:  "keep=this",
+			expectedTagging: "keep=this",
+		},
+		{
+			name:            "invalid query string does not overwrite",
+			tagging:         "%zz",
+			initialTagging:  "keep=this",
+			expectedTagging: "keep=this",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &S3Storage{Tagging: tt.initialTagging}
+			WithTagging(tt.tagging)(s)
+			assert.Equal(t, tt.expectedTagging, s.Tagging)
+		})
+	}
+}
+
 func TestWildcardBucket_Path(t *testing.T) {
 	tests := []struct {
 		name           string

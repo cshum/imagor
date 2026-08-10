@@ -56,3 +56,15 @@ func TestSuffixResultStorageHasher(t *testing.T) {
 	assert.Equal(t, "example.com/foobar.c80ab0faf85b35a140a8.json", SuffixResultStorageHasher.HashResult(p))
 	assert.Equal(t, "example.com/foobar.c80ab0faf85b35a140a8_17x19.json", SizeSuffixResultStorageHasher.HashResult(p))
 }
+
+func TestHasherFunctionAdapters(t *testing.T) {
+	h := StorageHasherFunc(func(image string) string {
+		return "hashed:" + image
+	})
+	assert.Equal(t, "hashed:foo.jpg", h.Hash("foo.jpg"))
+
+	rh := ResultStorageHasherFunc(func(p Params) string {
+		return "result:" + p.Image
+	})
+	assert.Equal(t, "result:bar.png", rh.HashResult(Params{Image: "bar.png"}))
+}
