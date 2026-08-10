@@ -344,7 +344,7 @@ func (h *HTTPLoader) DialControl(network string, address string, conn syscall.Ra
 	}
 	addr := net.ParseIP(host)
 	for _, target := range dialTargetIPs(addr) {
-		if h.BlockLoopbackNetworks && target.IsLoopback() {
+		if h.BlockLoopbackNetworks && (target.IsLoopback() || target.IsUnspecified()) {
 			return ErrUnauthorizedRequest
 		}
 		if h.BlockLinkLocalNetworks && (target.IsLinkLocalUnicast() || target.IsLinkLocalMulticast()) {
