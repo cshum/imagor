@@ -89,6 +89,7 @@ func (f *failingService) Shutdown(ctx context.Context) error {
 }
 
 type failingMetrics struct {
+	startupErr  error
 	shutdownErr error
 }
 
@@ -97,7 +98,7 @@ func (m *failingMetrics) Handle(next http.Handler) http.Handler {
 }
 
 func (m *failingMetrics) Startup(ctx context.Context) error {
-	return nil
+	return m.startupErr
 }
 
 func (m *failingMetrics) Shutdown(ctx context.Context) error {
@@ -438,6 +439,35 @@ func TestServerStartupErrorFatal(t *testing.T) {
 	entries := logs.All()
 	assert.Len(t, entries, 1)
 	assert.Equal(t, "app-startup", entries[0].Message)
+}
+
+func TestServerRunContext_MetricsStartupErrorFatal(t *testing.T) {
+	core, logs := observer.New(zapcore.FatalLevel)
+	logger := zap.New(core, zap.WithFatalHook(zapcore.WriteThenPanic))
+
+	processor := &testProcessor{}
+	app := imagor.New(imagor.WithProcessors(processor))
+	s := New(app,
+		WithLogger(logger),
+		WithAddr("127.0.0.1:0"),
+		WithMetrics(&failingMetrics{startupErr: errors.New("metrics startup failure")}),
+		WithStartupTimeout(time.Second),
+		WithShutdownTimeout(time.Second),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	assert.Panics(t, func() {
+		s.RunContext(ctx)
+	})
+
+	// Ensure the listener started in RunContext is stopped after panic.
+	_ = s.Shutdown(context.Background())
+
+	entries := logs.All()
+	assert.NotEmpty(t, entries)
+	assert.Equal(t, "metrics-startup", entries[len(entries)-1].Message)
 }
 
 // Test listenAndServe method
