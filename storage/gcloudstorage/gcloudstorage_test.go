@@ -408,6 +408,68 @@ func TestWildcardBucket_CRUD(t *testing.T) {
 	assert.Equal(t, imagor.ErrNotFound, err)
 }
 
+func TestWildcardBucket_ResultCRUDUsesSourceBucket(t *testing.T) {
+	_, client := fakeGCSServer(t, "bucket-a", "bucket-b")
+
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+	s := New(client, "*")
+	resultKey := "/1600x0/filters:format(webp)/bucket-b/images/photo.jpg"
+	sourceKey := "/bucket-b/images/photo.jpg"
+	ctx = imagor.ContextWithSourceImageKey(ctx, sourceKey)
+	r = r.WithContext(ctx)
+	bucket, storedKey, ok := s.resolveRequest(ctx, resultKey)
+	require.True(t, ok)
+	assert.Equal(t, "bucket-b", bucket)
+
+	require.NoError(t, s.Put(ctx, resultKey, imagor.NewBlobFromBytes([]byte("result-b"))))
+
+	b, err := s.Get(r, resultKey)
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "result-b", string(buf))
+
+	attrs, err := client.Bucket(bucket).Object(storedKey).Attrs(ctx)
+	require.NoError(t, err)
+	assert.NotNil(t, attrs)
+
+	require.NoError(t, s.Delete(ctx, resultKey))
+	_, err = client.Bucket(bucket).Object(storedKey).Attrs(ctx)
+	require.Error(t, err)
+}
+
+func TestWildcardBucket_ResolveRequest(t *testing.T) {
+	s := New(nil, "*", WithPathPrefix("/cache"))
+
+	t.Run("falls back to image path without source context", func(t *testing.T) {
+		bucket, key, ok := s.resolveRequest(context.Background(), "/bucket-a/cache/result.webp")
+		require.True(t, ok)
+		assert.Equal(t, "bucket-a", bucket)
+		assert.Equal(t, "result.webp", key)
+	})
+
+	t.Run("uses source path from context", func(t *testing.T) {
+		ctx := imagor.ContextWithSourceImageKey(context.Background(), "/bucket-b/cache/source/image.jpg")
+		bucket, key, ok := s.resolveRequest(ctx, "/cache/processed/result.webp")
+		require.True(t, ok)
+		assert.Equal(t, "bucket-b", bucket)
+		assert.Equal(t, "processed/result.webp", key)
+	})
+
+	t.Run("fails when source path in context is invalid", func(t *testing.T) {
+		ctx := imagor.ContextWithSourceImageKey(context.Background(), "invalid-source")
+		_, _, ok := s.resolveRequest(ctx, "/cache/processed/result.webp")
+		assert.False(t, ok)
+	})
+
+	t.Run("fails when result key does not match path prefix", func(t *testing.T) {
+		ctx := imagor.ContextWithSourceImageKey(context.Background(), "/bucket-b/cache/source/image.jpg")
+		_, _, ok := s.resolveRequest(ctx, "/other/processed/result.webp")
+		assert.False(t, ok)
+	})
+}
+
 func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
 	// Test that gzip-compressed objects don't cause fanout buffer size issues
 

@@ -59,6 +59,21 @@ func (s *GCloudStorage) resolve(image string) (bucket, key string, ok bool) {
 	return s.Bucket, key, ok
 }
 
+func (s *GCloudStorage) resolveRequest(ctx context.Context, image string) (bucket, key string, ok bool) {
+	if source := imagor.SourceImageKeyFromContext(ctx); source != "" {
+		bucket, _, ok = s.resolve(source)
+		if !ok {
+			return "", "", false
+		}
+		key, ok = s.Path(image)
+		if !ok {
+			return "", "", false
+		}
+		return bucket, key, true
+	}
+	return s.resolve(image)
+}
+
 // pathFromNormalized computes the storage key from an already-slash-prefixed path,
 // applying PathPrefix and BaseDir transformations.
 func (s *GCloudStorage) pathFromNormalized(image string) (string, bool) {
@@ -73,7 +88,7 @@ func (s *GCloudStorage) pathFromNormalized(image string) (string, bool) {
 // Get implements imagor.Storage interface
 func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Blob, err error) {
 	ctx := r.Context()
-	bucket, image, ok := s.resolve(image)
+	bucket, image, ok := s.resolveRequest(ctx, image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}
@@ -86,7 +101,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 		return nil, err
 	}
 	if s.Expiration > 0 {
-		if attrs != nil && time.Now().Sub(attrs.Updated) > s.Expiration {
+		if attrs != nil && time.Since(attrs.Updated) > s.Expiration {
 			return nil, imagor.ErrExpired
 		}
 	}
@@ -123,7 +138,7 @@ func (s *GCloudStorage) Get(r *http.Request, image string) (imageData *imagor.Bl
 
 // Put implements imagor.Storage interface
 func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob) (err error) {
-	bucket, image, ok := s.resolve(image)
+	bucket, image, ok := s.resolveRequest(ctx, image)
 	if !ok {
 		return imagor.ErrInvalid
 	}
@@ -149,7 +164,7 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 
 // Delete implements imagor.Storage interface
 func (s *GCloudStorage) Delete(ctx context.Context, image string) error {
-	bucket, image, ok := s.resolve(image)
+	bucket, image, ok := s.resolveRequest(ctx, image)
 	if !ok {
 		return imagor.ErrInvalid
 	}
@@ -170,7 +185,7 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 
 // Stat implements imagor.Storage interface
 func (s *GCloudStorage) Stat(ctx context.Context, image string) (stat *imagor.Stat, err error) {
-	bucket, image, ok := s.resolve(image)
+	bucket, image, ok := s.resolveRequest(ctx, image)
 	if !ok {
 		return nil, imagor.ErrInvalid
 	}

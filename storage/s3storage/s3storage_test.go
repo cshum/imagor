@@ -563,6 +563,85 @@ func TestWildcardBucket_CRUD(t *testing.T) {
 	assert.Equal(t, imagor.ErrNotFound, err)
 }
 
+func TestWildcardBucket_ResultCRUDUsesSourceBucket(t *testing.T) {
+	ts := fakeS3Server()
+	defer ts.Close()
+
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+
+	cfg := fakeS3Config(ts, "bucket-a")
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(ts.URL)
+		o.UsePathStyle = true
+	})
+	_, err := client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String("bucket-b")})
+	require.NoError(t, err)
+
+	s := New(cfg, "*", WithEndpoint(ts.URL), WithForcePathStyle(true))
+	resultKey := "/1600x0/filters:format(webp)/bucket-b/images/photo.jpg"
+	sourceKey := "/bucket-b/images/photo.jpg"
+	ctx = imagor.ContextWithSourceImageKey(ctx, sourceKey)
+	r = r.WithContext(ctx)
+	bucket, storedKey, ok := s.resolveRequest(ctx, resultKey)
+	require.True(t, ok)
+	assert.Equal(t, "bucket-b", bucket)
+
+	require.NoError(t, s.Put(ctx, resultKey, imagor.NewBlobFromBytes([]byte("result-b"))))
+
+	b, err := s.Get(r, resultKey)
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "result-b", string(buf))
+
+	stat, err := client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(storedKey),
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, stat)
+
+	require.NoError(t, s.Delete(ctx, resultKey))
+	_, err = client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(storedKey),
+	})
+	require.Error(t, err)
+}
+
+func TestWildcardBucket_ResolveRequest(t *testing.T) {
+	cfg := aws.Config{Region: "us-east-1"}
+	s := New(cfg, "*", WithPathPrefix("/cache"))
+
+	t.Run("falls back to image path without source context", func(t *testing.T) {
+		bucket, key, ok := s.resolveRequest(context.Background(), "/bucket-a/cache/result.webp")
+		require.True(t, ok)
+		assert.Equal(t, "bucket-a", bucket)
+		assert.Equal(t, "result.webp", key)
+	})
+
+	t.Run("uses source path from context", func(t *testing.T) {
+		ctx := imagor.ContextWithSourceImageKey(context.Background(), "/bucket-b/cache/source/image.jpg")
+		bucket, key, ok := s.resolveRequest(ctx, "/cache/processed/result.webp")
+		require.True(t, ok)
+		assert.Equal(t, "bucket-b", bucket)
+		assert.Equal(t, "processed/result.webp", key)
+	})
+
+	t.Run("fails when source path in context is invalid", func(t *testing.T) {
+		ctx := imagor.ContextWithSourceImageKey(context.Background(), "invalid-source")
+		_, _, ok := s.resolveRequest(ctx, "/cache/processed/result.webp")
+		assert.False(t, ok)
+	})
+
+	t.Run("fails when result key does not match path prefix", func(t *testing.T) {
+		ctx := imagor.ContextWithSourceImageKey(context.Background(), "/bucket-b/cache/source/image.jpg")
+		_, _, ok := s.resolveRequest(ctx, "/other/processed/result.webp")
+		assert.False(t, ok)
+	})
+}
+
 func TestLocalstackCompatibility(t *testing.T) {
 	cfg := aws.Config{
 		Region: "us-east-1",
