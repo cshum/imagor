@@ -96,7 +96,9 @@ GCLOUD_STORAGE_BUCKET=*         # enable GCS storage with dynamic bucket from pa
 GCLOUD_RESULT_STORAGE_BUCKET=*  # enable GCS result storage with dynamic bucket from path
 ```
 
-A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment is always used as the bucket name and the remainder as the object key.
+A request for `/mysite-test/images/photo.jpg` will load `images/photo.jpg` from the `mysite-test` GCS bucket. The first path segment of the source image path is used as the bucket name and the remainder as the object key.
+
+For result storage, when a request includes transforms such as `unsafe/1600x0/.../mysite-test/images/photo.jpg`, imagor still derives the wildcard bucket from the original source image path (`mysite-test/images/photo.jpg`) while storing the processed result under the transformed result key.
 
 ## Docker Compose Example
 

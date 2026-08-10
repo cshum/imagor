@@ -13,6 +13,7 @@ type contextKey struct {
 
 var imagorContextKey = contextKey{1}
 var detachContextKey = contextKey{2}
+var sourceImageKeyContextKey = contextKey{3}
 
 type imagorContextRef struct {
 	funcs []func()
@@ -95,4 +96,22 @@ func detachContext(ctx context.Context) context.Context {
 func isDetached(ctx context.Context) bool {
 	_, ok := ctx.Value(detachContextKey).(bool)
 	return ok
+}
+
+// ContextWithSourceImageKey annotates a context with the original image key used
+// for wildcard bucket resolution.
+func ContextWithSourceImageKey(ctx context.Context, key string) context.Context {
+	if key == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, sourceImageKeyContextKey, key)
+}
+
+// SourceImageKeyFromContext returns the original image key used for wildcard
+// bucket resolution.
+func SourceImageKeyFromContext(ctx context.Context) string {
+	if key, ok := ctx.Value(sourceImageKeyContextKey).(string); ok {
+		return key
+	}
+	return ""
 }

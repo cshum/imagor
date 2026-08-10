@@ -408,6 +408,37 @@ func TestWildcardBucket_CRUD(t *testing.T) {
 	assert.Equal(t, imagor.ErrNotFound, err)
 }
 
+func TestWildcardBucket_ResultCRUDUsesSourceBucket(t *testing.T) {
+	_, client := fakeGCSServer(t, "bucket-a", "bucket-b")
+
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+	s := New(client, "*")
+	resultKey := "/1600x0/filters:format(webp)/bucket-b/images/photo.jpg"
+	sourceKey := "/bucket-b/images/photo.jpg"
+	ctx = imagor.ContextWithSourceImageKey(ctx, sourceKey)
+	r = r.WithContext(ctx)
+	bucket, storedKey, ok := s.resolveRequest(ctx, resultKey)
+	require.True(t, ok)
+	assert.Equal(t, "bucket-b", bucket)
+
+	require.NoError(t, s.Put(ctx, resultKey, imagor.NewBlobFromBytes([]byte("result-b"))))
+
+	b, err := s.Get(r, resultKey)
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "result-b", string(buf))
+
+	attrs, err := client.Bucket(bucket).Object(storedKey).Attrs(ctx)
+	require.NoError(t, err)
+	assert.NotNil(t, attrs)
+
+	require.NoError(t, s.Delete(ctx, resultKey))
+	_, err = client.Bucket(bucket).Object(storedKey).Attrs(ctx)
+	require.Error(t, err)
+}
+
 func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
 	// Test that gzip-compressed objects don't cause fanout buffer size issues
 
