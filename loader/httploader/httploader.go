@@ -297,6 +297,43 @@ func (h *HTTPLoader) checkRedirect(r *http.Request, via []*http.Request) error {
 // ErrUnauthorizedRequest unauthorized request error
 var ErrUnauthorizedRequest = errors.New("unauthorized request")
 
+func dialTargetIPs(addr net.IP) []net.IP {
+	if addr == nil {
+		return nil
+	}
+
+	targets := []net.IP{addr}
+	v4InV6 := extractEmbeddedIPv4(addr)
+	if v4InV6 != nil && !v4InV6.Equal(addr) {
+		targets = append(targets, v4InV6)
+	}
+
+	return targets
+}
+
+func extractEmbeddedIPv4(addr net.IP) net.IP {
+	v6 := addr.To16()
+	if v6 == nil || addr.To4() != nil {
+		return nil
+	}
+
+	if v6[0] == 0x00 && v6[1] == 0x64 && v6[2] == 0xff && v6[3] == 0x9b &&
+		v6[4] == 0x00 && v6[5] == 0x00 && v6[6] == 0x00 && v6[7] == 0x00 &&
+		v6[8] == 0x00 && v6[9] == 0x00 && v6[10] == 0x00 && v6[11] == 0x00 {
+		return net.IPv4(v6[12], v6[13], v6[14], v6[15])
+	}
+
+	if v6[0] == 0x20 && v6[1] == 0x02 {
+		return net.IPv4(v6[2], v6[3], v6[4], v6[5])
+	}
+
+	if v6[0] == 0x20 && v6[1] == 0x01 && v6[2] == 0x00 && v6[3] == 0x00 {
+		return net.IPv4(v6[12]^0xff, v6[13]^0xff, v6[14]^0xff, v6[15]^0xff)
+	}
+
+	return nil
+}
+
 // DialControl implements a net.Dialer.Control function which is automatically used with the default http.Transport.
 // If the transport is replaced using the WithTransport option it is up to that
 // transport if the control function is used or not.
@@ -306,18 +343,20 @@ func (h *HTTPLoader) DialControl(network string, address string, conn syscall.Ra
 		return err
 	}
 	addr := net.ParseIP(host)
-	if h.BlockLoopbackNetworks && addr.IsLoopback() {
-		return ErrUnauthorizedRequest
-	}
-	if h.BlockLinkLocalNetworks && (addr.IsLinkLocalUnicast() || addr.IsLinkLocalMulticast()) {
-		return ErrUnauthorizedRequest
-	}
-	if h.BlockPrivateNetworks && addr.IsPrivate() {
-		return ErrUnauthorizedRequest
-	}
-	for _, network := range h.BlockNetworks {
-		if network.Contains(addr) {
+	for _, target := range dialTargetIPs(addr) {
+		if h.BlockLoopbackNetworks && target.IsLoopback() {
 			return ErrUnauthorizedRequest
+		}
+		if h.BlockLinkLocalNetworks && (target.IsLinkLocalUnicast() || target.IsLinkLocalMulticast()) {
+			return ErrUnauthorizedRequest
+		}
+		if h.BlockPrivateNetworks && target.IsPrivate() {
+			return ErrUnauthorizedRequest
+		}
+		for _, network := range h.BlockNetworks {
+			if network.Contains(target) {
+				return ErrUnauthorizedRequest
+			}
 		}
 	}
 	return nil
