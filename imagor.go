@@ -330,7 +330,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 		// exclude utility filters from result path
 		switch f.Name {
-		case "expire", "attachment":
+		case "expire", "attachment", "max_age":
 			isPathChanged = true
 		default:
 			p.Filters = append(p.Filters, f)
@@ -990,17 +990,36 @@ func checkStatNotModified(w http.ResponseWriter, r *http.Request, stat *Stat) bo
 }
 
 func getTtl(p imagorpath.Params, defaultTtl time.Duration) time.Duration {
+	var ttl = defaultTtl
+	var expireTtl time.Duration
+	var hasExpire bool
 	for _, f := range p.Filters {
-		if f.Name == "expire" {
+		switch f.Name {
+		case "max_age":
+			// max_age(seconds) overrides the configured ttl, without cap.
+			// Negative or non numeric values are ignored, as in thumbor
+			if secs, e := strconv.ParseInt(f.Args, 10, 64); e == nil && secs >= 0 {
+				ttl = time.Duration(secs) * time.Second
+			}
+		case "expire":
+			// expire(timestamp) is unix milliseconds, rounded up to the next second
 			if ts, e := strconv.ParseInt(f.Args, 10, 64); e == nil {
-				ttl := (time.UnixMilli(ts).Sub(time.Now()) + time.Second - 1).Truncate(time.Second)
-				if ttl <= defaultTtl {
-					return ttl
+				expTtl := (time.UnixMilli(ts).Sub(time.Now()) + time.Second - 1).Truncate(time.Second)
+				if !hasExpire || expTtl < expireTtl {
+					expireTtl = expTtl
+					hasExpire = true
 				}
 			}
 		}
 	}
-	return defaultTtl
+	// both filters set the response ttl in duration space, most restrictive wins
+	if hasExpire && expireTtl < ttl {
+		ttl = expireTtl
+	}
+	if ttl < 0 {
+		ttl = 0
+	}
+	return ttl
 }
 
 func setCacheHeaders(w http.ResponseWriter, r *http.Request, ttl, swr time.Duration) {

@@ -616,6 +616,87 @@ func TestExpire(t *testing.T) {
 	assert.Equal(t, 410, w.Code)
 }
 
+func TestMaxAge(t *testing.T) {
+	loader := loaderFunc(func(r *http.Request, image string) (blob *Blob, err error) {
+		return NewBlobFromBytes([]byte("ok")), nil
+	})
+	newApp := func() *Imagor {
+		return New(
+			WithLogger(zap.NewExample()),
+			WithCacheHeaderSWR(time.Second*169),
+			WithCacheHeaderTTL(time.Second*169),
+			WithLoaders(loader),
+			WithResultStorages(saverFunc(func(ctx context.Context, image string, blob *Blob) error {
+				assert.NotContains(t, image, "max_age")
+				return nil
+			})),
+			WithUnsafe(true))
+	}
+	do := func(t *testing.T, filters string) *httptest.ResponseRecorder {
+		t.Helper()
+		w := httptest.NewRecorder()
+		newApp().ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet,
+			fmt.Sprintf("https://example.com/unsafe/filters:%s/foo.jpg", filters), nil))
+		require.Equal(t, 200, w.Code)
+		return w
+	}
+
+	t.Run("shortens ttl below configured default", func(t *testing.T) {
+		w := do(t, "max_age(60):foo(bar)")
+		assert.Equal(t, "public, s-maxage=60, max-age=60, no-transform", w.Header().Get("Cache-Control"))
+	})
+	t.Run("raises ttl above configured default", func(t *testing.T) {
+		w := do(t, "max_age(300):foo(bar)")
+		assert.Equal(t,
+			"public, s-maxage=300, max-age=300, no-transform, stale-while-revalidate=169",
+			w.Header().Get("Cache-Control"))
+	})
+	t.Run("zero disables caching", func(t *testing.T) {
+		w := do(t, "max_age(0):foo(bar)")
+		assert.NotEmpty(t, w.Header().Get("Expires"))
+		assert.Equal(t, "private, no-cache, no-store, must-revalidate", w.Header().Get("Cache-Control"))
+	})
+	t.Run("negative value is ignored", func(t *testing.T) {
+		w := do(t, "max_age(-5):foo(bar)")
+		assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
+	})
+	t.Run("non numeric value is ignored", func(t *testing.T) {
+		w := do(t, "max_age(abc):foo(bar)")
+		assert.Equal(t, "public, s-maxage=169, max-age=169, no-transform", w.Header().Get("Cache-Control"))
+	})
+
+	// expire is a unix milliseconds timestamp, max_age is a duration in seconds.
+	// Both set the response ttl, the most restrictive one wins.
+	t.Run("expire shorter than max_age wins", func(t *testing.T) {
+		now := time.Now()
+		time.Sleep(time.Millisecond)
+		w := do(t, fmt.Sprintf("expire(%d):max_age(60)", now.Add(time.Second).UnixMilli()))
+		assert.Equal(t, "private, max-age=1, no-transform", w.Header().Get("Cache-Control"))
+	})
+	t.Run("max_age shorter than expire wins", func(t *testing.T) {
+		now := time.Now()
+		time.Sleep(time.Millisecond)
+		w := do(t, fmt.Sprintf("max_age(1):expire(%d)", now.Add(time.Second*170).UnixMilli()))
+		assert.Equal(t, "private, max-age=1, no-transform", w.Header().Get("Cache-Control"))
+	})
+	t.Run("shortest of repeated expire wins", func(t *testing.T) {
+		now := time.Now()
+		time.Sleep(time.Millisecond)
+		w := do(t, fmt.Sprintf("expire(%d):expire(%d)",
+			now.Add(time.Second).UnixMilli(), now.Add(time.Second*2).UnixMilli()))
+		assert.Equal(t, "private, max-age=1, no-transform", w.Header().Get("Cache-Control"))
+	})
+	t.Run("expire caps max_age above configured default", func(t *testing.T) {
+		now := time.Now()
+		time.Sleep(time.Millisecond)
+		w := do(t, fmt.Sprintf("max_age(300):expire(%d)", now.Add(time.Second*170).UnixMilli()))
+		assert.Equal(t,
+			"private, max-age=170, no-transform, stale-while-revalidate=169",
+			w.Header().Get("Cache-Control"))
+	})
+}
+
 func TestVersion(t *testing.T) {
 	app := New(
 		WithDebug(true),

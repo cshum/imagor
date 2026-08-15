@@ -508,6 +508,20 @@ Adds expiration time to the content. `timestamp` is the unix milliseconds timest
 
 ---
 
+### `max_age(seconds)`
+
+Overrides the HTTP `Cache-Control` max-age of the response, in seconds. `seconds` takes precedence over the configured `IMAGOR_CACHE_HEADER_TTL` and is not capped by it, so it can both shorten and extend the cache lifetime of a single response.
+
+`max_age(0)` marks the response as non-cacheable, equivalent to `IMAGOR_CACHE_HEADER_NO_CACHE`. Negative or non-numeric values are ignored and the configured TTL applies.
+
+When combined with [`expire(timestamp)`](#expiretimestamp), the most restrictive of the two wins — the response is never cached past the `expire` deadline, nor for longer than `max_age`.
+
+:::warning
+With `IMAGOR_UNSAFE` enabled, anyone can craft a URL with an arbitrarily large `max_age`. Use URL signatures in production.
+:::
+
+---
+
 ### `preview()`
 
 Skips the result storage even if result storage is enabled, and opts the request into the [in-memory cache](./in-memory-cache.md) when configured. Useful for preview contexts where the same source image is served at multiple transformations.
