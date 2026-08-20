@@ -88,6 +88,7 @@ func NewProcessor(options ...Option) *Processor {
 		"label":            label,
 		"text":             text,
 		"grayscale":        grayscale,
+		"invert":           invert,
 		"brightness":       brightness,
 		"background_color": backgroundColor,
 		"contrast":         contrast,

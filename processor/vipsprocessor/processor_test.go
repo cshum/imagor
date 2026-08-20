@@ -185,6 +185,31 @@ func TestProcessor(t *testing.T) {
 			})
 		}
 	})
+	t.Run("invert filter round-trip pixel-exact", func(t *testing.T) {
+		filterFn, ok := v.Filters["invert"]
+		require.True(t, ok, "invert filter must be registered")
+
+		src, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
+		require.NoError(t, err)
+		defer src.Close()
+
+		out, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
+		require.NoError(t, err)
+		defer out.Close()
+
+		require.NoError(t, filterFn(context.Background(), out, nil))
+		require.NoError(t, filterFn(context.Background(), out, nil))
+
+		require.Equal(t, src.Width(), out.Width(), "width must match")
+		require.Equal(t, src.Height(), out.Height(), "height must match")
+		require.Equal(t, src.Bands(), out.Bands(), "band count must match")
+
+		require.NoError(t, out.Subtract(src))
+		require.NoError(t, out.Abs())
+		maxDiff, err := out.Max(nil)
+		require.NoError(t, err)
+		require.Equal(t, 0.0, maxDiff, "double invert must restore original pixels")
+	})
 	t.Run("meta", func(t *testing.T) {
 		var resultDir = filepath.Join(testDataDir, "golden")
 		doGoldenTests(t, resultDir, []test{

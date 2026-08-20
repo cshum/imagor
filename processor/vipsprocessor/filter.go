@@ -150,6 +150,10 @@ func grayscale(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...strin
 	return img.Colourspace(vips.InterpretationBW, nil)
 }
 
+func invert(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (err error) {
+	return linearRGB(img, []float64{-1, -1, -1}, []float64{255, 255, 255})
+}
+
 func brightness(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
