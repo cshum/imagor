@@ -218,6 +218,12 @@ Composites a processed image onto the current image with full imagor transformat
 
 ---
 
+### `invert()`
+
+Inverts the RGB channels of the image while preserving alpha.
+
+---
+
 ### `lossless()`
 
 Enables lossless pixel-exact encoding for formats that support it: `webp`, `jxl`, `avif`, `heif`, `jp2`. No-op for `jpeg` (lossy only) and `png` (already lossless). When set, the `max_bytes` quality-degrade retry is skipped, since lossless output cannot be reduced by lowering quality.
@@ -463,12 +469,6 @@ Enables upscaling for `fit-in` and `adaptive-fit-in` modes.
 
 Adds a watermark to the image. It can be positioned inside the image with the alpha channel specified and optionally resized based on the image size by specifying the ratio.
 
-
-### `invert()`
-
-Inverts the RGB channels of the image while preserving alpha.
-
----
 - `image` — watermark image URI, using the same image loader configured for imagor.
   Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
 - `x` — horizontal position:
