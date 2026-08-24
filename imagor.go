@@ -345,6 +345,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		return blob, err
 	}
 	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+		var blob *Blob
+		var err error
 		if resultKey != "" && !isRaw {
 			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 				return blob, nil
@@ -385,10 +387,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			if app.StoragePathStyle != nil {
 				storageKey = app.StoragePathStyle.Hash(p.Image)
 			}
-			go func(blob *Blob) {
+			go func(ctx context.Context, blob *Blob) {
 				app.save(ctx, app.Storages, storageKey, blob)
 				close(doneSave)
-			}(blob)
+			}(ctx, blob)
 		}
 		if isBlobEmpty(blob) {
 			return blob, err

@@ -6,6 +6,7 @@ vendor/
 bin/
 tmp/
 .vscode/
+node_modules/
 .env
 bin/imagor
 profile.cov
