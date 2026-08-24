@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cshum/imagor/imagorpath"
@@ -753,18 +754,18 @@ func (app *Imagor) suppress(
 	cb := func(blob *Blob, err error) {
 		chanCb <- singleflight.Result{Val: blob, Err: err}
 	}
-	isCanceled := false
+	var isCanceled atomic.Bool
 	ch := app.g.DoChan(key, func() (v interface{}, err error) {
 		v, err = fn(context.WithValue(ctx, suppressKey{key}, true), cb)
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
-			isCanceled = true
+			isCanceled.Store(true)
 		}
 		return v, err
 	})
 	select {
 	case res := <-ch:
-		if !isCanceled && errors.Is(res.Err, context.Canceled) {
+		if !isCanceled.Load() && errors.Is(res.Err, context.Canceled) {
 			// resolve canceled
 			return app.suppress(ctx, key, fn)
 		}

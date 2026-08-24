@@ -54,7 +54,7 @@ func TestWithUnsafe(t *testing.T) {
 
 func TestWithEnablePostRequests(t *testing.T) {
 	logger := zap.NewExample()
-	
+
 	t.Run("POST requests disabled by default", func(t *testing.T) {
 		app := New(WithOptions(
 			WithUnsafe(true),
@@ -698,15 +698,23 @@ func newMapStore() *mapStore {
 }
 
 func (s *mapStore) Get(r *http.Request, image string) (*Blob, error) {
-	s.l.RLock()
-	defer s.l.RUnlock()
+	s.l.Lock()
+	defer s.l.Unlock()
 	buf, ok := s.Map[image]
 	if !ok {
 		return nil, ErrNotFound
 	}
-	buf.Stat, _ = s.Stat(r.Context(), image)
 	s.LoadCnt[image] = s.LoadCnt[image] + 1
-	return buf, nil
+	blob := *buf
+	if t, ok := s.ModTime[image]; ok {
+		blob.Stat = &Stat{
+			ModifiedTime: t,
+			Size:         buf.Size(),
+		}
+	} else {
+		blob.Stat = nil
+	}
+	return &blob, nil
 }
 
 func (s *mapStore) Put(ctx context.Context, image string, blob *Blob) error {
@@ -742,6 +750,54 @@ func (s *mapStore) Stat(ctx context.Context, image string) (*Stat, error) {
 		ModifiedTime: t,
 		Size:         b.Size(),
 	}, nil
+}
+
+func (s *mapStore) loadCount(image string) int {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.LoadCnt[image]
+}
+
+func (s *mapStore) saveCount(image string) int {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.SaveCnt[image]
+}
+
+func (s *mapStore) delCount(image string) int {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.DelCnt[image]
+}
+
+func (s *mapStore) loadCountLen() int {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return len(s.LoadCnt)
+}
+
+func (s *mapStore) saveCountLen() int {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return len(s.SaveCnt)
+}
+
+func (s *mapStore) delCountLen() int {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return len(s.DelCnt)
+}
+
+func (s *mapStore) getBlob(image string) *Blob {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.Map[image]
+}
+
+func (s *mapStore) setModTime(image string, t time.Time) {
+	s.l.Lock()
+	defer s.l.Unlock()
+	s.ModTime[image] = t
 }
 
 func TestWithLoadersStoragesProcessors(t *testing.T) {
@@ -873,8 +929,9 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			assert.Equal(t, 200, w.Code)
 			assert.Equal(t, "pong", w.Body.String())
 			time.Sleep(time.Millisecond * 10) // make sure storage reached
-			require.NotNil(t, store.Map["ping"])
-			buf, err := store.Map["ping"].ReadAll()
+			blob := store.getBlob("ping")
+			require.NotNil(t, blob)
+			buf, err := blob.ReadAll()
 			require.NoError(t, err)
 			assert.Equal(t, "pong", string(buf))
 		})
@@ -893,7 +950,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 404, w.Code)
 			assert.Equal(t, jsonStr(ErrNotFound), w.Body.String())
-			assert.Nil(t, store.Map["empty"])
+			assert.Nil(t, store.getBlob("empty"))
 		})
 		t.Run(fmt.Sprintf("not found on pass %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -910,7 +967,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 500, w.Code)
 			assert.Equal(t, jsonStr(NewError("unexpected error", 500)), w.Body.String())
-			assert.Nil(t, store.Map["boom"])
+			assert.Nil(t, store.getBlob("boom"))
 		})
 		t.Run(fmt.Sprintf("error with value %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -919,7 +976,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, 500, w.Code)
 			assert.Equal(t, jsonStr(NewError("error with value", 500)), w.Body.String())
-			assert.Nil(t, store.Map["dood"])
+			assert.Nil(t, store.getBlob("dood"))
 		})
 		t.Run(fmt.Sprintf("processor error return original %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -928,7 +985,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, ErrUnsupportedFormat.Code, w.Code)
 			assert.Equal(t, jsonStr(ErrUnsupportedFormat), w.Body.String())
-			assert.Nil(t, store.Map["poop"])
+			assert.Nil(t, store.getBlob("poop"))
 		})
 		t.Run(fmt.Sprintf("processor error return last error %d", i), func(t *testing.T) {
 			w := httptest.NewRecorder()
@@ -937,7 +994,7 @@ func TestWithLoadersStoragesProcessors(t *testing.T) {
 			time.Sleep(time.Millisecond * 10)
 			assert.Equal(t, ErrInternal.Code, w.Code)
 			assert.Equal(t, jsonStr(ErrInternal), w.Body.String())
-			assert.Nil(t, store.Map["bond"])
+			assert.Nil(t, store.getBlob("bond"))
 		})
 	}
 }
@@ -1068,12 +1125,12 @@ func TestWithResultStorageHasher(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 
-	assert.Equal(t, 0, store.LoadCnt["foo"])
-	assert.Equal(t, 1, store.SaveCnt["foo"])
-	assert.Equal(t, 1, resultStore.LoadCnt["prefix:foo"])
-	assert.Equal(t, 1, resultStore.SaveCnt["prefix:foo"])
-	assert.Equal(t, 1, len(resultStore.LoadCnt))
-	assert.Equal(t, 1, len(resultStore.SaveCnt))
+	assert.Equal(t, 0, store.loadCount("foo"))
+	assert.Equal(t, 1, store.saveCount("foo"))
+	assert.Equal(t, 1, resultStore.loadCount("prefix:foo"))
+	assert.Equal(t, 1, resultStore.saveCount("prefix:foo"))
+	assert.Equal(t, 1, resultStore.loadCountLen())
+	assert.Equal(t, 1, resultStore.saveCountLen())
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -1089,10 +1146,10 @@ func TestWithResultStorageHasher(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "bar", w.Body.String())
 
-	assert.Equal(t, 1, store.LoadCnt["bar"])
-	assert.Equal(t, 1, store.SaveCnt["bar"])
-	assert.Equal(t, 1, len(resultStore.LoadCnt))
-	assert.Equal(t, 1, len(resultStore.SaveCnt))
+	assert.Equal(t, 1, store.loadCount("bar"))
+	assert.Equal(t, 1, store.saveCount("bar"))
+	assert.Equal(t, 1, resultStore.loadCountLen())
+	assert.Equal(t, 1, resultStore.saveCountLen())
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -1108,10 +1165,10 @@ func TestWithResultStorageHasher(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "hi", w.Body.String())
 
-	assert.Equal(t, 1, store.LoadCnt["hi"])
-	assert.Equal(t, 1, store.SaveCnt["hi"])
-	assert.Equal(t, 1, len(resultStore.LoadCnt))
-	assert.Equal(t, 1, len(resultStore.SaveCnt))
+	assert.Equal(t, 1, store.loadCount("hi"))
+	assert.Equal(t, 1, store.saveCount("hi"))
+	assert.Equal(t, 1, resultStore.loadCountLen())
+	assert.Equal(t, 1, resultStore.saveCountLen())
 }
 
 func TestWithStorageHasher(t *testing.T) {
@@ -1153,8 +1210,8 @@ func TestWithStorageHasher(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
 
-	assert.Equal(t, 1, store.LoadCnt["storage:foo"])
-	assert.Equal(t, 1, store.SaveCnt["storage:foo"])
+	assert.Equal(t, 1, store.loadCount("storage:foo"))
+	assert.Equal(t, 1, store.saveCount("storage:foo"))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -1177,14 +1234,14 @@ func TestWithStorageHasher(t *testing.T) {
 	assert.Equal(t, 500, w.Code)
 	assert.Equal(t, jsonStr(ErrInternal), w.Body.String())
 
-	assert.Equal(t, 0, store.LoadCnt["storage:bar"])
-	assert.Equal(t, 0, store.SaveCnt["storage:bar"])
-	assert.Equal(t, 1, len(store.LoadCnt))
-	assert.Equal(t, 2, len(store.SaveCnt))
-	assert.Equal(t, 1, len(store.DelCnt))
+	assert.Equal(t, 0, store.loadCount("storage:bar"))
+	assert.Equal(t, 0, store.saveCount("storage:bar"))
+	assert.Equal(t, 1, store.loadCountLen())
+	assert.Equal(t, 2, store.saveCountLen())
+	assert.Equal(t, 1, store.delCountLen())
 	assert.Equal(t, 1, loadCnt["foo"], 1)
 	assert.Equal(t, 2, loadCnt["bar"], 2)
-	assert.Equal(t, 1, store.DelCnt["storage:err"])
+	assert.Equal(t, 1, store.delCount("storage:err"))
 }
 
 func TestClientCancel(t *testing.T) {
@@ -1295,10 +1352,10 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
-	assert.Equal(t, 0, store.LoadCnt["foo"])
-	assert.Equal(t, 1, store.SaveCnt["foo"])
-	assert.Equal(t, 0, resultStore.LoadCnt["foo"])
-	assert.Equal(t, 1, resultStore.SaveCnt["foo"])
+	assert.Equal(t, 0, store.loadCount("foo"))
+	assert.Equal(t, 1, store.saveCount("foo"))
+	assert.Equal(t, 0, resultStore.loadCount("foo"))
+	assert.Equal(t, 1, resultStore.saveCount("foo"))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
@@ -1306,23 +1363,23 @@ func TestWithModifiedTimeCheck(t *testing.T) {
 	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
-	assert.Equal(t, 0, store.LoadCnt["foo"])
-	assert.Equal(t, 1, store.SaveCnt["foo"])
-	assert.Equal(t, 1, resultStore.LoadCnt["foo"])
-	assert.Equal(t, 1, resultStore.SaveCnt["foo"])
+	assert.Equal(t, 0, store.loadCount("foo"))
+	assert.Equal(t, 1, store.saveCount("foo"))
+	assert.Equal(t, 1, resultStore.loadCount("foo"))
+	assert.Equal(t, 1, resultStore.saveCount("foo"))
 
 	clock = clock.Add(1)
-	store.ModTime["foo"] = clock
+	store.setModTime("foo", clock)
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/foo", nil))
 	time.Sleep(time.Millisecond * 10) // make sure storage reached
 	assert.Equal(t, 200, w.Code)
-	assert.Equal(t, 1, store.LoadCnt["foo"])
-	assert.Equal(t, 1, store.SaveCnt["foo"])
-	assert.Equal(t, 2, resultStore.LoadCnt["foo"])
-	assert.Equal(t, 2, resultStore.SaveCnt["foo"])
+	assert.Equal(t, 1, store.loadCount("foo"))
+	assert.Equal(t, 1, store.saveCount("foo"))
+	assert.Equal(t, 2, resultStore.loadCount("foo"))
+	assert.Equal(t, 2, resultStore.saveCount("foo"))
 }
 
 func TestWithSameStore(t *testing.T) {
@@ -1353,8 +1410,8 @@ func TestWithSameStore(t *testing.T) {
 			assert.Equal(t, "boop", w.Body.String())
 			time.Sleep(time.Millisecond * 10) // make sure storage reached
 		}
-		assert.Equal(t, n-1, store.LoadCnt["beep"])
-		assert.Equal(t, 1, store.SaveCnt["beep"])
+		assert.Equal(t, n-1, store.loadCount("beep"))
+		assert.Equal(t, 1, store.saveCount("beep"))
 	})
 }
 
@@ -1886,7 +1943,7 @@ func (l *loaderWithStat) Stat(ctx context.Context, key string) (*Stat, error) {
 	l.mu.Lock()
 	l.statCalls++
 	l.mu.Unlock()
-	
+
 	if l.statErr != nil {
 		return nil, l.statErr
 	}
@@ -1910,11 +1967,11 @@ func (l *loaderWithStat) GetStatCalls() int {
 func TestWithModifiedTimeCheckLoader(t *testing.T) {
 	resultStore := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader with data
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.modTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat), // No storages configured - should use loader stat
@@ -1929,14 +1986,14 @@ func TestWithModifiedTimeCheckLoader(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Second request - should call loader stat for comparison
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, httptest.NewRequest(
 		http.MethodGet, "https://example.com/unsafe/test-image", nil))
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
-	
+
 	// Verify that loader stat was called (key test for the new functionality)
 	assert.Greater(t, loaderStat.GetStatCalls(), 0, "Loader Stat method should have been called")
 }
@@ -1945,15 +2002,15 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
 	loaderStat := newLoaderWithStat()
-	
+
 	// Set up loader to fail stat operation
 	loaderStat.data["test-image"] = NewBlobFromBytes([]byte("test content"))
 	loaderStat.statErr = errors.New("stat failed")
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(loaderStat),
@@ -1970,13 +2027,13 @@ func TestWithModifiedTimeCheckLoaderStatFallback(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "test content", w.Body.String())
-	assert.Equal(t, 1, resultStore.SaveCnt["test-image"])
+	assert.Equal(t, 1, resultStore.saveCount("test-image"))
 }
 
 func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 	resultStore := newMapStore()
 	store := newMapStore()
-	
+
 	// Regular loader without Stater interface
 	regularLoader := loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 		if image == "test-image" {
@@ -1984,11 +2041,11 @@ func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 		}
 		return nil, ErrNotFound
 	})
-	
+
 	// Set up storage with stat capability
 	store.Map["test-image"] = NewBlobFromBytes([]byte("test content"))
 	store.ModTime["test-image"] = time.Now()
-	
+
 	app := New(
 		WithDebug(true), WithLogger(zap.NewExample()),
 		WithLoaders(regularLoader), // Loader without Stater
@@ -2005,7 +2062,7 @@ func TestWithModifiedTimeCheckLoaderNoStater(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "test content", w.Body.String())
-	assert.Equal(t, 1, resultStore.SaveCnt["test-image"])
+	assert.Equal(t, 1, resultStore.saveCount("test-image"))
 }
 
 type processorFunc func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error)
