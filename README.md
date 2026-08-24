@@ -13,7 +13,7 @@ imagor uses one of the most efficient image processing libraries,
 imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-streaming-for-libvips.html) to facilitate parallel processing pipelines and achieve high network throughput.
 [Benchmarks](https://docs.imagor.net/benchmarks) show imagor is one of the fastest image processing servers.
 
-imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the [thumbor](https://thumbor.readthedocs.io/en/latest/usage.html#image-endpoint) URL syntax representing a high-performance drop-in replacement.
+imagor features a ton of image processing use cases, available as a HTTP server with first-class Docker support. It adopts the thumbor URL syntax representing a high-performance drop-in replacement.
 
 imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
