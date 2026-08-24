@@ -3,6 +3,7 @@ package fanoutreader
 import (
 	"io"
 	"sync"
+	"sync/atomic"
 )
 
 // Fanout allows fanout arbitrary number of reader streams concurrently
@@ -27,7 +28,7 @@ type reader struct {
 	closeChannel chan struct{}
 	buf          []byte
 	current      int
-	readerClosed bool
+	readerClosed atomic.Bool
 }
 
 // New Fanout factory via single io.ReadCloser source with known size
@@ -52,7 +53,7 @@ func (f *Fanout) readAll() {
 
 		f.lock.Lock()
 		for _, r := range f.readers {
-			if !r.readerClosed {
+			if !r.readerClosed.Load() {
 				select {
 				case <-r.closeChannel:
 				default:
@@ -70,7 +71,7 @@ func (f *Fanout) readAll() {
 		if released {
 			break
 		}
-		
+
 		b := f.buf[f.current:]
 		n, e := f.source.Read(b)
 		if f.current+n > f.size {
@@ -82,13 +83,13 @@ func (f *Fanout) readAll() {
 		}
 		f.lock.Lock()
 		f.current += n
-		
+
 		// Check again after acquiring write lock in case Release was called
 		if f.released {
 			f.lock.Unlock()
 			break
 		}
-		
+
 		if e != nil {
 			if e == io.EOF {
 				e = nil
@@ -160,7 +161,7 @@ func (f *Fanout) NewReader() io.ReadCloser {
 // Read implements the io.Reader interface.
 func (r *reader) Read(p []byte) (n int, err error) {
 	r.fanout.do()
-	if r.readerClosed {
+	if r.readerClosed.Load() {
 		return 0, io.ErrClosedPipe
 	}
 	r.fanout.lock.RLock()
@@ -200,7 +201,7 @@ func (r *reader) close(closeReader bool) (e error) {
 	r.fanout.lock.RLock()
 	e = r.fanout.err
 	r.fanout.lock.RUnlock()
-	r.readerClosed = closeReader
+	r.readerClosed.Store(closeReader)
 
 	// Clear reader buffer to free memory immediately
 	if closeReader {
@@ -229,20 +230,20 @@ func (r *reader) Close() error {
 func (f *Fanout) Release() error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
-	
+
 	if f.released {
 		return nil // Already released, idempotent
 	}
-	
+
 	f.released = true
-	
+
 	// Truncate buffer to current position to free memory
 	if f.current < len(f.buf) {
 		f.buf = f.buf[:f.current]
 	}
-	
+
 	// Update size to current position so readers know where data ends
 	f.size = f.current
-	
+
 	return nil
 }
