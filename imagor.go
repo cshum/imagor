@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cshum/imagor/imagorpath"
@@ -401,6 +402,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		return blob, err
 	}
 	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+		var blob *Blob
+		var err error
 		if resultKey != "" && !isRaw {
 			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
 				return blob, nil
@@ -460,10 +463,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			if app.StoragePathStyle != nil {
 				storageKey = app.StoragePathStyle.Hash(p.Image)
 			}
-			go func(blob *Blob) {
+			go func(ctx context.Context, blob *Blob) {
 				app.saveWithErrorHandling(ctx, app.Storages, storageKey, blob)
 				close(doneSave)
-			}(blob)
+			}(ctx, blob)
 		}
 		if isBlobEmpty(blob) && !isColorImage(p.Image) {
 			return blob, err
@@ -858,18 +861,18 @@ func (app *Imagor) suppress(
 	cb := func(blob *Blob, err error) {
 		chanCb <- singleflight.Result{Val: blob, Err: err}
 	}
-	isCanceled := false
+	var isCanceled atomic.Bool
 	ch := app.g.DoChan(key, func() (v interface{}, err error) {
 		v, err = fn(context.WithValue(ctx, suppressKey{key}, true), cb)
 		if errors.Is(err, context.Canceled) {
 			app.g.Forget(key)
-			isCanceled = true
+			isCanceled.Store(true)
 		}
 		return v, err
 	})
 	select {
 	case res := <-ch:
-		if !isCanceled && errors.Is(res.Err, context.Canceled) {
+		if !isCanceled.Load() && errors.Is(res.Err, context.Canceled) {
 			// resolve canceled
 			return app.suppress(ctx, key, fn)
 		}

@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -23,8 +25,8 @@ import (
 )
 
 type testProcessor struct {
-	StartupCnt  int
-	ShutdownCnt int
+	StartupCnt  atomic.Int32
+	ShutdownCnt atomic.Int32
 }
 
 func (app *testProcessor) Process(ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc) (*imagor.Blob, error) {
@@ -32,18 +34,18 @@ func (app *testProcessor) Process(ctx context.Context, blob *imagor.Blob, p imag
 }
 
 func (app *testProcessor) Startup(ctx context.Context) error {
-	app.StartupCnt++
+	app.StartupCnt.Add(1)
 	return nil
 }
 
 func (app *testProcessor) Shutdown(ctx context.Context) error {
-	app.ShutdownCnt++
+	app.ShutdownCnt.Add(1)
 	return nil
 }
 
 type slowTestProcessor struct {
-	StartupCnt  int
-	ShutdownCnt int
+	StartupCnt  atomic.Int32
+	ShutdownCnt atomic.Int32
 }
 
 func (app *slowTestProcessor) Process(ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc) (*imagor.Blob, error) {
@@ -51,7 +53,7 @@ func (app *slowTestProcessor) Process(ctx context.Context, blob *imagor.Blob, p 
 }
 
 func (app *slowTestProcessor) Startup(ctx context.Context) error {
-	app.StartupCnt++
+	app.StartupCnt.Add(1)
 	select {
 	case <-time.After(100 * time.Millisecond):
 		return nil
@@ -61,7 +63,7 @@ func (app *slowTestProcessor) Startup(ctx context.Context) error {
 }
 
 func (app *slowTestProcessor) Shutdown(ctx context.Context) error {
-	app.ShutdownCnt++
+	app.ShutdownCnt.Add(1)
 	return nil
 }
 
@@ -118,12 +120,12 @@ func TestServer_Run(t *testing.T) {
 		WithLogger(zap.NewExample()))
 	go func() {
 		time.Sleep(time.Millisecond)
-		assert.Equal(t, 1, processor.StartupCnt)
-		assert.Equal(t, 0, processor.ShutdownCnt)
+		assert.EqualValues(t, 1, processor.StartupCnt.Load())
+		assert.EqualValues(t, 0, processor.ShutdownCnt.Load())
 		done()
 	}()
 	s.RunContext(ctx)
-	assert.Equal(t, 1, processor.ShutdownCnt)
+	assert.EqualValues(t, 1, processor.ShutdownCnt.Load())
 }
 
 func TestServer_RunSignal(t *testing.T) {
@@ -144,7 +146,7 @@ func TestServer_RunSignal(t *testing.T) {
 	}()
 
 	assert.Eventually(t, func() bool {
-		return processor.StartupCnt == 1
+		return processor.StartupCnt.Load() == 1
 	}, time.Second, 10*time.Millisecond)
 
 	require.NoError(t, syscall.Kill(os.Getpid(), syscall.SIGINT))
@@ -155,7 +157,7 @@ func TestServer_RunSignal(t *testing.T) {
 		t.Fatal("timed out waiting for Run to stop after signal")
 	}
 
-	assert.Equal(t, 1, processor.ShutdownCnt)
+	assert.EqualValues(t, 1, processor.ShutdownCnt.Load())
 }
 
 func TestServer(t *testing.T) {
@@ -212,8 +214,11 @@ func TestServer(t *testing.T) {
 func TestServerErrorLog(t *testing.T) {
 	expectLogged := []string{"panic", "server", "server"}
 	var logged []string
+	var loggedMu sync.Mutex
 	logger := zap.NewExample(zap.Hooks(func(entry zapcore.Entry) error {
+		loggedMu.Lock()
 		logged = append(logged, entry.Message)
+		loggedMu.Unlock()
 		return nil
 	}))
 	s := New(
@@ -238,8 +243,9 @@ func TestServerErrorLog(t *testing.T) {
 		WithCORS(true),
 	)
 
-	ts := httptest.NewServer(s.Handler)
+	ts := httptest.NewUnstartedServer(s.Handler)
 	ts.Config = &s.Server
+	ts.Start()
 	defer ts.Close()
 
 	w, err := http.Get(ts.URL + "/unsafe/bar.jpg?boom")
@@ -256,6 +262,13 @@ func TestServerErrorLog(t *testing.T) {
 	_, err = ts.Config.ErrorLog.Writer().Write([]byte("foobar"))
 	assert.NoError(t, err)
 
+	assert.Eventually(t, func() bool {
+		loggedMu.Lock()
+		defer loggedMu.Unlock()
+		return len(logged) == len(expectLogged)
+	}, time.Second, 10*time.Millisecond)
+	loggedMu.Lock()
+	defer loggedMu.Unlock()
 	assert.Equal(t, expectLogged, logged)
 }
 
@@ -368,7 +381,7 @@ func TestServerStartup(t *testing.T) {
 		ctx := context.Background()
 		s.startup(ctx)
 
-		assert.Equal(t, 1, processor.StartupCnt)
+		assert.EqualValues(t, 1, processor.StartupCnt.Load())
 	})
 }
 
@@ -381,7 +394,7 @@ func TestServerShutdown(t *testing.T) {
 		ctx := context.Background()
 		s.shutdown(ctx)
 
-		assert.Equal(t, 1, processor.ShutdownCnt)
+		assert.EqualValues(t, 1, processor.ShutdownCnt.Load())
 	})
 
 	t.Run("shutdown with metrics", func(t *testing.T) {
@@ -394,7 +407,7 @@ func TestServerShutdown(t *testing.T) {
 		ctx := context.Background()
 		s.shutdown(ctx)
 
-		assert.Equal(t, 1, processor.ShutdownCnt)
+		assert.EqualValues(t, 1, processor.ShutdownCnt.Load())
 		assert.Equal(t, 1, mockMetrics.ShutdownCnt)
 	})
 

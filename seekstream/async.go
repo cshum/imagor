@@ -35,7 +35,9 @@ func NewAsync(source io.ReadCloser, expected int64) *AsyncReadSeeker {
 }
 
 func (s *AsyncReadSeeker) fill() {
+	s.mu.Lock()
 	source := s.source
+	s.mu.Unlock()
 	if source == nil {
 		s.mu.Lock()
 		s.finished = true
