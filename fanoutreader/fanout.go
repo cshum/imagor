@@ -49,7 +49,13 @@ func (f *Fanout) do() {
 
 func (f *Fanout) readAll() {
 	defer func() {
-		_ = f.source.Close()
+		var src io.ReadCloser
+		f.lock.Lock()
+		src = f.source
+		f.lock.Unlock()
+		if src != nil {
+			_ = src.Close()
+		}
 
 		f.lock.Lock()
 		for _, r := range f.readers {
@@ -63,19 +69,29 @@ func (f *Fanout) readAll() {
 		}
 		f.lock.Unlock()
 	}()
-	for f.current < f.size {
-		// Check if release was called before reading more data
+	for {
 		f.lock.RLock()
+		current := f.current
+		size := f.size
 		released := f.released
+		buf := f.buf
+		source := f.source
 		f.lock.RUnlock()
+
+		if current >= size {
+			break
+		}
 		if released {
 			break
 		}
+		if source == nil {
+			break
+		}
 
-		b := f.buf[f.current:]
-		n, e := f.source.Read(b)
-		if f.current+n > f.size {
-			n = f.size - f.current
+		b := buf[current:]
+		n, e := source.Read(b)
+		if current+n > size {
+			n = size - current
 		}
 		var bn []byte
 		if n > 0 {
@@ -139,7 +155,8 @@ func (f *Fanout) readAll() {
 // NewReader spawns new io.ReadCloser
 func (f *Fanout) NewReader() io.ReadCloser {
 	r := &reader{}
-	// Calculate buffer size based on expected chunks, but cap it
+	f.lock.Lock()
+	// Calculate buffer size based on expected chunks, but cap it.
 	bufferSize := f.size/4096 + 1
 	if bufferSize > 32 {
 		bufferSize = 32
@@ -147,8 +164,6 @@ func (f *Fanout) NewReader() io.ReadCloser {
 	r.channel = make(chan []byte, bufferSize)
 	r.closeChannel = make(chan struct{})
 	r.fanout = f
-
-	f.lock.Lock()
 	if f.current > 0 {
 		// Give access to data that has been buffered so far
 		r.buf = f.buf[:f.current]
