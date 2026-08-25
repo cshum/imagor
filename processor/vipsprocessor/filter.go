@@ -174,17 +174,25 @@ func rotate(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...str
 		return
 	}
 	angle, _ := strconv.ParseFloat(args[0], 64)
-	if angle > 0 {
-		switch int(angle) {
-		case 90, 270:
-			setRotate90(ctx)
-		}
-		if int(angle)%90 != 0 {
-			setRotateArbitrary(ctx)
-		}
-		if err = rotateMultiPageImage(img, angle); err != nil {
-			return err
-		}
+	if angle == 0 {
+		return
+	}
+	// Normalize to 0-360 range so negative angles (anti-clockwise) and
+	// values exceeding 360 are handled correctly by both the orthogonal
+	// RotMultiPage path and the arbitrary-angle vips_rotate path.
+	angle = math.Mod(angle, 360)
+	if angle < 0 {
+		angle += 360
+	}
+	switch int(angle) {
+	case 90, 270:
+		setRotate90(ctx)
+	}
+	if int(angle)%90 != 0 {
+		setRotateArbitrary(ctx)
+	}
+	if err = rotateMultiPageImage(img, angle); err != nil {
+		return err
 	}
 	return
 }

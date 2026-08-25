@@ -318,6 +318,7 @@ func TestProcessor(t *testing.T) {
 			{name: "crop-percent stretch top flip", path: "0.006120x0.008993:1.0x1.0/stretch/100x200/filters:brightness(-20):contrast(50):rgb(10,-50,30):fill(black)/gopher.png"},
 			{name: "rotate 45 still", path: "filters:rotate(45)/gopher-front.png"},
 			{name: "rotate 45 fill", path: "filters:rotate(45):fill(yellow)/gopher-front.png"},
+			{name: "rotate -45", path: "filters:rotate(-45)/gopher-front.png"},
 			{name: "rotate 45 animated", path: "filters:rotate(45)/dancing-banana.gif", arm64Golden: true},
 			{name: "padding rotation fill blur grayscale", path: "/fit-in/200x210/20x20/filters:rotate(90):rotate(270):rotate(180):fill(blur):grayscale()/gopher.png"},
 			{name: "fill round_corner", path: "fit-in/0x210/filters:fill(yellow):round_corner(40,60,green)/gopher.png"},
