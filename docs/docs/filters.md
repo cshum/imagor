@@ -336,7 +336,10 @@ Amount of color in each of the RGB channels in %. Can range from -100 to 100.
 
 Rotates the given image according to the angle value.
 
-- `angle` — accepts `0`, `90`, `180`, `270`
+- `angle` — accepts angle in degrees. 
+  - `90`, `180`, `270` rotate clockwise. 
+  - Negative values rotate anti-clockwise e.g. `-45` for 45° anti-clockwise. 
+  - Non-orthogonal angles e.g. `45`, `-45` expand the image dimensions to fit the rotated bounding box with transparent areas.
 
 <table width="33%">
   <tr><th><code>rotate(90)</code></th></tr>
