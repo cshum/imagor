@@ -115,13 +115,22 @@ func rotateMultiPageImage(img *vips.Image, angle float64) error {
 	if angle == float64(int(angle)) && int(angle)%90 == 0 {
 		return img.RotMultiPage(getAngle(int(angle)))
 	}
+	// Ensure alpha channel so rotated background is transparent.
+	if !img.HasAlpha() {
+		if err := img.Addalpha(); err != nil {
+			return err
+		}
+	}
+	rotateOpts := &vips.RotateOptions{
+		Background: []float64{0, 0, 0, 0},
+	}
 	pageHeight := img.PageHeight()
 	if pageHeight <= 0 {
-		return img.Rotate(angle, nil)
+		return img.Rotate(angle, rotateOpts)
 	}
 	pages := img.Height() / pageHeight
 	if pages <= 1 {
-		return img.Rotate(angle, nil)
+		return img.Rotate(angle, rotateOpts)
 	}
 	// Multi-page: process each page individually.
 	src, err := img.Copy(nil)
@@ -132,7 +141,7 @@ func rotateMultiPageImage(img *vips.Image, angle float64) error {
 	if err := img.ExtractArea(0, 0, src.Width(), pageHeight); err != nil {
 		return err
 	}
-	if err := img.Rotate(angle, nil); err != nil {
+	if err := img.Rotate(angle, rotateOpts); err != nil {
 		return err
 	}
 	for page := 1; page < pages; page++ {
@@ -144,7 +153,7 @@ func rotateMultiPageImage(img *vips.Image, angle float64) error {
 			frame.Close()
 			return err
 		}
-		if err := frame.Rotate(angle, nil); err != nil {
+		if err := frame.Rotate(angle, rotateOpts); err != nil {
 			frame.Close()
 			return err
 		}
@@ -169,6 +178,9 @@ func rotate(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...str
 		switch int(angle) {
 		case 90, 270:
 			setRotate90(ctx)
+		}
+		if int(angle)%90 != 0 {
+			setRotateArbitrary(ctx)
 		}
 		if err = rotateMultiPageImage(img, angle); err != nil {
 			return err
