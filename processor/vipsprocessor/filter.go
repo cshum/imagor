@@ -105,18 +105,94 @@ func backgroundColor(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args
 	})
 }
 
+// rotateMultiPageImage applies an arbitrary-angle rotation to a (possibly
+// multi-page / animated) image.  Orthogonal angles (90, 180, 270) are
+// delegated to the native RotMultiPage for optimal performance.  All other
+// angles use vips_rotate on each page individually, matching the multi-page
+// processing pattern established by pixelateMultiPageImage.
+func rotateMultiPageImage(img *vips.Image, angle float64) error {
+	// Orthogonal angles — use the native multi-page rotate (fast path).
+	if angle == float64(int(angle)) && int(angle)%90 == 0 {
+		return img.RotMultiPage(getAngle(int(angle)))
+	}
+	// Ensure alpha channel so rotated background is transparent.
+	if !img.HasAlpha() {
+		if err := img.Addalpha(); err != nil {
+			return err
+		}
+	}
+	rotateOpts := &vips.RotateOptions{
+		Background: []float64{0, 0, 0, 0},
+	}
+	pageHeight := img.PageHeight()
+	if pageHeight <= 0 {
+		return img.Rotate(angle, rotateOpts)
+	}
+	pages := img.Height() / pageHeight
+	if pages <= 1 {
+		return img.Rotate(angle, rotateOpts)
+	}
+	// Multi-page: process each page individually.
+	src, err := img.Copy(nil)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	if err := img.ExtractArea(0, 0, src.Width(), pageHeight); err != nil {
+		return err
+	}
+	if err := img.Rotate(angle, rotateOpts); err != nil {
+		return err
+	}
+	for page := 1; page < pages; page++ {
+		frame, err := src.Copy(nil)
+		if err != nil {
+			return err
+		}
+		if err := frame.ExtractArea(0, page*pageHeight, src.Width(), pageHeight); err != nil {
+			frame.Close()
+			return err
+		}
+		if err := frame.Rotate(angle, rotateOpts); err != nil {
+			frame.Close()
+			return err
+		}
+		if err := img.Join(frame, vips.DirectionVertical, nil); err != nil {
+			frame.Close()
+			return err
+		}
+		frame.Close()
+	}
+	if err := img.SetPageHeight(img.Height() / pages); err != nil {
+		return err
+	}
+	return img.SetPages(pages)
+}
+
 func rotate(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
 	if len(args) == 0 {
 		return
 	}
-	if angle, _ := strconv.Atoi(args[0]); angle > 0 {
-		switch angle {
-		case 90, 270:
-			setRotate90(ctx)
-		}
-		if err = img.RotMultiPage(getAngle(angle)); err != nil {
-			return err
-		}
+	angle, _ := strconv.ParseFloat(args[0], 64)
+	if angle == 0 {
+		return
+	}
+	// Normalize to 0-360 range so negative angles (anti-clockwise) and
+	// values exceeding 360 are handled correctly by both the orthogonal
+	// RotMultiPage path and the arbitrary-angle vips_rotate path.
+	angle = math.Mod(angle, 360)
+	if angle < 0 {
+		angle += 360
+	}
+	switch int(angle) {
+	case 90, 270:
+		setRotate90(ctx)
+	}
+	if int(angle)%90 != 0 {
+		setRotateArbitrary(ctx)
+	}
+	if err = rotateMultiPageImage(img, angle); err != nil {
+		return err
 	}
 	return
 }

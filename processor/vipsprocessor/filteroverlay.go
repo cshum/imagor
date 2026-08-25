@@ -127,7 +127,13 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 }
 
 func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
-	if isRotate90(ctx) {
+	if isRotateArbitrary(ctx) {
+		// Non-orthogonal rotation (e.g. rotate(45)) changes the image dimensions
+		// unpredictably. Use the actual image bounds as the target dimensions so
+		// fill pads around the rotated bounding box rather than clipping it.
+		w = img.Width()
+		h = img.PageHeight()
+	} else if isRotate90(ctx) {
 		tmpW := w
 		w = h
 		h = tmpW

@@ -40,7 +40,8 @@ func contextDone(ctx context.Context) {
 type contextRotateKey struct{}
 
 type contextRotate struct {
-	Rotate90 bool
+	Rotate90        bool
+	RotateArbitrary bool
 }
 
 // setRotate90 toggles rotation flag in current context (local to processing level)
@@ -54,6 +55,24 @@ func setRotate90(ctx context.Context) {
 func isRotate90(ctx context.Context) bool {
 	if r, ok := ctx.Value(contextRotateKey{}).(*contextRotate); ok {
 		return r.Rotate90
+	}
+	return false
+}
+
+// setRotateArbitrary sets flag indicating a non-orthogonal rotation was applied.
+// This signals to downstream filters (e.g. fill) that the image dimensions have
+// changed unpredictably and they should use the current image bounds rather than
+// the original target dimensions.
+func setRotateArbitrary(ctx context.Context) {
+	if r, ok := ctx.Value(contextRotateKey{}).(*contextRotate); ok {
+		r.RotateArbitrary = true
+	}
+}
+
+// isRotateArbitrary checks if an arbitrary-angle rotation was applied.
+func isRotateArbitrary(ctx context.Context) bool {
+	if r, ok := ctx.Value(contextRotateKey{}).(*contextRotate); ok {
+		return r.RotateArbitrary
 	}
 	return false
 }

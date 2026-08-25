@@ -336,7 +336,10 @@ Amount of color in each of the RGB channels in %. Can range from -100 to 100.
 
 Rotates the given image according to the angle value.
 
-- `angle` — accepts `0`, `90`, `180`, `270`
+- `angle` — accepts angle in degrees. 
+  - `90`, `180`, `270` rotate clockwise. 
+  - Negative values rotate anti-clockwise e.g. `-45` for 45° anti-clockwise. 
+  - Non-orthogonal angles e.g. `45`, `-45` expand the image dimensions to fit the rotated bounding box with transparent areas.
 
 <table width="33%">
   <tr><th><code>rotate(90)</code></th></tr>
@@ -412,7 +415,6 @@ Removes the embedded ICC color profile from the resulting image. The image is fi
 Renders a text overlay onto the image with full multi-line and Pango font support.
 
 - `text` — the text to render. Supports URL query-encoding and `b64:` prefix for [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding to safely pass arbitrary unicode or multi-word strings.
-- `font` — Pango font description with hyphens as space separators, e.g. `sans-bold-24` for `sans bold 24`, `monospace-18` for `monospace 18`. Font size is in points; at the default 72 DPI, 1pt = 1px.
 - `x` — horizontal position:
   - Positive number indicates position from the left, negative from the right
   - Number followed by `p` e.g. `20p` means percentage of image width
@@ -423,6 +425,7 @@ Renders a text overlay onto the image with full multi-line and Pango font suppor
   - Number followed by `p` e.g. `20p` means percentage of image height
   - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally with pixel offset e.g. `top-10`, `b-20`
   - Float between 0–1 represents percentage e.g. `0.5` for center
+- `font` — Pango font description with hyphens as space separators, e.g. `sans-bold-24` for `sans bold 24`, `monospace-18` for `monospace 18`. Font size is in points; at the default 72 DPI, 1pt = 1px.
 - `color` — color name or hexadecimal rgb expression without the `#` character, defaults to black
 - `alpha` — transparency, 0 (fully opaque) to 100 (fully transparent), defaults to 0
 - `blend_mode` — compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
