@@ -47,3 +47,10 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 > [!TIP]
 > **Full documentation at [docs.imagor.net](https://docs.imagor.net)** — [Image Endpoint](https://docs.imagor.net/image-endpoint) · [Filters](https://docs.imagor.net/filters) · [Storage](https://docs.imagor.net/storage) · [Security](https://docs.imagor.net/security) · [Configuration](https://docs.imagor.net/configuration)
+
+## Commercial Support
+
+If your team is using imagor in production and needs help with architecture, custom integrations, migration, or performance tuning, commercial support and consulting are available.
+
+For bugs and feature requests, please continue to use GitHub issues.
+For consulting inquiries, contact imagor@cshum.com.
