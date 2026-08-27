@@ -191,6 +191,10 @@ const config: Config = {
               label: "Benchmarks",
               to: "/benchmarks",
             },
+            {
+              label: "Commercial Support",
+              to: "/commercial-support",
+            },
           ],
         },
       ],

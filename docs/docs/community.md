@@ -34,7 +34,4 @@ The imagor ecosystem includes several community-contributed projects that extend
 
 ## Commercial Support
 
-If your team is using imagor in production and needs help with architecture, custom integrations, migration, or performance tuning, commercial support and consulting are available.
-
-For bugs and feature requests, please continue to use GitHub issues.
-For consulting inquiries, contact imagor@cshum.com.
+If your team needs architecture guidance, custom imagor components, multi-tenant setup, migration support, or production tuning, see [Commercial Support](./commercial-support.md).

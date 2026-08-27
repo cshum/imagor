@@ -82,6 +82,11 @@ const sidebars: SidebarsConfig = {
       id: "community",
       label: "Community",
     },
+    {
+      type: "doc",
+      id: "commercial-support",
+      label: "Commercial Support",
+    },
   ],
 };
 
