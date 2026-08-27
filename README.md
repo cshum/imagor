@@ -59,5 +59,4 @@ Full documentation is available at [docs.imagor.net](https://docs.imagor.net).
 
 If your team is using imagor in production and needs help with architecture, custom imagor components such as processors or storage backends, multi-tenant setups, migration, or performance tuning, commercial support and consulting are available.
 
-For bugs and feature requests, please continue to use GitHub issues.
-For consulting inquiries, contact imagor@cshum.com.
+For bugs and feature requests, please continue to use GitHub issues. For consulting inquiries, contact [imagor@cshum.com](mailto:imagor@cshum.com).

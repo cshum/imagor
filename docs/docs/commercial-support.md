@@ -22,4 +22,4 @@ Typical engagements include:
 
 For bugs and feature requests, please continue to use GitHub issues.
 
-For consulting inquiries, contact imagor@cshum.com.
+For consulting inquiries, contact [imagor@cshum.com](mailto:imagor@cshum.com).
