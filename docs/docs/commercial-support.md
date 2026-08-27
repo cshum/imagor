@@ -9,7 +9,9 @@ keywords:
 
 # Commercial Support
 
-If your team is adopting imagor or running it in production and needs help with architecture, custom imagor components, multi-tenant setups, migration, or performance tuning, commercial support and consulting are available.
+I help teams design, extend, and operate high-performance image processing systems with imagor, libvips, Go, and C.
+
+Support is available for teams adopting imagor or running it in production, including custom components, multi-tenant deployments, migration, and performance tuning.
 
 Typical engagements include:
 
