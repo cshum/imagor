@@ -102,6 +102,22 @@ http://localhost:8000/unsafe/filters:seek(5m)/https://commondatastorage.googleap
 
 Restricts the maximum number of frames sampled for best-frame selection. Smaller values produce faster processing at the cost of selection quality.
 
+### `gif(n)` / `gif(n,fps)`
+
+Creates an animated preview from `n` frames spread evenly over the video, played back at `fps` frames per second (default 5). Examples: `gif(10)`, `gif(20,4)`.
+
+### `gif(duration)` / `gif(duration,fps)`
+
+Creates an animated clip of consecutive frames sampled at `fps` starting at the `seek(n)` position, or the beginning of the video. Examples: `gif(3s)`, `seek(1m)/gif(2s,10)`.
+
+- The animation is output as GIF unless `format(webp)` is set. Formats without animation support such as `format(png)` output the first frame only.
+- `max_frames(n)` also caps the number of frames kept in the output animation. The server-wide limit is `-ffmpeg-max-animation-frames` (default 100).
+
+```
+http://localhost:8000/unsafe/300x0/filters:gif(12,4)/https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4
+http://localhost:8000/unsafe/300x0/filters:seek(1m30s):gif(2s,8)/https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4
+```
+
 ---
 
 ## Metadata
@@ -155,4 +171,6 @@ Configuration options specific to imagorvideo. See [Configuration](./configurati
 ```
   -ffmpeg-fallback-image string
         FFmpeg fallback image on processing error. Supports image path enabled by loaders or storages
+  -ffmpeg-max-animation-frames int
+        FFmpeg maximum number of frames decoded by the gif filter (default 100)
 ```
