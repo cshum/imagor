@@ -54,9 +54,3 @@ Full documentation is available at [docs.imagor.net](https://docs.imagor.net).
 - [Storage](https://docs.imagor.net/storage)
 - [Security](https://docs.imagor.net/security)
 - [Configuration](https://docs.imagor.net/configuration)
-
-## Commercial Support
-
-If your team is using imagor in production and needs help with architecture, custom imagor components, multi-tenant setups, migration, or performance tuning, commercial support and consulting are available. See the [Commercial Support](https://docs.imagor.net/commercial-support) page for details.
-
-For bugs and feature requests, please continue to use GitHub issues. For consulting inquiries, contact [imagor@cshum.com](mailto:imagor@cshum.com).
