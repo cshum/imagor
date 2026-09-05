@@ -31,7 +31,3 @@ The imagor ecosystem includes several community-contributed projects that extend
 ## Blog Posts & Articles
 
 - **[Image Processing Without Performance Bottlenecks: Laravel + imagor](https://sandstorm.de/blog/posts/bildverarbeitung-ohne-performance-probleme-laravel-imagor/)** by Sandstorm *(German)* — A walkthrough of integrating imagor with Laravel
-
-## Commercial Support
-
-If your team needs architecture guidance, custom imagor components, multi-tenant setup, migration support, or production tuning, see [Commercial Support](./commercial-support.md).

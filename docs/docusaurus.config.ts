@@ -101,16 +101,16 @@ const config: Config = {
               to: "/",
             },
             {
-              label: "Imagor Studio",
-              href: "https://imagor.net",
-            },
-            {
               label: "imagorvideo",
               to: "/imagorvideo",
             },
             {
               label: "imagorface",
               to: "/imagorface",
+            },
+            {
+              label: "Imagor Studio",
+              href: "https://imagor.net",
             },
           ],
         },
@@ -163,16 +163,16 @@ const config: Config = {
               to: "/",
             },
             {
-              label: "Imagor Studio",
-              href: "https://imagor.net",
-            },
-            {
               label: "imagorvideo",
               to: "/imagorvideo",
             },
             {
               label: "imagorface",
               to: "/imagorface",
+            },
+            {
+              label: "Imagor Studio",
+              href: "https://imagor.net",
             },
           ],
         },
