@@ -15,7 +15,7 @@ imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-st
 
 imagor supports a wide range of image-processing use cases, available as a HTTP server with first-class Docker support. It adopts the thumbor URL syntax representing a high-performance drop-in replacement.
 
-imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://github.com/cshum/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
+imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://docs.imagor.net/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
 
 ### Quick Start
 

@@ -34,9 +34,9 @@ docker run -p 8000:8000 shumc/imagorvideo -imagor-unsafe
 
 imagorvideo publishes three Docker image families:
 
-- `ghcr.io/cshum/imagorvideo`: default `ffmpeg` variant. This is the recommended baseline.
-- `ghcr.io/cshum/imagorvideo-mozjpeg`: `mozjpeg-ffmpeg` variant for deployments that want the MozJPEG-backed JPEG stack.
-- `ghcr.io/cshum/imagorvideo-magick`: `magick-ffmpeg` variant for deployments that need ImageMagick support in addition to ffmpeg.
+- `ghcr.io/cshum/imagorvideo`: default `ffmpeg` variant. This is the recommended baseline and matches the default `imagorvideo` Dockerfile.
+- `ghcr.io/cshum/imagorvideo-mozjpeg`: `mozjpeg-ffmpeg` variant. Use this when you want the MozJPEG-backed JPEG stack in addition to video thumbnail support.
+- `ghcr.io/cshum/imagorvideo-magick`: `magick-ffmpeg` variant. Use this when you need ImageMagick-backed formats or operations on top of the ffmpeg pipeline.
 
 All variants include video thumbnail extraction through ffmpeg. The difference is the imagor native stack used for the image-processing stage after frame extraction.
 
@@ -60,7 +60,7 @@ http://localhost:8000/unsafe/300x0/7x7/filters:frame(0.6):label(imagorvideo,10,-
   </tr>
 </table>
 
-imagorvideo streams a limited number of frames from the video, calculates the histogram of each frame, and selects the best one based on Root Mean Square Error (RMSE). This skips black frames that commonly occur at the start of videos. The selected frame is converted to RGB and forwarded to the imagor libvips processor.
+imagorvideo streams a limited number of frames from the video, calculates the histogram of each frame, and selects the best one based on Root Mean Square Error (RMSE). This skips black frames that commonly occur at the start of videos. The selected frame is converted to RGB and forwarded to the imagor libvips processor. See imagor [endpoint](./image-endpoint.md) and [filters](./filters.md) for the image operations supported.
 
 ## Filters
 
