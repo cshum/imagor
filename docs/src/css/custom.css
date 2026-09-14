@@ -146,8 +146,8 @@
   background-color: var(--ifm-color-emphasis-100);
 }
 
-/* Imagor Studio navbar button */
-.navbar-buy-button {
+/* Consulting navbar CTA button */
+.navbar-consulting-button {
   background-color: var(--ifm-color-primary) !important;
   color: white !important;
   border-radius: 0.5rem !important;
@@ -159,18 +159,18 @@
   margin-right: 0.75rem !important;
 }
 
-.navbar-buy-button:hover {
+.navbar-consulting-button:hover {
   background-color: var(--ifm-color-primary-light) !important;
   color: white !important;
   text-decoration: none !important;
 }
 
-[data-theme="dark"] .navbar-buy-button {
+[data-theme="dark"] .navbar-consulting-button {
   background-color: var(--ifm-color-primary) !important;
   color: #0a0a0a !important;
 }
 
-[data-theme="dark"] .navbar-buy-button:hover {
+[data-theme="dark"] .navbar-consulting-button:hover {
   background-color: var(--ifm-color-primary-light) !important;
   color: #0a0a0a !important;
 }

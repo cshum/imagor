@@ -127,6 +127,7 @@ const config: Config = {
           label: "Consulting",
           to: "/consulting",
           position: "right",
+          className: "navbar-consulting-button",
         },
       ],
     },

@@ -54,3 +54,13 @@ Full documentation is available at [docs.imagor.net](https://docs.imagor.net).
 - [Storage](https://docs.imagor.net/storage)
 - [Security](https://docs.imagor.net/security)
 - [Configuration](https://docs.imagor.net/configuration)
+
+## Consulting
+
+If your team is running imagor in production and needs help with architecture, custom
+imagor components, multi-tenant setups, loaders/storage backends, migration planning,
+or performance tuning, commercial support and consulting are available.
+See the [Consulting](https://docs.imagor.net/consulting) page for details.
+
+For bugs and feature requests, please continue to use [GitHub Issues](https://github.com/cshum/imagor/issues).
+For consulting inquiries, contact [imagor@cshum.com](mailto:imagor@cshum.com).
