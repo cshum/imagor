@@ -110,7 +110,7 @@ const config: Config = {
             },
             {
               label: "Imagor Studio",
-              href: "https://imagor.net",
+              href: "https://studio.imagor.net",
             },
           ],
         },
@@ -172,7 +172,7 @@ const config: Config = {
             },
             {
               label: "Imagor Studio",
-              href: "https://imagor.net",
+              href: "https://studio.imagor.net",
             },
           ],
         },
