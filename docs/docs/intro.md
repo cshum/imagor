@@ -1,4 +1,6 @@
 ---
+title: imagor
+sidebar_label: Getting Started
 sidebar_position: 1
 slug: /
 description: Fast, secure libvips-based image processing server and Go library with thumbor-compatible URLs, streaming, storage backends, and production-ready deployment options.
@@ -10,7 +12,7 @@ keywords:
   - go image processing server
 ---
 
-# Getting Started
+# imagor
 
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/cshum/imagor)](https://codecov.io/gh/cshum/imagor)
