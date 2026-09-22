@@ -23,6 +23,8 @@ imagor is built with speed, security and extensibility in mind. Alongside there 
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
 ```
 
+[![Deploy on Elestio](https://elest.io/images/logos/deploy-to-elestio-btn.png)](https://dash.elest.io/deploy?soft=Imagor&id=203)
+
 Original images:
 
 ```
