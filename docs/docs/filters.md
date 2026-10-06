@@ -153,9 +153,11 @@ Specifies the output format of the image.
 
 #### `format(svg)`
 
-Returns an SVG source as the vector itself, without rasterizing it. Requires [SVG pass-through](./security.mdx#svg-pass-through) to be enabled (`IMAGOR_PASSTHROUGH_FORMATS=svg`), and the source must be an SVG.
+Returns an SVG source as the vector itself, without rasterizing it. The source must be an SVG, and the document is sanitized before it is returned unless sanitization is turned off (`VIPS_SANITIZE_SVG=0`).
 
-`format(svg)` is refused with HTTP 400 when the source is not an SVG, when pass-through is disabled, or when it is combined with a transformation — a resize, crop or filter cannot be applied to a document that is served untouched, and answering with something other than the requested format would be a silent substitution.
+Naming the format is an explicit request, so it does not require [`IMAGOR_PASSTHROUGH_FORMATS`](./security.mdx#svg-pass-through) — that setting controls the default for requests that ask for nothing at all. The exception is a deployment with sanitization off: there `format(svg)` also requires pass-through to be enabled, because honouring it would mean serving upstream markup untouched.
+
+`format(svg)` is refused with HTTP 400 when the source is not an SVG, or when it is combined with a transformation — a resize, crop or filter cannot be applied to a document served untouched, and answering with something other than the requested format would be a silent substitution.
 
 ---
 

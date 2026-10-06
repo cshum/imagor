@@ -313,7 +313,7 @@ VIPS_SANITIZE_SVG=1                 # default; see below
 
 What it does and does not do:
 
-* **Only no-op requests pass through.** A request that asks for an operation is never answered with the untouched source — the operation always wins. `format(svg)` asks for the vector explicitly and is refused if combined with a transformation.
+* **Only no-op requests pass through.** A request that asks for an operation is never answered with the untouched source — the operation always wins. [`format(svg)`](./filters.md#formatsvg) asks for the vector explicitly, is refused if combined with a transformation, and works without this setting: the sanitizer makes an explicit request safe, so only a deployment with `VIPS_SANITIZE_SVG=0` needs the opt-in for it.
 * **A source format is only served once it has been considered.** SVG is sanitized; still formats (PNG, JPEG, GIF, WebP, AVIF, HEIF, TIFF, BMP, JXL, JP2) are not executable and are safe to return with their sniffed content type. `pdf` is refused: PDF viewers run embedded script, so serving one inline from the proxy origin is the same problem as an unsanitized SVG. Configuring a refused or unknown format fails at startup rather than silently ignoring it.
 * **The result cache key changes.** Requests eligible for pass-through are marked with [`passthrough()`](./filters.md#passthrough), which becomes part of the [result storage key](./storage-path-style.md), so a previously cached rasterized result is never served for a request that now passes through — and enabling the feature does not require flushing the cache.
 * **The limits still apply.** The resolution check runs on the pass-through path too, so it is not a way around `VIPS_MAX_RESOLUTION` or the image bomb limits.

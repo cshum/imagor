@@ -85,22 +85,27 @@ func (v *Processor) passthroughBlob(
 		"format", "fallback_format", "autojpg", imagor.PassthroughFilterName)
 
 	if explicit {
-		// format(svg) asks for the vector itself. Either the source is an SVG and
-		// passthrough is enabled for it, or the request has to be refused:
-		// answering with another format under the requested name is the silent
-		// lie this filter used to tell.
+		// format(svg) asks for the vector itself, which is an explicit request
+		// rather than a change of default: the sanitiser makes it safe to honour
+		// without the operator enabling passthrough for SVG sources in general.
+		//
+		// The exception is a deployment that turned sanitization off. There,
+		// honouring the request would serve upstream markup untouched, so the
+		// request needs the operator's opt-in (`IMAGOR_PASSTHROUGH_FORMATS`)
+		// rather than being a way around it.
 		switch {
 		case blobType != imagor.BlobTypeSVG:
 			return nil, false, imagor.NewError(
 				"format(svg) is only supported for svg sources", http.StatusBadRequest)
-		case !v.passthroughEnabled(blobType):
-			return nil, false, imagor.NewError(
-				"format(svg) requires svg passthrough to be enabled", http.StatusBadRequest)
 		case transformations:
 			// The vector cannot also be resized, cropped or filtered here, and
 			// quietly serving it untouched would drop the rest of the request.
 			return nil, false, imagor.NewError(
 				"format(svg) cannot be combined with transformations", http.StatusBadRequest)
+		case !v.SanitizeSVG && !v.passthroughEnabled(blobType):
+			return nil, false, imagor.NewError(
+				"format(svg) requires svg passthrough to be enabled when svg sanitization is off",
+				http.StatusBadRequest)
 		}
 	} else if !marked || !v.passthroughEnabled(blobType) {
 		return nil, false, nil

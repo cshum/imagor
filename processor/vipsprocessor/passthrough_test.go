@@ -254,11 +254,6 @@ func TestPassthroughExplicitSVGWithTransformation(t *testing.T) {
 
 	res := ptGet(t, app, "100x100/filters:format(svg)/simple.svg", nil)
 	require.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
-
-	// Naming svg while passthrough is off is equally unanswerable.
-	app = ptApp(t, map[string][]byte{"simple.svg": []byte(ptSimpleSVG)})
-	res = ptGet(t, app, "filters:format(svg)/simple.svg", nil)
-	require.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
 }
 
 // TestPassthroughResizeStillApplies proves the resize is actually performed,
@@ -296,19 +291,55 @@ func TestPassthroughWinsOverAutoWebP(t *testing.T) {
 	assert.Equal(t, "image/webp", res.Header().Get("Content-Type"))
 }
 
+// TestPassthroughExplicitFormatSVG covers format(svg) as an explicit request:
+// it is honoured with sanitization whether or not the operator enabled
+// passthrough for SVG sources, because the safe path needs no configuration.
 func TestPassthroughExplicitFormatSVG(t *testing.T) {
-	app := ptApp(t, map[string][]byte{"hostile.svg": []byte(ptSVG)},
-		imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
+	mem := map[string][]byte{"hostile.svg": []byte(ptSVG)}
 
-	res := ptGet(t, app, "filters:format(svg)/hostile.svg", nil)
-	require.Equal(t, http.StatusOK, res.Code)
-	assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"))
-	assert.NotContains(t, res.Body.String(), "script")
+	t.Run("passthrough enabled", func(t *testing.T) {
+		app := ptApp(t, mem, imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
+		res := ptGet(t, app, "filters:format(svg)/hostile.svg", nil)
+		require.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"))
+		assert.NotContains(t, res.Body.String(), "script")
+	})
 
-	// A raster source cannot become a vector: say so rather than answering with
-	// another format under the requested name.
-	res = ptGet(t, app, "filters:format(svg)/gopher-front.png", nil)
-	assert.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
+	t.Run("passthrough disabled still sanitizes", func(t *testing.T) {
+		app := ptApp(t, mem)
+		res := ptGet(t, app, "filters:format(svg)/hostile.svg", nil)
+		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+		assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"))
+
+		body := res.Body.String()
+		for _, leaked := range []string{"script", "onload", "evil.test", "foreignObject"} {
+			assert.NotContains(t, body, leaked, "explicit svg request leaked %q", leaked)
+		}
+		assert.Contains(t, body, `fill="#0af"`)
+	})
+
+	t.Run("a raster source cannot become a vector", func(t *testing.T) {
+		app := ptApp(t, mem, imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
+		res := ptGet(t, app, "filters:format(svg)/gopher-front.png", nil)
+		assert.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
+	})
+
+	t.Run("sanitization off needs the operator opt-in", func(t *testing.T) {
+		// Without the opt-in, honouring the request would mean serving upstream
+		// markup untouched - a way around the operator's decision, not a use of
+		// it.
+		app := ptAppWith(t, mem, []Option{WithSanitizeSVG(false)})
+		res := ptGet(t, app, "filters:format(svg)/hostile.svg", nil)
+		assert.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
+
+		// With it, the bytes are served as they are.
+		app = ptAppWith(t, mem, []Option{WithSanitizeSVG(false)},
+			imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
+		res = ptGet(t, app, "filters:format(svg)/hostile.svg", nil)
+		require.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"))
+		assert.Equal(t, ptSVG, res.Body.String())
+	})
 }
 
 func TestPassthroughPassiveFormatUnchanged(t *testing.T) {
