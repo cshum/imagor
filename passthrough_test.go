@@ -23,8 +23,14 @@ func TestParsePassthroughFormats(t *testing.T) {
 		{name: "svg", in: []string{"svg"}, want: []BlobType{BlobTypeSVG}},
 		{name: "case and space", in: []string{" SVG "}, want: []BlobType{BlobTypeSVG}},
 		{name: "duplicates collapse", in: []string{"svg", "svg"}, want: []BlobType{BlobTypeSVG}},
-		{name: "passive formats", in: []string{"png", "jpg"}, want: []BlobType{BlobTypePNG, BlobTypeJPEG}},
-		{name: "jpeg alias", in: []string{"jpeg"}, want: []BlobType{BlobTypeJPEG}},
+		{
+			name: "still formats are not configurable", in: []string{"png", "jpg"},
+			wantErr: "not configurable",
+		},
+		{
+			name: "one still format among valid", in: []string{"svg", "webp"},
+			wantErr: "not configurable",
+		},
 		{
 			name: "pdf is refused", in: []string{"pdf"},
 			wantErr: "refused",

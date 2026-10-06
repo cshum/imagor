@@ -307,12 +307,12 @@ By default imagor rasterizes an SVG source, including a request that asks for no
 `IMAGOR_PASSTHROUGH_FORMATS` serves the source document instead, for requests that ask for nothing — no resize, crop, alignment, padding, flip, trim, smart crop or filter.
 
 ```dotenv
-IMAGOR_PASSTHROUGH_FORMATS=svg      # svg, or a csv of source formats e.g. svg,png
+IMAGOR_PASSTHROUGH_FORMATS=svg      # source formats served as-is; svg only
 VIPS_SANITIZE_SVG=1                 # default; see below
 ```
 
 * **Only no-op requests pass through.** A request that asks for an operation is never answered with the untouched source. [`format(svg)`](./filters.md#formatsvg) asks for the vector explicitly and works without this setting, since the sanitizer makes an explicit request safe — only a deployment with `VIPS_SANITIZE_SVG=0` needs the opt-in for it.
-* **A source format is served only once it has been considered.** SVG is sanitized; still formats (PNG, JPEG, GIF, WebP, AVIF, HEIF, TIFF, BMP, JXL, JP2) are not executable and are returned with their sniffed content type. `pdf` is refused — a PDF viewer runs embedded script. A refused or unknown format fails at startup rather than being ignored.
+* **A format is served only once it has been considered.** `svg` is the format this release accepts: it is the one source passthrough exists for — an SVG is otherwise re-encoded to a raster at libvips' default 72 dpi — and the one with a sanitizer. Still formats (PNG, JPEG, GIF, WebP, AVIF, HEIF, TIFF, BMP, JXL, JP2) are classified by the same policy table and supported by the pass-through path, but returning a codec's bytes unchanged is a deliberate decision rather than a switch. `pdf` is refused — a PDF viewer runs embedded script. Any other name fails at startup, naming what would be accepted.
 * **The result cache key changes.** An eligible request carries an internal marker in the [result storage key](./storage-path-style.md) — `passthrough()` in the path, when the storage path style is `original` — so a cached rasterized result is not served for a request that now passes through. Enabling the feature does not require flushing the cache.
 * **The limits still apply.** The resolution check runs on the pass-through path too, so it is not a way around `VIPS_MAX_RESOLUTION` or the image bomb limits.
 
