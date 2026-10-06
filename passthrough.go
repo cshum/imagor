@@ -30,10 +30,7 @@ const (
 	// reaches a browser.
 	PassthroughSanitize
 	// PassthroughPassive formats are not executable. A sniffed content type and
-	// nosniff are enough. Nothing is configured with this policy in the first
-	// release - see PassthroughSanitize and the configuration rule in
-	// ParsePassthroughFormats - but a library embedder can still enable one with
-	// WithPassthroughFormats, and the pass-through path supports it.
+	// nosniff are enough.
 	PassthroughPassive
 )
 
@@ -70,13 +67,12 @@ const SVGContentType = "image/svg+xml"
 // origin serving it.
 const SVGContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
 
-// passthroughFormatNameList lists the names the configuration accepts, in a
-// stable order, so a rejected value can say what was expected. It follows the
-// same rule as ParsePassthroughFormats.
+// passthroughFormatNameList lists the configuration names that may be enabled,
+// in a stable order, so a rejected value can say what was expected.
 func passthroughFormatNameList() []string {
 	names := make([]string, 0, len(passthroughFormatNames))
 	for name, t := range passthroughFormatNames {
-		if PassthroughPolicyOf(t) == PassthroughSanitize {
+		if PassthroughPolicyOf(t) != PassthroughRefused {
 			names = append(names, name)
 		}
 	}
@@ -98,15 +94,9 @@ func PassthroughFormatNames(formats []BlobType) []string {
 	return names
 }
 
-// ParsePassthroughFormats resolves configuration names to source formats.
-//
-// A name is accepted only for a format that is sanitized before it is served -
-// svg, in this release. The still formats are classified by PassthroughPolicyOf
-// and supported by the pass-through path, but enabling one is a decision about
-// serving a codec's bytes unchanged, so it is not a configuration switch yet;
-// a library embedder that wants it can set it with WithPassthroughFormats.
-// Everything else - including a name that only looks close to a real one - is an
-// error, so a typo cannot leave the feature quietly off.
+// ParsePassthroughFormats resolves configured format names to formats. A name
+// that is refused or unknown is an error rather than a silent no-op: adding one
+// is a decision about serving unprocessed bytes, and it has to be deliberate.
 func ParsePassthroughFormats(names []string) ([]BlobType, error) {
 	var formats []BlobType
 	var seen = map[BlobType]struct{}{}
@@ -123,10 +113,6 @@ func ParsePassthroughFormats(names []string) ([]BlobType, error) {
 		if PassthroughPolicyOf(t) == PassthroughRefused {
 			return nil, fmt.Errorf(
 				"imagor: passthrough format %q is refused: its bytes are active content in a browser", name)
-		}
-		if PassthroughPolicyOf(t) != PassthroughSanitize {
-			return nil, fmt.Errorf(
-				"imagor: passthrough format %q is not configurable: only a source that is sanitized before it is served, such as svg, can be set here", name)
 		}
 		if _, ok := seen[t]; ok {
 			continue
