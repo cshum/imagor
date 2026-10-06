@@ -28,11 +28,17 @@ import (
 const ptSVG = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64" height="64" viewBox="0 0 64 64" onload="alert(1)">
   <script>alert('xss')</script>
   <foreignObject><iframe src="https://evil.test/"></iframe></foreignObject>
-  <image xlink:href="https://evil.test/track.png" width="8" height="8"/>
-  <use href="javascript:alert(3)"/>
-  <rect width="64" height="64" fill="url(https://evil.test/p.svg#g)" onclick="alert(2)"/>
-  <rect id="ok" x="4" y="4" width="8" height="8" fill="#0af"/>
+  <use href="#ok"/>
+  <rect width="64" height="64" fill="#0af" onclick="alert(2)"/>
+  <rect id="ok" x="4" y="4" width="8" height="8" fill="#f90"/>
   <text x="8" y="56" font-size="10" fill="#333">kept</text>
+</svg>`
+
+// ptExternalSVG references a resource outside the document, so serving it would
+// mean serving a document that renders without what it points at.
+const ptExternalSVG = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64" height="64" viewBox="0 0 64 64">
+  <image xlink:href="https://evil.test/track.png" width="8" height="8"/>
+  <rect width="64" height="64" fill="#0af"/>
 </svg>`
 
 // ptSimpleSVG is a self-contained document with nothing external to fetch.
@@ -494,6 +500,24 @@ func TestPassthroughLatin1SourceServed(t *testing.T) {
 	assert.Contains(t, string(data), "café")
 	assert.NotContains(t, string(data), "script")
 	assert.NotContains(t, string(data), "\xe9", "the source bytes are converted, not re-emitted")
+}
+
+// TestPassthroughRefusesExternalReference covers the source that points at
+// something outside the document: it is rasterized rather than served, because
+// the served document would render without what it points at.
+func TestPassthroughRefusesExternalReference(t *testing.T) {
+	app := ptApp(t, map[string][]byte{"external.svg": []byte(ptExternalSVG)},
+		imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
+
+	res := ptGet(t, app, "external.svg", nil)
+	require.Equal(t, http.StatusOK, res.Code)
+	assert.NotEqual(t, imagor.SVGContentType, res.Header().Get("Content-Type"),
+		"a document referencing an external resource must be rasterized")
+
+	explicit := ptGet(t, app, "filters:format(svg)/external.svg", nil)
+	assert.GreaterOrEqual(t, explicit.Code, 400,
+		"an explicit vector request must not answer with a raster")
+	assert.Contains(t, explicit.Body.String(), "would change how it looks")
 }
 
 // TestPassthroughRefusesDocumentStyling covers the source that carries its own

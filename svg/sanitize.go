@@ -35,6 +35,64 @@ import (
 // ErrInvalidSVG reports input that is not a usable SVG document.
 var ErrInvalidSVG = errors.New("svg: invalid svg document")
 
+// ErrRenderingChanged reports a readable document that cannot be served as
+// authored: something that decides how it looks - its own CSS, an SVG font
+// definition, or a reference to a resource outside the document - would have to
+// be removed. The caller rasterizes the source instead, which renders what the
+// author drew, rather than serving a document that looks different.
+var ErrRenderingChanged = errors.New("svg: serving this document would change how it looks")
+
+// resourceElements load something: an href on one of these names that has to be
+// removed means the document would render differently without it. An href on
+// <a> is navigation, not content, so a link is dropped without refusing the
+// document.
+var resourceElements = map[string]struct{}{
+	"image": {}, "feImage": {}, "use": {}, "tref": {}, "altGlyph": {},
+	"linearGradient": {}, "radialGradient": {}, "pattern": {}, "filter": {},
+}
+
+// fontElements define SVG fonts. They are dropped, and text that was authored
+// against them would be measured and drawn by a fallback font instead.
+var fontElements = map[string]struct{}{
+	"font": {}, "font-face": {}, "font-face-src": {}, "font-face-uri": {},
+	"font-face-name": {}, "font-face-format": {}, "glyph": {}, "glyphRef": {},
+	"missing-glyph": {}, "hkern": {}, "vkern": {},
+}
+
+// unservableReason reports why this element cannot be served as authored, or an
+// empty string when it can. The checks reuse the same attribute rules the
+// serializer applies, so a value that would be dropped there is recognised here.
+func unservableReason(el xml.StartElement) string {
+	local := el.Name.Local
+	if local == "style" {
+		return "the document's own CSS"
+	}
+	if _, ok := fontElements[local]; ok {
+		return "an SVG font definition"
+	}
+	_, isResource := resourceElements[local]
+	for _, attr := range el.Attr {
+		name, ok := attrName(attr.Name)
+		if !ok {
+			continue
+		}
+		isImage := local == "image" || local == "feImage"
+		if _, kept := sanitizeAttrValue(name, attr.Value, isImage); kept {
+			continue
+		}
+		if isResource && isHrefAttr(name) {
+			return "a reference to a resource outside the document"
+		}
+		if _, ok := urlAttrs[name]; ok && strings.Contains(attr.Value, "url(") {
+			return "a reference to a resource outside the document"
+		}
+		if name == "style" {
+			return "an inline style declaration"
+		}
+	}
+	return ""
+}
+
 // maxDepth limits element nesting so a hostile document cannot exhaust the stack
 // during serialization.
 const maxDepth = 256
@@ -64,7 +122,7 @@ var allowedElements = map[string]struct{}{
 	"path": {}, "rect": {}, "circle": {}, "ellipse": {}, "line": {},
 	"polyline": {}, "polygon": {},
 	// text
-	"text": {}, "tspan": {}, "textPath": {},
+	"text": {}, "tspan": {}, "textPath": {}, "tref": {},
 	// embedded raster (href restricted to data: URIs)
 	"image": {},
 	// paint servers and geometry references
@@ -78,7 +136,7 @@ var allowedElements = map[string]struct{}{
 	"feMerge": {}, "feMergeNode": {}, "feMorphology": {}, "feOffset": {},
 	"feSpecularLighting": {}, "feTile": {}, "feTurbulence": {},
 	"feDistantLight": {}, "fePointLight": {}, "feSpotLight": {},
-	"feDropShadow": {},
+	"feDropShadow": {}, "feImage": {},
 }
 
 // allowedAttrs is the set of attributes that survive, matched on the local name;
@@ -138,6 +196,12 @@ var allowedAttrs = map[string]struct{}{
 	"pointsAtY": {}, "pointsAtZ": {}, "specularExponent": {},
 	"limitingConeAngle": {}, "surfaceScale": {}, "diffuseConstant": {},
 	"scale": {}, "xChannelSelector": {}, "yChannelSelector": {},
+	// filter parameters a document sets on a primitive: without them the filter
+	// is applied with default values and the result differs from the document
+	// that was authored.
+	"specularConstant": {}, "radius": {}, "preserveAlpha": {},
+	"baseFrequency": {}, "numOctaves": {}, "seed": {}, "stitchTiles": {},
+	"z": {}, "bottomLeftOrigin": {},
 	"flood-color": {}, "flood-opacity": {}, "lighting-color": {},
 	// conditional processing
 	"systemLanguage": {}, "requiredFeatures": {}, "requiredExtensions": {},
@@ -212,12 +276,11 @@ func parse(r io.Reader) (*document, error) {
 			if len(stack) >= maxDepth {
 				return nil, fmt.Errorf("%w: exceeds max element depth %d", ErrInvalidSVG, maxDepth)
 			}
-			// A document that carries its own CSS would be served without it, and
-			// the result would look different from the document that was authored.
-			// Refusing lets the caller rasterize it instead, which renders what the
-			// author drew.
-			if t := tok.(xml.StartElement); t.Name.Local == "style" {
-				return nil, fmt.Errorf("%w: document styling is not supported", ErrInvalidSVG)
+			// A document that would have to be restyled, refonted or stripped of a
+			// resource reference is refused: the caller rasterizes it, which renders
+			// what the author drew, rather than serving something that looks different.
+			if reason := unservableReason(tok.(xml.StartElement)); reason != "" {
+				return nil, fmt.Errorf("%w: %s", ErrRenderingChanged, reason)
 			}
 			stack = append(stack, idx)
 		case xml.EndElement:
@@ -302,7 +365,7 @@ func (d *document) writeChildren(b *bytes.Buffer, from, to int) error {
 				continue
 			}
 			name := t.Name.Local
-			isImage := name == "image"
+			isImage := name == "image" || name == "feImage"
 			b.WriteString("<" + name)
 			d.writeAttrs(b, t.Attr, isImage)
 			if elEnd == i+1 {

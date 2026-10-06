@@ -208,7 +208,7 @@ func shortType(ct string) string {
 // reads attributes rather than searching for substrings.
 func ptReferenceProblems(doc []byte) []string {
 	var problems []string
-	for _, element := range []string{"<script", "<foreignObject", "<style", "<iframe", "<feImage"} {
+	for _, element := range []string{"<script", "<foreignObject", "<style", "<iframe"} {
 		if bytes.Contains(doc, []byte(element)) {
 			problems = append(problems, "SURVIVED "+element)
 		}

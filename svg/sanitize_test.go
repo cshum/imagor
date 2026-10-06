@@ -27,6 +27,9 @@ func TestDropsExecutableAndExternalContent(t *testing.T) {
 		name    string
 		in      string
 		dropped []string
+		// refused is the expected reason when the document cannot be served at
+		// all, because removing what it names would change how it looks.
+		refused string
 	}{
 		{
 			name: "script element",
@@ -57,25 +60,26 @@ func TestDropsExecutableAndExternalContent(t *testing.T) {
 			},
 		},
 		{
-			name: "image and feImage external references",
-			in:   `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="https://evil.test/a.png" href="https://evil.test/b.png" width="1" height="1"/><filter id="f"><feImage href="https://evil.test/c.png"/></filter></svg>`,
-			dropped: []string{
-				"evil.test",
-			},
+			name:    "image and feImage external references",
+			in:      `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="https://evil.test/a.png" href="https://evil.test/b.png" width="1" height="1"/><filter id="f"><feImage href="https://evil.test/c.png"/></filter></svg>`,
+			refused: "a reference to a resource outside the document",
 		},
 		{
-			name: "javascript and data hrefs on use",
-			in:   `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use href="javascript:alert(1)"/><use xlink:href="data:text/html;base64,PHNjcmlwdD4="/></svg>`,
-			dropped: []string{
-				"javascript", "data:text/html",
-			},
+			name:    "javascript and data hrefs on use",
+			in:      `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use href="javascript:alert(1)"/><use xlink:href="data:text/html;base64,PHNjcmlwdD4="/></svg>`,
+			refused: "a reference to a resource outside the document",
 		},
 		{
-			name: "entity obfuscated scheme",
-			in:   `<svg xmlns="http://www.w3.org/2000/svg"><a href="&#x6a;avascript:alert(1)"><text>x</text></a><use href="java&#115;cript:alert(1)"/></svg>`,
+			name: "entity obfuscated scheme in a link",
+			in:   `<svg xmlns="http://www.w3.org/2000/svg"><a href="&#x6a;avascript:alert(1)"><text>x</text></a></svg>`,
 			dropped: []string{
 				"javascript", "alert(1)",
 			},
+		},
+		{
+			name:    "entity obfuscated scheme in a use",
+			in:      `<svg xmlns="http://www.w3.org/2000/svg"><use href="java&#115;cript:alert(1)"/></svg>`,
+			refused: "a reference to a resource outside the document",
 		},
 		{
 			name: "animate targeting href",
@@ -85,25 +89,19 @@ func TestDropsExecutableAndExternalContent(t *testing.T) {
 			},
 		},
 		{
-			name: "relative and same-origin references",
-			in:   `<svg xmlns="http://www.w3.org/2000/svg"><image href="photo.png" width="1" height="1"/><image href="/admin/delete" width="1" height="1"/><rect fill="url(/style.css)" width="1" height="1"/></svg>`,
-			dropped: []string{
-				"photo.png", "/admin/delete", "url(/style.css)",
-			},
+			name:    "relative and same-origin references",
+			in:      `<svg xmlns="http://www.w3.org/2000/svg"><image href="photo.png" width="1" height="1"/><image href="/admin/delete" width="1" height="1"/><rect fill="url(/style.css)" width="1" height="1"/></svg>`,
+			refused: "a reference to a resource outside the document",
 		},
 		{
-			name: "external url in presentation attribute",
-			in:   `<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://evil.test/a.svg#x)" stroke="url(http://evil.test/b)" width="1" height="1"/></svg>`,
-			dropped: []string{
-				"evil.test",
-			},
+			name:    "external url in presentation attribute",
+			in:      `<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://evil.test/a.svg#x)" stroke="url(http://evil.test/b)" width="1" height="1"/></svg>`,
+			refused: "a reference to a resource outside the document",
 		},
 		{
-			name: "external url in style attribute",
-			in:   `<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:url(https://evil.test/a);stroke:url(//evil.test/b)" width="1" height="1"/></svg>`,
-			dropped: []string{
-				"evil.test",
-			},
+			name:    "external url in style attribute",
+			in:      `<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:url(https://evil.test/a);stroke:url(//evil.test/b)" width="1" height="1"/></svg>`,
+			refused: "an inline style declaration",
 		},
 		{
 			name: "declarations and comments",
@@ -121,14 +119,22 @@ func TestDropsExecutableAndExternalContent(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			out := sanitize(t, tc.in)
+			out, err := Sanitize(strings.NewReader(tc.in))
+			if tc.refused != "" {
+				require.ErrorIs(t, err, ErrRenderingChanged)
+				assert.Contains(t, err.Error(), tc.refused)
+				assert.Empty(t, out, "a refused document must not be served")
+				return
+			}
+			require.NoError(t, err)
+			doc := string(out)
 			for _, s := range tc.dropped {
-				assert.NotContains(t, out, s, "sanitized output leaked %q:\n%s", s, out)
+				assert.NotContains(t, doc, s, "sanitized output leaked %q:\n%s", s, doc)
 			}
 			// The result must always be parseable XML.
-			require.NoError(t, xml.Unmarshal([]byte(out), new(struct {
+			require.NoError(t, xml.Unmarshal(out, new(struct {
 				XMLName xml.Name
-			})), "not well-formed: %s", out)
+			})), "not well-formed: %s", doc)
 		})
 	}
 }
@@ -210,20 +216,27 @@ func TestStyleAttribute(t *testing.T) {
 		{style: "fill:red", kept: true},
 		{style: "fill:red;stroke:blue;stroke-width:2", kept: true},
 		{style: "fill:url(#g)", kept: true},
-		{style: "fill:url(https://evil.test/a)", kept: false},
-		{style: "background:url(//evil.test/b)", kept: false},
-		{style: "background:url(data:image/svg+xml;base64,PHN2Zz4=)", kept: false},
-		{style: "width:expression(alert(1))", kept: false},
-		{style: "background:@import 'x.css'", kept: false},
 	} {
 		t.Run(tc.style, func(t *testing.T) {
 			in := `<svg xmlns="http://www.w3.org/2000/svg"><rect style="` + tc.style + `" width="1" height="1"/></svg>`
-			out := sanitize(t, in)
-			if tc.kept {
-				assert.Contains(t, out, `style="`+tc.style+`"`, out)
-			} else {
-				assert.NotContains(t, out, "style=", out)
-			}
+			assert.Contains(t, sanitize(t, in), `style="`+tc.style+`"`)
+		})
+	}
+
+	// A declaration that cannot be kept is not simply dropped: the document would
+	// then be styled differently from the one that was authored, so it is refused
+	// and the caller rasterizes it.
+	for _, style := range []string{
+		"fill:url(https://evil.test/a)",
+		"background:url(//evil.test/b)",
+		"background:url(data:image/svg+xml;base64,PHN2Zz4=)",
+		"width:expression(alert(1))",
+		"background:@import 'x.css'",
+	} {
+		t.Run(style, func(t *testing.T) {
+			in := `<svg xmlns="http://www.w3.org/2000/svg"><rect style="` + style + `" width="1" height="1"/></svg>`
+			_, err := Sanitize(strings.NewReader(in))
+			assert.ErrorIs(t, err, ErrRenderingChanged)
 		})
 	}
 }
@@ -279,52 +292,40 @@ func TestEmptyAndSelfClosingSerialization(t *testing.T) {
 	assert.Equal(t, `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"/>`, out)
 }
 
-// TestImgproxy1708VectorsDropped reproduces the three vectors from
+// TestImgproxy1708VectorsDropped reproduces the vectors from
 // imgproxy/imgproxy#1708 - external references surviving in <style>, <image>
-// and <feImage> - plus the attribute forms of the same idea. imgproxy's
-// denylist still let these through; here they are dropped by construction, so
-// the assertion is simply that the attacker host appears nowhere in the output.
+// and <feImage> - plus the attribute forms of the same idea. imgproxy's denylist
+// still let these through. Here the document is refused outright, which is the
+// strongest answer: the caller rasterizes the source, so nothing that reaches
+// outside is served at all.
 func TestImgproxy1708VectorsDropped(t *testing.T) {
-	const attacker = "attacker.example.com"
 	const prefix = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="8" height="8">`
 
-	for _, tc := range []struct {
-		name    string
-		body    string
-		refused bool
-	}{
-		{"style import", `<style>@import url(https://attacker.example.com/x.css);</style>`, true},
-		{"style background", `<style>.a{background:url(//attacker.example.com/p)}</style>`, true},
-		{"style cdata", `<style><![CDATA[.a{background:url(https://attacker.example.com/p)}]]></style>`, true},
-		{"style attribute", `<rect style="background:url(https://attacker.example.com/p)" width="1" height="1"/>`, false},
-		{"presentation attribute", `<rect fill="url(https://attacker.example.com/s.svg#g)" stroke="url(//attacker.example.com/t)" width="1" height="1"/>`, false},
-		{"image href", `<image href="https://attacker.example.com/i.png" width="8" height="8"/>`, false},
-		{"image xlink href", `<image xlink:href="//attacker.example.com/j.png" width="8" height="8"/>`, false},
-		{"feImage href", `<filter id="f"><feImage href="https://attacker.example.com/k.png"/></filter>`, false},
-		{"feImage xlink href", `<filter id="f"><feImage xlink:href="attacker.example.com/l.svg"/></filter>`, false},
-		{"marker and clip urls", `<clipPath id="c"><rect width="1" height="1"/></clipPath><rect clip-path="url(https://attacker.example.com/m.svg#c)" width="1" height="1"/>`, false},
+	for _, tc := range []struct{ name, body string }{
+		{"style import", `<style>@import url(https://attacker.example.com/x.css);</style>`},
+		{"style background", `<style>.a{background:url(//attacker.example.com/p)}</style>`},
+		{"style cdata", `<style><![CDATA[.a{background:url(https://attacker.example.com/p)}]]></style>`},
+		{"style attribute", `<rect style="background:url(https://attacker.example.com/p)" width="1" height="1"/>`},
+		{"presentation attribute", `<rect fill="url(https://attacker.example.com/s.svg#g)" stroke="url(//attacker.example.com/t)" width="1" height="1"/>`},
+		{"image href", `<image href="https://attacker.example.com/i.png" width="8" height="8"/>`},
+		{"image xlink href", `<image xlink:href="//attacker.example.com/j.png" width="8" height="8"/>`},
+		{"feImage href", `<filter id="f"><feImage href="https://attacker.example.com/k.png"/></filter>`},
+		{"feImage xlink href", `<filter id="f"><feImage xlink:href="attacker.example.com/l.svg"/></filter>`},
+		{"marker and clip urls", `<clipPath id="c"><rect width="1" height="1"/></clipPath><rect clip-path="url(https://attacker.example.com/m.svg#c)" width="1" height="1"/>`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.refused {
-				// A document that carries its own CSS is refused rather than
-				// served with the styling stripped, so the caller rasterizes it
-				// and the result still looks like the document that was authored.
-				_, err := Sanitize(strings.NewReader(prefix + tc.body + `</svg>`))
-				assert.ErrorIs(t, err, ErrInvalidSVG, "document styling must be refused")
-				return
-			}
-			out := sanitize(t, prefix+tc.body+`</svg>`)
-			assert.NotContains(t, out, attacker, "external reference survived:\n%s", out)
-			assert.NotContains(t, out, "url(", "url() survived:\n%s", out)
-			assert.NotContains(t, out, "<style", "<style> survived:\n%s", out)
-			assert.NotContains(t, out, "feImage", "feImage survived:\n%s", out)
-			require.NoError(t, xml.Unmarshal([]byte(out), new(struct{ XMLName xml.Name })))
+			out, err := Sanitize(strings.NewReader(prefix + tc.body + `</svg>`))
+			require.ErrorIs(t, err, ErrRenderingChanged, "the document must not be served")
+			assert.Empty(t, out, "a refused document must not be returned")
+			assert.NotContains(t, string(out), "attacker.example.com")
 		})
 	}
 
-	// The <image> element itself may stay, but never with a reference to fetch.
-	out := sanitize(t, prefix+`<image href="https://attacker.example.com/i.png" width="8" height="8"/></svg>`)
-	assert.Contains(t, out, "<image")
+	// A link is the exception: it is navigation rather than content, so the
+	// element is kept and only the href goes.
+	out := sanitize(t, prefix+`<a href="https://attacker.example.com/"><rect width="8" height="8"/></a></svg>`)
+	assert.Contains(t, out, "<a><rect")
+	assert.NotContains(t, out, "attacker.example.com")
 	assert.NotContains(t, out, "href")
 }
 
@@ -350,12 +351,15 @@ func TestImageDataURIRestrictedToRaster(t *testing.T) {
 		{"external", "https://evil.test/a.png", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><image href="`+tc.href+`" width="8" height="8"/></svg>`)
+			in := `<svg xmlns="http://www.w3.org/2000/svg"><image href="` + tc.href + `" width="8" height="8"/></svg>`
 			if tc.kept {
-				assert.Contains(t, out, `href="`+tc.href+`"`, out)
-			} else {
-				assert.NotContains(t, out, "href", out)
+				assert.Contains(t, sanitize(t, in), `href="`+tc.href+`"`)
+				return
 			}
+			// An <image> whose reference cannot be kept would render without the
+			// image, so the document is refused and rasterized instead.
+			_, err := Sanitize(strings.NewReader(in))
+			assert.ErrorIs(t, err, ErrRenderingChanged)
 		})
 	}
 }
@@ -383,45 +387,57 @@ func TestReferenceValueEdges(t *testing.T) {
 		name string
 		body string
 		kept string
+		// refused marks a value whose removal would change how the document
+		// looks: what it referenced would no longer be drawn, so the document
+		// is not served at all.
+		refused bool
 	}{
-		{"fragment", `<use href="#sym"/>`, `href="#sym"`},
-		{"fragment with xlink", `<use xlink:href="#sym"/>`, `xlink:href="#sym"`},
-		{"bare hash", `<use href="#"/>`, ""},
-		{"fragment with space", `<use href="# a"/>`, ""},
-		{"fragment with quote", `<use href="#a&quot;b"/>`, ""},
-		{"hash not first", `<use href="a#b"/>`, ""},
-		{"javascript", `<use href="javascript:alert(1)"/>`, ""},
-		{"javascript uppercase", `<use href="JavaScript:alert(1)"/>`, ""},
-		{"vbscript", `<use href="vbscript:msgbox(1)"/>`, ""},
-		{"data on use", `<use href="data:image/png;base64,AAAA"/>`, ""},
-		{"url empty", `<rect fill="url()" width="1" height="1"/>`, ""},
-		{"url fragment", `<rect fill="url(#g)" width="1" height="1"/>`, `fill="url(#g)"`},
-		{"url empty fragment", `<rect fill="url(#)" width="1" height="1"/>`, ""},
-		{"url external", `<rect fill="url(https://evil.test/a)" width="1" height="1"/>`, ""},
-		{"url relative", `<rect fill="url(a.svg#g)" width="1" height="1"/>`, ""},
-		{"bare colour", `<rect fill="#fff" width="1" height="1"/>`, `fill="#fff"`},
-		{"bare keyword", `<rect fill="none" width="1" height="1"/>`, `fill="none"`},
-		{"bare rgb", `<rect fill="rgb(1,2,3)" width="1" height="1"/>`, `fill="rgb(1,2,3)"`},
-		{"bare path", `<rect fill="a/b.png" width="1" height="1"/>`, ""},
-		{"bare scheme", `<rect fill="javascript:alert(1)" width="1" height="1"/>`, ""},
-		{"scheme with control char", `<rect fill="java&#10;script:alert(1)" width="1" height="1"/>`, ""},
-		{"style url fragment", `<rect style="fill:url(#g)" width="1" height="1"/>`, `style="fill:url(#g)"`},
-		{"style url external", `<rect style="fill:url(https://evil.test/a)" width="1" height="1"/>`, ""},
-		{"style expression", `<rect style="width:expression(alert(1))" width="1" height="1"/>`, ""},
-		{"style import", `<rect style="background:@import url(x.css)" width="1" height="1"/>`, ""},
-		{"style escape", `<rect style="fill:\75 rl(https://evil.test/a)" width="1" height="1"/>`, ""},
+		{"fragment", `<use href="#sym"/>`, `href="#sym"`, false},
+		{"fragment with xlink", `<use xlink:href="#sym"/>`, `xlink:href="#sym"`, false},
+		{"bare hash", `<use href="#"/>`, "", true},
+		{"fragment with space", `<use href="# a"/>`, "", true},
+		{"fragment with quote", `<use href="#a&quot;b"/>`, "", true},
+		{"hash not first", `<use href="a#b"/>`, "", true},
+		{"javascript", `<use href="javascript:alert(1)"/>`, "", true},
+		{"javascript uppercase", `<use href="JavaScript:alert(1)"/>`, "", true},
+		{"vbscript", `<use href="vbscript:msgbox(1)"/>`, "", true},
+		{"data on use", `<use href="data:image/png;base64,AAAA"/>`, "", true},
+		{"url empty", `<rect fill="url()" width="1" height="1"/>`, "", true},
+		{"url fragment", `<rect fill="url(#g)" width="1" height="1"/>`, `fill="url(#g)"`, false},
+		{"url empty fragment", `<rect fill="url(#)" width="1" height="1"/>`, "", true},
+		{"url external", `<rect fill="url(https://evil.test/a)" width="1" height="1"/>`, "", true},
+		{"url relative", `<rect fill="url(a.svg#g)" width="1" height="1"/>`, "", true},
+		{"bare colour", `<rect fill="#fff" width="1" height="1"/>`, `fill="#fff"`, false},
+		{"bare keyword", `<rect fill="none" width="1" height="1"/>`, `fill="none"`, false},
+		{"bare rgb", `<rect fill="rgb(1,2,3)" width="1" height="1"/>`, `fill="rgb(1,2,3)"`, false},
+		{"bare path", `<rect fill="a/b.png" width="1" height="1"/>`, "", false},
+		{"bare scheme", `<rect fill="javascript:alert(1)" width="1" height="1"/>`, "", false},
+		{"scheme with control char", `<rect fill="java&#10;script:alert(1)" width="1" height="1"/>`, "", false},
+		{"style url fragment", `<rect style="fill:url(#g)" width="1" height="1"/>`, `style="fill:url(#g)"`, false},
+		{"style url external", `<rect style="fill:url(https://evil.test/a)" width="1" height="1"/>`, "", true},
+		{"style expression", `<rect style="width:expression(alert(1))" width="1" height="1"/>`, "", true},
+		{"style import", `<rect style="background:@import url(x.css)" width="1" height="1"/>`, "", true},
+		{"style escape", `<rect style="fill:\75 rl(https://evil.test/a)" width="1" height="1"/>`, "", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			out := sanitize(t, prefix+tc.body+`</svg>`)
+			in := prefix + tc.body + `</svg>`
+			if tc.refused {
+				_, err := Sanitize(strings.NewReader(in))
+				assert.ErrorIs(t, err, ErrRenderingChanged)
+				return
+			}
+			out := sanitize(t, in)
 			if tc.kept != "" {
 				assert.Contains(t, out, tc.kept, out)
-			} else {
-				assert.NotContains(t, out, "evil.test", out)
-				assert.NotContains(t, out, "javascript", out)
-				assert.NotContains(t, out, "expression", out)
-				assert.NotContains(t, out, "url(", out)
-				assert.NotContains(t, out, "href", out)
+				return
 			}
+			// A value that is simply not a reference is dropped: the attribute
+			// is invalid rather than pointing somewhere.
+			assert.NotContains(t, out, "evil.test", out)
+			assert.NotContains(t, out, "javascript", out)
+			assert.NotContains(t, out, "expression", out)
+			assert.NotContains(t, out, "url(", out)
+			assert.NotContains(t, out, "href", out)
 		})
 	}
 }
@@ -436,18 +452,28 @@ func TestEntityEncodedValues(t *testing.T) {
 	out := sanitize(t, prefix+`<rect fill="&#35;fff" width="1" height="1"/></svg>`)
 	assert.Contains(t, out, `fill="#fff"`, out)
 
-	for _, tc := range []struct{ name, body string }{
-		{"decimal scheme in bare value", `<rect fill="&#106;avascript:alert(1)" width="1" height="1"/>`},
-		{"hex scheme in bare value", `<rect fill="&#x6a;avascript:alert(1)" width="1" height="1"/>`},
-		{"encoded colon in url", `<rect fill="url(&#35;x)" width="1" height="1"/>`},
-		{"double encoded href", `<use href="&amp;#106;avascript:alert(1)"/>`},
-		{"double encoded hex href", `<use href="&amp;#x6a;avascript:alert(1)"/>`},
-		{"encoded quote in style", `<rect style="fill:url(&quot;https://evil.test/a&quot;)" width="1" height="1"/>`},
-		{"double encoded control character", `<rect fill="&amp;#1;x" width="1" height="1"/>`},
-		{"double encoded surrogate", `<rect fill="&amp;#xD800;x" width="1" height="1"/>`},
+	for _, tc := range []struct {
+		name    string
+		body    string
+		refused bool
+	}{
+		{"decimal scheme in bare value", `<rect fill="&#106;avascript:alert(1)" width="1" height="1"/>`, false},
+		{"hex scheme in bare value", `<rect fill="&#x6a;avascript:alert(1)" width="1" height="1"/>`, false},
+		{"encoded colon in url", `<rect fill="url(&#35;x)" width="1" height="1"/>`, false},
+		{"double encoded href", `<use href="&amp;#106;avascript:alert(1)"/>`, true},
+		{"double encoded hex href", `<use href="&amp;#x6a;avascript:alert(1)"/>`, true},
+		{"encoded quote in style", `<rect style="fill:url(&quot;https://evil.test/a&quot;)" width="1" height="1"/>`, true},
+		{"double encoded control character", `<rect fill="&amp;#1;x" width="1" height="1"/>`, false},
+		{"double encoded surrogate", `<rect fill="&amp;#xD800;x" width="1" height="1"/>`, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			out := sanitize(t, prefix+tc.body+`</svg>`)
+			in := prefix + tc.body + `</svg>`
+			if tc.refused {
+				_, err := Sanitize(strings.NewReader(in))
+				assert.ErrorIs(t, err, ErrRenderingChanged)
+				return
+			}
+			out := sanitize(t, in)
 			require.NoError(t, xml.Unmarshal([]byte(out), new(struct{ XMLName xml.Name })), "output must stay well-formed: %s", out)
 			if tc.name == "encoded colon in url" {
 				// &#35; is "#": the url() form decodes to url(#x), allowed.
@@ -634,7 +660,7 @@ func TestDocumentStylingIsRefused(t *testing.T) {
 		`<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><style>p{color:red}</style></foreignObject></svg>`,
 	} {
 		_, err := Sanitize(strings.NewReader(in))
-		assert.ErrorIs(t, err, ErrInvalidSVG)
+		assert.ErrorIs(t, err, ErrRenderingChanged)
 	}
 
 	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:#fff" width="1" height="1"/></svg>`)
@@ -654,6 +680,56 @@ func TestGradientAndBackgroundAttributesPreserved(t *testing.T) {
 		`enable-background="new"`, `pointer-events="none"`, `cursor="crosshair"`,
 	} {
 		assert.Contains(t, out, want, out)
+	}
+}
+
+// TestFilterParametersPreserved keeps the parameters a filter primitive is
+// configured with. Dropping them does not remove the filter, it applies it with
+// default values, and the result differs from the document that was authored.
+func TestFilterParametersPreserved(t *testing.T) {
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><filter id="f">`+
+		`<feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>`+
+		`<feSpecularLighting specularConstant="0.8" specularExponent="12" surfaceScale="3" lighting-color="#fff">`+
+		`<fePointLight x="1" y="2" z="3"/></feSpecularLighting>`+
+		`<feMorphology radius="2" operator="erode" preserveAlpha="true"/>`+
+		`<feComposite in="n" in2="SourceGraphic" operator="in" k1="0.1"/>`+
+		`<feImage href="#n" bottomLeftOrigin="true"/>`+
+		`</filter></svg>`)
+	for _, want := range []string{
+		`type="fractalNoise"`, `baseFrequency="0.05"`, `numOctaves="3"`, `seed="7"`,
+		`stitchTiles="stitch"`, `result="n"`, `specularConstant="0.8"`,
+		`specularExponent="12"`, `surfaceScale="3"`, `z="3"`, `radius="2"`,
+		`preserveAlpha="true"`, `in="n"`, `in2="SourceGraphic"`, `k1="0.1"`,
+		`bottomLeftOrigin="true"`, `href="#n"`,
+	} {
+		assert.Contains(t, out, want, out)
+	}
+}
+
+// TestFilterImageAndTextReference covers the two primitives that carry a
+// reference: feImage embeds an image into a filter and takes the same values as
+// <image>, tref pulls in the text of another element.
+func TestFilterImageAndTextReference(t *testing.T) {
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`+
+		`<defs><text id="t">label</text></defs>`+
+		`<filter id="g"><feImage href="data:image/png;base64,iVBORw0KGgo=" width="4" height="4"/></filter>`+
+		`<rect width="1" height="1" filter="url(#g)"/><text><tref href="#t"/></text></svg>`)
+	assert.Contains(t, out, "<feImage")
+	assert.Contains(t, out, `href="data:image/png;base64,iVBORw0KGgo="`)
+	assert.Contains(t, out, "<tref")
+	assert.Contains(t, out, `href="#t"`)
+	assert.NotContains(t, out, `href="http`)
+
+	// A reference either of them cannot keep means the document would render
+	// without what it points at, so it is not served at all.
+	for _, in := range []string{
+		`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><filter id="f"><feImage xlink:href="https://evil.test/a.png" width="4" height="4"/></filter></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><text><tref href="https://evil.test/x"/></text></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><filter><feImage href="data:image/svg+xml;base64,PHN2Zz4="/></filter></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><image href="data:image/svg+xml;base64,PHN2Zz4=" width="4" height="4"/></svg>`,
+	} {
+		_, err := Sanitize(strings.NewReader(in))
+		assert.ErrorIs(t, err, ErrRenderingChanged)
 	}
 }
 
@@ -684,7 +760,7 @@ func FuzzSanitize(f *testing.F) {
 		doc := string(out)
 		require.NoError(t, xml.Unmarshal(out, new(struct{ XMLName xml.Name })),
 			"accepted output must be well-formed XML: %s", doc)
-		for _, element := range []string{"<script", "<foreignObject", "<style", "<feImage", "<iframe", "<animate"} {
+		for _, element := range []string{"<script", "<foreignObject", "<style", "<iframe", "<animate"} {
 			assert.NotContains(t, doc, element, "executable element survived: %s", doc)
 		}
 		// Every attribute of the accepted document is on the allowlist and
