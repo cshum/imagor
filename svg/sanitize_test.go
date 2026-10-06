@@ -321,12 +321,51 @@ func TestImgproxy1708VectorsDropped(t *testing.T) {
 		})
 	}
 
-	// A link is the exception: it is navigation rather than content, so the
-	// element is kept and only the href goes.
+	// A link is navigation rather than content, so it is kept as authored: the
+	// one place an absolute target survives, matching imgproxy's href rule.
 	out := sanitize(t, prefix+`<a href="https://attacker.example.com/"><rect width="8" height="8"/></a></svg>`)
-	assert.Contains(t, out, "<a><rect")
-	assert.NotContains(t, out, "attacker.example.com")
-	assert.NotContains(t, out, "href")
+	assert.Contains(t, out, `<a href="https://attacker.example.com/">`)
+	assert.Contains(t, out, "<rect")
+}
+
+// TestLinkTargets covers the one element where an absolute reference is kept: a
+// link navigates on a click rather than fetching, so http(s) survives while
+// anything that executes, or that would resolve against imagor's address rather
+// than the address the document was authored at, is dropped.
+func TestLinkTargets(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		href string
+		kept bool
+	}{
+		{"https", "https://example.com/a", true},
+		{"http", "http://example.com/a", true},
+		{"uppercase scheme", "HTTPS://example.com/a", true},
+		{"protocol relative", "//example.com/a", true},
+		{"fragment", "#here", true},
+		{"relative", "other.svg", false},
+		{"root relative", "/admin/delete", false},
+		{"javascript", "javascript:alert(1)", false},
+		{"entity obfuscated scheme", "java&#115;cript:alert(1)", false},
+		{"data", "data:text/html;base64,PHNjcmlwdD4=", false},
+		{"vbscript", "vbscript:msgbox(1)", false},
+		{"mailto", "mailto:a@b.test", false},
+		{"space in value", "https://example.com/ a", false},
+		{"newline in scheme", "java&#10;script:alert(1)", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><a href="`+tc.href+`"><text>x</text></a></svg>`)
+			if tc.kept {
+				assert.Contains(t, out, `href="`+tc.href+`"`, out)
+				return
+			}
+			assert.NotContains(t, out, "href=", out)
+		})
+	}
+
+	// The xlink form is the same rule.
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><a xlink:href="https://example.com/"><text>x</text></a></svg>`)
+	assert.Contains(t, out, `xlink:href="https://example.com/"`)
 }
 
 // TestImageDataURIRestrictedToRaster keeps embedded raster data and drops an
@@ -633,10 +672,9 @@ func TestAnchorKeepsItsContents(t *testing.T) {
 	assert.Contains(t, out, "<rect")
 	assert.Contains(t, out, "<circle")
 	assert.Contains(t, out, "<title>SVG logo</title>")
-	assert.NotContains(t, out, "href")
-	assert.NotContains(t, out, "Graphics/SVG")
+	assert.Contains(t, out, `xlink:href="http://www.w3.org/Graphics/SVG/"`, "a link keeps its target")
+	assert.NotContains(t, out, "xlink:title")
 	assert.NotContains(t, out, "target")
-	assert.Contains(t, out, "<a><title>", "the anchor survives as a container without attributes")
 
 	// A same-document link is not a way out of the document, so it stays.
 	out = sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><defs><rect id="r" width="1" height="1"/></defs><a href="#r"><text>x</text></a></svg>`)
@@ -833,6 +871,12 @@ func FuzzSanitize(f *testing.F) {
 						continue
 					}
 					if el.Name.Local == "image" && isRasterDataURI(a.Value) {
+						continue
+					}
+					// A link is navigation, not content: an absolute http(s) target
+					// is the author's own reference and is kept.
+					if el.Name.Local == "a" && (strings.HasPrefix(v, "http://") ||
+						strings.HasPrefix(v, "https://") || strings.HasPrefix(v, "//")) {
 						continue
 					}
 					t.Fatalf("href left the document: %s on <%s>: %s", a.Value, el.Name.Local, doc)

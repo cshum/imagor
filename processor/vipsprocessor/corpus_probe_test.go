@@ -242,7 +242,9 @@ func ptReferenceProblems(doc []byte) []string {
 				}
 			}
 			if a.Name.Local == "href" && v != "" && !strings.HasPrefix(v, "#") &&
-				!(el.Name.Local == "image" && strings.HasPrefix(v, "data:image/")) {
+				!(el.Name.Local == "image" && strings.HasPrefix(v, "data:image/")) &&
+				!(el.Name.Local == "a" && (strings.HasPrefix(v, "http://") ||
+					strings.HasPrefix(v, "https://") || strings.HasPrefix(v, "//"))) {
 				problems = append(problems, "external href on <"+el.Name.Local+"> "+a.Value)
 			}
 		}

@@ -78,8 +78,7 @@ func unservableReason(el xml.StartElement) string {
 		if !ok {
 			continue
 		}
-		isImage := local == "image" || local == "feImage"
-		if _, kept := sanitizeAttrValue(name, attr.Value, isImage); kept {
+		if _, kept := sanitizeAttrValue(name, attr.Value, local); kept {
 			continue
 		}
 		if isResource && isHrefAttr(name) {
@@ -354,7 +353,7 @@ func (d *document) serialize() ([]byte, error) {
 	// The sanitized document always carries its own namespace declarations.
 	b.WriteString(` xmlns="` + svgNamespace + `"`)
 	b.WriteString(` xmlns:xlink="` + xlinkNamespace + `"`)
-	d.writeAttrs(&b, root.Attr, false)
+	d.writeAttrs(&b, "svg", root.Attr)
 	rootEnd := d.end[d.root]
 	if rootEnd == d.root+1 {
 		b.WriteString("/>")
@@ -383,9 +382,8 @@ func (d *document) writeChildren(b *bytes.Buffer, from, to int) error {
 				continue
 			}
 			name := t.Name.Local
-			isImage := name == "image" || name == "feImage"
 			b.WriteString("<" + name)
-			d.writeAttrs(b, t.Attr, isImage)
+			d.writeAttrs(b, name, t.Attr)
 			if elEnd == i+1 {
 				b.WriteString("/>")
 			} else {
@@ -403,7 +401,7 @@ func (d *document) writeChildren(b *bytes.Buffer, from, to int) error {
 	return nil
 }
 
-func (d *document) writeAttrs(b *bytes.Buffer, attrs []xml.Attr, isImage bool) {
+func (d *document) writeAttrs(b *bytes.Buffer, el string, attrs []xml.Attr) {
 	for _, attr := range attrs {
 		name, ok := attrName(attr.Name)
 		if !ok {
@@ -412,7 +410,7 @@ func (d *document) writeAttrs(b *bytes.Buffer, attrs []xml.Attr, isImage bool) {
 		if _, ok := allowedAttrs[name]; !ok && !isHrefAttr(name) {
 			continue
 		}
-		value, ok := sanitizeAttrValue(name, attr.Value, isImage)
+		value, ok := sanitizeAttrValue(name, attr.Value, el)
 		if !ok {
 			continue
 		}
@@ -449,10 +447,15 @@ func isHrefAttr(name string) bool {
 	return ok && (name == "href" || strings.HasPrefix(name, "xlink:"))
 }
 
-func sanitizeAttrValue(name, value string, isImage bool) (string, bool) {
+func sanitizeAttrValue(name, value, el string) (string, bool) {
 	if isHrefAttr(name) {
-		if isImage {
+		switch el {
+		case "image", "feImage":
 			return imageHrefValue(value)
+		case "a":
+			// A link navigates on a click rather than fetching, so an absolute
+			// http(s) target is kept: it is the author's own reference.
+			return linkHrefValue(value)
 		}
 		return hrefValue(value)
 	}
@@ -477,6 +480,32 @@ func hrefValue(value string) (string, bool) {
 		return "", false
 	}
 	return v, true
+}
+
+// linkHrefValue keeps a navigation target on <a>: an absolute http(s)
+// reference, or a same-document fragment. A relative reference is dropped
+// because the document is served from imagor's address rather than the one it
+// was authored at, so it would resolve somewhere the author never wrote. Every
+// other scheme is dropped: javascript: and data: execute rather than navigate.
+func linkHrefValue(value string) (string, bool) {
+	v := strings.TrimSpace(decodeEntities(value))
+	if strings.ContainsAny(v, " \t\r\n\"'<>\\") {
+		return "", false
+	}
+	if strings.HasPrefix(v, "#") {
+		return hrefValue(v)
+	}
+	if strings.HasPrefix(v, "//") {
+		// Protocol-relative, so still an absolute reference to another host.
+		return v, true
+	}
+	if scheme, ok := hasScheme(v); ok {
+		switch scheme {
+		case "http", "https":
+			return v, true
+		}
+	}
+	return "", false
 }
 
 // imageHrefValue is hrefValue plus raster data: URIs, since <image> embeds
