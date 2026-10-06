@@ -153,11 +153,9 @@ Specifies the output format of the image.
 
 #### `format(svg)`
 
-Returns an SVG source as the vector itself, without rasterizing it. The source must be an SVG, and the document is sanitized unless sanitization is off (`VIPS_SANITIZE_SVG=0`).
+Returns an SVG source as the vector itself, without rasterizing it. The document is sanitized unless sanitization is off (`VIPS_SANITIZE_SVG=0`).
 
-`format(svg)` is an explicit request, so it does not need [`IMAGOR_PASSTHROUGH_FORMATS`](./security.mdx#svg-pass-through) — that setting is the default for requests that ask for nothing. With sanitization off it does need it, since serving the document untouched is then a decision for the operator.
-
-Returns HTTP 400 when the source is not an SVG, or when it is combined with a transformation: a resize, crop or filter cannot apply to a document served untouched.
+Returns HTTP 400 for a non-SVG source, or when combined with a resize, crop or filter — neither can apply to a document served untouched.
 
 ---
 
