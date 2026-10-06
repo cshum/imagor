@@ -50,6 +50,7 @@ type Processor struct {
 	VectorDisableTargets int64
 	Unlimited            bool
 	Debug                bool
+	SanitizeSVG          bool
 
 	// Image cache settings
 	CacheSize      int64
@@ -62,6 +63,11 @@ type Processor struct {
 	cache          *imageCache
 	cacheSF        singleflight.Group
 	hasDcrawload   bool
+
+	// Set by the application at startup (imagor.PassthroughProcessor), not by
+	// callers, so that the marker it appends to the request path and this
+	// processor's decision cannot disagree.
+	passthroughFormats map[imagor.BlobType]struct{}
 }
 
 // NewProcessor create Processor
@@ -79,6 +85,7 @@ func NewProcessor(options ...Option) *Processor {
 		CacheMaxWidth:      2400,
 		CacheMaxHeight:     2000,
 		DetectorProbeSize:  400,
+		SanitizeSVG:        true,
 	}
 	v.Filters = FilterMap{
 		"image":            v.image,

@@ -57,6 +57,8 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			"VIPS image cache TTL. Cached entries expire after this duration and are re-fetched from source. Set 0 (default) for no expiry")
 		vipsCacheFormat = fs.String("vips-cache-format", "pixel",
 			"VIPS image cache storage format: pixel (default), png (lossless), webp (lossy)")
+		vipsSanitizeSVG = fs.Bool("vips-sanitize-svg", true,
+			"VIPS sanitize SVG served through passthrough: strips script, event handlers, foreign markup and external references. Disable only when every source SVG is trusted")
 
 		logger, isDebug = cb()
 	)
@@ -85,6 +87,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 			vipsprocessor.WithCacheMaxHeight(*vipsCacheMaxHeight),
 			vipsprocessor.WithCacheTTL(*vipsCacheTTL),
 			vipsprocessor.WithCacheFormat(parseCacheFormat(*vipsCacheFormat)),
+			vipsprocessor.WithSanitizeSVG(*vipsSanitizeSVG),
 			vipsprocessor.WithLogger(logger),
 			vipsprocessor.WithDebug(isDebug),
 		),

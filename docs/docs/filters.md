@@ -151,6 +151,12 @@ Specifies the output format of the image.
 
 - `format` — accepts `jpeg`, `png`, `gif`, `webp`, `avif`, `jxl`, `tiff`, `jp2`
 
+#### `format(svg)`
+
+Returns an SVG source as the vector itself, without rasterizing it. Requires [SVG pass-through](./security.mdx#svg-pass-through) to be enabled (`IMAGOR_PASSTHROUGH_FORMATS=svg`), and the source must be an SVG.
+
+`format(svg)` is refused with HTTP 400 when the source is not an SVG, when pass-through is disabled, or when it is combined with a transformation — a resize, crop or filter cannot be applied to a document that is served untouched, and answering with something other than the requested format would be a silent substitution.
+
 ---
 
 ### `grayscale()`
@@ -528,6 +534,14 @@ When combined with [`expire(timestamp)`](#expiretimestamp), the most restrictive
 :::warning
 With `IMAGOR_UNSAFE` enabled, anyone can craft a URL with an arbitrarily large `max_age`. Use URL signatures in production.
 :::
+
+---
+
+### `passthrough()`
+
+Internal marker that imagor appends to a request that asks for no transformation, when [SVG pass-through](./security.mdx#svg-pass-through) is enabled. It is part of the [result storage key](./storage-path-style.md), so a pass-through result and a rasterized result of the same request never share a cache entry — the marker is what keeps the two representations, and their content types, apart.
+
+It is not meant to be written by hand: it is only honoured for a source format the server has enabled pass-through for, and it never overrides a transformation. Use `format(svg)` to ask for the vector explicitly.
 
 ---
 

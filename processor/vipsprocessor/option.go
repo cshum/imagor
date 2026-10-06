@@ -46,6 +46,19 @@ func WithDetectorProbeSize(size int) Option {
 	}
 }
 
+// WithSanitizeSVG with SVG sanitization option. When enabled (the default), an
+// SVG served through passthrough is sanitized first: script, event handlers,
+// foreign markup and every non-fragment reference are removed.
+//
+// Disabling it serves the source document byte-for-byte, which is only
+// appropriate when every source is trusted - an SVG returned to a browser runs
+// with the proxy's origin.
+func WithSanitizeSVG(enable bool) Option {
+	return func(v *Processor) {
+		v.SanitizeSVG = enable
+	}
+}
+
 // WithDisableBlur with disable blur option
 func WithDisableBlur(disabled bool) Option {
 	return func(v *Processor) {

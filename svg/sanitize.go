@@ -1,0 +1,576 @@
+// Package svg provides a deny-by-default sanitizer for SVG documents.
+//
+// The sanitizer re-serializes an SVG from its XML tokens, keeping only an
+// allowlist of SVG elements and attributes. Everything else is dropped:
+// <script>, <foreignObject>, <style>, animation elements, DOCTYPE,
+// processing instructions, comments, and every reference that is not a
+// same-document fragment. Parse failures are errors - the caller must not
+// fall back to serving the original bytes.
+//
+// It exists because serving an upstream SVG is handing the browser executable
+// markup: a proxied SVG runs with the proxy's origin, so script, event
+// handlers, <foreignObject> and external references are all attack surface.
+// The sanitizer deliberately does not try to be a denylist of known-bad
+// constructs; unknown elements and attributes are dropped, not inspected.
+//
+// Output is normalized: it is re-serialized with an XML declaration and a
+// standard namespace set, so whitespace, self-closing tags, comments and
+// namespace prefixes do not survive. Content is otherwise preserved, including
+// attribute name case (viewBox), text, and url(#id) references.
+package svg
+
+import (
+	"bytes"
+	"encoding/xml"
+	"errors"
+	"fmt"
+	"io"
+	"regexp"
+	"strings"
+	"unicode/utf8"
+)
+
+// ErrInvalidSVG reports input that is not a usable SVG document.
+var ErrInvalidSVG = errors.New("svg: invalid svg document")
+
+// maxDepth limits element nesting so a hostile document cannot exhaust the
+// stack during serialization.
+const maxDepth = 256
+
+const (
+	svgNamespace   = "http://www.w3.org/2000/svg"
+	xlinkNamespace = "http://www.w3.org/1999/xlink"
+	xmlNamespace   = "http://www.w3.org/XML/1998/namespace"
+)
+
+// allowedElements is the set of elements that survive sanitization. An element
+// that is not here is dropped along with its entire subtree.
+//
+// Deliberately absent: script, foreignObject, style, iframe, form, a,
+// metadata, animation (animate, set, animateTransform, animateMotion),
+// feImage, and every non-SVG element.
+var allowedElements = map[string]struct{}{
+	// structure
+	"svg": {}, "g": {}, "defs": {}, "symbol": {}, "use": {}, "switch": {},
+	"title": {}, "desc": {},
+	// shapes
+	"path": {}, "rect": {}, "circle": {}, "ellipse": {}, "line": {},
+	"polyline": {}, "polygon": {},
+	// text
+	"text": {}, "tspan": {}, "textPath": {},
+	// embedded raster (href restricted to data: URIs)
+	"image": {},
+	// paint servers and geometry references
+	"linearGradient": {}, "radialGradient": {}, "stop": {}, "pattern": {},
+	"clipPath": {}, "mask": {}, "marker": {},
+	// filters
+	"filter": {}, "feGaussianBlur": {}, "feBlend": {}, "feColorMatrix": {},
+	"feComponentTransfer": {}, "feFuncA": {}, "feFuncB": {}, "feFuncG": {},
+	"feFuncR": {}, "feComposite": {}, "feConvolveMatrix": {},
+	"feDiffuseLighting": {}, "feDisplacementMap": {}, "feFlood": {},
+	"feMerge": {}, "feMergeNode": {}, "feMorphology": {}, "feOffset": {},
+	"feSpecularLighting": {}, "feTile": {}, "feTurbulence": {},
+	"feDistantLight": {}, "fePointLight": {}, "feSpotLight": {},
+	"feDropShadow": {},
+}
+
+// allowedAttrs is the set of attributes that survive, matching on the local
+// name (namespace-qualified attributes are handled separately below).
+//
+// Event handlers (on*), and anything else not listed, never survive - the
+// allowlist is the whole defence for attributes.
+var allowedAttrs = map[string]struct{}{
+	// core and styling
+	"id": {}, "class": {}, "style": {}, "transform": {}, "opacity": {}, "display": {},
+	"visibility": {}, "overflow": {}, "isolation": {}, "mix-blend-mode": {},
+	"vector-effect": {}, "paint-order": {},
+	"clip-path": {}, "clip-rule": {}, "mask": {}, "filter": {},
+	"marker-start": {}, "marker-mid": {}, "marker-end": {},
+	"color": {}, "color-interpolation": {}, "color-interpolation-filters": {},
+	"shape-rendering": {}, "text-rendering": {}, "image-rendering": {},
+	// fill and stroke
+	"fill": {}, "fill-opacity": {}, "fill-rule": {},
+	"stroke": {}, "stroke-opacity": {}, "stroke-width": {},
+	"stroke-linecap": {}, "stroke-linejoin": {}, "stroke-miterlimit": {},
+	"stroke-dasharray": {}, "stroke-dashoffset": {},
+	// text
+	"font-family": {}, "font-size": {}, "font-size-adjust": {}, "font-stretch": {},
+	"font-style": {}, "font-variant": {}, "font-weight": {},
+	"letter-spacing": {}, "word-spacing": {}, "text-anchor": {},
+	"text-decoration": {}, "dominant-baseline": {}, "alignment-baseline": {},
+	"baseline-shift": {}, "direction": {}, "unicode-bidi": {}, "kerning": {},
+	"writing-mode": {}, "glyph-orientation-horizontal": {},
+	"glyph-orientation-vertical": {},
+	// geometry
+	"x": {}, "y": {}, "width": {}, "height": {}, "rx": {}, "ry": {},
+	"cx": {}, "cy": {}, "r": {}, "x1": {}, "y1": {}, "x2": {}, "y2": {},
+	"points": {}, "d": {}, "pathLength": {}, "dx": {}, "dy": {}, "rotate": {},
+	"textLength": {}, "lengthAdjust": {}, "startOffset": {}, "method": {},
+	"spacing": {}, "side": {},
+	// viewport, gradients, patterns, markers, filters
+	"viewBox": {}, "preserveAspectRatio": {},
+	"gradientUnits": {}, "gradientTransform": {}, "spreadMethod": {},
+	"offset": {}, "stop-color": {}, "stop-opacity": {},
+	"patternUnits": {}, "patternContentUnits": {}, "patternTransform": {},
+	"maskUnits": {}, "maskContentUnits": {}, "clipPathUnits": {},
+	"markerUnits": {}, "markerWidth": {}, "markerHeight": {},
+	"refX": {}, "refY": {}, "orient": {}, "filterUnits": {}, "primitiveUnits": {},
+	"result": {}, "in": {}, "in2": {}, "stdDeviation": {}, "mode": {},
+	"values": {}, "type": {}, "tableValues": {}, "slope": {}, "intercept": {},
+	"amplitude": {}, "exponent": {}, "operator": {}, "k1": {}, "k2": {},
+	"k3": {}, "k4": {}, "order": {}, "kernelMatrix": {}, "divisor": {},
+	"bias": {}, "targetX": {}, "targetY": {}, "edgeMode": {},
+	"kernelUnitLength": {}, "azimuth": {}, "elevation": {}, "pointsAtX": {},
+	"pointsAtY": {}, "pointsAtZ": {}, "specularExponent": {},
+	"limitingConeAngle": {}, "surfaceScale": {}, "diffuseConstant": {},
+	"scale": {}, "xChannelSelector": {}, "yChannelSelector": {},
+	"flood-color": {}, "flood-opacity": {}, "lighting-color": {},
+	// conditional processing
+	"systemLanguage": {}, "requiredFeatures": {}, "requiredExtensions": {},
+}
+
+// hrefAttrs are attributes carrying a reference. Their values are restricted to
+// same-document fragments or relative references; see hrefValue(). <image> is
+// additionally allowed data: URIs, handled in imageHrefValue().
+var hrefAttrs = map[string]struct{}{"href": {}}
+
+// urlAttrs carry a paint server or geometry reference that may be written as
+// url(...). Their values are checked so that url() only ever points at a
+// same-document fragment.
+var urlAttrs = map[string]struct{}{
+	"fill": {}, "stroke": {}, "filter": {}, "clip-path": {}, "mask": {},
+	"marker-start": {}, "marker-mid": {}, "marker-end": {},
+}
+
+// styleAttrRe matches constructs in a style attribute that can reach outside
+// the document. url(#id) is fine and is handled by urlAttrValue.
+var (
+	styleForbiddenRe = regexp.MustCompile(`(?i)@import|expression\s*\(|javascript:|vbscript:|behavior\s*:|\\|<!--|-->|</`)
+	styleURLRe       = regexp.MustCompile(`(?i)url\s*\(\s*['"]?([^'")]*)`)
+	anyURLRe         = regexp.MustCompile(`(?i)url\s*\(`)
+)
+
+// Sanitize reads an SVG document and returns a sanitized copy.
+//
+// It returns ErrInvalidSVG (wrapped) when the input is not an SVG document or
+// cannot be parsed. Callers must treat any error as "do not serve this to a
+// browser".
+func Sanitize(r io.Reader) ([]byte, error) {
+	doc, err := parse(r)
+	if err != nil {
+		return nil, err
+	}
+	return doc.serialize()
+}
+
+type document struct {
+	tokens []xml.Token
+	// end maps a StartElement token index to its matching EndElement index.
+	end  []int
+	root int
+}
+
+func parse(r io.Reader) (*document, error) {
+	dec := xml.NewDecoder(r)
+	var (
+		tokens []xml.Token
+		end    []int
+		stack  []int
+	)
+	for {
+		tok, err := dec.Token()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrInvalidSVG, err)
+		}
+		idx := len(tokens)
+		// xml.Decoder reuses its internal buffer for CharData, so the slice is
+		// only valid until the next Token() call - copy it before storing.
+		if cd, ok := tok.(xml.CharData); ok {
+			tok = xml.CharData(append([]byte(nil), cd...))
+		}
+		tokens = append(tokens, tok)
+		end = append(end, -1)
+		switch tok.(type) {
+		case xml.StartElement:
+			if len(stack) >= maxDepth {
+				return nil, fmt.Errorf("%w: exceeds max element depth %d", ErrInvalidSVG, maxDepth)
+			}
+			stack = append(stack, idx)
+		case xml.EndElement:
+			if len(stack) == 0 {
+				return nil, fmt.Errorf("%w: unexpected end element", ErrInvalidSVG)
+			}
+			open := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			end[open] = idx
+		}
+	}
+	if len(stack) != 0 {
+		return nil, fmt.Errorf("%w: unclosed element", ErrInvalidSVG)
+	}
+
+	doc := &document{tokens: tokens, end: end, root: -1}
+	// Locate the root <svg> element, tolerating whitespace, comments and
+	// directives (DOCTYPE) before it.
+	for i, tok := range tokens {
+		switch t := tok.(type) {
+		case xml.StartElement:
+			if t.Name.Local != "svg" {
+				return nil, fmt.Errorf("%w: root element is <%s>", ErrInvalidSVG, t.Name.Local)
+			}
+			doc.root = i
+			// Only ignorable tokens may follow the root element.
+			for j := doc.end[i] + 1; j < len(tokens); j++ {
+				switch tt := tokens[j].(type) {
+				case xml.CharData:
+					if len(bytes.TrimSpace(tt)) > 0 {
+						return nil, fmt.Errorf("%w: content after root element", ErrInvalidSVG)
+					}
+				case xml.Comment, xml.ProcInst, xml.Directive:
+				default:
+					return nil, fmt.Errorf("%w: content after root element", ErrInvalidSVG)
+				}
+			}
+			return doc, nil
+		case xml.CharData:
+			if len(bytes.TrimSpace(t)) > 0 {
+				return nil, fmt.Errorf("%w: text before root element", ErrInvalidSVG)
+			}
+		}
+	}
+	return nil, fmt.Errorf("%w: no root element", ErrInvalidSVG)
+}
+
+func (d *document) serialize() ([]byte, error) {
+	var b bytes.Buffer
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
+	root := d.tokens[d.root].(xml.StartElement) //nolint:errcheck // index set in parse
+	b.WriteString("<svg")
+	// The sanitized document always carries its own namespace declarations.
+	b.WriteString(` xmlns="` + svgNamespace + `"`)
+	b.WriteString(` xmlns:xlink="` + xlinkNamespace + `"`)
+	d.writeAttrs(&b, root.Attr, false)
+	rootEnd := d.end[d.root]
+	if rootEnd == d.root+1 {
+		b.WriteString("/>")
+		return b.Bytes(), nil
+	}
+	b.WriteString(">")
+	if err := d.writeChildren(&b, d.root+1, rootEnd); err != nil {
+		return nil, err
+	}
+	b.WriteString("</svg>")
+	return b.Bytes(), nil
+}
+
+func (d *document) writeChildren(b *bytes.Buffer, from, to int) error {
+	for i := from; i < to; i++ {
+		switch t := d.tokens[i].(type) {
+		case xml.CharData:
+			b.WriteString(escapeText(string(t)))
+		case xml.StartElement:
+			elEnd := d.end[i]
+			if elEnd < 0 || elEnd > to {
+				return fmt.Errorf("%w: malformed element nesting", ErrInvalidSVG)
+			}
+			if _, ok := allowedElements[t.Name.Local]; !ok {
+				i = elEnd // drop the element and its subtree
+				continue
+			}
+			name := t.Name.Local
+			isImage := name == "image"
+			b.WriteString("<" + name)
+			d.writeAttrs(b, t.Attr, isImage)
+			if elEnd == i+1 {
+				b.WriteString("/>")
+			} else {
+				b.WriteString(">")
+				if err := d.writeChildren(b, i+1, elEnd); err != nil {
+					return err
+				}
+				b.WriteString("</" + name + ">")
+			}
+			i = elEnd
+		default:
+			// comments, processing instructions and directives are dropped
+		}
+	}
+	return nil
+}
+
+func (d *document) writeAttrs(b *bytes.Buffer, attrs []xml.Attr, isImage bool) {
+	for _, attr := range attrs {
+		name, ok := attrName(attr.Name)
+		if !ok {
+			continue
+		}
+		if _, ok := allowedAttrs[name]; !ok && !isHrefAttr(name) {
+			continue
+		}
+		value, ok := sanitizeAttrValue(name, attr.Value, isImage)
+		if !ok {
+			continue
+		}
+		b.WriteString(` ` + name + `="` + escapeAttr(value) + `"`)
+	}
+}
+
+// attrName maps an XML attribute name to a serializable SVG attribute name,
+// returning false for attributes that must be dropped (foreign namespaces,
+// namespace declarations).
+func attrName(n xml.Name) (string, bool) {
+	switch n.Space {
+	case "":
+		if n.Local == "" {
+			return "", false
+		}
+		return n.Local, true
+	case xmlNamespace:
+		return "xml:" + n.Local, true
+	case xlinkNamespace:
+		// Serialized as xlink:href; the xlink prefix is declared on the root.
+		if _, ok := hrefAttrs[n.Local]; !ok {
+			return "", false
+		}
+		return "xlink:" + n.Local, true
+	default:
+		// Namespace declarations (Space == "xmlns") and any foreign namespace.
+		return "", false
+	}
+}
+
+func isHrefAttr(name string) bool {
+	_, ok := hrefAttrs[strings.TrimPrefix(name, "xlink:")]
+	return ok && (name == "href" || strings.HasPrefix(name, "xlink:"))
+}
+
+func sanitizeAttrValue(name, value string, isImage bool) (string, bool) {
+	if isHrefAttr(name) {
+		if isImage {
+			return imageHrefValue(value)
+		}
+		return hrefValue(value)
+	}
+	if name == "style" {
+		return styleValue(value)
+	}
+	if _, ok := urlAttrs[name]; ok {
+		return urlAttrValue(value)
+	}
+	return value, true
+}
+
+// hrefValue accepts only same-document fragment references. A relative or
+// absolute reference would be fetched by the browser from whatever origin
+// serves the SVG - the proxy itself - so it is treated as external.
+func hrefValue(value string) (string, bool) {
+	v := strings.TrimSpace(decodeEntities(value))
+	if !strings.HasPrefix(v, "#") || len(v) == 1 {
+		return "", false
+	}
+	if strings.ContainsAny(v, " 	\r\n\"'<>\\") {
+		return "", false
+	}
+	return v, true
+}
+
+// imageHrefValue is hrefValue plus data: URIs, since <image> embeds raster data.
+func imageHrefValue(value string) (string, bool) {
+	v := strings.TrimSpace(decodeEntities(value))
+	if strings.HasPrefix(strings.ToLower(v), "data:image/") && !strings.ContainsAny(v, "<>\"'\\") {
+		return v, true
+	}
+	return hrefValue(v)
+}
+
+// urlAttrValue allows a bare CSS value, or url(#fragment). Any other url()
+// target - http:, data:, a relative path - is an external reference.
+func urlAttrValue(value string) (string, bool) {
+	v := strings.TrimSpace(decodeEntities(value))
+	if !anyURLRe.MatchString(v) {
+		if _, ok := hasScheme(v); ok {
+			return "", false
+		}
+		if strings.ContainsAny(v, "/\\") {
+			return "", false
+		}
+		return v, true
+	}
+	for _, m := range styleURLRe.FindAllStringSubmatch(v, -1) {
+		ref := strings.TrimSpace(m[1])
+		if !strings.HasPrefix(ref, "#") || len(ref) == 1 {
+			return "", false
+		}
+	}
+	if strings.ContainsAny(v, "\\") || strings.Contains(strings.ToLower(v), "@import") {
+		return "", false
+	}
+	return v, true
+}
+
+// styleValue keeps a style attribute only when it cannot reach outside the
+// document: no @import, no expression(), no url() target other than a
+// same-document fragment, no escapes and no comments. CSS declarations look
+// like URI schemes ("fill:red"), so only the url() targets are examined.
+func styleValue(value string) (string, bool) {
+	v := strings.TrimSpace(decodeEntities(value))
+	if styleForbiddenRe.MatchString(v) {
+		return "", false
+	}
+	for _, m := range styleURLRe.FindAllStringSubmatch(v, -1) {
+		ref := strings.TrimSpace(m[1])
+		if !strings.HasPrefix(ref, "#") || len(ref) == 1 {
+			return "", false
+		}
+	}
+	return v, true
+}
+
+// schemeRe matches a leading URI scheme such as "javascript:" or "https:".
+var schemeRe = regexp.MustCompile(`^([a-zA-Z][a-zA-Z0-9+.\-]*):`)
+
+// hasScheme reports whether s starts with a URI scheme. Control characters and
+// whitespace inside the scheme are normalized away first, so "java\nscript:"
+// is still detected.
+func hasScheme(s string) (string, bool) {
+	cleaned := strings.Map(func(r rune) rune {
+		if r <= ' ' || r == 0x7f {
+			return -1
+		}
+		return r
+	}, strings.ToLower(s))
+	m := schemeRe.FindStringSubmatch(cleaned)
+	if m == nil {
+		return "", false
+	}
+	return m[1], true
+}
+
+// decodeEntities resolves the XML predefined entities and numeric character
+// references before a value is inspected, so that "&#x6a;avascript:" is seen.
+func decodeEntities(s string) string {
+	if !strings.Contains(s, "&") {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); {
+		c := s[i]
+		if c != '&' {
+			b.WriteByte(c)
+			i++
+			continue
+		}
+		semi := strings.IndexByte(s[i:], ';')
+		if semi < 0 || semi > 12 {
+			b.WriteByte(c)
+			i++
+			continue
+		}
+		entity := s[i+1 : i+semi]
+		i += semi + 1
+		switch entity {
+		case "amp":
+			b.WriteByte('&')
+		case "lt":
+			b.WriteByte('<')
+		case "gt":
+			b.WriteByte('>')
+		case "quot":
+			b.WriteByte('"')
+		case "apos":
+			b.WriteByte('\'')
+		default:
+			if r, ok := decodeNumericEntity(entity); ok {
+				b.WriteRune(r)
+			}
+			// Unknown entities are dropped; encoding/xml would have failed
+			// on them anyway unless they are predefined.
+		}
+	}
+	return b.String()
+}
+
+func decodeNumericEntity(entity string) (rune, bool) {
+	if len(entity) < 2 || entity[0] != '#' {
+		return 0, false
+	}
+	digits := entity[1:]
+	base := 10
+	if digits[0] == 'x' || digits[0] == 'X' {
+		digits, base = digits[1:], 16
+	}
+	var v int64
+	for i := 0; i < len(digits); i++ {
+		var d int64
+		switch c := digits[i]; {
+		case c >= '0' && c <= '9':
+			d = int64(c - '0')
+		case base == 16 && c >= 'a' && c <= 'f':
+			d = int64(c-'a') + 10
+		case base == 16 && c >= 'A' && c <= 'F':
+			d = int64(c-'A') + 10
+		default:
+			return 0, false
+		}
+		v = v*int64(base) + d
+		if v > utf8.MaxRune {
+			return 0, false
+		}
+	}
+	return rune(v), true
+}
+
+func escapeText(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch {
+		case r == '&':
+			b.WriteString("&amp;")
+		case r == '<':
+			b.WriteString("&lt;")
+		case r == '>':
+			b.WriteString("&gt;")
+		case isValidXMLChar(r):
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func escapeAttr(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch {
+		case r == '&':
+			b.WriteString("&amp;")
+		case r == '<':
+			b.WriteString("&lt;")
+		case r == '"':
+			b.WriteString("&quot;")
+		case r == '\t':
+			b.WriteString("&#9;")
+		case r == '\n':
+			b.WriteString("&#10;")
+		case r == '\r':
+			b.WriteString("&#13;")
+		case isValidXMLChar(r):
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// isValidXMLChar reports whether r is a legal XML 1.0 character, so that
+// sanitized output is always well-formed.
+func isValidXMLChar(r rune) bool {
+	return r == 0x9 || r == 0xA || r == 0xD ||
+		(r >= 0x20 && r <= 0xD7FF) ||
+		(r >= 0xE000 && r <= 0xFFFD) ||
+		(r >= 0x10000 && r <= 0x10FFFF)
+}
