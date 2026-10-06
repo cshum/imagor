@@ -57,13 +57,6 @@ func TestDropsExecutableAndExternalContent(t *testing.T) {
 			},
 		},
 		{
-			name: "style element with css imports",
-			in:   `<svg xmlns="http://www.w3.org/2000/svg"><style>@import url(https://evil.test/x.css); .a{background:url(//evil.test/p)}</style><rect class="a" width="1" height="1"/></svg>`,
-			dropped: []string{
-				"style", "@import", "evil.test",
-			},
-		},
-		{
 			name: "image and feImage external references",
 			in:   `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="https://evil.test/a.png" href="https://evil.test/b.png" width="1" height="1"/><filter id="f"><feImage href="https://evil.test/c.png"/></filter></svg>`,
 			dropped: []string{
@@ -295,19 +288,31 @@ func TestImgproxy1708VectorsDropped(t *testing.T) {
 	const attacker = "attacker.example.com"
 	const prefix = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="8" height="8">`
 
-	for _, tc := range []struct{ name, body string }{
-		{"style import", `<style>@import url(https://attacker.example.com/x.css);</style>`},
-		{"style background", `<style>.a{background:url(//attacker.example.com/p)}</style>`},
-		{"style cdata", `<style><![CDATA[.a{background:url(https://attacker.example.com/p)}]]></style>`},
-		{"style attribute", `<rect style="background:url(https://attacker.example.com/p)" width="1" height="1"/>`},
-		{"presentation attribute", `<rect fill="url(https://attacker.example.com/s.svg#g)" stroke="url(//attacker.example.com/t)" width="1" height="1"/>`},
-		{"image href", `<image href="https://attacker.example.com/i.png" width="8" height="8"/>`},
-		{"image xlink href", `<image xlink:href="//attacker.example.com/j.png" width="8" height="8"/>`},
-		{"feImage href", `<filter id="f"><feImage href="https://attacker.example.com/k.png"/></filter>`},
-		{"feImage xlink href", `<filter id="f"><feImage xlink:href="attacker.example.com/l.svg"/></filter>`},
-		{"marker and clip urls", `<clipPath id="c"><rect width="1" height="1"/></clipPath><rect clip-path="url(https://attacker.example.com/m.svg#c)" width="1" height="1"/>`},
+	for _, tc := range []struct {
+		name    string
+		body    string
+		refused bool
+	}{
+		{"style import", `<style>@import url(https://attacker.example.com/x.css);</style>`, true},
+		{"style background", `<style>.a{background:url(//attacker.example.com/p)}</style>`, true},
+		{"style cdata", `<style><![CDATA[.a{background:url(https://attacker.example.com/p)}]]></style>`, true},
+		{"style attribute", `<rect style="background:url(https://attacker.example.com/p)" width="1" height="1"/>`, false},
+		{"presentation attribute", `<rect fill="url(https://attacker.example.com/s.svg#g)" stroke="url(//attacker.example.com/t)" width="1" height="1"/>`, false},
+		{"image href", `<image href="https://attacker.example.com/i.png" width="8" height="8"/>`, false},
+		{"image xlink href", `<image xlink:href="//attacker.example.com/j.png" width="8" height="8"/>`, false},
+		{"feImage href", `<filter id="f"><feImage href="https://attacker.example.com/k.png"/></filter>`, false},
+		{"feImage xlink href", `<filter id="f"><feImage xlink:href="attacker.example.com/l.svg"/></filter>`, false},
+		{"marker and clip urls", `<clipPath id="c"><rect width="1" height="1"/></clipPath><rect clip-path="url(https://attacker.example.com/m.svg#c)" width="1" height="1"/>`, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.refused {
+				// A document that carries its own CSS is refused rather than
+				// served with the styling stripped, so the caller rasterizes it
+				// and the result still looks like the document that was authored.
+				_, err := Sanitize(strings.NewReader(prefix + tc.body + `</svg>`))
+				assert.ErrorIs(t, err, ErrInvalidSVG, "document styling must be refused")
+				return
+			}
 			out := sanitize(t, prefix+tc.body+`</svg>`)
 			assert.NotContains(t, out, attacker, "external reference survived:\n%s", out)
 			assert.NotContains(t, out, "url(", "url() survived:\n%s", out)
@@ -615,6 +620,41 @@ func TestAnchorKeepsItsContents(t *testing.T) {
 	// Without a link the element is still a container.
 	out = sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><a><rect width="1" height="1"/></a></svg>`)
 	assert.Contains(t, out, "<a><rect")
+}
+
+// TestDocumentStylingIsRefused covers the one drop that would change what a
+// document looks like: a <style> block is the document's own CSS, and serving
+// the document without it would show the wrong thing. An inline declaration on
+// an element is not document styling and is kept.
+func TestDocumentStylingIsRefused(t *testing.T) {
+	for _, in := range []string{
+		`<svg xmlns="http://www.w3.org/2000/svg"><style>@import url(https://evil.test/x.css); .a{background:url(//evil.test/p)}</style><rect class="a" width="1" height="1"/></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><style>.a{fill:red}</style><rect class="a" width="1" height="1"/></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><defs><style>.a{fill:red}</style></defs><rect width="1" height="1"/></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><style>p{color:red}</style></foreignObject></svg>`,
+	} {
+		_, err := Sanitize(strings.NewReader(in))
+		assert.ErrorIs(t, err, ErrInvalidSVG)
+	}
+
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:#fff" width="1" height="1"/></svg>`)
+	assert.Contains(t, out, `style="fill:#fff"`)
+}
+
+// TestGradientAndBackgroundAttributesPreserved keeps the attributes that decide
+// how a document looks and cannot carry a reference: the radial gradient focal
+// point, and the SVG 1.1 background and pointer attributes.
+func TestGradientAndBackgroundAttributesPreserved(t *testing.T) {
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg">`+
+		`<defs><radialGradient id="g" cx="0.5" cy="0.5" fx="0.3" fy="0.7" fr="0.1" spreadMethod="pad">`+
+		`<stop offset="0" stop-color="#fff"/></radialGradient></defs>`+
+		`<rect width="1" height="1" fill="url(#g)" enable-background="new" pointer-events="none" cursor="crosshair"/></svg>`)
+	for _, want := range []string{
+		`fx="0.3"`, `fy="0.7"`, `fr="0.1"`, `spreadMethod="pad"`,
+		`enable-background="new"`, `pointer-events="none"`, `cursor="crosshair"`,
+	} {
+		assert.Contains(t, out, want, out)
+	}
 }
 
 // FuzzSanitize asserts the properties the sanitizer promises for arbitrary

@@ -27,7 +27,6 @@ import (
 // (see ptSimpleSVG).
 const ptSVG = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64" height="64" viewBox="0 0 64 64" onload="alert(1)">
   <script>alert('xss')</script>
-  <style>@import url(https://evil.test/x.css);</style>
   <foreignObject><iframe src="https://evil.test/"></iframe></foreignObject>
   <image xlink:href="https://evil.test/track.png" width="8" height="8"/>
   <use href="javascript:alert(3)"/>
@@ -495,6 +494,25 @@ func TestPassthroughLatin1SourceServed(t *testing.T) {
 	assert.Contains(t, string(data), "café")
 	assert.NotContains(t, string(data), "script")
 	assert.NotContains(t, string(data), "\xe9", "the source bytes are converted, not re-emitted")
+}
+
+// TestPassthroughRefusesDocumentStyling covers the source that carries its own
+// CSS: it is rasterized rather than served with the styling stripped, so the
+// response still looks like the document the author drew.
+func TestPassthroughRefusesDocumentStyling(t *testing.T) {
+	const styled = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">` +
+		`<style>.a{fill:#f90}</style><rect class="a" width="64" height="64"/></svg>`
+	app := ptApp(t, map[string][]byte{"styled.svg": []byte(styled)},
+		imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
+
+	res := ptGet(t, app, "styled.svg", nil)
+	require.Equal(t, http.StatusOK, res.Code)
+	assert.NotEqual(t, imagor.SVGContentType, res.Header().Get("Content-Type"),
+		"a document with its own CSS must be rasterized, not served with the CSS stripped")
+
+	explicit := ptGet(t, app, "filters:format(svg)/styled.svg", nil)
+	assert.GreaterOrEqual(t, explicit.Code, 400,
+		"an explicit vector request must not answer with a raster")
 }
 
 // TestPassthroughUnsupportedCharsetFallsBack uses a document libvips renders but

@@ -97,6 +97,11 @@ var allowedAttrs = map[string]struct{}{
 	// XML namespace: whitespace handling and language selection, never a
 	// reference.
 	"xml:space": {}, "xml:lang": {},
+	// Other presentation attributes real documents use, none of which can carry
+	// a reference: the radial gradient focal point, and the SVG 1.1
+	// background/pointer attributes.
+	"fx": {}, "fy": {}, "fr": {}, "enable-background": {},
+	"pointer-events": {}, "cursor": {},
 	// fill and stroke
 	"fill": {}, "fill-opacity": {}, "fill-rule": {},
 	"stroke": {}, "stroke-opacity": {}, "stroke-width": {},
@@ -206,6 +211,13 @@ func parse(r io.Reader) (*document, error) {
 		case xml.StartElement:
 			if len(stack) >= maxDepth {
 				return nil, fmt.Errorf("%w: exceeds max element depth %d", ErrInvalidSVG, maxDepth)
+			}
+			// A document that carries its own CSS would be served without it, and
+			// the result would look different from the document that was authored.
+			// Refusing lets the caller rasterize it instead, which renders what the
+			// author drew.
+			if t := tok.(xml.StartElement); t.Name.Local == "style" {
+				return nil, fmt.Errorf("%w: document styling is not supported", ErrInvalidSVG)
 			}
 			stack = append(stack, idx)
 		case xml.EndElement:
