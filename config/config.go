@@ -77,7 +77,7 @@ func NewImagor(
 		imagorResultStoragePathStyle = fs.String("imagor-result-storage-path-style", "original", "imagor result storage path style: original, digest, suffix")
 
 		imagorPassthroughFormats = fs.String("imagor-passthrough-formats", "",
-			"Source formats served as-is when a request asks for no transformation. Accept csv e.g. svg")
+			"Source format served as-is when a request asks for no transformation. Only svg is accepted")
 
 		options, logger, isDebug = applyOptions(fs, cb, append(funcs, baseConfig...)...)
 
