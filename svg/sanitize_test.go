@@ -1,9 +1,11 @@
 package svg
 
 import (
+	"bytes"
 	"encoding/xml"
 	"errors"
 	"io"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -587,4 +589,98 @@ func TestParseErrorEdges(t *testing.T) {
 func TestNestedSvgPreserved(t *testing.T) {
 	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><svg x="1" y="1" width="4" height="4" viewBox="0 0 4 4"><rect width="4" height="4"/></svg></svg>`)
 	assert.Contains(t, out, `<svg x="1" y="1" width="4" height="4" viewBox="0 0 4 4">`)
+}
+
+// FuzzSanitize asserts the properties the sanitizer promises for arbitrary
+// input: it never panics, and whatever it accepts is well-formed XML that
+// carries no executable element and no reference reaching outside the document.
+// Rejection is always an acceptable answer, so only accepted output is checked.
+func FuzzSanitize(f *testing.F) {
+	for _, s := range []string{
+		`<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><text>a &amp; b</text><use href="#a"/></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><script>alert(1)</script></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><style>@import url(https://attacker.example.com/)</style></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><image href="https://attacker.example.com/i.png"/></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><filter><feImage href="https://attacker.example.com/k.png"/></filter></svg>`,
+		`<svg xmlns="http://www.w3.org/2000/svg"><rect style="background:url(https://attacker.example.com/p)"/></svg>`,
+		"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><svg xmlns=\"http://www.w3.org/2000/svg\"><text>caf\xe9</text></svg>",
+		`<svg xmlns="http://www.w3.org/2000/svg"><text>&amp;#1;</text><text>&amp;#xD800;</text></svg>`,
+	} {
+		f.Add([]byte(s))
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		out, err := Sanitize(bytes.NewReader(data))
+		if err != nil {
+			return
+		}
+		doc := string(out)
+		require.NoError(t, xml.Unmarshal(out, new(struct{ XMLName xml.Name })),
+			"accepted output must be well-formed XML: %s", doc)
+		for _, element := range []string{"<script", "<foreignObject", "<style", "<feImage", "<iframe", "<animate"} {
+			assert.NotContains(t, doc, element, "executable element survived: %s", doc)
+		}
+		// Every attribute of the accepted document is on the allowlist and
+		// carries no reference that leaves the document. Text content is
+		// escaped, so it cannot carry a reference that has any effect.
+		dec := xml.NewDecoder(strings.NewReader(doc))
+		for {
+			tok, err := dec.Token()
+			if err != nil {
+				break
+			}
+			el, ok := tok.(xml.StartElement)
+			if !ok {
+				continue
+			}
+			for _, a := range el.Attr {
+				// The serializer re-emits the namespace declarations.
+				if a.Name.Space == "xmlns" || a.Name.Local == "xmlns" {
+					continue
+				}
+				name := a.Name.Local
+				if a.Name.Space == xmlNamespace {
+					name = "xml:" + name
+				} else if a.Name.Space == xlinkNamespace {
+					name = "xlink:" + name
+				}
+				if _, ok := allowedAttrs[name]; !ok && !isHrefAttr(name) {
+					t.Fatalf("attribute not on the allowlist: %s on <%s>: %s", name, el.Name.Local, doc)
+				}
+				// A value that names a reference must stay inside the document.
+				v := strings.ToLower(a.Value)
+				if strings.Contains(v, "url(") {
+					for _, target := range testURLTargets(v) {
+						if !strings.HasPrefix(target, "#") {
+							t.Fatalf("url() outside the document: %s on <%s>: %s", a.Value, el.Name.Local, doc)
+						}
+					}
+				}
+				if strings.Contains(v, "javascript:") {
+					t.Fatalf("javascript: survived in an attribute: %s on <%s>: %s", a.Value, el.Name.Local, doc)
+				}
+				if isHrefAttr(name) {
+					if v == "" || strings.HasPrefix(v, "#") {
+						continue
+					}
+					if el.Name.Local == "image" && isRasterDataURI(a.Value) {
+						continue
+					}
+					t.Fatalf("href left the document: %s on <%s>: %s", a.Value, el.Name.Local, doc)
+				}
+			}
+		}
+	})
+}
+
+var testURLRe = regexp.MustCompile(`(?i)url\(\s*['"]?([^'")]*)`)
+
+// testURLTargets lists the targets of the url() references in a value.
+func testURLTargets(v string) []string {
+	var targets []string
+	for _, m := range testURLRe.FindAllStringSubmatch(v, -1) {
+		targets = append(targets, strings.TrimSpace(m[1]))
+	}
+	return targets
 }
