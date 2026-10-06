@@ -472,6 +472,62 @@ func TestPassthroughSanitizeFallback(t *testing.T) {
 	assert.False(t, handled)
 }
 
+// TestPassthroughLatin1SourceServed covers the one declared charset imagor maps:
+// libvips renders such a document, so it passes through like any other SVG, with
+// sanitization still applied.
+func TestPassthroughLatin1SourceServed(t *testing.T) {
+	const latin1 = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\"><text x=\"4\" y=\"32\">caf\xe9</text><script>alert(1)</script></svg>"
+
+	v := NewProcessor()
+	v.SetPassthroughFormats([]imagor.BlobType{imagor.BlobTypeSVG})
+	blob := imagor.NewBlobFromBytes([]byte(latin1))
+	require.Equal(t, imagor.BlobTypeSVG, blob.BlobType())
+
+	out, handled, err := v.passthroughBlob(context.Background(), blob, imagorpath.Params{
+		Image:   "x.svg",
+		Filters: imagorpath.Filters{{Name: imagor.PassthroughFilterName}},
+	})
+	require.NoError(t, err)
+	require.True(t, handled)
+
+	data, err := out.ReadAll()
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "café")
+	assert.NotContains(t, string(data), "script")
+	assert.NotContains(t, string(data), "\xe9", "the source bytes are converted, not re-emitted")
+}
+
+// TestPassthroughUnsupportedCharsetFallsBack uses a document libvips renders but
+// the sanitizer refuses: the marked request rasterizes, and the explicit request
+// fails rather than answering with a raster.
+func TestPassthroughUnsupportedCharsetFallsBack(t *testing.T) {
+	const cp1252 = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\"><text x=\"4\" y=\"32\">\x93quoted\x94</text></svg>"
+
+	v := NewProcessor()
+	v.SetPassthroughFormats([]imagor.BlobType{imagor.BlobTypeSVG})
+	blob := imagor.NewBlobFromBytes([]byte(cp1252))
+	require.Equal(t, imagor.BlobTypeSVG, blob.BlobType())
+	// libvips loads it, so only the sanitizer refuses it.
+	require.NoError(t, v.checkPassthroughResolution(context.Background(), blob))
+
+	marked := imagorpath.Params{
+		Image:   "x.svg",
+		Filters: imagorpath.Filters{{Name: imagor.PassthroughFilterName}},
+	}
+	out, handled, err := v.passthroughBlob(context.Background(), blob, marked)
+	require.NoError(t, err)
+	assert.False(t, handled, "an unsanitizable source must fall back to rasterizing")
+	assert.Nil(t, out)
+
+	explicit := imagorpath.Params{
+		Image:   "x.svg",
+		Filters: imagorpath.Filters{{Name: "format", Args: "svg"}},
+	}
+	_, handled, err = v.passthroughBlob(context.Background(), blob, explicit)
+	assert.Error(t, err, "an explicit svg request must not answer with a raster")
+	assert.False(t, handled)
+}
+
 func TestPassthroughProcessorRegistration(t *testing.T) {
 	// The application must hand its configuration to the processor at startup,
 	// otherwise the key and the behaviour would disagree.

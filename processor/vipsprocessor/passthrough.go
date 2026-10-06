@@ -178,11 +178,6 @@ func (v *Processor) sanitizeSVG(blob *imagor.Blob) (*imagor.Blob, error) {
 // checkPassthroughResolution enforces the same dimension limits as the
 // processed path, using a header-only load that does not decode pixels.
 func (v *Processor) checkPassthroughResolution(ctx context.Context, blob *imagor.Blob) error {
-	if blob.BlobType() == imagor.BlobTypeMemory {
-		// Raw pixel blobs are produced by the processor itself and carry their
-		// own dimensions; nothing to guard.
-		return nil
-	}
 	options := &vips.LoadOptions{}
 	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
 	img, err := v.newImageFromBlob(ctx, blob, options)

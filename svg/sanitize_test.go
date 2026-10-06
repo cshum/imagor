@@ -2,6 +2,8 @@ package svg
 
 import (
 	"encoding/xml"
+	"errors"
+	"io"
 	"strings"
 	"testing"
 
@@ -280,4 +282,309 @@ func TestWhitespaceAndTextEdges(t *testing.T) {
 func TestEmptyAndSelfClosingSerialization(t *testing.T) {
 	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"></svg>`)
 	assert.Equal(t, `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"/>`, out)
+}
+
+// TestImgproxy1708VectorsDropped reproduces the three vectors from
+// imgproxy/imgproxy#1708 - external references surviving in <style>, <image>
+// and <feImage> - plus the attribute forms of the same idea. imgproxy's
+// denylist still let these through; here they are dropped by construction, so
+// the assertion is simply that the attacker host appears nowhere in the output.
+func TestImgproxy1708VectorsDropped(t *testing.T) {
+	const attacker = "attacker.example.com"
+	const prefix = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="8" height="8">`
+
+	for _, tc := range []struct{ name, body string }{
+		{"style import", `<style>@import url(https://attacker.example.com/x.css);</style>`},
+		{"style background", `<style>.a{background:url(//attacker.example.com/p)}</style>`},
+		{"style cdata", `<style><![CDATA[.a{background:url(https://attacker.example.com/p)}]]></style>`},
+		{"style attribute", `<rect style="background:url(https://attacker.example.com/p)" width="1" height="1"/>`},
+		{"presentation attribute", `<rect fill="url(https://attacker.example.com/s.svg#g)" stroke="url(//attacker.example.com/t)" width="1" height="1"/>`},
+		{"image href", `<image href="https://attacker.example.com/i.png" width="8" height="8"/>`},
+		{"image xlink href", `<image xlink:href="//attacker.example.com/j.png" width="8" height="8"/>`},
+		{"feImage href", `<filter id="f"><feImage href="https://attacker.example.com/k.png"/></filter>`},
+		{"feImage xlink href", `<filter id="f"><feImage xlink:href="attacker.example.com/l.svg"/></filter>`},
+		{"marker and clip urls", `<clipPath id="c"><rect width="1" height="1"/></clipPath><rect clip-path="url(https://attacker.example.com/m.svg#c)" width="1" height="1"/>`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := sanitize(t, prefix+tc.body+`</svg>`)
+			assert.NotContains(t, out, attacker, "external reference survived:\n%s", out)
+			assert.NotContains(t, out, "url(", "url() survived:\n%s", out)
+			assert.NotContains(t, out, "<style", "<style> survived:\n%s", out)
+			assert.NotContains(t, out, "feImage", "feImage survived:\n%s", out)
+			require.NoError(t, xml.Unmarshal([]byte(out), new(struct{ XMLName xml.Name })))
+		})
+	}
+
+	// The <image> element itself may stay, but never with a reference to fetch.
+	out := sanitize(t, prefix+`<image href="https://attacker.example.com/i.png" width="8" height="8"/></svg>`)
+	assert.Contains(t, out, "<image")
+	assert.NotContains(t, out, "href")
+}
+
+// TestImageDataURIRestrictedToRaster keeps embedded raster data and drops an
+// embedded document, which this allowlist cannot inspect.
+func TestImageDataURIRestrictedToRaster(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		href string
+		kept bool
+	}{
+		{"png", "data:image/png;base64,iVBORw0KGgo=", true},
+		{"jpeg", "data:image/jpeg;base64,/9j/4AAQ", true},
+		{"gif", "data:image/gif;base64,R0lGOD", true},
+		{"webp", "data:image/webp;base64,UklGRg", true},
+		{"uppercase mime", "DATA:IMAGE/PNG;base64,AAAA", true},
+		{"fragment", "#icon", true},
+		{"svg document", "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=", false},
+		{"svg document unencoded", "data:image/svg+xml,%3Csvg%3E", false},
+		{"html", "data:text/html;base64,PHNjcmlwdD4=", false},
+		{"mime prefix trick", "data:image/pngx;base64,AAAA", false},
+		{"bare type without separator", "data:image/png", false},
+		{"external", "https://evil.test/a.png", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><image href="`+tc.href+`" width="8" height="8"/></svg>`)
+			if tc.kept {
+				assert.Contains(t, out, `href="`+tc.href+`"`, out)
+			} else {
+				assert.NotContains(t, out, "href", out)
+			}
+		})
+	}
+}
+
+// TestAttributeNamespaceHandling covers namespace-qualified attributes: xml:*
+// survives, a foreign namespace cannot smuggle in an allowed local name, and an
+// xlink attribute other than href is dropped.
+func TestAttributeNamespaceHandling(t *testing.T) {
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:evil="http://evil.test/ns" xml:space="preserve">`+
+		`<text xml:lang="en" evil:fill="url(http://evil.test/a)" xlink:title="x" xlink:href="#a">x</text></svg>`)
+
+	assert.Contains(t, out, `xml:space="preserve"`)
+	assert.Contains(t, out, `xml:lang="en"`)
+	assert.Contains(t, out, `xlink:href="#a"`)
+	assert.NotContains(t, out, "evil")
+	assert.NotContains(t, out, "xlink:title")
+}
+
+// TestReferenceValueEdges walks the accept/reject boundary for href and the
+// attributes that may hold a url() reference.
+func TestReferenceValueEdges(t *testing.T) {
+	const prefix = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`
+
+	for _, tc := range []struct {
+		name string
+		body string
+		kept string
+	}{
+		{"fragment", `<use href="#sym"/>`, `href="#sym"`},
+		{"fragment with xlink", `<use xlink:href="#sym"/>`, `xlink:href="#sym"`},
+		{"bare hash", `<use href="#"/>`, ""},
+		{"fragment with space", `<use href="# a"/>`, ""},
+		{"fragment with quote", `<use href="#a&quot;b"/>`, ""},
+		{"hash not first", `<use href="a#b"/>`, ""},
+		{"javascript", `<use href="javascript:alert(1)"/>`, ""},
+		{"javascript uppercase", `<use href="JavaScript:alert(1)"/>`, ""},
+		{"vbscript", `<use href="vbscript:msgbox(1)"/>`, ""},
+		{"data on use", `<use href="data:image/png;base64,AAAA"/>`, ""},
+		{"url empty", `<rect fill="url()" width="1" height="1"/>`, ""},
+		{"url fragment", `<rect fill="url(#g)" width="1" height="1"/>`, `fill="url(#g)"`},
+		{"url empty fragment", `<rect fill="url(#)" width="1" height="1"/>`, ""},
+		{"url external", `<rect fill="url(https://evil.test/a)" width="1" height="1"/>`, ""},
+		{"url relative", `<rect fill="url(a.svg#g)" width="1" height="1"/>`, ""},
+		{"bare colour", `<rect fill="#fff" width="1" height="1"/>`, `fill="#fff"`},
+		{"bare keyword", `<rect fill="none" width="1" height="1"/>`, `fill="none"`},
+		{"bare rgb", `<rect fill="rgb(1,2,3)" width="1" height="1"/>`, `fill="rgb(1,2,3)"`},
+		{"bare path", `<rect fill="a/b.png" width="1" height="1"/>`, ""},
+		{"bare scheme", `<rect fill="javascript:alert(1)" width="1" height="1"/>`, ""},
+		{"scheme with control char", `<rect fill="java&#10;script:alert(1)" width="1" height="1"/>`, ""},
+		{"style url fragment", `<rect style="fill:url(#g)" width="1" height="1"/>`, `style="fill:url(#g)"`},
+		{"style url external", `<rect style="fill:url(https://evil.test/a)" width="1" height="1"/>`, ""},
+		{"style expression", `<rect style="width:expression(alert(1))" width="1" height="1"/>`, ""},
+		{"style import", `<rect style="background:@import url(x.css)" width="1" height="1"/>`, ""},
+		{"style escape", `<rect style="fill:\75 rl(https://evil.test/a)" width="1" height="1"/>`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := sanitize(t, prefix+tc.body+`</svg>`)
+			if tc.kept != "" {
+				assert.Contains(t, out, tc.kept, out)
+			} else {
+				assert.NotContains(t, out, "evil.test", out)
+				assert.NotContains(t, out, "javascript", out)
+				assert.NotContains(t, out, "expression", out)
+				assert.NotContains(t, out, "url(", out)
+				assert.NotContains(t, out, "href", out)
+			}
+		})
+	}
+}
+
+// TestEntityEncodedValues covers values that arrive character-referenced: the
+// XML parser resolves most of them, and decodeEntities handles a second layer,
+// so an encoded scheme cannot slip past the check.
+func TestEntityEncodedValues(t *testing.T) {
+	const prefix = `<svg xmlns="http://www.w3.org/2000/svg">`
+
+	// A reference that is safe once decoded still decodes.
+	out := sanitize(t, prefix+`<rect fill="&#35;fff" width="1" height="1"/></svg>`)
+	assert.Contains(t, out, `fill="#fff"`, out)
+
+	for _, tc := range []struct{ name, body string }{
+		{"decimal scheme in bare value", `<rect fill="&#106;avascript:alert(1)" width="1" height="1"/>`},
+		{"hex scheme in bare value", `<rect fill="&#x6a;avascript:alert(1)" width="1" height="1"/>`},
+		{"encoded colon in url", `<rect fill="url(&#35;x)" width="1" height="1"/>`},
+		{"double encoded href", `<use href="&amp;#106;avascript:alert(1)"/>`},
+		{"double encoded hex href", `<use href="&amp;#x6a;avascript:alert(1)"/>`},
+		{"encoded quote in style", `<rect style="fill:url(&quot;https://evil.test/a&quot;)" width="1" height="1"/>`},
+		{"double encoded control character", `<rect fill="&amp;#1;x" width="1" height="1"/>`},
+		{"double encoded surrogate", `<rect fill="&amp;#xD800;x" width="1" height="1"/>`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := sanitize(t, prefix+tc.body+`</svg>`)
+			require.NoError(t, xml.Unmarshal([]byte(out), new(struct{ XMLName xml.Name })), "output must stay well-formed: %s", out)
+			if tc.name == "encoded colon in url" {
+				// &#35; is "#": the url() form decodes to url(#x), allowed.
+				assert.Contains(t, out, `fill="url(#x)"`, out)
+				return
+			}
+			assert.NotContains(t, out, "javascript", out)
+			assert.NotContains(t, out, "evil.test", out)
+			// A reference the parser resolved once and decodeEntities resolved
+			// again must not reach the output as a control character.
+			assert.NotContains(t, out, "\x01")
+			assert.NotContains(t, out, "\uFFFD")
+		})
+	}
+}
+
+// TestDecodeEntities covers the second decoding layer directly, including forms
+// the XML parser refuses in input and so can only arrive double-encoded.
+func TestDecodeEntities(t *testing.T) {
+	for _, tc := range []struct{ name, in, want string }{
+		{"no ampersand", "red", "red"},
+		{"predefined", "a&amp;b&lt;c&gt;d&quot;e&apos;f", `a&b<c>d"e'f`},
+		{"decimal", "&#106;avascript:", "javascript:"},
+		{"hex", "&#x6a;avascript:", "javascript:"},
+		{"uppercase hex marker", "&#X6A;avascript:", "javascript:"},
+		{"hash", "&#35;fff", "#fff"},
+		{"max rune", "&#x10FFFF;", "\U0010FFFF"},
+		{"surrogate", "&#xD800;x", "x"},
+		{"control", "&#1;x", "x"},
+		{"beyond max rune", "&#x110000;x", "x"},
+		{"unknown entity", "&foo;x", "x"},
+		{"unterminated", "&#106avascript:", "&#106avascript:"},
+		{"no digits", "&#;x", "x"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, decodeEntities(tc.in))
+		})
+	}
+}
+
+// TestCharsetReader covers the declared charsets directly: ISO-8859-1 is mapped,
+// UTF-8 and ASCII pass through, and anything else is refused so the caller can
+// rasterize instead of guessing.
+func TestCharsetReader(t *testing.T) {
+	for _, charset := range []string{"utf-8", "UTF-8", "us-ascii", "ascii", "ascii "} {
+		r, err := charsetReader(charset, strings.NewReader("x"))
+		require.NoError(t, err, charset)
+		data, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Equal(t, "x", string(data))
+	}
+
+	for _, charset := range []string{"iso-8859-1", "ISO-8859-1", "latin1", "latin-1"} {
+		r, err := charsetReader(charset, strings.NewReader("caf\xe9"))
+		require.NoError(t, err, charset)
+		data, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Equal(t, "café", string(data), charset)
+	}
+
+	for _, charset := range []string{"windows-1252", "shift_jis", "utf-16", ""} {
+		_, err := charsetReader(charset, strings.NewReader("x"))
+		assert.ErrorIs(t, err, ErrInvalidSVG, charset)
+	}
+
+	// A read failure while converting is reported, not swallowed: the caller
+	// must not treat a truncated document as a sanitized one.
+	_, err := charsetReader("iso-8859-1", errReader{})
+	assert.ErrorIs(t, err, errReaderErr)
+}
+
+var errReaderErr = errors.New("read failed")
+
+type errReader struct{}
+
+func (errReader) Read([]byte) (int, error) { return 0, errReaderErr }
+
+// TestLatin1DocumentIsSanitized checks the one charset imagor converts: libvips
+// renders these documents, so refusing them would mean refusing to pass through
+// something the rasterizer handles.
+func TestLatin1DocumentIsSanitized(t *testing.T) {
+	out := sanitize(t, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"8\"><text>caf\xe9</text><script>alert(1)</script></svg>")
+	assert.Contains(t, out, "café")
+	assert.Contains(t, out, `encoding="UTF-8"`)
+	assert.NotContains(t, out, "script")
+
+	// A charset that cannot be mapped is a rejection, never a guess.
+	_, err := Sanitize(strings.NewReader("<?xml version=\"1.0\" encoding=\"windows-1252\"?><svg xmlns=\"http://www.w3.org/2000/svg\"><text>\x93x\x94</text></svg>"))
+	assert.ErrorIs(t, err, ErrInvalidSVG)
+
+	// The converted stream is what the parser validates, so a latin-1 control
+	// byte is rejected there rather than reaching serialization.
+	_, err = Sanitize(strings.NewReader("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><svg xmlns=\"http://www.w3.org/2000/svg\"><text>a\x01b</text></svg>"))
+	assert.ErrorIs(t, err, ErrInvalidSVG)
+}
+
+// TestEscapingOnOutput covers the serialization of values that must be escaped
+// to stay well-formed, and the guard that drops characters XML 1.0 forbids.
+func TestEscapingOnOutput(t *testing.T) {
+	for _, tc := range []struct{ name, in, want string }{
+		{"quote in attribute", `<rect class="a&quot;b" width="1" height="1"/>`, `class="a&quot;b"`},
+		{"less than in attribute", `<rect class="a&lt;b" width="1" height="1"/>`, `class="a&lt;b"`},
+		{"ampersand in attribute", `<rect class="a&amp;b" width="1" height="1"/>`, `class="a&amp;b"`},
+		{"tab in attribute", `<rect class="a&#9;b" width="1" height="1"/>`, `class="a&#9;b"`},
+		{"newline in attribute", `<rect class="a&#10;b" width="1" height="1"/>`, `class="a&#10;b"`},
+		{"carriage return in attribute", `<rect class="a&#13;b" width="1" height="1"/>`, `class="a&#13;b"`},
+		{"greater than in text", `<text>a > b</text>`, `a &gt; b`},
+		{"ampersand in text", `<text>a &amp; b</text>`, `a &amp; b`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg">`+tc.in+`</svg>`)
+			assert.Contains(t, out, tc.want, out)
+			require.NoError(t, xml.Unmarshal([]byte(out), new(struct{ XMLName xml.Name })))
+		})
+	}
+
+	// decodeEntities can produce a control character the parser never vetted,
+	// and the serializer must not pass one through.
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><text>a&amp;#1;b</text></svg>`)
+	assert.NotContains(t, out, "\x01")
+	require.NoError(t, xml.Unmarshal([]byte(out), new(struct{ XMLName xml.Name })))
+	assert.False(t, isValidXMLChar(0x1))
+	assert.False(t, isValidXMLChar(rune(0xD800)))
+	assert.False(t, isValidXMLChar(0x110000))
+	assert.True(t, isValidXMLChar(0x20))
+	assert.True(t, isValidXMLChar(0x10FFFF))
+}
+
+func TestParseErrorEdges(t *testing.T) {
+	for _, tc := range []struct{ name, in string }{
+		{"stray end tag", `</svg>`},
+		{"only whitespace", "\n	  "},
+		{"comment only", `<!-- nothing -->`},
+		{"end before start", `<g></g><svg xmlns="http://www.w3.org/2000/svg"/>`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Sanitize(strings.NewReader(tc.in))
+			assert.ErrorIs(t, err, ErrInvalidSVG)
+		})
+	}
+}
+
+// TestNestedSvgPreserved keeps a legitimate nested viewport.
+func TestNestedSvgPreserved(t *testing.T) {
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><svg x="1" y="1" width="4" height="4" viewBox="0 0 4 4"><rect width="4" height="4"/></svg></svg>`)
+	assert.Contains(t, out, `<svg x="1" y="1" width="4" height="4" viewBox="0 0 4 4">`)
 }

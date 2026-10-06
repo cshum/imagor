@@ -15,6 +15,10 @@
 // whitespace, self-closing tags, comments and namespace prefixes do not
 // survive. Content is otherwise preserved, including attribute name case
 // (viewBox), text and url(#id) references.
+//
+// A source declaring ISO-8859-1 is converted to UTF-8 rather than refused, since
+// libvips renders those documents and the mapping is exact. Any other declared
+// charset is refused: the caller rasterizes instead.
 package svg
 
 import (
@@ -85,6 +89,9 @@ var allowedAttrs = map[string]struct{}{
 	"marker-start": {}, "marker-mid": {}, "marker-end": {},
 	"color": {}, "color-interpolation": {}, "color-interpolation-filters": {},
 	"shape-rendering": {}, "text-rendering": {}, "image-rendering": {},
+	// XML namespace: whitespace handling and language selection, never a
+	// reference.
+	"xml:space": {}, "xml:lang": {},
 	// fill and stroke
 	"fill": {}, "fill-opacity": {}, "fill-rule": {},
 	"stroke": {}, "stroke-opacity": {}, "stroke-width": {},
@@ -168,6 +175,7 @@ type document struct {
 
 func parse(r io.Reader) (*document, error) {
 	dec := xml.NewDecoder(r)
+	dec.CharsetReader = charsetReader
 	var (
 		tokens []xml.Token
 		end    []int
@@ -373,10 +381,11 @@ func hrefValue(value string) (string, bool) {
 	return v, true
 }
 
-// imageHrefValue is hrefValue plus data: URIs, since <image> embeds raster data.
+// imageHrefValue is hrefValue plus raster data: URIs, since <image> embeds
+// raster data.
 func imageHrefValue(value string) (string, bool) {
 	v := strings.TrimSpace(decodeEntities(value))
-	if strings.HasPrefix(strings.ToLower(v), "data:image/") && !strings.ContainsAny(v, "<>\"'\\") {
+	if isRasterDataURI(v) && !strings.ContainsAny(v, "<>\"'\\") {
 		return v, true
 	}
 	return hrefValue(v)
@@ -405,6 +414,55 @@ func urlAttrValue(value string) (string, bool) {
 		return "", false
 	}
 	return v, true
+}
+
+// charsetReader converts a declared charset to UTF-8 for the XML parser.
+//
+// ISO-8859-1 is supported because its mapping is exact - every byte is the code
+// point of the same value - and because libvips renders such documents, so
+// refusing them would mean refusing to pass through a document the rasterizer
+// handles. Anything else is refused, and the caller falls back to rasterizing.
+func charsetReader(charset string, input io.Reader) (io.Reader, error) {
+	switch strings.ToLower(strings.TrimSpace(charset)) {
+	case "utf-8", "us-ascii", "ascii":
+		return input, nil
+	case "iso-8859-1", "latin1", "latin-1":
+		data, err := io.ReadAll(input)
+		if err != nil {
+			return nil, err
+		}
+		var b strings.Builder
+		b.Grow(len(data))
+		for _, c := range data {
+			b.WriteRune(rune(c))
+		}
+		return strings.NewReader(b.String()), nil
+	default:
+		return nil, fmt.Errorf("%w: unsupported charset %q", ErrInvalidSVG, charset)
+	}
+}
+
+// imageRasterTypes are the types an <image> may embed as a data: URI. An
+// embedded SVG is a document this allowlist cannot inspect, so it is not
+// allowed through.
+var imageRasterTypes = []string{"png", "jpeg", "jpg", "gif", "webp", "avif", "bmp", "tiff"}
+
+// isRasterDataURI reports whether value is a data: URI of a raster image type.
+func isRasterDataURI(value string) bool {
+	lower := strings.ToLower(value)
+	rest, ok := strings.CutPrefix(lower, "data:image/")
+	if !ok {
+		return false
+	}
+	for _, t := range imageRasterTypes {
+		if after, ok := strings.CutPrefix(rest, t); ok && after != "" {
+			switch after[0] {
+			case ';', ',':
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // styleValue keeps a style attribute only when it cannot reach outside the
@@ -517,9 +575,18 @@ func decodeNumericEntity(entity string) (rune, bool) {
 			return 0, false
 		}
 	}
+	// A character reference outside the XML character range is dropped rather
+	// than substituted: a document asking for a control character or a surrogate
+	// is not a document to pass through with edits.
+	if !isValidXMLChar(rune(v)) {
+		return 0, false
+	}
 	return rune(v), true
 }
 
+// escapeText escapes the characters that are special in XML content. Nothing
+// else needs dropping: a value reaches the serializer either from the XML
+// parser or from decodeEntities, and both enforce the XML character range.
 func escapeText(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))
@@ -531,13 +598,14 @@ func escapeText(s string) string {
 			b.WriteString("&lt;")
 		case r == '>':
 			b.WriteString("&gt;")
-		case isValidXMLChar(r):
+		default:
 			b.WriteRune(r)
 		}
 	}
 	return b.String()
 }
 
+// escapeAttr escapes the characters that are special in an attribute value.
 func escapeAttr(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))
@@ -549,21 +617,23 @@ func escapeAttr(s string) string {
 			b.WriteString("&lt;")
 		case r == '"':
 			b.WriteString("&quot;")
-		case r == '\t':
+		case r == '	':
 			b.WriteString("&#9;")
 		case r == '\n':
 			b.WriteString("&#10;")
 		case r == '\r':
 			b.WriteString("&#13;")
-		case isValidXMLChar(r):
+		default:
 			b.WriteRune(r)
 		}
 	}
 	return b.String()
 }
 
-// isValidXMLChar reports whether r is a legal XML 1.0 character, so that
-// sanitized output is always well-formed.
+// isValidXMLChar reports whether a rune may appear in XML 1.0 content. It is
+// enforced in two places: the XML parser applies it while reading, and
+// decodeNumericEntity applies it to a character reference it resolves, which the
+// parser never saw.
 func isValidXMLChar(r rune) bool {
 	return r == 0x9 || r == 0xA || r == 0xD ||
 		(r >= 0x20 && r <= 0xD7FF) ||

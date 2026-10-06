@@ -318,9 +318,9 @@ VIPS_SANITIZE_SVG=1                 # default; see below
 
 ### Sanitization
 
-An SVG is sanitized before it is returned: imagor keeps an allowlist of elements and attributes and drops the rest — `<script>`, event handlers such as `onload`, `<foreignObject>`, `<style>`, animation, DOCTYPE, comments, processing instructions — along with every reference that is not a same-document fragment. `url(#id)` and `xlink:href="#id"` survive; `https://`, `data:` and relative references do not, because a browser would fetch them from the origin serving the SVG.
+An SVG is sanitized before it is returned: imagor keeps an allowlist of elements and attributes and drops the rest — `<script>`, event handlers such as `onload`, `<foreignObject>`, `<style>`, animation, DOCTYPE, comments, processing instructions — along with every reference that is not a same-document fragment. `url(#id)` and `xlink:href="#id"` survive; `https://` and relative references do not, because a browser would fetch them from the origin serving the SVG. Inside `<image>`, an embedded raster `data:` image survives; an embedded SVG is dropped, because a nested document is not something an allowlist can inspect.
 
-Output is re-serialized, so whitespace, comments and namespace prefixes do not survive, and a document the sanitizer cannot parse is rasterized instead of served. Set `VIPS_SANITIZE_SVG=0` only when every source SVG is trusted — that serves the document byte for byte.
+Output is re-serialized, so whitespace, comments and namespace prefixes do not survive, and a document the sanitizer cannot parse is rasterized instead of served. ISO-8859-1 sources are converted to UTF-8; a document declaring any other charset is rasterized. Set `VIPS_SANITIZE_SVG=0` only when every source SVG is trusted — that serves the document byte for byte.
 
 ### Response headers
 
