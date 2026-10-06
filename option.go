@@ -168,14 +168,13 @@ func WithAutoJPEG(enable bool) Option {
 	}
 }
 
-// WithPassthroughFormats with source formats that may be served as-is when a
-// request names no output format - SVG being the main case. Formats are
-// validated with ParsePassthroughFormats: a format that has not been explicitly
-// considered (PDF, camera RAW) cannot be passed through.
+// WithPassthroughFormats with source formats served as-is when a request asks
+// for no transformation. Formats are validated by ParsePassthroughFormats: one
+// that has not been considered (PDF, camera RAW) cannot be passed through.
 //
-// Enabling passthrough changes the result storage key of requests that name no
-// format, so previously cached rasterized results are not served for requests
-// that now pass through.
+// Enabling this changes the result storage key of requests that name no format,
+// so cached rasterized results are not served for requests that now pass
+// through.
 func WithPassthroughFormats(formats ...BlobType) Option {
 	return func(app *Imagor) {
 		app.PassthroughFormats = formats

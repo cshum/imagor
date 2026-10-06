@@ -64,9 +64,8 @@ type Processor struct {
 	cacheSF        singleflight.Group
 	hasDcrawload   bool
 
-	// Set by the application at startup (imagor.PassthroughProcessor), not by
-	// callers, so that the marker it appends to the request path and this
-	// processor's decision cannot disagree.
+	// Set by the application at startup (imagor.PassthroughProcessor), so the
+	// marker it appends and this processor's decision cannot disagree.
 	passthroughFormats map[imagor.BlobType]struct{}
 }
 

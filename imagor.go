@@ -344,10 +344,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			p.Filters = append(p.Filters, f)
 		}
 	}
-	// Passthrough: a no-op request is marked as passthrough-eligible so the
-	// processor may serve the source untouched. The marker is part of the result
-	// storage key, so a passthrough result and the rasterized result of the same
-	// request never share a key.
+	// Passthrough: a no-op request is marked so the processor may serve the
+	// source untouched. The marker is part of the result storage key, so a
+	// passthrough result and a rasterized result never share an entry.
 	if len(app.PassthroughFormats) > 0 && passthroughEligible(p) {
 		p.Filters = append(p.Filters, imagorpath.Filter{
 			Name: PassthroughFilterName,
@@ -918,14 +917,14 @@ func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, bl
 	if r.Header.Get("Imagor-Auto-Format") != "" {
 		w.Header().Add("Vary", "Accept")
 	}
-	// Markup responses are set here rather than left to the processor that
-	// produced them, so the policy also holds for responses served from the
-	// result storage cache, where only the bytes survive.
+	// Markup responses are set here rather than in the processor that produced
+	// them, so the policy also holds for a result cache hit, which replays only
+	// the bytes.
 	if contentType == SVGContentType || r.Header.Get("Imagor-Raw") != "" {
 		w.Header().Set("Content-Security-Policy", SVGContentSecurityPolicy)
 	}
 	// The content type comes from sniffing the bytes; nosniff stops a browser
-	// from deciding otherwise in an HTML context.
+	// deciding otherwise in an HTML context.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if h := blob.Header; h != nil {
 		for key := range h {

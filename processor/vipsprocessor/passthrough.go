@@ -13,10 +13,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// maxSanitizeBytes caps the size of an SVG that is buffered for sanitization.
-// Beyond it the request falls back to rasterizing, which is the behaviour
-// without passthrough, rather than reading an unbounded document into memory.
-// It is a variable so tests can exercise the limit.
+// maxSanitizeBytes caps the size of an SVG buffered for sanitization. Beyond it
+// the request falls back to rasterizing rather than reading an unbounded
+// document into memory. A variable so tests can exercise the limit.
 var maxSanitizeBytes = 32 << 20
 
 // passthroughEnabled reports whether the source format may pass through.
@@ -26,10 +25,10 @@ func (v *Processor) passthroughEnabled(t imagor.BlobType) bool {
 }
 
 // svgContentType is the content type of a passthrough SVG response.
-const svgContentType = "image/svg+xml"
+const svgContentType = imagor.SVGContentType
 
-// SetPassthroughFormats implements imagor.PassthroughProcessor. It is called by
-// the application at startup with the configured passthrough formats.
+// SetPassthroughFormats implements imagor.PassthroughProcessor: the application
+// calls it at startup with the configured formats.
 func (v *Processor) SetPassthroughFormats(formats []imagor.BlobType) {
 	if len(formats) == 0 {
 		v.passthroughFormats = nil
@@ -42,9 +41,9 @@ func (v *Processor) SetPassthroughFormats(formats []imagor.BlobType) {
 	v.passthroughFormats = m
 }
 
-// passthroughHeaders are the response headers required to return source markup
-// to a browser safely. The application also enforces these for any markup
-// response, since a result cache hit replays only the bytes.
+// passthroughHeaders are the headers needed to return source markup to a
+// browser safely. The application enforces them for any markup response too,
+// since a result cache hit replays only the bytes.
 func passthroughHeaders() http.Header {
 	return http.Header{
 		"Content-Security-Policy": {imagor.SVGContentSecurityPolicy},
@@ -63,12 +62,9 @@ func explicitSVGFormat(p imagorpath.Params) bool {
 }
 
 // passthroughBlob serves the source blob untouched when the request is eligible
-// and the source format has a passthrough policy.
-//
-// It returns handled == false (and no error) when the request should be
-// processed normally, which is also the outcome when sanitization cannot be
-// completed: falling back to rasterizing is the pre-passthrough behaviour and
-// never serves unsanitized markup.
+// and the source format may pass through. handled is false when the request
+// should be processed normally, which is also the outcome when sanitization
+// cannot be completed: rasterizing never serves unsanitized markup.
 func (v *Processor) passthroughBlob(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params,
 ) (out *imagor.Blob, handled bool, err error) {
@@ -78,28 +74,24 @@ func (v *Processor) passthroughBlob(
 	blobType := blob.BlobType()
 	marked := imagorpath.HasFilter(p, imagor.PassthroughFilterName)
 	explicit := explicitSVGFormat(p)
-	// A format filter may have been injected by content negotiation rather than
-	// written by the client, so it is not on its own a request for an operation.
-	// The marker is this code's own bookkeeping and never one either.
+	// A format filter may come from content negotiation rather than the client,
+	// so it is not on its own an operation. The marker is this code's own
+	// bookkeeping, and never one.
 	transformations := imagorpath.HasTransformations(p,
 		"format", "fallback_format", "autojpg", imagor.PassthroughFilterName)
 
 	if explicit {
-		// format(svg) asks for the vector itself, which is an explicit request
-		// rather than a change of default: the sanitiser makes it safe to honour
-		// without the operator enabling passthrough for SVG sources in general.
-		//
-		// The exception is a deployment that turned sanitization off. There,
-		// honouring the request would serve upstream markup untouched, so the
-		// request needs the operator's opt-in (`IMAGOR_PASSTHROUGH_FORMATS`)
-		// rather than being a way around it.
+		// format(svg) asks for the vector itself. That is an explicit request
+		// rather than a change of default, so the sanitizer makes it safe to
+		// honour without passthrough being enabled for SVG generally. The
+		// exception is a deployment that turned sanitization off: there it would
+		// serve upstream markup untouched, so it needs the opt-in instead of
+		// being a way around it.
 		switch {
 		case blobType != imagor.BlobTypeSVG:
 			return nil, false, imagor.NewError(
 				"format(svg) is only supported for svg sources", http.StatusBadRequest)
 		case transformations:
-			// The vector cannot also be resized, cropped or filtered here, and
-			// quietly serving it untouched would drop the rest of the request.
 			return nil, false, imagor.NewError(
 				"format(svg) cannot be combined with transformations", http.StatusBadRequest)
 		case !v.SanitizeSVG && !v.passthroughEnabled(blobType):
@@ -111,22 +103,21 @@ func (v *Processor) passthroughBlob(
 		return nil, false, nil
 	} else if transformations {
 		// The marker is only appended to no-op requests, but a crafted path can
-		// carry it alongside an operation. Honour the operation, not the marker.
+		// carry it next to an operation. Honour the operation.
 		if v.Debug {
 			v.Logger.Warn("passthrough-marker-ignored", zap.Any("params", p))
 		}
 		return nil, false, nil
 	}
 
-	// A format the operator did not enable, or one that has not been considered
-	// at all, is processed normally rather than served.
+	// A format the operator did not enable is processed normally.
 	policy := imagor.PassthroughPolicyOf(blobType)
 	if policy == imagor.PassthroughRefused {
 		return nil, false, nil
 	}
 
-	// The resolution guard runs on the passthrough path too, so serving the
-	// source is not a way around the image bomb limits.
+	// The resolution guard runs here too, so passthrough is not a way around the
+	// image bomb limits.
 	if err = v.checkPassthroughResolution(ctx, blob); err != nil {
 		return nil, false, err
 	}
@@ -135,8 +126,8 @@ func (v *Processor) passthroughBlob(
 		sanitized, sanitizeErr := v.sanitizeSVG(blob)
 		if sanitizeErr != nil {
 			if explicit {
-				// The request asked for the vector specifically: failing loudly
-				// beats answering with a raster under an svg path.
+				// The request named the vector: fail rather than answer with a
+				// raster under an svg path.
 				return nil, false, sanitizeErr
 			}
 			if v.Debug {

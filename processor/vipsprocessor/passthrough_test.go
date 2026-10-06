@@ -63,12 +63,9 @@ func (l *ptLoader) Put(_ context.Context, _ string, _ *imagor.Blob) error { retu
 func (l *ptLoader) Delete(_ context.Context, _ string) error { return nil }
 
 // ptKeepAliveOnce holds a processor that is never shut down, so the vips
-// refcount inside the processor never reaches zero during the test binary.
-//
+// refcount inside the processor never reaches zero during the test binary:
 // vips.Shutdown() followed by vips.Startup() leaves the next rasterization to
-// segfault on some libvips builds (reproduced locally on 8.18.2; the repo
-// targets 8.18.6, where the existing suites cycle apps without trouble). Tests
-// are not the right place to depend on that cycle.
+// segfault on some libvips builds (8.18.2 locally; CI pins 8.18.6).
 var ptKeepAliveOnce sync.Once
 
 func ptKeepVipsAlive() {
@@ -224,13 +221,10 @@ func TestPassthroughMarkerCannotDropAnOperation(t *testing.T) {
 
 // TestPassthroughMarkerWithFormatFilter documents the one contradictory
 // combination: the marker says "serve the source", a format filter says
-// "convert it".
-//
-// Passthrough wins, because the marker only ever accompanies a request whose
-// format filter was injected by content negotiation - if a named format beat the
+// "convert it". Passthrough wins, because the marker only ever accompanies a
+// format filter that content negotiation injected - if a named format beat the
 // marker, auto WebP/AVIF would disable passthrough for exactly the clients it
-// was enabled for. A request that wants a raster format must not carry the
-// marker, and the application never adds one when the client names a format.
+// was enabled for. A request that wants a raster format must not carry it.
 func TestPassthroughMarkerWithFormatFilter(t *testing.T) {
 	app := ptApp(t, map[string][]byte{"simple.svg": []byte(ptSimpleSVG)},
 		imagor.WithPassthroughFormats(imagor.BlobTypeSVG))

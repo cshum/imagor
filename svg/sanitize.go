@@ -1,22 +1,20 @@
 // Package svg provides a deny-by-default sanitizer for SVG documents.
 //
-// The sanitizer re-serializes an SVG from its XML tokens, keeping only an
-// allowlist of SVG elements and attributes. Everything else is dropped:
-// <script>, <foreignObject>, <style>, animation elements, DOCTYPE,
-// processing instructions, comments, and every reference that is not a
-// same-document fragment. Parse failures are errors - the caller must not
-// fall back to serving the original bytes.
+// It re-serializes an SVG from its XML tokens, keeping an allowlist of elements
+// and attributes. Everything else is dropped: <script>, <foreignObject>,
+// <style>, animation, DOCTYPE, processing instructions, comments, and every
+// reference that is not a same-document fragment. Unknown names are dropped
+// rather than inspected, so the allowlist is the defence, not a denylist of
+// known-bad constructs. Parse failures are errors - the caller must not fall
+// back to serving the original bytes.
 //
-// It exists because serving an upstream SVG is handing the browser executable
-// markup: a proxied SVG runs with the proxy's origin, so script, event
-// handlers, <foreignObject> and external references are all attack surface.
-// The sanitizer deliberately does not try to be a denylist of known-bad
-// constructs; unknown elements and attributes are dropped, not inspected.
+// Serving an upstream SVG hands the browser executable markup that runs with
+// the origin serving it, which is why this exists.
 //
-// Output is normalized: it is re-serialized with an XML declaration and a
-// standard namespace set, so whitespace, self-closing tags, comments and
-// namespace prefixes do not survive. Content is otherwise preserved, including
-// attribute name case (viewBox), text, and url(#id) references.
+// Output is normalized: an XML declaration and a standard namespace set, so
+// whitespace, self-closing tags, comments and namespace prefixes do not
+// survive. Content is otherwise preserved, including attribute name case
+// (viewBox), text and url(#id) references.
 package svg
 
 import (
@@ -33,8 +31,8 @@ import (
 // ErrInvalidSVG reports input that is not a usable SVG document.
 var ErrInvalidSVG = errors.New("svg: invalid svg document")
 
-// maxDepth limits element nesting so a hostile document cannot exhaust the
-// stack during serialization.
+// maxDepth limits element nesting so a hostile document cannot exhaust the stack
+// during serialization.
 const maxDepth = 256
 
 const (
@@ -43,12 +41,12 @@ const (
 	xmlNamespace   = "http://www.w3.org/XML/1998/namespace"
 )
 
-// allowedElements is the set of elements that survive sanitization. An element
-// that is not here is dropped along with its entire subtree.
+// allowedElements is the set of elements that survive. An element that is not
+// here is dropped with its entire subtree.
 //
-// Deliberately absent: script, foreignObject, style, iframe, form, a,
-// metadata, animation (animate, set, animateTransform, animateMotion),
-// feImage, and every non-SVG element.
+// Deliberately absent: script, foreignObject, style, iframe, form, a, metadata,
+// animation (animate, set, animateTransform, animateMotion), feImage, and every
+// non-SVG element.
 var allowedElements = map[string]struct{}{
 	// structure
 	"svg": {}, "g": {}, "defs": {}, "symbol": {}, "use": {}, "switch": {},
@@ -74,11 +72,10 @@ var allowedElements = map[string]struct{}{
 	"feDropShadow": {},
 }
 
-// allowedAttrs is the set of attributes that survive, matching on the local
-// name (namespace-qualified attributes are handled separately below).
-//
-// Event handlers (on*), and anything else not listed, never survive - the
-// allowlist is the whole defence for attributes.
+// allowedAttrs is the set of attributes that survive, matched on the local name;
+// namespace-qualified attributes are handled by attrName. Event handlers (on*)
+// and anything else not listed never survive - the allowlist is the whole
+// defence for attributes.
 var allowedAttrs = map[string]struct{}{
 	// core and styling
 	"id": {}, "class": {}, "style": {}, "transform": {}, "opacity": {}, "display": {},
@@ -129,14 +126,13 @@ var allowedAttrs = map[string]struct{}{
 	"systemLanguage": {}, "requiredFeatures": {}, "requiredExtensions": {},
 }
 
-// hrefAttrs are attributes carrying a reference. Their values are restricted to
-// same-document fragments or relative references; see hrefValue(). <image> is
-// additionally allowed data: URIs, handled in imageHrefValue().
+// hrefAttrs are attributes carrying a reference. Values are restricted to
+// same-document fragments; <image> is additionally allowed data: URIs, in
+// imageHrefValue.
 var hrefAttrs = map[string]struct{}{"href": {}}
 
 // urlAttrs carry a paint server or geometry reference that may be written as
-// url(...). Their values are checked so that url() only ever points at a
-// same-document fragment.
+// url(...); their values are checked so url() only points inside the document.
 var urlAttrs = map[string]struct{}{
 	"fill": {}, "stroke": {}, "filter": {}, "clip-path": {}, "mask": {},
 	"marker-start": {}, "marker-mid": {}, "marker-end": {},
@@ -318,9 +314,9 @@ func (d *document) writeAttrs(b *bytes.Buffer, attrs []xml.Attr, isImage bool) {
 	}
 }
 
-// attrName maps an XML attribute name to a serializable SVG attribute name,
-// returning false for attributes that must be dropped (foreign namespaces,
-// namespace declarations).
+// attrName maps an XML attribute name to a serializable SVG name, returning
+// false for attributes that must be dropped: foreign namespaces and namespace
+// declarations.
 func attrName(n xml.Name) (string, bool) {
 	switch n.Space {
 	case "":
@@ -364,8 +360,8 @@ func sanitizeAttrValue(name, value string, isImage bool) (string, bool) {
 }
 
 // hrefValue accepts only same-document fragment references. A relative or
-// absolute reference would be fetched by the browser from whatever origin
-// serves the SVG - the proxy itself - so it is treated as external.
+// absolute reference would be fetched from whatever origin serves the SVG - the
+// proxy itself - so it counts as external.
 func hrefValue(value string) (string, bool) {
 	v := strings.TrimSpace(decodeEntities(value))
 	if !strings.HasPrefix(v, "#") || len(v) == 1 {
@@ -412,9 +408,9 @@ func urlAttrValue(value string) (string, bool) {
 }
 
 // styleValue keeps a style attribute only when it cannot reach outside the
-// document: no @import, no expression(), no url() target other than a
-// same-document fragment, no escapes and no comments. CSS declarations look
-// like URI schemes ("fill:red"), so only the url() targets are examined.
+// document: no @import, no expression(), no escape, and every url() pointing at
+// a same-document fragment. CSS declarations look like URI schemes
+// ("fill:red"), so only the url() targets are examined.
 func styleValue(value string) (string, bool) {
 	v := strings.TrimSpace(decodeEntities(value))
 	if styleForbiddenRe.MatchString(v) {
@@ -432,9 +428,9 @@ func styleValue(value string) (string, bool) {
 // schemeRe matches a leading URI scheme such as "javascript:" or "https:".
 var schemeRe = regexp.MustCompile(`^([a-zA-Z][a-zA-Z0-9+.\-]*):`)
 
-// hasScheme reports whether s starts with a URI scheme. Control characters and
-// whitespace inside the scheme are normalized away first, so "java\nscript:"
-// is still detected.
+// hasScheme reports whether s starts with a URI scheme. Whitespace and control
+// characters inside the scheme are normalized away first, so "java\nscript:" is
+// still detected.
 func hasScheme(s string) (string, bool) {
 	cleaned := strings.Map(func(r rune) rune {
 		if r <= ' ' || r == 0x7f {
