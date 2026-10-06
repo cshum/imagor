@@ -537,14 +537,6 @@ With `IMAGOR_UNSAFE` enabled, anyone can craft a URL with an arbitrarily large `
 
 ---
 
-### `passthrough()`
-
-Internal marker imagor appends to a request that asks for no transformation, when [SVG pass-through](./security.mdx#svg-pass-through) is enabled. It is part of the [result storage key](./storage-path-style.md), so a pass-through result and a rasterized result of the same request never share a cache entry — this is what keeps the two representations, and their content types, apart.
-
-Not meant to be written by hand: it is only honoured for a source format the server enabled, and never overrides a transformation. Use `format(svg)` to ask for the vector.
-
----
-
 ### `preview()`
 
 Skips the result storage even if result storage is enabled, and opts the request into the [in-memory cache](./in-memory-cache.md) when configured. Useful for preview contexts where the same source image is served at multiple transformations.

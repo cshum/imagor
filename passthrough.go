@@ -7,10 +7,13 @@ import (
 	"github.com/cshum/imagor/imagorpath"
 )
 
-// PassthroughFilterName is the filter the application appends to a request that
-// asks for no transformation, when passthrough is enabled for its source
-// format. It is part of the result storage key, so a passthrough result and a
-// rasterized result of the same request never share a cache entry.
+// PassthroughFilterName is the internal marker the application appends to a
+// request that asks for no transformation, when passthrough is enabled for its
+// source format. It is part of the result storage key, so a passthrough result
+// and a rasterized result of the same request never share a cache entry.
+//
+// It is not a client-facing filter: it has no implementation of its own, and
+// nothing in the documentation lists it.
 const PassthroughFilterName = "passthrough"
 
 // PassthroughPolicy describes how a source format may be served untouched.
