@@ -64,8 +64,9 @@ const SVGContentType = "image/svg+xml"
 // SVGContentSecurityPolicy is the response policy for markup responses: inline
 // style and data: images, nothing else. script-src 'none' alone would not
 // restrict CSS or image loads, which is how an SVG still reaches out from the
-// origin serving it.
-const SVGContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+// origin serving it. sandbox is the backstop for the other case: a document
+// served with sanitization off is still scriptless and on a unique origin.
+const SVGContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
 
 // passthroughFormatNameList lists the configuration names that may be enabled,
 // in a stable order, so a rejected value can say what was expected.

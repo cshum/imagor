@@ -125,7 +125,7 @@ func TestPassthroughServesSanitizedSVG(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"))
 	assert.Equal(t,
-		"default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+		"default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
 		res.Header().Get("Content-Security-Policy"))
 	assert.Equal(t, "nosniff", res.Header().Get("X-Content-Type-Options"))
 
