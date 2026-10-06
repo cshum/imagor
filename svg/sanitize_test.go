@@ -733,6 +733,32 @@ func TestFilterImageAndTextReference(t *testing.T) {
 	}
 }
 
+// TestSVGFonts covers the two halves of an SVG font: the declarations are kept
+// so a document reaches the renderer with the font-family set it was authored
+// with, while font data in another file is a resource reference - removing it
+// would leave the text to a fallback font, so that document is refused.
+func TestSVGFonts(t *testing.T) {
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg">`+
+		`<defs><font-face font-family="Inline" units-per-em="1000" ascent="800" descent="-200" unicode-range="U+0-7F">`+
+		`<font-face-src><font-face-name name="Inline"/></font-face-src></font-face>`+
+		`<font id="f" horiz-adv-x="500"><glyph unicode="a" d="M0 0 L10 10 Z"/></font></defs>`+
+		`<text font-family="Inline" font-size="10">a</text></svg>`)
+	for _, want := range []string{
+		`<font-face`, `<font-face-src>`, `font-family="Inline"`, `units-per-em="1000"`,
+		`ascent="800"`, `unicode-range="U+0-7F"`, `<glyph unicode="a" d="M0 0 L10 10 Z"/>`,
+		`horiz-adv-x="500"`,
+	} {
+		assert.Contains(t, out, want, out)
+	}
+
+	// Font data in another file is a reference like any other.
+	_, err := Sanitize(strings.NewReader(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">` +
+		`<font-face font-family="External"><font-face-src><font-face-uri xlink:href="../fonts/a.svg#x"/></font-face-src></font-face>` +
+		`<text font-family="External">a</text></svg>`))
+	require.ErrorIs(t, err, ErrRenderingChanged)
+	assert.Contains(t, err.Error(), "font data outside the document")
+}
+
 // FuzzSanitize asserts the properties the sanitizer promises for arbitrary
 // input: it never panics, and whatever it accepts is well-formed XML that
 // carries no executable element and no reference reaching outside the document.

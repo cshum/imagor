@@ -49,14 +49,16 @@ var ErrRenderingChanged = errors.New("svg: serving this document would change ho
 var resourceElements = map[string]struct{}{
 	"image": {}, "feImage": {}, "use": {}, "tref": {}, "altGlyph": {},
 	"linearGradient": {}, "radialGradient": {}, "pattern": {}, "filter": {},
+	// A font whose data lives in another file: removing it leaves the text to a
+	// fallback font.
+	"font-face-uri": {},
 }
 
-// fontElements define SVG fonts. They are dropped, and text that was authored
-// against them would be measured and drawn by a fallback font instead.
+// fontElements define SVG fonts. Their declarations and glyph outlines are kept
+// (see allowedElements); only font-face-uri, which points at font data outside
+// the document, is treated as a resource reference.
 var fontElements = map[string]struct{}{
-	"font": {}, "font-face": {}, "font-face-src": {}, "font-face-uri": {},
-	"font-face-name": {}, "font-face-format": {}, "glyph": {}, "glyphRef": {},
-	"missing-glyph": {}, "hkern": {}, "vkern": {},
+	"font-face-uri": {},
 }
 
 // unservableReason reports why this element cannot be served as authored, or an
@@ -68,7 +70,7 @@ func unservableReason(el xml.StartElement) string {
 		return "the document's own CSS"
 	}
 	if _, ok := fontElements[local]; ok {
-		return "an SVG font definition"
+		return "font data outside the document"
 	}
 	_, isResource := resourceElements[local]
 	for _, attr := range el.Attr {
@@ -125,6 +127,12 @@ var allowedElements = map[string]struct{}{
 	"text": {}, "tspan": {}, "textPath": {}, "tref": {},
 	// embedded raster (href restricted to data: URIs)
 	"image": {},
+	// SVG fonts: the declarations are kept so a document that declares a font
+	// reaches the renderer with the font-family set it was authored with, and the
+	// glyph outlines are paths. font-face-uri is not kept: it points at font data
+	// outside the document.
+	"font": {}, "font-face": {}, "font-face-src": {}, "font-face-name": {},
+	"glyph": {}, "missing-glyph": {}, "hkern": {}, "vkern": {},
 	// paint servers and geometry references
 	"linearGradient": {}, "radialGradient": {}, "stop": {}, "pattern": {},
 	"clipPath": {}, "mask": {}, "marker": {},
@@ -160,6 +168,16 @@ var allowedAttrs = map[string]struct{}{
 	// background/pointer attributes.
 	"fx": {}, "fy": {}, "fr": {}, "enable-background": {},
 	"pointer-events": {}, "cursor": {},
+	// glyph metrics and kerning, all inert values
+	"units-per-em": {}, "ascent": {}, "descent": {}, "alphabetic": {},
+	"hanging": {}, "ideographic": {}, "mathematical": {}, "cap-height": {},
+	"x-height": {}, "accent-height": {}, "underline-position": {},
+	"underline-thickness": {}, "strikethrough-position": {},
+	"strikethrough-thickness": {}, "panose-1": {}, "unicode": {},
+	"unicode-range": {}, "glyph-name": {}, "horiz-adv-x": {}, "vert-adv-y": {},
+	"horiz-origin-x": {}, "horiz-origin-y": {}, "vert-origin-x": {},
+	"vert-origin-y": {}, "arabic-form": {}, "stemv": {}, "stemh": {},
+	"widths": {}, "bbox": {}, "g1": {}, "g2": {}, "u1": {}, "u2": {}, "k": {},
 	// fill and stroke
 	"fill": {}, "fill-opacity": {}, "fill-rule": {},
 	"stroke": {}, "stroke-opacity": {}, "stroke-width": {},
