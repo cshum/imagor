@@ -3,6 +3,7 @@ package vipsprocessor
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -23,8 +24,6 @@ func (v *Processor) passthroughEnabled(t imagor.BlobType) bool {
 	_, ok := v.passthroughFormats[t]
 	return ok
 }
-
-const svgContentType = imagor.SVGContentType
 
 // SetPassthroughFormats implements imagor.PassthroughProcessor: the application
 // calls it at startup with the configured formats.
@@ -102,7 +101,9 @@ func (v *Processor) passthroughBlob(
 		return nil, false, nil
 	} else if transformations {
 		// The marker is only appended to no-op requests, but a crafted path can
-		// carry it next to an operation. Honour the operation.
+		// carry it next to an operation. Honour the operation. A client-named
+		// format is not covered by this, since content negotiation reuses that
+		// filter name and the two cannot be told apart.
 		if v.Debug {
 			v.Logger.Warn("passthrough-marker-ignored", zap.Any("params", p))
 		}
@@ -126,7 +127,8 @@ func (v *Processor) passthroughBlob(
 		if sanitizeErr != nil {
 			if explicit {
 				// The request named the vector: fail rather than answer with a
-				// raster under an svg path.
+				// raster under an svg path. A document the sanitizer refuses is
+				// reported as a bad request, like the cases above.
 				return nil, false, sanitizeErr
 			}
 			if v.Debug {
@@ -143,7 +145,7 @@ func (v *Processor) passthroughBlob(
 	// Passive formats, or SVG with sanitization disabled: stream the source.
 	blob.Header = passthroughHeaders()
 	if blobType == imagor.BlobTypeSVG && blob.ContentType() == "" {
-		blob.SetContentType(svgContentType)
+		blob.SetContentType(imagor.SVGContentType)
 	}
 	if v.Debug {
 		v.Logger.Debug("passthrough",
@@ -166,10 +168,16 @@ func (v *Processor) sanitizeSVG(blob *imagor.Blob) (*imagor.Blob, error) {
 	}
 	sanitized, err := svg.Sanitize(bytes.NewReader(data))
 	if err != nil {
+		if errors.Is(err, svg.ErrInvalidSVG) || errors.Is(err, svg.ErrRenderingChanged) {
+			// The document cannot be served as a vector, which is something the
+			// caller can act on - another source, or no format(svg) - so it
+			// answers like the other refusals rather than as an internal error.
+			return nil, imagor.NewError(err.Error(), http.StatusBadRequest)
+		}
 		return nil, WrapErr(err)
 	}
 	out := imagor.NewBlobFromBytes(sanitized)
-	out.SetContentType(svgContentType)
+	out.SetContentType(imagor.SVGContentType)
 	out.Header = passthroughHeaders()
 	return out, nil
 }

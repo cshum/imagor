@@ -535,8 +535,8 @@ func TestPassthroughRefusesDocumentStyling(t *testing.T) {
 		"a document with its own CSS must be rasterized, not served with the CSS stripped")
 
 	explicit := ptGet(t, app, "filters:format(svg)/styled.svg", nil)
-	assert.GreaterOrEqual(t, explicit.Code, 400,
-		"an explicit vector request must not answer with a raster")
+	assert.Equal(t, http.StatusBadRequest, explicit.Code,
+		"an explicit vector request must not answer with a raster, and a document that cannot be served is the caller's to act on")
 }
 
 // TestPassthroughUnsupportedCharsetFallsBack uses a document libvips renders but
