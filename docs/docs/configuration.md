@@ -66,7 +66,7 @@ IMAGOR_AUTO_WEBP=1         # Serve WebP automatically if browser supports
 IMAGOR_AUTO_AVIF=1         # Serve AVIF automatically if browser supports (experimental)
 IMAGOR_AUTO_JPEG=1         # Serve JPEG automatically if JPEG or no format requested
 
-IMAGOR_PASSTHROUGH_FORMATS=svg  # Source formats served as-is for requests that ask for nothing, e.g. svg. Off by default
+IMAGOR_PASSTHROUGH_FORMATS=svg  # Serve a source format as-is for requests that ask for nothing: svg, or unset
 
 IMAGOR_BASE_PARAMS=        # Base params applied to all images e.g. filters:watermark(logo.png)
 IMAGOR_SIGNER_TYPE=sha1    # URL signature algorithm: sha1, sha256, sha512 (default sha1)
@@ -253,7 +253,7 @@ VIPS_MAX_ANIMATION_FRAMES=   # Max animation frames to load. 1 = disable animati
 VIPS_MAX_FILTER_OPS=-1       # Max filter operations per request (-1 = unlimited)
 VIPS_DISABLE_BLUR=1          # Disable all blur operations
 VIPS_DISABLE_FILTERS=blur,watermark  # Disable specific filters (csv)
-VIPS_SANITIZE_SVG=1          # Sanitize SVG served through pass-through (default). Disable only for trusted sources
+VIPS_SANITIZE_SVG=1          # Sanitize SVG before serving it (default); disable only for trusted sources
 
 # Output
 VIPS_MOZJPEG=1               # Use MozJPEG for JPEG encoding (requires imagor-mozjpeg build)

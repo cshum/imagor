@@ -46,10 +46,9 @@ func WithDetectorProbeSize(size int) Option {
 	}
 }
 
-// WithSanitizeSVG with SVG sanitization option. Enabled by default, an SVG
-// served through passthrough is sanitized first. Disabling it serves the source
-// document byte for byte, which is only appropriate when every source is
-// trusted.
+// WithSanitizeSVG with SVG sanitization option. Enabled by default, an SVG served
+// through passthrough is sanitized first; disabling serves the source byte for
+// byte, so it is only appropriate when every source is trusted.
 func WithSanitizeSVG(enable bool) Option {
 	return func(v *Processor) {
 		v.SanitizeSVG = enable

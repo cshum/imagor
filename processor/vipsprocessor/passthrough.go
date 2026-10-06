@@ -13,9 +13,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// maxSanitizeBytes caps the size of an SVG buffered for sanitization. Beyond it
-// the request falls back to rasterizing rather than reading an unbounded
-// document into memory. A variable so tests can exercise the limit.
+// maxSanitizeBytes caps the size of an SVG buffered for sanitization; beyond it
+// the request rasterizes instead of reading an unbounded document into memory. A
+// variable so tests can exercise the limit.
 var maxSanitizeBytes = 32 << 20
 
 // passthroughEnabled reports whether the source format may pass through.
@@ -24,7 +24,6 @@ func (v *Processor) passthroughEnabled(t imagor.BlobType) bool {
 	return ok
 }
 
-// svgContentType is the content type of a passthrough SVG response.
 const svgContentType = imagor.SVGContentType
 
 // SetPassthroughFormats implements imagor.PassthroughProcessor: the application

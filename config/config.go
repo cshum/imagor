@@ -136,9 +136,9 @@ func NewImagor(
 	)...)
 }
 
-// parsePassthroughFormats parses the imagor-passthrough-formats csv. Invalid or
-// refused formats panic: failing at startup beats serving bytes the operator did
-// not intend to expose.
+// parsePassthroughFormats parses the imagor-passthrough-formats csv. An invalid
+// or refused format panics: failing at startup beats serving bytes the operator
+// did not intend to expose.
 func parsePassthroughFormats(s string) []imagor.BlobType {
 	formats, err := imagor.ParsePassthroughFormats(strings.Split(s, ","))
 	if err != nil {

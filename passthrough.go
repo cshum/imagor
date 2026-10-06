@@ -10,11 +10,9 @@ import (
 
 // PassthroughFilterName is the internal marker the application appends to a
 // request that asks for no transformation, when passthrough is enabled for its
-// source format. It is part of the result storage key, so a passthrough result
-// and a rasterized result of the same request never share a cache entry.
-//
-// It is not a client-facing filter: it has no implementation of its own, and
-// nothing in the documentation lists it.
+// source format. It lands in the result storage key, so a passthrough result and
+// a rasterized result of the same request never share a cache entry. It is not a
+// client-facing filter and nothing documents it.
 const PassthroughFilterName = "passthrough"
 
 // PassthroughPolicy describes how a source format may be served untouched.
@@ -29,8 +27,9 @@ const (
 	// PassthroughSanitize formats are markup that must be sanitized before it
 	// reaches a browser.
 	PassthroughSanitize
-	// PassthroughPassive formats are not executable. A sniffed content type and
-	// nosniff are enough.
+	// PassthroughPassive formats are not executable: a sniffed content type and
+	// nosniff are enough. No configured format uses it - only markup that is
+	// sanitized before it is served can be set - but a library embedder may.
 	PassthroughPassive
 )
 
@@ -61,11 +60,10 @@ var passthroughFormatNames = map[string]BlobType{
 // SVGContentType is the content type of an SVG response.
 const SVGContentType = "image/svg+xml"
 
-// SVGContentSecurityPolicy is the response policy for markup responses: inline
-// style and data: images, nothing else. script-src 'none' alone would not
-// restrict CSS or image loads, which is how an SVG still reaches out from the
-// origin serving it. sandbox is the backstop for the other case: a document
-// served with sanitization off is still scriptless and on a unique origin.
+// SVGContentSecurityPolicy is the policy for markup responses: inline style and
+// data: images, nothing else, so CSS and image loads cannot reach out from the
+// origin serving the document either. sandbox is the backstop for a document
+// served with sanitization off.
 const SVGContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
 
 // passthroughFormatNameList lists the configuration names that may be enabled,
@@ -96,10 +94,9 @@ func PassthroughFormatNames(formats []BlobType) []string {
 }
 
 // ParsePassthroughFormats resolves configured format names to formats. A name is
-// accepted once PassthroughPolicyOf has considered it: a markup source that is
-// sanitized before it is served, or a still format that is not executable. A
-// refused or unknown name is an error rather than a silent no-op, since serving
-// unprocessed bytes has to be deliberate.
+// accepted once PassthroughPolicyOf has considered it; anything else is an error
+// rather than a silent no-op, since serving unprocessed bytes has to be
+// deliberate.
 func ParsePassthroughFormats(names []string) ([]BlobType, error) {
 	var formats []BlobType
 	var seen = map[BlobType]struct{}{}
@@ -133,13 +130,10 @@ type PassthroughProcessor interface {
 	SetPassthroughFormats(formats []BlobType)
 }
 
-// passthroughEligible reports whether a request asks for nothing at all.
-//
-// Only no-op requests qualify: a request that asks for a transformation must
-// never have it dropped, since the untouched source would answer a different
-// question. It runs before auto WebP/AVIF appends its own format filter, so a
-// format here is one the client asked for, and asking for a format is not a
-// no-op.
+// passthroughEligible reports whether a request asks for nothing at all: a
+// transformation must never be dropped, since the untouched source would answer
+// a different question. It runs before auto WebP/AVIF appends its own format
+// filter, so a format here is one the client asked for, and that is not a no-op.
 func passthroughEligible(p imagorpath.Params) bool {
 	return !imagorpath.HasTransformations(p)
 }

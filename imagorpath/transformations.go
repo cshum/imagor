@@ -1,12 +1,10 @@
 package imagorpath
 
 // HasTransformations reports whether the params ask imagor to do anything to the
-// image: a resize, fit, stretch, alignment, padding, flip, crop, trim, smart
-// crop, or any filter that is not in ignoreFilters.
-//
-// ignoreFilters lets a caller skip filters it has already accounted for - a
-// format the server negotiated itself, or its own marker - so a caller that
-// cannot tell a client-named filter from a synthetic one does not have to guess.
+// image: a resize, fit, stretch, alignment, padding, flip, crop, trim, smart crop,
+// or any filter that is not in ignoreFilters. ignoreFilters lets a caller skip
+// filters it has already accounted for - a format the server negotiated, or its
+// own marker - so it need not guess which filters a client named.
 func HasTransformations(p Params, ignoreFilters ...string) bool {
 	if hasGeometryOps(p) {
 		return true

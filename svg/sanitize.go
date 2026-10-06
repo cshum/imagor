@@ -1,24 +1,17 @@
 // Package svg provides a deny-by-default sanitizer for SVG documents.
 //
 // It re-serializes an SVG from its XML tokens, keeping an allowlist of elements
-// and attributes. Everything else is dropped: <script>, <foreignObject>,
-// <style>, animation, DOCTYPE, processing instructions, comments, and every
-// reference that is not a same-document fragment. Unknown names are dropped
-// rather than inspected, so the allowlist is the defence, not a denylist of
-// known-bad constructs. Parse failures are errors - the caller must not fall
+// and attributes and dropping everything else, so an unknown name is dropped
+// rather than inspected. Parse failures are errors: the caller must not fall
 // back to serving the original bytes.
 //
 // Serving an upstream SVG hands the browser executable markup that runs with
 // the origin serving it, which is why this exists.
 //
-// Output is normalized: an XML declaration and a standard namespace set, so
-// whitespace, self-closing tags, comments and namespace prefixes do not
-// survive. Content is otherwise preserved, including attribute name case
-// (viewBox), text and url(#id) references.
-//
-// A source declaring ISO-8859-1 is converted to UTF-8 rather than refused, since
-// libvips renders those documents and the mapping is exact. Any other declared
-// charset is refused: the caller rasterizes instead.
+// Output is normalized - an XML declaration and a standard namespace set - so
+// whitespace, comments and namespace prefixes do not survive, while attribute
+// name case (viewBox), text and url(#id) references do. An ISO-8859-1 source is
+// converted to UTF-8; any other declared charset is refused.
 package svg
 
 import (
@@ -36,16 +29,14 @@ import (
 var ErrInvalidSVG = errors.New("svg: invalid svg document")
 
 // ErrRenderingChanged reports a readable document that cannot be served as
-// authored: something that decides how it looks - its own CSS, an SVG font
-// definition, or a reference to a resource outside the document - would have to
-// be removed. The caller rasterizes the source instead, which renders what the
-// author drew, rather than serving a document that looks different.
+// authored: its own CSS, an SVG font definition, or a reference outside the
+// document would have to be removed. The caller rasterizes it instead, which
+// renders what the author drew.
 var ErrRenderingChanged = errors.New("svg: serving this document would change how it looks")
 
-// resourceElements load something: an href on one of these names that has to be
-// removed means the document would render differently without it. An href on
-// <a> is navigation, not content, so a link is dropped without refusing the
-// document.
+// resourceElements load something, so an href on one of them that has to be
+// removed means the document would render differently. An href on <a> is
+// navigation rather than content, and is dropped without refusing the document.
 var resourceElements = map[string]struct{}{
 	"image": {}, "feImage": {}, "use": {}, "tref": {}, "altGlyph": {},
 	"linearGradient": {}, "radialGradient": {}, "pattern": {}, "filter": {},
@@ -54,9 +45,8 @@ var resourceElements = map[string]struct{}{
 	"font-face-uri": {},
 }
 
-// fontElements define SVG fonts. Their declarations and glyph outlines are kept
-// (see allowedElements); only font-face-uri, which points at font data outside
-// the document, is treated as a resource reference.
+// fontElements declare SVG fonts; only font-face-uri is a resource reference,
+// since it points at font data outside the document.
 var fontElements = map[string]struct{}{
 	"font-face-uri": {},
 }
@@ -108,16 +98,15 @@ const (
 // here is dropped with its entire subtree.
 //
 // Deliberately absent: script, foreignObject, style, iframe, form, metadata,
-// animation (animate, set, animateTransform, animateMotion), feImage, and every
-// non-SVG element.
+// animation (animate, set, animateTransform, animateMotion) and every non-SVG
+// element.
 var allowedElements = map[string]struct{}{
 	// structure
 	"svg": {}, "g": {}, "defs": {}, "symbol": {}, "use": {}, "switch": {},
 	"title": {}, "desc": {},
-	// a container, kept for its children: real documents wrap a whole graphic in
-	// <a> when a link was authored, and dropping the element would drop the
-	// graphic. Its href is subject to the same reference rule as any other, so
-	// only a same-document link survives.
+	// a container, kept for its children: a document that wraps its whole graphic
+	// in a link would lose the graphic with the element. An absolute http(s) href
+	// survives on it, see linkHrefValue.
 	"a": {},
 	// shapes
 	"path": {}, "rect": {}, "circle": {}, "ellipse": {}, "line": {},
@@ -126,10 +115,8 @@ var allowedElements = map[string]struct{}{
 	"text": {}, "tspan": {}, "textPath": {}, "tref": {},
 	// embedded raster (href restricted to data: URIs)
 	"image": {},
-	// SVG fonts: the declarations are kept so a document that declares a font
-	// reaches the renderer with the font-family set it was authored with, and the
-	// glyph outlines are paths. font-face-uri is not kept: it points at font data
-	// outside the document.
+	// SVG fonts: declarations and glyph outlines are inert and keep the
+	// font-family set a document was authored with. font-face-uri is not kept.
 	"font": {}, "font-face": {}, "font-face-src": {}, "font-face-name": {},
 	"glyph": {}, "missing-glyph": {}, "hkern": {}, "vkern": {},
 	// paint servers and geometry references
@@ -148,8 +135,7 @@ var allowedElements = map[string]struct{}{
 
 // allowedAttrs is the set of attributes that survive, matched on the local name;
 // namespace-qualified attributes are handled by attrName. Event handlers (on*)
-// and anything else not listed never survive - the allowlist is the whole
-// defence for attributes.
+// and anything else not listed never survive.
 var allowedAttrs = map[string]struct{}{
 	// core and styling
 	"id": {}, "class": {}, "style": {}, "transform": {}, "opacity": {}, "display": {},
@@ -482,11 +468,10 @@ func hrefValue(value string) (string, bool) {
 	return v, true
 }
 
-// linkHrefValue keeps a navigation target on <a>: an absolute http(s)
-// reference, or a same-document fragment. A relative reference is dropped
-// because the document is served from imagor's address rather than the one it
-// was authored at, so it would resolve somewhere the author never wrote. Every
-// other scheme is dropped: javascript: and data: execute rather than navigate.
+// linkHrefValue keeps a navigation target on <a>: an absolute http(s) reference
+// or a same-document fragment. A relative one is dropped, since the document is
+// served from imagor's address rather than the one it was authored at, and every
+// other scheme is dropped because javascript: and data: execute.
 func linkHrefValue(value string) (string, bool) {
 	v := strings.TrimSpace(decodeEntities(value))
 	if strings.ContainsAny(v, " \t\r\n\"'<>\\") {

@@ -154,8 +154,8 @@ func New(options ...Option) *Imagor {
 func (app *Imagor) Startup(ctx context.Context) (err error) {
 	for _, processor := range app.Processors {
 		// Hand the passthrough configuration to processors that support it, so
-		// the marker appended to the request path and the processor's decision
-		// can never disagree about which formats pass through.
+		// the marker in the request path and the processor can never disagree
+		// about which formats pass through.
 		if p, ok := processor.(PassthroughProcessor); ok {
 			p.SetPassthroughFormats(app.PassthroughFormats)
 		}
@@ -344,9 +344,9 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			p.Filters = append(p.Filters, f)
 		}
 	}
-	// Passthrough: a no-op request is marked so the processor may serve the
-	// source untouched. The marker is part of the result storage key, so a
-	// passthrough result and a rasterized result never share an entry.
+	// Passthrough: a no-op request is marked so the processor may serve the source
+	// untouched. The marker lands in the result storage key, so a passthrough
+	// result and a rasterized result never share an entry.
 	if len(app.PassthroughFormats) > 0 && passthroughEligible(p) {
 		p.Filters = append(p.Filters, imagorpath.Filter{
 			Name: PassthroughFilterName,
@@ -917,9 +917,8 @@ func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, bl
 	if r.Header.Get("Imagor-Auto-Format") != "" {
 		w.Header().Add("Vary", "Accept")
 	}
-	// Markup responses are set here rather than in the processor that produced
-	// them, so the policy also holds for a result cache hit, which replays only
-	// the bytes.
+	// Markup headers are set here rather than in the processor that produced them,
+	// so the policy also holds for a result cache hit, which replays only bytes.
 	if contentType == SVGContentType || r.Header.Get("Imagor-Raw") != "" {
 		w.Header().Set("Content-Security-Policy", SVGContentSecurityPolicy)
 	}

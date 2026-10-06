@@ -302,25 +302,25 @@ IMAGOR_PROCESS_QUEUE_SIZE=100       # max queued jobs before 429 is returned
 
 ## SVG Pass-through
 
-By default imagor rasterizes an SVG source, including a request that asks for no transformation at all: `photo.svg` with no format is re-encoded (to JPEG, or to WebP/AVIF when [auto format negotiation](./configuration.md#imagor-core) picks one). Rasterizing is the safe default because an SVG is executable markup, and a browser opening it runs it with imagor's origin.
+By default imagor rasterizes an SVG source, including a request that asks for no transformation at all: `photo.svg` with no format is re-encoded, to JPEG, or to WebP/AVIF when [auto format negotiation](./configuration.md#imagor-core) picks one. Rasterizing is the safe default, because an SVG is executable markup and a browser opening it runs it with imagor's origin.
 
 `IMAGOR_PASSTHROUGH_FORMATS` serves the source document instead, for requests that ask for nothing — no resize, crop, alignment, padding, flip, trim, smart crop or filter.
 
 ```dotenv
-IMAGOR_PASSTHROUGH_FORMATS=svg      # svg, or a csv of source formats e.g. svg,png
+IMAGOR_PASSTHROUGH_FORMATS=svg      # svg, or unset (the default)
 VIPS_SANITIZE_SVG=1                 # default; see below
 ```
 
-* **Only no-op requests pass through.** A request that asks for an operation is never answered with the untouched source. [`format(svg)`](./filters.md#formatsvg) asks for the vector explicitly and works without this setting, since the sanitizer makes an explicit request safe — only a deployment with `VIPS_SANITIZE_SVG=0` needs the opt-in for it.
-* **A source format is served only once it has been considered.** SVG is sanitized; still formats (PNG, JPEG, GIF, WebP, AVIF, HEIF, TIFF, BMP, JXL, JP2) are not executable and are returned byte-exact with their sniffed content type — so those requests skip auto WebP/AVIF negotiation, which is the point of enabling them. `pdf` is refused — a PDF viewer runs embedded script. Any other name fails at startup, naming what would be accepted.
-* **The result cache key changes.** An eligible request carries an internal marker in the [result storage key](./storage-path-style.md) — `passthrough()` in the path, when the storage path style is `original` — so a cached rasterized result is not served for a request that now passes through. Enabling the feature does not require flushing the cache.
+* **Only no-op requests pass through.** A request that asks for an operation is never answered with the untouched source. [`format(svg)`](./filters.md#formatsvg) asks for the vector explicitly and works without this setting, since the sanitizer makes an explicit request safe; only a deployment with `VIPS_SANITIZE_SVG=0` needs the opt-in for it.
+* **`svg` is the only name accepted**, and it is sanitized before it is served. Any other name — a still format, `pdf`, a typo — fails at startup and says what would be accepted.
+* **The result cache key changes.** An eligible request carries an internal marker in the [result storage key](./storage-path-style.md) — `passthrough()` in the path, when the storage path style is `original` — so a cached rasterized result is never served for a request that now passes through. Enabling this needs no cache flush.
 * **The limits still apply.** The resolution check runs on the pass-through path too, so it is not a way around `VIPS_MAX_RESOLUTION` or the image bomb limits.
 
 ### Sanitization
 
-An SVG is sanitized before it is returned: imagor keeps an allowlist of elements and attributes and drops the rest — `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments, processing instructions — along with every reference that is not a same-document fragment. `url(#id)` and `xlink:href="#id"` survive; `https://` and relative references do not, because a browser would fetch them from the origin serving the SVG. The exception is a link: an `<a href>` that is absolute http(s) is kept, since a link navigates on a click rather than fetching, while a relative one is dropped because it would resolve against imagor's address rather than the address the document came from. Inside `<image>`, an embedded raster `data:` image survives; an embedded SVG is dropped, because a nested document is not something an allowlist can inspect.
+An SVG is returned only if it can be sanitized. imagor keeps an allowlist of elements and attributes and drops everything else: `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments, processing instructions, and any reference that leaves the document. `url(#id)` and `xlink:href="#id"` survive. So does an `<a href>` that is absolute http(s), since a link navigates on a click rather than fetching; a relative one does not, because it would resolve against imagor's address rather than the document's. Inside `<image>`, an embedded raster `data:` image survives; a nested SVG does not, because an allowlist cannot inspect it.
 
-Output is re-serialized, so whitespace, comments and namespace prefixes do not survive, and a document the sanitizer cannot parse is rasterized instead of served. ISO-8859-1 sources are converted to UTF-8; a document declaring any other charset is rasterized. A document that carries its own CSS in a `<style>` element is rasterized too: serving it with the styling stripped would show something other than what was authored. Set `VIPS_SANITIZE_SVG=0` only when every source SVG is trusted — that serves the document byte for byte.
+Output is re-serialized, so whitespace, comments and namespace prefixes do not survive. A document that cannot be parsed, or that carries its own CSS in a `<style>` element, is rasterized instead of served — stripping the styling would show something other than what was authored. ISO-8859-1 sources are converted to UTF-8; any other declared charset is rasterized. `VIPS_SANITIZE_SVG=0` serves the document byte for byte, so set it only when every source SVG is trusted.
 
 ### Response headers
 
@@ -332,7 +332,7 @@ Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src 
 X-Content-Type-Options: nosniff
 ```
 
-`script-src 'none'` alone would not restrict CSS or image loads, which is how an unsanitized document still reaches out. Every response also carries `nosniff`, so a browser cannot treat the bytes as another type.
+`default-src 'none'` is what stops CSS and image loads: with `script-src 'none'` alone an unsanitized document would still reach out. `sandbox` puts a document served with sanitization off on a unique origin, and `nosniff` stops a browser reading the bytes as another type.
 
 :::warning
 An untrusted SVG is not made safe by switching this on. If the sources are not under your control, leave `IMAGOR_PASSTHROUGH_FORMATS` unset and keep rasterizing.

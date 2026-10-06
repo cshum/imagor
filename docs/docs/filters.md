@@ -153,9 +153,9 @@ Specifies the output format of the image.
 
 #### `format(svg)`
 
-Returns an SVG source as the vector itself, without rasterizing it. The document is sanitized unless sanitization is off (`VIPS_SANITIZE_SVG=0`).
+Returns an SVG source as the vector itself, without rasterizing it. The document is sanitized first unless `VIPS_SANITIZE_SVG=0`.
 
-Returns HTTP 400 for a non-SVG source, or when combined with a resize, crop or filter — neither can apply to a document served untouched.
+Returns HTTP 400 for a non-SVG source, or when combined with a resize, crop or filter: none can apply to a document served untouched.
 
 ---
 
