@@ -48,13 +48,18 @@ const (
 // allowedElements is the set of elements that survive. An element that is not
 // here is dropped with its entire subtree.
 //
-// Deliberately absent: script, foreignObject, style, iframe, form, a, metadata,
+// Deliberately absent: script, foreignObject, style, iframe, form, metadata,
 // animation (animate, set, animateTransform, animateMotion), feImage, and every
 // non-SVG element.
 var allowedElements = map[string]struct{}{
 	// structure
 	"svg": {}, "g": {}, "defs": {}, "symbol": {}, "use": {}, "switch": {},
 	"title": {}, "desc": {},
+	// a container, kept for its children: real documents wrap a whole graphic in
+	// <a> when a link was authored, and dropping the element would drop the
+	// graphic. Its href is subject to the same reference rule as any other, so
+	// only a same-document link survives.
+	"a": {},
 	// shapes
 	"path": {}, "rect": {}, "circle": {}, "ellipse": {}, "line": {},
 	"polyline": {}, "polygon": {},

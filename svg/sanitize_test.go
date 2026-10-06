@@ -591,6 +591,32 @@ func TestNestedSvgPreserved(t *testing.T) {
 	assert.Contains(t, out, `<svg x="1" y="1" width="4" height="4" viewBox="0 0 4 4">`)
 }
 
+// TestAnchorKeepsItsContents covers what a real document looks like: a graphic
+// wrapped in a link. The container must survive - dropping it would delete the
+// graphic - while the link itself goes unless it points inside the document.
+func TestAnchorKeepsItsContents(t *testing.T) {
+	out := sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100">`+
+		`<a xlink:href="http://www.w3.org/Graphics/SVG/" xlink:title="home" target="_parent">`+
+		`<title>SVG logo</title><rect width="100" height="100" fill="#FF9900" rx="4" ry="4"/><circle cx="50" cy="18" r="18"/>`+
+		`</a></svg>`)
+	assert.Contains(t, out, "<rect")
+	assert.Contains(t, out, "<circle")
+	assert.Contains(t, out, "<title>SVG logo</title>")
+	assert.NotContains(t, out, "href")
+	assert.NotContains(t, out, "Graphics/SVG")
+	assert.NotContains(t, out, "target")
+	assert.Contains(t, out, "<a><title>", "the anchor survives as a container without attributes")
+
+	// A same-document link is not a way out of the document, so it stays.
+	out = sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><defs><rect id="r" width="1" height="1"/></defs><a href="#r"><text>x</text></a></svg>`)
+	assert.Contains(t, out, `<a href="#r">`)
+	assert.Contains(t, out, "<text>x</text>")
+
+	// Without a link the element is still a container.
+	out = sanitize(t, `<svg xmlns="http://www.w3.org/2000/svg"><a><rect width="1" height="1"/></a></svg>`)
+	assert.Contains(t, out, "<a><rect")
+}
+
 // FuzzSanitize asserts the properties the sanitizer promises for arbitrary
 // input: it never panics, and whatever it accepts is well-formed XML that
 // carries no executable element and no reference reaching outside the document.
