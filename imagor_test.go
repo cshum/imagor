@@ -1390,7 +1390,7 @@ func TestWithProcessConcurrency(t *testing.T) {
 		WithUnsafe(true),
 		WithLogger(zap.NewExample()),
 		WithProcessConcurrency(1),
-		WithRequestTimeout(time.Millisecond*13),
+		WithRequestTimeout(time.Second), // the loader sleeps 10ms; at 13ms the one processed request had 3ms of slack
 		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
 			time.Sleep(time.Millisecond * 10) // make sure storage reached
 			return NewBlobFromBytes([]byte(image)), nil
@@ -1840,7 +1840,7 @@ func TestAutoFormatPrecedence(t *testing.T) {
 func TestWithTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.String(), "sleep") {
-			time.Sleep(time.Millisecond * 50)
+			time.Sleep(time.Millisecond * 1500)
 		}
 		_, _ = w.Write([]byte("ok"))
 	}))
@@ -1862,6 +1862,11 @@ func TestWithTimeout(t *testing.T) {
 		return NewBlobFromBytes(buf), err
 	})
 
+	// Budgets are orders of magnitude above the work the ok path does, and the
+	// sleeps are wider still, so a loaded machine cannot decide the outcome: the
+	// ok path always answers inside its deadline, the timeout path always
+	// exceeds it. Tight margins here fail on a busy runner for reasons that have
+	// nothing to do with the behaviour under test.
 	tests := []struct {
 		name string
 		app  *Imagor
@@ -1870,7 +1875,7 @@ func TestWithTimeout(t *testing.T) {
 			name: "load timeout",
 			app: New(
 				WithUnsafe(true),
-				WithLoadTimeout(time.Millisecond*10),
+				WithLoadTimeout(time.Millisecond*300),
 				WithLoaders(loader),
 			),
 		},
@@ -1878,7 +1883,7 @@ func TestWithTimeout(t *testing.T) {
 			name: "request timeout",
 			app: New(
 				WithUnsafe(true),
-				WithRequestTimeout(time.Millisecond*10),
+				WithRequestTimeout(time.Millisecond*300),
 				WithLoaders(loader),
 			),
 		},
@@ -1886,8 +1891,8 @@ func TestWithTimeout(t *testing.T) {
 			name: "load timeout > request timeout",
 			app: New(
 				WithUnsafe(true),
-				WithLoadTimeout(time.Millisecond*10),
-				WithRequestTimeout(time.Millisecond*100),
+				WithLoadTimeout(time.Millisecond*300),
+				WithRequestTimeout(time.Second*3),
 				WithLoaders(loader),
 			),
 		},
@@ -1895,8 +1900,8 @@ func TestWithTimeout(t *testing.T) {
 			name: "load timeout < request timeout",
 			app: New(
 				WithUnsafe(true),
-				WithLoadTimeout(time.Millisecond*100),
-				WithRequestTimeout(time.Millisecond*10),
+				WithLoadTimeout(time.Second*3),
+				WithRequestTimeout(time.Millisecond*300),
 				WithLoaders(loader),
 			),
 		},
@@ -1904,13 +1909,13 @@ func TestWithTimeout(t *testing.T) {
 			name: "process timeout",
 			app: New(
 				WithUnsafe(true),
-				WithRequestTimeout(time.Millisecond*10),
+				WithRequestTimeout(time.Millisecond*300),
 				WithLoaders(loaderFunc(func(r *http.Request, image string) (blob *Blob, err error) {
 					return NewBlobFromBytes([]byte("ok")), nil
 				})),
 				WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
 					if strings.Contains(p.Path, "sleep") {
-						time.Sleep(time.Millisecond * 50)
+						time.Sleep(time.Millisecond * 1500)
 					}
 					return blob, nil
 				})),

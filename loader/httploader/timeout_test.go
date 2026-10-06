@@ -21,13 +21,16 @@ func jsonStr(v interface{}) string {
 func TestWithLoadTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.String(), "sleep") {
-			time.Sleep(time.Millisecond * 50)
+			time.Sleep(time.Millisecond * 1500)
 		}
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write([]byte("ok"))
 	}))
 	defer ts.Close()
 
+	// Same margins as the timeout test in imagor itself: wide enough that the ok
+	// path cannot miss its deadline on a loaded runner, and the sleep wider still
+	// so the timeout path always exceeds it.
 	tests := []struct {
 		name string
 		app  *imagor.Imagor
@@ -36,7 +39,7 @@ func TestWithLoadTimeout(t *testing.T) {
 			name: "load timeout",
 			app: imagor.New(
 				imagor.WithUnsafe(true),
-				imagor.WithLoadTimeout(time.Millisecond*10),
+				imagor.WithLoadTimeout(time.Millisecond*300),
 				imagor.WithLoaders(New()),
 			),
 		},
@@ -44,7 +47,7 @@ func TestWithLoadTimeout(t *testing.T) {
 			name: "request timeout",
 			app: imagor.New(
 				imagor.WithUnsafe(true),
-				imagor.WithRequestTimeout(time.Millisecond*10),
+				imagor.WithRequestTimeout(time.Millisecond*300),
 				imagor.WithLoaders(New()),
 			),
 		},
@@ -52,8 +55,8 @@ func TestWithLoadTimeout(t *testing.T) {
 			name: "load timeout > request timeout",
 			app: imagor.New(
 				imagor.WithUnsafe(true),
-				imagor.WithLoadTimeout(time.Millisecond*10),
-				imagor.WithRequestTimeout(time.Millisecond*100),
+				imagor.WithLoadTimeout(time.Millisecond*300),
+				imagor.WithRequestTimeout(time.Second*3),
 				imagor.WithLoaders(New()),
 			),
 		},
@@ -61,8 +64,8 @@ func TestWithLoadTimeout(t *testing.T) {
 			name: "load timeout < request timeout",
 			app: imagor.New(
 				imagor.WithUnsafe(true),
-				imagor.WithLoadTimeout(time.Millisecond*100),
-				imagor.WithRequestTimeout(time.Millisecond*10),
+				imagor.WithLoadTimeout(time.Second*3),
+				imagor.WithRequestTimeout(time.Millisecond*300),
 				imagor.WithLoaders(New()),
 			),
 		},

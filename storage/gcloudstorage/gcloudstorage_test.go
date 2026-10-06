@@ -186,7 +186,7 @@ func TestExpiration(t *testing.T) {
 	require.NoError(t, err)
 	defer client.Close()
 
-	s := New(client, "test", WithExpiration(time.Millisecond*10))
+	s := New(client, "test", WithExpiration(time.Millisecond*500)) // the Get below must not race this: 10ms did
 	ctx := context.Background()
 
 	_, err = s.Get(&http.Request{}, "/foo/bar/asdf")
