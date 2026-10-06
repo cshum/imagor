@@ -292,13 +292,13 @@ func TestEmptyAndSelfClosingSerialization(t *testing.T) {
 	assert.Equal(t, `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"/>`, out)
 }
 
-// TestImgproxy1708VectorsDropped reproduces the vectors from
-// imgproxy/imgproxy#1708 - external references surviving in <style>, <image>
-// and <feImage> - plus the attribute forms of the same idea. imgproxy's denylist
-// still let these through. Here the document is refused outright, which is the
+// TestStyleAndExternalReferenceVectors covers the ways a document can reach
+// outside itself - references surviving in <style>, on <image>, on <feImage> -
+// plus the attribute forms of the same idea. A denylist of known-bad elements
+// lets those through; here the document is refused outright, which is the
 // strongest answer: the caller rasterizes the source, so nothing that reaches
 // outside is served at all.
-func TestImgproxy1708VectorsDropped(t *testing.T) {
+func TestStyleAndExternalReferenceVectors(t *testing.T) {
 	const prefix = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="8" height="8">`
 
 	for _, tc := range []struct{ name, body string }{
@@ -322,7 +322,7 @@ func TestImgproxy1708VectorsDropped(t *testing.T) {
 	}
 
 	// A link is navigation rather than content, so it is kept as authored: the
-	// one place an absolute target survives, matching imgproxy's href rule.
+	// one place an absolute target survives.
 	out := sanitize(t, prefix+`<a href="https://attacker.example.com/"><rect width="8" height="8"/></a></svg>`)
 	assert.Contains(t, out, `<a href="https://attacker.example.com/">`)
 	assert.Contains(t, out, "<rect")
