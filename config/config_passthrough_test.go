@@ -56,3 +56,29 @@ func TestParsePassthroughFormatsPanics(t *testing.T) {
 		"imagor: passthrough format \"pdf\" is refused: its bytes are active content in a browser",
 		func() { parsePassthroughFormats("pdf") })
 }
+
+// TestPassthroughFlagWiring checks the operator surface reaches the parser: the
+// flag is what an operator sets, so what it accepts has to be the policy the
+// processor applies - a still format is served as-is, a refused one fails the
+// process, and a separator typo is not a format.
+func TestPassthroughFlagWiring(t *testing.T) {
+	srv := CreateServer([]string{"-imagor-passthrough-formats", "svg,png"})
+	assert.Equal(t, []imagor.BlobType{imagor.BlobTypeSVG, imagor.BlobTypePNG},
+		srv.App.(*imagor.Imagor).PassthroughFormats)
+
+	for _, value := range []string{"svg", "png", "jpeg", "svg,"} {
+		t.Run("accepted "+value, func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				CreateServer([]string{"-imagor-passthrough-formats", value})
+			})
+		})
+	}
+
+	for _, value := range []string{"pdf", "svvg", "exe", "svg,pdf"} {
+		t.Run("refused "+value, func(t *testing.T) {
+			assert.Panics(t, func() {
+				CreateServer([]string{"-imagor-passthrough-formats", value})
+			})
+		})
+	}
+}

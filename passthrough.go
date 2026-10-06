@@ -94,9 +94,11 @@ func PassthroughFormatNames(formats []BlobType) []string {
 	return names
 }
 
-// ParsePassthroughFormats resolves configured format names to formats. A name
-// that is refused or unknown is an error rather than a silent no-op: adding one
-// is a decision about serving unprocessed bytes, and it has to be deliberate.
+// ParsePassthroughFormats resolves configured format names to formats. A name is
+// accepted once PassthroughPolicyOf has considered it: a markup source that is
+// sanitized before it is served, or a still format that is not executable. A
+// refused or unknown name is an error rather than a silent no-op, since serving
+// unprocessed bytes has to be deliberate.
 func ParsePassthroughFormats(names []string) ([]BlobType, error) {
 	var formats []BlobType
 	var seen = map[BlobType]struct{}{}
