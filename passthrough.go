@@ -2,6 +2,7 @@ package imagor
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/cshum/imagor/imagorpath"
@@ -66,6 +67,19 @@ const SVGContentType = "image/svg+xml"
 // origin serving it.
 const SVGContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
 
+// passthroughFormatNameList lists the configuration names that may be enabled,
+// in a stable order, so a rejected value can say what was expected.
+func passthroughFormatNameList() []string {
+	names := make([]string, 0, len(passthroughFormatNames))
+	for name, t := range passthroughFormatNames {
+		if PassthroughPolicyOf(t) != PassthroughRefused {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // PassthroughFormatNames returns configuration names for the given formats.
 func PassthroughFormatNames(formats []BlobType) []string {
 	var names []string
@@ -93,7 +107,8 @@ func ParsePassthroughFormats(names []string) ([]BlobType, error) {
 		}
 		t, ok := passthroughFormatNames[name]
 		if !ok {
-			return nil, fmt.Errorf("imagor: unknown passthrough format %q", name)
+			return nil, fmt.Errorf("imagor: unknown passthrough format %q, expected one of %s",
+				name, strings.Join(passthroughFormatNameList(), ", "))
 		}
 		if PassthroughPolicyOf(t) == PassthroughRefused {
 			return nil, fmt.Errorf(
