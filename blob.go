@@ -167,6 +167,10 @@ var pngHeader = []byte("\x89\x50\x4E\x47")
 var bmpHeader = []byte("BM")
 var pdfHeader = []byte("\x25\x50\x44\x46")
 
+// utf8BOM is what a byte order mark looks like: some editors and exporters write
+// one, and it is not document content.
+var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+
 // https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
 var ftyp = []byte("ftyp")
 var heic = []byte("heic")
@@ -452,7 +456,8 @@ func (b *Blob) doInit() {
 			b.blobType = BlobTypePDF
 		} else if bytes.Equal(b.sniffBuf[:2], bmpHeader) {
 			b.blobType = BlobTypeBMP
-		} else if data := bytes.TrimSpace(svgComment.ReplaceAll(b.sniffBuf, nil)); svgTagRegex.Match(data) ||
+		} else if data := bytes.TrimSpace(bytes.TrimPrefix(
+			svgComment.ReplaceAll(b.sniffBuf, nil), utf8BOM)); svgTagRegex.Match(data) ||
 			svgTagInXMLRegex.Match(data) {
 			// An SVG has no magic bytes to match, so it is recognised by the
 			// document itself - and the bytes decide, so both the type and the name

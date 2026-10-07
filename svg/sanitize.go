@@ -15,6 +15,7 @@
 package svg
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/xml"
 	"errors"
@@ -236,11 +237,23 @@ var (
 // cannot be parsed. Callers must treat any error as "do not serve this to a
 // browser".
 func Sanitize(r io.Reader) ([]byte, error) {
-	doc, err := parse(r)
+	doc, err := parse(skipBOM(r))
 	if err != nil {
 		return nil, err
 	}
 	return doc.serialize()
+}
+
+var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+
+// skipBOM drops a leading byte order mark: some tools write one, and it is not
+// document content.
+func skipBOM(r io.Reader) io.Reader {
+	br := bufio.NewReader(r)
+	if b, err := br.Peek(3); err == nil && bytes.Equal(b, utf8BOM) {
+		_, _ = br.Discard(3)
+	}
+	return br
 }
 
 type document struct {

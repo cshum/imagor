@@ -13,6 +13,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestLeadingByteOrderMark covers a document a tool wrote with a byte order mark:
+// it is not content, so it neither refuses the document nor survives the output.
+func TestLeadingByteOrderMark(t *testing.T) {
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>`
+	for _, in := range []string{
+		doc,
+		"\ufeff" + doc,
+		"\ufeff" + `<?xml version="1.0" encoding="UTF-8"?>` + doc,
+	} {
+		out := sanitize(t, in)
+		assert.NotContains(t, out, "\ufeff", "the mark is not document content")
+		assert.Contains(t, out, "<rect")
+	}
+}
+
 func sanitize(t *testing.T, in string) string {
 	t.Helper()
 	out, err := Sanitize(strings.NewReader(in))

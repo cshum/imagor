@@ -349,3 +349,17 @@ func TestBlobTypeSVGWithContentType(t *testing.T) {
 		})
 	}
 }
+
+// TestBlobTypeSVGWithByteOrderMark covers the same recognition for a document a
+// tool wrote with a byte order mark, which is not content.
+func TestBlobTypeSVGWithByteOrderMark(t *testing.T) {
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>`
+	for _, in := range []string{
+		"\ufeff" + doc,
+		"\ufeff" + `<?xml version="1.0" encoding="UTF-8"?>` + doc,
+	} {
+		blob := NewBlobFromBytes([]byte(in))
+		assert.Equal(t, BlobTypeSVG, blob.BlobType())
+		assert.Equal(t, SVGContentType, blob.ContentType())
+	}
+}
