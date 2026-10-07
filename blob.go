@@ -455,10 +455,11 @@ func (b *Blob) doInit() {
 		} else if data := bytes.TrimSpace(svgComment.ReplaceAll(b.sniffBuf, nil)); svgTagRegex.Match(data) ||
 			svgTagInXMLRegex.Match(data) {
 			// An SVG has no magic bytes to match, so it is recognised by the
-			// document itself rather than by a content type, which a loader may
-			// not have set. Idea taken from
+			// document itself - and the bytes decide, so both the type and the name
+			// are set even when a loader named something else. Idea taken from
 			// https://github.com/go-gitea/gitea/blob/58dfaf3a75a097088376a9c221784b3675ac9c48/modules/typesniffer/typesniffer.go#L98-L107
 			b.blobType = BlobTypeSVG
+			b.contentType = "image/svg+xml"
 		}
 	}
 	if b.contentType == "" {

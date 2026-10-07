@@ -465,6 +465,36 @@ func TestPassthroughWithTheHTTPLoader(t *testing.T) {
 	assert.NotContains(t, w.Body.String(), "<script>")
 }
 
+// TestRawServesSVGTypeFromBytes covers a source whose upstream content type is not
+// the document's own: what is served is what the bytes are, so the response is
+// markup rather than text.
+func TestRawServesSVGTypeFromBytes(t *testing.T) {
+	ptKeepVipsAlive()
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>`
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(doc))
+	}))
+	defer upstream.Close()
+
+	app := imagor.New(
+		imagor.WithUnsafe(true),
+		imagor.WithLoaders(httploader.New()),
+		imagor.WithProcessors(vipsprocessor.NewProcessor()),
+		imagor.WithLogger(zap.NewNop()),
+	)
+	require.NoError(t, app.Startup(context.Background()))
+	defer func() { _ = app.Shutdown(context.Background()) }()
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "/unsafe/filters:raw()/"+upstream.URL+"/x.svg", nil))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Equal(t, imagor.SVGContentType, w.Header().Get("Content-Type"),
+		"the response follows the document, not what the upstream called it")
+	assert.Equal(t, imagor.SVGContentSecurityPolicy, w.Header().Get("Content-Security-Policy"))
+}
+
 // TestPassthroughServesOverResolutionLimits pins the decision that serving is not
 // rendering: the document is handed over as it came, so the limits that bound
 // what imagor renders - and the decoder that would measure them - are not
