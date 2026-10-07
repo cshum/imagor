@@ -302,7 +302,7 @@ IMAGOR_PROCESS_QUEUE_SIZE=100       # max queued jobs before 429 is returned
 
 ## SVG Pass-through
 
-By default imagor rasterizes an SVG source, including a request that asks for no transformation at all: `photo.svg` with no format is re-encoded, to JPEG, or to WebP/AVIF when [auto format negotiation](./configuration.md#imagor-core) picks one. Rasterizing is the safe default, because an SVG is executable markup and a browser opening it runs it with imagor's origin.
+By default imagor rasterizes an SVG source, including a request that asks for no transformation at all: `photo.svg` with no format is re-encoded to JPEG, or to WebP/AVIF when [auto format negotiation](./configuration.md#imagor-core) picks one. Rasterizing is the safe default, because an SVG is executable markup and a browser opening it runs it with imagor's origin.
 
 `IMAGOR_PASSTHROUGH_FORMATS` serves the source document instead, for requests that ask for nothing — no resize, crop, alignment, padding, flip, trim, smart crop or filter.
 
