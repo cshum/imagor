@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cshum/imagor"
+	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/cshum/vipsgen/vips"
@@ -429,6 +430,39 @@ func TestPassthroughResultKeyAndCache(t *testing.T) {
 		res.Header().Get("Content-Security-Policy"),
 		"the policy must hold for a response served from the result cache too")
 	assert.Equal(t, "nosniff", res.Header().Get("X-Content-Type-Options"))
+}
+
+// TestPassthroughWithTheHTTPLoader covers the shape a deployment actually has:
+// the source comes from the HTTP loader, which sets the content type on the
+// blob, so the type has to be recognised from the bytes or no document would be
+// seen as an SVG.
+func TestPassthroughWithTheHTTPLoader(t *testing.T) {
+	ptKeepVipsAlive()
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">` +
+		`<script>alert(1)</script><rect width="8" height="8"/></svg>`
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		_, _ = w.Write([]byte(doc))
+	}))
+	defer upstream.Close()
+
+	app := imagor.New(
+		imagor.WithUnsafe(true),
+		imagor.WithPassthroughFormats(imagor.BlobTypeSVG),
+		imagor.WithLoaders(httploader.New()),
+		imagor.WithProcessors(vipsprocessor.NewProcessor()),
+		imagor.WithLogger(zap.NewNop()),
+	)
+	require.NoError(t, app.Startup(context.Background()))
+	defer func() { _ = app.Shutdown(context.Background()) }()
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "/unsafe/"+upstream.URL+"/x.svg", nil))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Equal(t, imagor.SVGContentType, w.Header().Get("Content-Type"),
+		"a document from the HTTP loader must be served as markup, not rasterized")
+	assert.NotContains(t, w.Body.String(), "<script>")
 }
 
 // TestPassthroughServesOverResolutionLimits pins the decision that serving is not

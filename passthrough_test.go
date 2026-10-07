@@ -332,3 +332,13 @@ func TestServePassthroughWithoutAProcessor(t *testing.T) {
 	assert.Equal(t, SVGContentSecurityPolicy, w.Header().Get("Content-Security-Policy"))
 	assert.Contains(t, w.Body.String(), "<rect")
 }
+
+// TestBlobTypeSVGWithContentType covers a source that arrives with its content
+// type already set, as the HTTP loader does: the bytes still decide the type, or
+// nothing would recognise the document as an SVG.
+func TestBlobTypeSVGWithContentType(t *testing.T) {
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>`
+	blob := NewBlobFromBytes([]byte(doc))
+	blob.SetContentType("image/svg+xml")
+	assert.Equal(t, BlobTypeSVG, blob.BlobType())
+}

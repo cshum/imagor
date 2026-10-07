@@ -484,9 +484,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isBlobEmpty(blob) && !isColorImage(p.Image) {
 			return blob, err
 		}
-		// Passthrough: a no-op request for a configured source format is served
-		// from the source bytes instead of being processed, so the processors are
-		// skipped. The result is cached like any other.
+		// Passthrough: served from the source bytes, so the processors are skipped.
+		// Unlike raw(), the result is still cached.
 		var passthroughServed bool
 		if out, handled, ptErr := app.servePassthrough(p, blob); handled || ptErr != nil {
 			passthroughServed = true

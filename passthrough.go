@@ -132,10 +132,6 @@ func ParsePassthroughFormats(names []string) ([]BlobType, error) {
 // request asks for nothing and its source format may pass through. handled is
 // false when the request should be processed normally, which is also the outcome
 // when sanitization cannot be completed: nothing unsanitized is served.
-//
-// Serving is not rendering. The document is handed over as it came, sanitized,
-// so the resolution and image bomb limits - which bound what imagor renders -
-// are not measured here, the same as raw().
 func (app *Imagor) servePassthrough(p imagorpath.Params, blob *Blob) (out *Blob, handled bool, err error) {
 	if blob == nil || blob.IsEmpty() || p.Meta {
 		return nil, false, nil
@@ -143,17 +139,13 @@ func (app *Imagor) servePassthrough(p imagorpath.Params, blob *Blob) (out *Blob,
 	blobType := blob.BlobType()
 	explicit := explicitSVGFormat(p)
 	if !explicit {
-		// Only a marked request for a configured format is served untouched. The
-		// marker is appended by the application; a client can write it too, which
-		// the transformations check below answers.
+		// A client can write the marker itself, which the transformations check
+		// below answers.
 		if len(app.PassthroughFormats) == 0 || !imagorpath.HasFilter(p, PassthroughFilterName) ||
 			!app.passthroughEnabled(blobType) {
 			return nil, false, nil
 		}
 	}
-	// A format filter may come from content negotiation rather than the client,
-	// so it is not on its own an operation. The marker is internal bookkeeping
-	// and never one.
 	transformations := imagorpath.HasTransformations(p, passthroughIgnoreFilters...)
 
 	if explicit {
@@ -227,7 +219,6 @@ var passthroughIgnoreFilters = []string{
 	"format", "fallback_format", "autojpg", PassthroughFilterName,
 }
 
-// explicitSVGFormat reports whether the request names svg as its output format.
 func explicitSVGFormat(p imagorpath.Params) bool {
 	for _, f := range p.Filters {
 		if f.Name == "format" && strings.EqualFold(strings.TrimSpace(f.Args), "svg") {
@@ -237,7 +228,6 @@ func explicitSVGFormat(p imagorpath.Params) bool {
 	return false
 }
 
-// passthroughEnabled reports whether the source format may be served untouched.
 func (app *Imagor) passthroughEnabled(t BlobType) bool {
 	for _, f := range app.PassthroughFormats {
 		if f == t {
@@ -247,12 +237,11 @@ func (app *Imagor) passthroughEnabled(t BlobType) bool {
 	return false
 }
 
-// maxSanitizeBytes caps the size of an SVG buffered for sanitization; beyond it
-// the document rasterizes instead of being read into memory unbounded. A
-// variable so tests can exercise the limit.
+// maxSanitizeBytes caps the size buffered for sanitization: beyond it the
+// document is rasterized rather than read into memory unbounded. A variable so
+// tests can exercise the limit.
 var maxSanitizeBytes = 32 << 20
 
-// sanitizeSVG reads the source document and returns a sanitized copy.
 func (app *Imagor) sanitizeSVG(blob *Blob) (*Blob, error) {
 	data, err := blob.ReadAll()
 	if err != nil {
