@@ -1,4 +1,4 @@
-package vipsprocessor
+package imagor_test
 
 import (
 	"bytes"
@@ -155,13 +155,13 @@ func TestRealWorldSVGCorpus(t *testing.T) {
 	// request that asks for work still goes through one.
 	stillMem := map[string][]byte{}
 	var stillNames []string
-	des, err := os.ReadDir(testDataDir)
+	des, err := os.ReadDir(ptTestDataDir)
 	require.NoError(t, err)
 	for _, e := range des {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".png") {
 			continue
 		}
-		b, err := os.ReadFile(filepath.Join(testDataDir, e.Name()))
+		b, err := os.ReadFile(filepath.Join(ptTestDataDir, e.Name()))
 		require.NoError(t, err)
 		stillMem[e.Name()] = b
 		stillNames = append(stillNames, e.Name())

@@ -116,9 +116,9 @@ func TestPassthroughEligible(t *testing.T) {
 	}
 }
 
-// passthroughStubProcessor records the configuration the application hands down.
+// passthroughStubProcessor is a minimal processor: it takes part without knowing
+// that passthrough exists.
 type passthroughStubProcessor struct {
-	formats []BlobType
 	started bool
 }
 
@@ -131,21 +131,13 @@ func (p *passthroughStubProcessor) Process(
 ) (*Blob, error) {
 	return blob, nil
 }
-func (p *passthroughStubProcessor) SetPassthroughFormats(formats []BlobType) {
-	p.formats = formats
-}
-
-func TestStartupForwardsPassthroughFormats(t *testing.T) {
+func TestStartupStartsProcessors(t *testing.T) {
+	// A processor takes part without implementing anything for passthrough: the
+	// application serves it itself.
 	stub := &passthroughStubProcessor{}
 	app := New(WithProcessors(stub), WithPassthroughFormats(BlobTypeSVG))
 	require.NoError(t, app.Startup(context.Background()))
 	assert.True(t, stub.started)
-	assert.Equal(t, []BlobType{BlobTypeSVG}, stub.formats)
-
-	// A processor that does not support passthrough must still start.
-	plain := &passthroughStubProcessor{}
-	require.NoError(t, New(WithProcessors(plain)).Startup(context.Background()))
-	assert.Nil(t, plain.formats)
 }
 
 // ptStubLoader serves one blob for any key.
@@ -233,4 +225,110 @@ func TestPassthroughMarkerInRequestPath(t *testing.T) {
 		// cannot serve this response to a client that would get WebP.
 		assert.Contains(t, w.Header().Values("Vary"), "Accept")
 	})
+}
+
+// markedParams is the request the application marks when passthrough applies.
+func markedParams(image string) imagorpath.Params {
+	return imagorpath.Params{
+		Image:   image,
+		Filters: imagorpath.Filters{{Name: PassthroughFilterName}},
+	}
+}
+
+// explicitSVGParams is a request that names the vector as its output format.
+func explicitSVGParams(image string) imagorpath.Params {
+	return imagorpath.Params{
+		Image:   image,
+		Filters: imagorpath.Filters{{Name: "format", Args: "svg"}},
+	}
+}
+
+// TestServePassthroughSanitizeFallback covers the decision to degrade to
+// rasterizing rather than fail, and to fail loudly when the client named svg.
+func TestServePassthroughSanitizeFallback(t *testing.T) {
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">` +
+		`<rect width="64" height="64"/></svg>`
+	restore := maxSanitizeBytes
+	maxSanitizeBytes = 64 // force the sanitizer to refuse a valid document
+	t.Cleanup(func() { maxSanitizeBytes = restore })
+
+	app := New(WithPassthroughFormats(BlobTypeSVG))
+	blob := NewBlobFromBytes([]byte(doc))
+	require.Equal(t, BlobTypeSVG, blob.BlobType())
+
+	out, handled, err := app.servePassthrough(markedParams("x.svg"), blob)
+	require.NoError(t, err)
+	assert.False(t, handled, "an unsanitizable source must fall back to rasterizing")
+	assert.Nil(t, out)
+
+	_, handled, err = app.servePassthrough(explicitSVGParams("x.svg"), blob)
+	assert.Error(t, err, "an explicit svg request must not answer with a raster")
+	assert.False(t, handled)
+}
+
+// TestServePassthroughLatin1SourceServed covers the one declared charset imagor
+// maps: the document is converted rather than refused, and the source bytes are
+// not re-emitted.
+func TestServePassthroughLatin1SourceServed(t *testing.T) {
+	const latin1 = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>" +
+		"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\">" +
+		"<text x=\"4\" y=\"32\">caf\xe9</text><script>alert(1)</script></svg>"
+	app := New(WithPassthroughFormats(BlobTypeSVG))
+	blob := NewBlobFromBytes([]byte(latin1))
+	require.Equal(t, BlobTypeSVG, blob.BlobType())
+
+	out, handled, err := app.servePassthrough(markedParams("x.svg"), blob)
+	require.NoError(t, err)
+	require.True(t, handled)
+	assert.Equal(t, SVGContentType, out.ContentType())
+
+	data, err := out.ReadAll()
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "café")
+	assert.NotContains(t, string(data), "script")
+	assert.NotContains(t, string(data), "\xe9", "the source bytes are converted, not re-emitted")
+}
+
+// TestServePassthroughUnsupportedCharsetFallsBack covers a document declaring a
+// charset the sanitizer cannot map: the marked request rasterizes, the explicit
+// request fails.
+func TestServePassthroughUnsupportedCharsetFallsBack(t *testing.T) {
+	const cp1252 = "<?xml version=\"1.0\" encoding=\"windows-1252\"?>" +
+		"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\">" +
+		"<text x=\"4\" y=\"32\">\x93quoted\x94</text></svg>"
+	app := New(WithPassthroughFormats(BlobTypeSVG))
+	blob := NewBlobFromBytes([]byte(cp1252))
+	require.Equal(t, BlobTypeSVG, blob.BlobType())
+
+	out, handled, err := app.servePassthrough(markedParams("x.svg"), blob)
+	require.NoError(t, err)
+	assert.False(t, handled)
+	assert.Nil(t, out)
+
+	_, handled, err = app.servePassthrough(explicitSVGParams("x.svg"), blob)
+	assert.Error(t, err)
+	assert.False(t, handled)
+}
+
+// TestServePassthroughWithoutAProcessor is the point of serving from the
+// application: the source is returned with no processor registered at all, so no
+// processor has to know that passthrough exists.
+func TestServePassthroughWithoutAProcessor(t *testing.T) {
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">` +
+		`<rect width="8" height="8"/></svg>`
+	app := New(
+		WithUnsafe(true),
+		WithPassthroughFormats(BlobTypeSVG),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte(doc)), nil
+		})),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/photo.svg", nil))
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Equal(t, SVGContentType, w.Header().Get("Content-Type"))
+	assert.Equal(t, SVGContentSecurityPolicy, w.Header().Get("Content-Security-Policy"))
+	assert.Contains(t, w.Body.String(), "<rect")
 }

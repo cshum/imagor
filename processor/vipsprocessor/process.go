@@ -71,13 +71,6 @@ func (v *Processor) Process(
 		}
 	}
 
-	// Passthrough: a no-op request for a configured source format is served from
-	// the source bytes instead of rasterized. A request that asked for a
-	// transformation is never eligible, so nothing is silently dropped.
-	if out, handled, err := v.passthroughBlob(ctx, blob, p); handled || err != nil {
-		return out, err
-	}
-
 	img, err := v.loadAndProcess(ctx, blob, p, load)
 	if err != nil {
 		return nil, err

@@ -79,6 +79,9 @@ func NewImagor(
 		imagorPassthroughFormats = fs.String("imagor-passthrough-formats", "",
 			"Source format served as-is when a request asks for no transformation. Only svg is accepted")
 
+		imagorSanitizeSVG = fs.Bool("imagor-sanitize-svg", true,
+			"Sanitize SVG before serving it through passthrough. Disable only when every source SVG is trusted")
+
 		options, logger, isDebug = applyOptions(fs, cb, append(funcs, baseConfig...)...)
 
 		alg          = sha1.New
@@ -131,6 +134,7 @@ func NewImagor(
 		imagor.WithResultStoragePathStyle(resultHasher),
 		imagor.WithUnsafe(*imagorUnsafe),
 		imagor.WithPassthroughFormats(parsePassthroughFormats(*imagorPassthroughFormats)...),
+		imagor.WithSanitizeSVG(*imagorSanitizeSVG),
 		imagor.WithLogger(logger),
 		imagor.WithDebug(isDebug),
 	)...)

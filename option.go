@@ -168,6 +168,15 @@ func WithAutoJPEG(enable bool) Option {
 	}
 }
 
+// WithSanitizeSVG with SVG sanitization option. Enabled by default, an SVG served
+// through passthrough is sanitized first; disabling serves the source byte for
+// byte, so it is only appropriate when every source is trusted.
+func WithSanitizeSVG(enable bool) Option {
+	return func(app *Imagor) {
+		app.SanitizeSVG = enable
+	}
+}
+
 // WithPassthroughFormats with source formats served as-is when a request asks
 // for no transformation. Formats are validated by ParsePassthroughFormats: one
 // that has not been considered (PDF, camera RAW) cannot be passed through.

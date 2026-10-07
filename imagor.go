@@ -104,6 +104,7 @@ type Imagor struct {
 	AutoAVIF               bool
 	AutoJPEG               bool
 	PassthroughFormats     []BlobType
+	SanitizeSVG            bool
 	ModifiedTimeCheck      bool
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
@@ -129,6 +130,7 @@ func New(options ...Option) *Imagor {
 		ProcessTimeout: time.Second * 20,
 		CacheHeaderTTL: time.Hour * 24 * 7,
 		CacheHeaderSWR: time.Hour * 24,
+		SanitizeSVG:    true,
 	}
 	for _, option := range options {
 		option(app)
@@ -153,12 +155,6 @@ func New(options ...Option) *Imagor {
 // Startup Imagor startup lifecycle
 func (app *Imagor) Startup(ctx context.Context) (err error) {
 	for _, processor := range app.Processors {
-		// Hand the passthrough configuration to processors that support it, so
-		// the marker in the request path and the processor can never disagree
-		// about which formats pass through.
-		if p, ok := processor.(PassthroughProcessor); ok {
-			p.SetPassthroughFormats(app.PassthroughFormats)
-		}
 		if err = processor.Startup(ctx); err != nil {
 			return
 		}
@@ -488,7 +484,19 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isBlobEmpty(blob) && !isColorImage(p.Image) {
 			return blob, err
 		}
-		if !isRaw {
+		// Passthrough: a no-op request for a configured source format is served
+		// from the source bytes instead of being processed, so the processors are
+		// skipped. The result is cached like any other.
+		var passthroughServed bool
+		if out, handled, ptErr := app.servePassthrough(p, blob); handled || ptErr != nil {
+			passthroughServed = true
+			if ptErr != nil {
+				err = ptErr
+			} else {
+				blob = out
+			}
+		}
+		if !isRaw && !passthroughServed {
 			var cancel func()
 			if app.ProcessTimeout > 0 {
 				ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)

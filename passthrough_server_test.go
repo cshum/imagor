@@ -1,4 +1,4 @@
-package vipsprocessor
+package imagor_test
 
 import (
 	"context"
@@ -11,13 +11,17 @@ import (
 	"time"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/storage/filestorage"
 	"github.com/cshum/vipsgen/vips"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
+
+// ptTestDataDir is the source imagor's own testdata, resolved from the package
+// directory the test binary runs in.
+const ptTestDataDir = "testdata"
 
 // ptSVG is a document exercising the constructs that must be dropped, next to
 // presentation that must survive.
@@ -56,7 +60,7 @@ func (l *ptLoader) Get(r *http.Request, key string) (*imagor.Blob, error) {
 	if b, ok := l.mem[key]; ok {
 		return imagor.NewBlobFromBytes(b), nil
 	}
-	return filestorage.New(testDataDir).Get(r, key)
+	return filestorage.New(ptTestDataDir).Get(r, key)
 }
 
 func (l *ptLoader) Stat(_ context.Context, _ string) (*imagor.Stat, error) {
@@ -75,7 +79,7 @@ var ptKeepAliveOnce sync.Once
 
 func ptKeepVipsAlive() {
 	ptKeepAliveOnce.Do(func() {
-		_ = NewProcessor().Startup(context.Background())
+		_ = vipsprocessor.NewProcessor().Startup(context.Background())
 	})
 }
 
@@ -86,11 +90,11 @@ func ptApp(t *testing.T, mem map[string][]byte, appOpts ...imagor.Option) *imago
 }
 
 func ptAppWith(
-	t *testing.T, mem map[string][]byte, procOpts []Option, appOpts ...imagor.Option,
+	t *testing.T, mem map[string][]byte, procOpts []vipsprocessor.Option, appOpts ...imagor.Option,
 ) *imagor.Imagor {
 	t.Helper()
 	ptKeepVipsAlive()
-	processor := NewProcessor(procOpts...)
+	processor := vipsprocessor.NewProcessor(procOpts...)
 	app := imagor.New(append([]imagor.Option{
 		imagor.WithLoaders(&ptLoader{mem: mem}),
 		imagor.WithUnsafe(true),
@@ -163,7 +167,7 @@ func TestPassthroughDisabledRasterizes(t *testing.T) {
 
 func TestPassthroughSanitizeDisabledPreservesBytes(t *testing.T) {
 	app := ptAppWith(t, map[string][]byte{"hostile.svg": []byte(ptSVG)},
-		[]Option{WithSanitizeSVG(false)},
+		nil, imagor.WithSanitizeSVG(false),
 		imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
 
 	res := ptGet(t, app, "hostile.svg", nil)
@@ -327,12 +331,12 @@ func TestPassthroughExplicitFormatSVG(t *testing.T) {
 		// Without the opt-in, honouring the request would mean serving upstream
 		// markup untouched - a way around the operator's decision, not a use of
 		// it.
-		app := ptAppWith(t, mem, []Option{WithSanitizeSVG(false)})
+		app := ptAppWith(t, mem, nil, imagor.WithSanitizeSVG(false))
 		res := ptGet(t, app, "filters:format(svg)/hostile.svg", nil)
 		assert.Equal(t, http.StatusBadRequest, res.Code, res.Body.String())
 
 		// With it, the bytes are served as they are.
-		app = ptAppWith(t, mem, []Option{WithSanitizeSVG(false)},
+		app = ptAppWith(t, mem, nil, imagor.WithSanitizeSVG(false),
 			imagor.WithPassthroughFormats(imagor.BlobTypeSVG))
 		res = ptGet(t, app, "filters:format(svg)/hostile.svg", nil)
 		require.Equal(t, http.StatusOK, res.Code)
@@ -342,7 +346,7 @@ func TestPassthroughExplicitFormatSVG(t *testing.T) {
 }
 
 func TestPassthroughPassiveFormatUnchanged(t *testing.T) {
-	source, err := os.ReadFile(filepath.Join(testDataDir, "gopher-front.png"))
+	source, err := os.ReadFile(filepath.Join(ptTestDataDir, "gopher-front.png"))
 	require.NoError(t, err)
 
 	app := ptApp(t, nil, imagor.WithPassthroughFormats(imagor.BlobTypePNG))
@@ -427,79 +431,21 @@ func TestPassthroughResultKeyAndCache(t *testing.T) {
 	assert.Equal(t, "nosniff", res.Header().Get("X-Content-Type-Options"))
 }
 
-// TestPassthroughResolutionGuard checks the passthrough path does not become a
-// way around the image bomb limits: the same request fails the same way with
-// passthrough on and off.
-func TestPassthroughResolutionGuard(t *testing.T) {
+// TestPassthroughServesOverResolutionLimits pins the decision that serving is not
+// rendering: the document is handed over as it came, so the limits that bound
+// what imagor renders - and the decoder that would measure them - are not
+// involved.
+func TestPassthroughServesOverResolutionLimits(t *testing.T) {
 	mem := map[string][]byte{"simple.svg": []byte(ptSimpleSVG)}
-	procOpts := []Option{WithMaxResolution(100)}
+	procOpts := []vipsprocessor.Option{vipsprocessor.WithMaxResolution(100)}
 
 	rasterized := ptGet(t, ptAppWith(t, mem, procOpts), "simple.svg", nil)
 	require.Equal(t, http.StatusUnprocessableEntity, rasterized.Code, rasterized.Body.String())
 
-	passed := ptGet(t, ptAppWith(t, mem, procOpts,
+	served := ptGet(t, ptAppWith(t, mem, procOpts,
 		imagor.WithPassthroughFormats(imagor.BlobTypeSVG)), "simple.svg", nil)
-	assert.Equal(t, rasterized.Code, passed.Code,
-		"passthrough must enforce the same resolution limit")
-}
-
-// TestPassthroughSanitizeFallback covers the decision to degrade to rasterizing
-// rather than fail, and to fail loudly when the client named svg.
-func TestPassthroughSanitizeFallback(t *testing.T) {
-	restore := maxSanitizeBytes
-	maxSanitizeBytes = 64 // force the sanitizer to refuse a valid document
-	t.Cleanup(func() { maxSanitizeBytes = restore })
-
-	v := NewProcessor()
-	v.SetPassthroughFormats([]imagor.BlobType{imagor.BlobTypeSVG})
-	blob := imagor.NewBlobFromBytes([]byte(ptSimpleSVG))
-	require.Equal(t, imagor.BlobTypeSVG, blob.BlobType())
-	// The document is loadable by libvips, so it passes the resolution guard and
-	// only the sanitizer refuses it - exactly the case where falling back beats
-	// failing.
-	require.NoError(t, v.checkPassthroughResolution(context.Background(), blob))
-
-	marked := imagorpath.Params{
-		Image:   "x.svg",
-		Filters: imagorpath.Filters{{Name: imagor.PassthroughFilterName}},
-	}
-	out, handled, err := v.passthroughBlob(context.Background(), blob, marked)
-	require.NoError(t, err)
-	assert.False(t, handled, "an unsanitizable source must fall back to rasterizing")
-	assert.Nil(t, out)
-
-	explicit := imagorpath.Params{
-		Image:   "x.svg",
-		Filters: imagorpath.Filters{{Name: "format", Args: "svg"}},
-	}
-	_, handled, err = v.passthroughBlob(context.Background(), blob, explicit)
-	assert.Error(t, err, "an explicit svg request must not answer with a raster")
-	assert.False(t, handled)
-}
-
-// TestPassthroughLatin1SourceServed covers the one declared charset imagor maps:
-// libvips renders such a document, so it passes through like any other SVG, with
-// sanitization still applied.
-func TestPassthroughLatin1SourceServed(t *testing.T) {
-	const latin1 = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\"><text x=\"4\" y=\"32\">caf\xe9</text><script>alert(1)</script></svg>"
-
-	v := NewProcessor()
-	v.SetPassthroughFormats([]imagor.BlobType{imagor.BlobTypeSVG})
-	blob := imagor.NewBlobFromBytes([]byte(latin1))
-	require.Equal(t, imagor.BlobTypeSVG, blob.BlobType())
-
-	out, handled, err := v.passthroughBlob(context.Background(), blob, imagorpath.Params{
-		Image:   "x.svg",
-		Filters: imagorpath.Filters{{Name: imagor.PassthroughFilterName}},
-	})
-	require.NoError(t, err)
-	require.True(t, handled)
-
-	data, err := out.ReadAll()
-	require.NoError(t, err)
-	assert.Contains(t, string(data), "café")
-	assert.NotContains(t, string(data), "script")
-	assert.NotContains(t, string(data), "\xe9", "the source bytes are converted, not re-emitted")
+	require.Equal(t, http.StatusOK, served.Code, served.Body.String())
+	assert.Equal(t, imagor.SVGContentType, served.Header().Get("Content-Type"))
 }
 
 // TestPassthroughRefusesExternalReference covers the source that points at
@@ -537,54 +483,4 @@ func TestPassthroughRefusesDocumentStyling(t *testing.T) {
 	explicit := ptGet(t, app, "filters:format(svg)/styled.svg", nil)
 	assert.Equal(t, http.StatusBadRequest, explicit.Code,
 		"an explicit vector request must not answer with a raster, and a document that cannot be served is the caller's to act on")
-}
-
-// TestPassthroughUnsupportedCharsetFallsBack uses a document libvips renders but
-// the sanitizer refuses: the marked request rasterizes, and the explicit request
-// fails rather than answering with a raster.
-func TestPassthroughUnsupportedCharsetFallsBack(t *testing.T) {
-	const cp1252 = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\"><text x=\"4\" y=\"32\">\x93quoted\x94</text></svg>"
-
-	v := NewProcessor()
-	v.SetPassthroughFormats([]imagor.BlobType{imagor.BlobTypeSVG})
-	blob := imagor.NewBlobFromBytes([]byte(cp1252))
-	require.Equal(t, imagor.BlobTypeSVG, blob.BlobType())
-	// libvips loads it, so only the sanitizer refuses it.
-	require.NoError(t, v.checkPassthroughResolution(context.Background(), blob))
-
-	marked := imagorpath.Params{
-		Image:   "x.svg",
-		Filters: imagorpath.Filters{{Name: imagor.PassthroughFilterName}},
-	}
-	out, handled, err := v.passthroughBlob(context.Background(), blob, marked)
-	require.NoError(t, err)
-	assert.False(t, handled, "an unsanitizable source must fall back to rasterizing")
-	assert.Nil(t, out)
-
-	explicit := imagorpath.Params{
-		Image:   "x.svg",
-		Filters: imagorpath.Filters{{Name: "format", Args: "svg"}},
-	}
-	_, handled, err = v.passthroughBlob(context.Background(), blob, explicit)
-	assert.Error(t, err, "an explicit svg request must not answer with a raster")
-	assert.False(t, handled)
-}
-
-func TestPassthroughProcessorRegistration(t *testing.T) {
-	// The application must hand its configuration to the processor at startup,
-	// otherwise the key and the behaviour would disagree.
-	processor := NewProcessor()
-	app := imagor.New(
-		imagor.WithProcessors(processor),
-		imagor.WithPassthroughFormats(imagor.BlobTypeSVG, imagor.BlobTypePNG),
-	)
-	require.NoError(t, app.Startup(context.Background()))
-	defer func() { _ = app.Shutdown(context.Background()) }()
-
-	assert.Contains(t, processor.passthroughFormats, imagor.BlobTypeSVG)
-	assert.Contains(t, processor.passthroughFormats, imagor.BlobTypePNG)
-	assert.NotContains(t, processor.passthroughFormats, imagor.BlobTypePDF)
-	assert.ElementsMatch(t,
-		[]string{"png", "svg"},
-		imagor.PassthroughFormatNames(app.PassthroughFormats))
 }
