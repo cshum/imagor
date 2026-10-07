@@ -207,7 +207,7 @@ func TestPassthroughRequiresNoOpRequest(t *testing.T) {
 	}
 }
 
-// TestPassthroughMarkerCannotDropAnOperation covers a crafted path: the marker
+// TestPassthroughFilterCannotDropAnOperation covers a crafted path: the filter
 // is only appended to no-op requests, but nothing stops a client or a URL
 // generator from writing it next to an operation. The operation wins.
 func TestPassthroughMarkerCannotDropAnOperation(t *testing.T) {
@@ -224,16 +224,16 @@ func TestPassthroughMarkerCannotDropAnOperation(t *testing.T) {
 			res := ptGet(t, app, tc.path, nil)
 			require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 			assert.NotEqual(t, "image/svg+xml", res.Header().Get("Content-Type"),
-				"a crafted marker must not drop the operation")
+				"a crafted filter must not drop the operation")
 		})
 	}
 }
 
 // TestPassthroughMarkerWithFormatFilter documents the one contradictory
-// combination: the marker says "serve the source", a format filter says
-// "convert it". Passthrough wins, because the marker only ever accompanies a
-// format filter that content negotiation injected - if a named format beat the
-// marker, auto WebP/AVIF would disable passthrough for exactly the clients it
+// combination: the filter says "serve the source", a format filter says
+// "convert it". Passthrough wins, because the filter only ever accompanies a
+// format filter that auto format injected - if a named format beat the
+// filter, auto WebP/AVIF would disable passthrough for exactly the clients it
 // was enabled for. A request that wants a raster format must not carry it.
 func TestPassthroughMarkerWithFormatFilter(t *testing.T) {
 	app := ptApp(t, map[string][]byte{"simple.svg": []byte(ptSimpleSVG)},
@@ -243,7 +243,7 @@ func TestPassthroughMarkerWithFormatFilter(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 	assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"))
 
-	// Without the marker the format is honoured, which is what a client that
+	// Without the filter the format is honoured, which is what a client that
 	// wants WebP gets for naming it.
 	res = ptGet(t, app, "filters:format(webp)/simple.svg", nil)
 	require.Equal(t, http.StatusOK, res.Code)
@@ -287,9 +287,9 @@ func TestPassthroughWinsOverAutoWebP(t *testing.T) {
 	res := ptGet(t, app, "simple.svg", acceptWebP)
 	require.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"),
-		"a negotiated raster format must not defeat passthrough")
+		"an auto format must not defeat passthrough")
 
-	// ...while raster sources keep the negotiation they had before.
+	// ...while raster sources keep the auto format they had before.
 	res = ptGet(t, app, "gopher-front.png", acceptWebP)
 	require.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "image/webp", res.Header().Get("Content-Type"))
@@ -374,7 +374,7 @@ func TestPassthroughMarkerIgnoredWithoutConfiguration(t *testing.T) {
 	res := ptGet(t, app, "filters:passthrough()/simple.svg", nil)
 	require.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "image/jpeg", res.Header().Get("Content-Type"),
-		"the marker alone must not enable passthrough")
+		"the filter alone must not enable passthrough")
 }
 
 func TestPassthroughResultKeyAndCache(t *testing.T) {
@@ -408,9 +408,9 @@ func TestPassthroughResultKeyAndCache(t *testing.T) {
 	withKeys := keysFor(true)
 	require.Len(t, withKeys, 1)
 	assert.Equal(t, "filters%3Apassthrough%28%29/simple.svg", withKeys[0],
-		"the passthrough marker must be part of the result key")
+		"the passthrough filter must be part of the result key")
 
-	// Without passthrough the same request keys without the marker, so the two
+	// Without passthrough the same request keys without the filter, so the two
 	// representations can never be served for each other.
 	withoutKeys := keysFor(false)
 	require.Len(t, withoutKeys, 1)

@@ -137,7 +137,7 @@ func TestRealWorldSVGCorpus(t *testing.T) {
 			t.Logf("%-20s %-26s %-16s %-16s %-10s %s", name, noopCell, resizeCell, explicitCell, renderCell, strings.Join(notes, ", "))
 		}
 	}
-	// Auto format negotiation must not override a decided pass-through. A source
+	// Auto format must not override a decided pass-through. A source
 	// the sanitizer refuses was never eligible, so it is not part of this check.
 	autoApp := ptApp(t, mem, imagor.WithPassthroughFormats(imagor.BlobTypeSVG), imagor.WithAutoWebP(true))
 	for _, name := range names {

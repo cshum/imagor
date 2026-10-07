@@ -169,51 +169,51 @@ func TestPassthroughFilterInRequestPath(t *testing.T) {
 		app.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/unsafe/"+path, nil))
 	}
 
-	t.Run("no-op request is marked", func(t *testing.T) {
+	t.Run("a no-op request carries it", func(t *testing.T) {
 		app, paths := newApp(t, WithPassthroughFormats(BlobTypeSVG))
 		serve(app, "plain/photo.svg")
 		require.Len(t, *paths, 1)
 		assert.Equal(t, "filters:"+PassthroughFilterName+"()/plain/photo.svg", (*paths)[0])
 	})
 
-	t.Run("disabled is not marked", func(t *testing.T) {
+	t.Run("not carried when disabled", func(t *testing.T) {
 		app, paths := newApp(t)
 		serve(app, "plain/photo.svg")
 		require.Len(t, *paths, 1)
 		assert.Equal(t, "plain/photo.svg", (*paths)[0])
 	})
 
-	t.Run("a transformation is not marked", func(t *testing.T) {
+	t.Run("not carried next to a transformation", func(t *testing.T) {
 		app, paths := newApp(t, WithPassthroughFormats(BlobTypeSVG))
 		serve(app, "100x100/plain/photo.svg")
 		require.Len(t, *paths, 1)
 		assert.Equal(t, "100x100/plain/photo.svg", (*paths)[0])
 	})
 
-	t.Run("an explicit format is not marked", func(t *testing.T) {
+	t.Run("not carried with an explicit format", func(t *testing.T) {
 		app, paths := newApp(t, WithPassthroughFormats(BlobTypeSVG))
 		serve(app, "filters:format(webp)/plain/photo.svg")
 		require.Len(t, *paths, 1)
 		assert.NotContains(t, (*paths)[0], PassthroughFilterName)
 	})
 
-	t.Run("raw is not marked", func(t *testing.T) {
+	t.Run("not carried by raw", func(t *testing.T) {
 		app, paths := newApp(t, WithPassthroughFormats(BlobTypeSVG))
 		serve(app, "filters:raw()/plain/photo.svg")
 		require.Len(t, *paths, 1)
 		assert.NotContains(t, (*paths)[0], PassthroughFilterName)
 	})
 
-	t.Run("meta is not marked", func(t *testing.T) {
+	t.Run("not carried by meta", func(t *testing.T) {
 		app, paths := newApp(t, WithPassthroughFormats(BlobTypeSVG))
 		serve(app, "meta/plain/photo.svg")
 		require.Len(t, *paths, 1)
 		assert.NotContains(t, (*paths)[0], PassthroughFilterName)
 	})
 
-	t.Run("auto format negotiation keeps the filter", func(t *testing.T) {
-		// The filter is decided before negotiation appends its format filter, so
-		// a negotiated representation does not defeat passthrough.
+	t.Run("auto format keeps the filter", func(t *testing.T) {
+		// The filter is decided before auto format appends its own, so a
+		// chosen representation does not defeat passthrough.
 		app, paths := newApp(t, WithPassthroughFormats(BlobTypeSVG), WithAutoWebP(true))
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/unsafe/plain/photo.svg", nil)
@@ -221,8 +221,8 @@ func TestPassthroughFilterInRequestPath(t *testing.T) {
 		app.ServeHTTP(w, req)
 		require.Len(t, *paths, 1)
 		assert.Equal(t, "filters:"+PassthroughFilterName+"():format(webp)/plain/photo.svg", (*paths)[0])
-		// The negotiated representation still varies on Accept, so a shared cache
-		// cannot serve this response to a client that would get WebP.
+		// The chosen representation still varies on Accept, so a shared cache
+		// cannot serve it to a client that would get WebP.
 		assert.Contains(t, w.Header().Values("Vary"), "Accept")
 	})
 }

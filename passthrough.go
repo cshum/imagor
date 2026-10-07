@@ -170,7 +170,7 @@ func (app *Imagor) servePassthrough(p imagorpath.Params, blob *Blob) (out *Blob,
 	} else if transformations {
 		// The filter is only appended to no-op requests, but a crafted path can
 		// carry it next to an operation. Honour the operation. A client-named
-		// format is not covered by this, since content negotiation reuses that
+		// format is not covered by this, since auto format reuses that
 		// filter name and the two cannot be told apart.
 		if app.Debug {
 			app.Logger.Warn("passthrough-filter-ignored", zap.Any("params", p))
@@ -214,7 +214,7 @@ func (app *Imagor) servePassthrough(p imagorpath.Params, blob *Blob) (out *Blob,
 }
 
 // passthroughIgnoreFilters are filters that do not make a request an operation:
-// content negotiation names one of them itself, and the filter is internal.
+// auto format names one of them itself, and the filter is internal.
 var passthroughIgnoreFilters = []string{
 	"format", "fallback_format", "autojpg", PassthroughFilterName,
 }
