@@ -13,11 +13,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// PassthroughFilterName is the internal marker the application appends to a
+// PassthroughFilterName is the internal filter the application appends to a
 // request that asks for no transformation, when passthrough is enabled for its
 // source format. It lands in the result storage key, so a passthrough result and
-// a rasterized result of the same request never share a cache entry. It is not a
-// client-facing filter and nothing documents it.
+// a rasterized result of the same request never share a cache entry. It is not
+// client-facing and nothing documents it.
 const PassthroughFilterName = "passthrough"
 
 // PassthroughPolicy describes how a source format may be served untouched.
@@ -139,7 +139,7 @@ func (app *Imagor) servePassthrough(p imagorpath.Params, blob *Blob) (out *Blob,
 	blobType := blob.BlobType()
 	explicit := explicitSVGFormat(p)
 	if !explicit {
-		// A client can write the marker itself, which the transformations check
+		// A client can write the filter itself, which the transformations check
 		// below answers.
 		if len(app.PassthroughFormats) == 0 || !imagorpath.HasFilter(p, PassthroughFilterName) ||
 			!app.passthroughEnabled(blobType) {
@@ -168,12 +168,12 @@ func (app *Imagor) servePassthrough(p imagorpath.Params, blob *Blob) (out *Blob,
 				http.StatusBadRequest)
 		}
 	} else if transformations {
-		// The marker is only appended to no-op requests, but a crafted path can
+		// The filter is only appended to no-op requests, but a crafted path can
 		// carry it next to an operation. Honour the operation. A client-named
 		// format is not covered by this, since content negotiation reuses that
 		// filter name and the two cannot be told apart.
 		if app.Debug {
-			app.Logger.Warn("passthrough-marker-ignored", zap.Any("params", p))
+			app.Logger.Warn("passthrough-filter-ignored", zap.Any("params", p))
 		}
 		return nil, false, nil
 	}
@@ -214,7 +214,7 @@ func (app *Imagor) servePassthrough(p imagorpath.Params, blob *Blob) (out *Blob,
 }
 
 // passthroughIgnoreFilters are filters that do not make a request an operation:
-// content negotiation names one of them itself, and the marker is internal.
+// content negotiation names one of them itself, and the filter is internal.
 var passthroughIgnoreFilters = []string{
 	"format", "fallback_format", "autojpg", PassthroughFilterName,
 }

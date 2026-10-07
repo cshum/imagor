@@ -77,7 +77,7 @@ func TestPassthroughFormatNames(t *testing.T) {
 	assert.Empty(t, PassthroughFormatNames(nil))
 }
 
-// TestPassthroughEligible pins the application-side rule: the marker is only
+// TestPassthroughEligible pins the application-side rule: the filter is only
 // appended when the request asks for nothing at all. The field-by-field sweep
 // that guards this against new Params fields lives next to the predicate in
 // imagorpath (TestHasTransformationsCoversEveryParamsField).
@@ -145,9 +145,9 @@ type ptStubLoader struct{ blob *Blob }
 
 func (l ptStubLoader) Get(*http.Request, string) (*Blob, error) { return l.blob, nil }
 
-// TestPassthroughMarkerInRequestPath checks the marker is appended only for
+// TestPassthroughFilterInRequestPath checks the filter is appended only for
 // no-op requests, and that it lands in the path the result storage keys on.
-func TestPassthroughMarkerInRequestPath(t *testing.T) {
+func TestPassthroughFilterInRequestPath(t *testing.T) {
 	newApp := func(t *testing.T, opts ...Option) (*Imagor, *[]string) {
 		t.Helper()
 		var paths []string
@@ -211,8 +211,8 @@ func TestPassthroughMarkerInRequestPath(t *testing.T) {
 		assert.NotContains(t, (*paths)[0], PassthroughFilterName)
 	})
 
-	t.Run("auto format negotiation keeps the marker", func(t *testing.T) {
-		// The marker is decided before negotiation appends its format filter, so
+	t.Run("auto format negotiation keeps the filter", func(t *testing.T) {
+		// The filter is decided before negotiation appends its format filter, so
 		// a negotiated representation does not defeat passthrough.
 		app, paths := newApp(t, WithPassthroughFormats(BlobTypeSVG), WithAutoWebP(true))
 		w := httptest.NewRecorder()

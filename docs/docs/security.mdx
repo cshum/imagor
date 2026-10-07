@@ -313,7 +313,7 @@ IMAGOR_SANITIZE_SVG=1               # default; see below
 
 * **Only no-op requests pass through.** A request that asks for an operation is never answered with the untouched source. [`format(svg)`](./filters.md#formatsvg) asks for the vector explicitly, works without this setting, and needs the opt-in only when `IMAGOR_SANITIZE_SVG=0`.
 * **`svg` is the only name accepted**, and it is sanitized before it is served. Any other name — a still format, `pdf`, a typo — fails at startup, naming what would be accepted.
-* **The result cache key changes.** A no-op request carries an internal marker in the [result storage key](./storage-path-style.md) — `passthrough()` in the path, when the storage path style is `original` — so a cached rasterized result is never served for a request that now passes through, and enabling this needs no cache flush. The marker goes on before the source is loaded, so it covers any no-op request, not only `svg`.
+* **The result cache key changes.** A no-op request carries an internal filter in the [result storage key](./storage-path-style.md) — `passthrough()` in the path, when the storage path style is `original` — so a cached rasterized result is never served for a request that now passes through, and enabling this needs no cache flush. The filter goes on before the source is loaded, so it covers any no-op request, not only `svg`.
 
 ### Sanitization
 

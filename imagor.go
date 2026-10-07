@@ -341,7 +341,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		}
 	}
 	// Passthrough: a no-op request is marked so the processor may serve the source
-	// untouched. The marker lands in the result storage key, so a passthrough
+	// untouched. The filter lands in the result storage key, so a passthrough
 	// result and a rasterized result never share an entry. The source is not
 	// loaded yet at this point, so eligibility is transformations alone.
 	if len(app.PassthroughFormats) > 0 && passthroughEligible(p) {
