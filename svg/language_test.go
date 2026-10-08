@@ -103,6 +103,29 @@ func TestSelectLanguageRejectsMalformedTags(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestSelectLanguageAcceptsAnyOfTheTags pins the semantics against the renderer's
+// own language option, checked side by side with rsvg-convert: the tags say what
+// is acceptable, and where several branches are acceptable the document's order
+// decides - so a list keeps every branch that matches any of them.
+func TestSelectLanguageAcceptsAnyOfTheTags(t *testing.T) {
+	const doc = `<svg xmlns="http://www.w3.org/2000/svg">
+<switch>
+<rect systemLanguage="en" fill="#0000ff"/>
+<rect systemLanguage="zh" fill="#ff0000"/>
+<rect fill="#00ff00"/>
+</switch>
+</svg>`
+	both := selectLang(t, doc, "zh-CN", "en")
+	assert.Contains(t, both, "#0000ff", "the en branch is acceptable too")
+	assert.Contains(t, both, "#ff0000")
+	assert.Less(t, strings.Index(both, "#0000ff"), strings.Index(both, "#ff0000"),
+		"document order decides, so the renderer draws en here")
+
+	zh := selectLang(t, doc, "zh-CN")
+	assert.NotContains(t, zh, "#0000ff")
+	assert.Contains(t, zh, "#ff0000")
+}
+
 func selectLang(t *testing.T, doc string, tags ...string) string {
 	t.Helper()
 	out, err := SelectLanguage(strings.NewReader(doc), tags)

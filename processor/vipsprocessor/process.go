@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"context"
+	"errors"
 	"math"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
+	"github.com/cshum/imagor/svg"
 	"github.com/cshum/vipsgen/vips"
 	"go.uber.org/zap"
 )
@@ -58,7 +60,8 @@ func (v *Processor) Process(
 	// Use image cache for preview() requests: known-size, within cache max dims, no bypass conditions.
 	// preview() opts in to base image caching for interactive editing workflows.
 	// Skip for crop/focal/page/dpi: cache stores a downscaled single-page copy at default DPI.
-	if p.Image != "" && imagorpath.HasFilter(p, "preview") {
+	// Skip for lang(): the cache is keyed on the source, and the rewritten source differs.
+	if p.Image != "" && imagorpath.HasFilter(p, "preview") && !imagorpath.HasFilter(p, langFilterName) {
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0
 			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight &&
@@ -67,6 +70,24 @@ func (v *Processor) Process(
 				if memBlob, _, cacheErr := v.loadOrCache(blob, p.Image, 1, nil); cacheErr == nil && memBlob != nil {
 					blob = memBlob
 				}
+			}
+		}
+	}
+
+	// lang() decides what the renderer draws, so the source is rewritten before it
+	// is loaded. SVG only: systemLanguage is an SVG condition.
+	if blob != nil && blob.BlobType() == imagor.BlobTypeSVG {
+		if tags, ok := langTags(p); ok {
+			switch rewritten, langErr := selectLanguage(blob, tags); {
+			case langErr == nil:
+				blob = rewritten
+			case errors.Is(langErr, svg.ErrInvalidLanguageTag):
+				v.Logger.Warn(langFilterName, zap.String("error", langErr.Error()))
+				return nil, imagor.ErrInvalid
+			default:
+				// The document cannot be rewritten for the renderer, which is not
+				// the caller's doing: render it as it is, as without the filter.
+				v.Logger.Warn(langFilterName+"-ignored", zap.String("error", langErr.Error()))
 			}
 		}
 	}
