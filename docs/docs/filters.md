@@ -230,6 +230,19 @@ Inverts the RGB channels of the image while preserving alpha.
 
 ---
 
+### `lang(accept-language)`
+
+Selects the language of a multi-language SVG before it renders.
+
+- `accept-language` — comma-separated BCP47 tags of what is acceptable, e.g. `en,zh-CN`
+- Branches matching no tag are dropped, contents and all. The condition is removed from the branch that matches, so the renderer does not choose again
+- The tags are a set, not a preference: where several branches match, the document's order decides
+- SVG sources only
+
+Other conditions, `requiredFeatures` and `requiredExtensions`, are left to the renderer. Returns HTTP 400 when a tag is not a language tag.
+
+---
+
 ### `lossless()`
 
 Enables lossless pixel-exact encoding for formats that support it: `webp`, `jxl`, `avif`, `heif`, `jp2`. No-op for `jpeg` (lossy only) and `png` (already lossless). When set, the `max_bytes` quality-degrade retry is skipped, since lossless output cannot be reduced by lowering quality.
