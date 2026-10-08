@@ -237,7 +237,7 @@ var (
 // cannot be parsed. Callers must treat any error as "do not serve this to a
 // browser".
 func Sanitize(r io.Reader) ([]byte, error) {
-	doc, err := parse(skipBOM(r))
+	doc, err := parse(skipBOM(r), true)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,12 @@ type document struct {
 	root int
 }
 
-func parse(r io.Reader) (*document, error) {
+// parse reads the document into tokens, recording where each element ends so a
+// caller can drop one with its subtree. serving marks the sanitizer's use: a
+// document that would have to be restyled, refonted or stripped of a resource
+// reference is refused there, because it is about to be handed to a browser. A
+// caller that rewrites the document for the renderer keeps it.
+func parse(r io.Reader, serving bool) (*document, error) {
 	dec := xml.NewDecoder(r)
 	dec.CharsetReader = charsetReader
 	var (
@@ -292,11 +297,10 @@ func parse(r io.Reader) (*document, error) {
 			if len(stack) >= maxDepth {
 				return nil, fmt.Errorf("%w: exceeds max element depth %d", ErrInvalidSVG, maxDepth)
 			}
-			// A document that would have to be restyled, refonted or stripped of a
-			// resource reference is refused: the caller rasterizes it, which renders
-			// what the author drew, rather than serving something that looks different.
-			if reason := unservableReason(tok.(xml.StartElement)); reason != "" {
-				return nil, fmt.Errorf("%w: %s", ErrRenderingChanged, reason)
+			if serving {
+				if reason := unservableReason(tok.(xml.StartElement)); reason != "" {
+					return nil, fmt.Errorf("%w: %s", ErrRenderingChanged, reason)
+				}
 			}
 			stack = append(stack, idx)
 		case xml.EndElement:
