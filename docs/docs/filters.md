@@ -234,7 +234,7 @@ Inverts the RGB channels of the image while preserving alpha.
 
 Selects the language of a multi-language SVG before it renders.
 
-- `accept-language` — comma-separated BCP47 tags of what is acceptable, e.g. `zh-CN,en`
+- `accept-language` — comma-separated BCP47 tags of what is acceptable, e.g. `en,zh-CN`
 - Branches matching no tag are dropped, contents and all. The condition is removed from the branch that matches, so the renderer does not choose again
 - The tags are a set, not a preference: where several branches match, the document's order decides
 - SVG sources only
