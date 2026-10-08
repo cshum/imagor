@@ -103,6 +103,8 @@ type Imagor struct {
 	AutoWebP               bool
 	AutoAVIF               bool
 	AutoJPEG               bool
+	PassthroughFormats     []BlobType
+	SanitizeSVG            bool
 	ModifiedTimeCheck      bool
 	DisableErrorBody       bool
 	DisableParamsEndpoint  bool
@@ -128,6 +130,7 @@ func New(options ...Option) *Imagor {
 		ProcessTimeout: time.Second * 20,
 		CacheHeaderTTL: time.Hour * 24 * 7,
 		CacheHeaderSWR: time.Hour * 24,
+		SanitizeSVG:    true,
 	}
 	for _, option := range options {
 		option(app)
@@ -337,6 +340,16 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			p.Filters = append(p.Filters, f)
 		}
 	}
+	// Passthrough: a no-op request is marked so the processor may serve the source
+	// untouched. The filter lands in the result storage key, so a passthrough
+	// result and a rasterized result never share an entry. The source is not
+	// loaded yet at this point, so eligibility is transformations alone.
+	if len(app.PassthroughFormats) > 0 && passthroughEligible(p) {
+		p.Filters = append(p.Filters, imagorpath.Filter{
+			Name: PassthroughFilterName,
+		})
+		isPathChanged = true
+	}
 	// auto WebP / AVIF / JPEG
 	if !hasFormat && (app.AutoWebP || app.AutoAVIF || app.AutoJPEG) {
 		accept := r.Header.Get("Accept")
@@ -471,7 +484,18 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		if isBlobEmpty(blob) && !isColorImage(p.Image) {
 			return blob, err
 		}
-		if !isRaw {
+		// Passthrough: served from the source bytes, so the processors are skipped.
+		// Unlike raw(), the result is still cached.
+		var passthroughServed bool
+		if out, handled, ptErr := app.servePassthrough(p, blob); handled || ptErr != nil {
+			passthroughServed = true
+			if ptErr != nil {
+				err = ptErr
+			} else {
+				blob = out
+			}
+		}
+		if !isRaw && !passthroughServed {
 			var cancel func()
 			if app.ProcessTimeout > 0 {
 				ctx, cancel = context.WithTimeout(ctx, app.ProcessTimeout)
@@ -893,16 +917,22 @@ func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, bl
 		w.Header().Set("Content-Type", "application/octet-stream")
 		return
 	}
-	w.Header().Set("Content-Type", blob.ContentType())
+	contentType := blob.ContentType()
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Disposition", getContentDisposition(p, blob))
 	setCacheHeaders(w, r, getTtl(p, app.CacheHeaderTTL), app.CacheHeaderSWR)
 
 	if r.Header.Get("Imagor-Auto-Format") != "" {
 		w.Header().Add("Vary", "Accept")
 	}
-	if r.Header.Get("Imagor-Raw") != "" {
-		w.Header().Set("Content-Security-Policy", "script-src 'none'")
+	// Markup headers are set here rather than in the processor that produced them,
+	// so the policy also holds for a result cache hit, which replays only bytes.
+	if contentType == SVGContentType || r.Header.Get("Imagor-Raw") != "" {
+		w.Header().Set("Content-Security-Policy", SVGContentSecurityPolicy)
 	}
+	// The content type comes from sniffing the bytes; nosniff stops a browser
+	// deciding otherwise in an HTML context.
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if h := blob.Header; h != nil {
 		for key := range h {
 			w.Header().Set(key, h.Get(key))

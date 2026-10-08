@@ -66,6 +66,9 @@ IMAGOR_AUTO_WEBP=1         # Serve WebP automatically if browser supports
 IMAGOR_AUTO_AVIF=1         # Serve AVIF automatically if browser supports (experimental)
 IMAGOR_AUTO_JPEG=1         # Serve JPEG automatically if JPEG or no format requested
 
+IMAGOR_PASSTHROUGH_FORMATS=svg  # Serve a source format as-is for requests that ask for nothing: svg, or unset
+IMAGOR_SANITIZE_SVG=1       # Sanitize SVG before serving it through pass-through (default)
+
 IMAGOR_BASE_PARAMS=        # Base params applied to all images e.g. filters:watermark(logo.png)
 IMAGOR_SIGNER_TYPE=sha1    # URL signature algorithm: sha1, sha256, sha512 (default sha1)
 IMAGOR_SIGNER_TRUNCATE=    # Truncate URL signature to this length

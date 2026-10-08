@@ -167,6 +167,10 @@ var pngHeader = []byte("\x89\x50\x4E\x47")
 var bmpHeader = []byte("BM")
 var pdfHeader = []byte("\x25\x50\x44\x46")
 
+// utf8BOM is what a byte order mark looks like: some editors and exporters write
+// one, and it is not document content.
+var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+
 // https://github.com/strukturag/libheif/blob/master/libheif/heif.cc
 var ftyp = []byte("ftyp")
 var heic = []byte("heic")
@@ -452,6 +456,15 @@ func (b *Blob) doInit() {
 			b.blobType = BlobTypePDF
 		} else if bytes.Equal(b.sniffBuf[:2], bmpHeader) {
 			b.blobType = BlobTypeBMP
+		} else if data := bytes.TrimSpace(bytes.TrimPrefix(
+			svgComment.ReplaceAll(b.sniffBuf, nil), utf8BOM)); svgTagRegex.Match(data) ||
+			svgTagInXMLRegex.Match(data) {
+			// An SVG has no magic bytes to match, so it is recognised by the
+			// document itself - and the bytes decide, so both the type and the name
+			// are set even when a loader named something else. Idea taken from
+			// https://github.com/go-gitea/gitea/blob/58dfaf3a75a097088376a9c221784b3675ac9c48/modules/typesniffer/typesniffer.go#L98-L107
+			b.blobType = BlobTypeSVG
+			b.contentType = "image/svg+xml"
 		}
 	}
 	if b.contentType == "" {
@@ -503,18 +516,6 @@ func (b *Blob) doInit() {
 			if bytes.Equal(b.sniffBuf[:2], jsonPrefix) {
 				b.blobType = BlobTypeJSON
 				b.contentType = "application/json"
-			}
-		}
-		// idea taken from https://github.com/go-gitea/gitea/blob/58dfaf3a75a097088376a9c221784b3675ac9c48/modules/typesniffer/typesniffer.go#L98-L107
-		detectByHTML := strings.HasPrefix(b.contentType, "text/plain") || strings.HasPrefix(b.contentType, "text/html")
-		detectByXML := strings.HasPrefix(b.contentType, "text/xml")
-		if detectByHTML || detectByXML {
-			dataProcessed := svgComment.ReplaceAll(b.sniffBuf, nil)
-			dataProcessed = bytes.TrimSpace(dataProcessed)
-			if (detectByHTML && svgTagRegex.Match(dataProcessed)) ||
-				(detectByXML && svgTagInXMLRegex.Match(dataProcessed)) {
-				b.blobType = BlobTypeSVG
-				b.contentType = "image/svg+xml"
 			}
 		}
 	}

@@ -151,6 +151,12 @@ Specifies the output format of the image.
 
 - `format` — accepts `jpeg`, `png`, `gif`, `webp`, `avif`, `jxl`, `tiff`, `jp2`
 
+#### `format(svg)`
+
+Returns an SVG source as the vector itself, without rasterizing it. The document is sanitized before it is served.
+
+Returns HTTP 400 when the source is not an SVG, when it is combined with a resize, crop or filter, or when the document cannot be sanitized.
+
 ---
 
 ### `grayscale()`

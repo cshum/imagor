@@ -76,6 +76,12 @@ func NewImagor(
 		imagorStoragePathStyle       = fs.String("imagor-storage-path-style", "original", "imagor storage path style: original, digest")
 		imagorResultStoragePathStyle = fs.String("imagor-result-storage-path-style", "original", "imagor result storage path style: original, digest, suffix")
 
+		imagorPassthroughFormats = fs.String("imagor-passthrough-formats", "",
+			"Source format served as-is when a request asks for no transformation. Only svg is accepted")
+
+		imagorSanitizeSVG = fs.Bool("imagor-sanitize-svg", true,
+			"Sanitize SVG before serving it through passthrough. Disable only when every source SVG is trusted")
+
 		options, logger, isDebug = applyOptions(fs, cb, append(funcs, baseConfig...)...)
 
 		alg          = sha1.New
@@ -127,9 +133,22 @@ func NewImagor(
 		imagor.WithStoragePathStyle(hasher),
 		imagor.WithResultStoragePathStyle(resultHasher),
 		imagor.WithUnsafe(*imagorUnsafe),
+		imagor.WithPassthroughFormats(parsePassthroughFormats(*imagorPassthroughFormats)...),
+		imagor.WithSanitizeSVG(*imagorSanitizeSVG),
 		imagor.WithLogger(logger),
 		imagor.WithDebug(isDebug),
 	)...)
+}
+
+// parsePassthroughFormats parses the imagor-passthrough-formats csv. An invalid
+// or refused format panics: failing at startup beats serving bytes the operator
+// did not intend to expose.
+func parsePassthroughFormats(s string) []imagor.BlobType {
+	formats, err := imagor.ParsePassthroughFormats(strings.Split(s, ","))
+	if err != nil {
+		panic(err)
+	}
+	return formats
 }
 
 // CreateServer create server from config flags. Returns nil on version or help command

@@ -417,7 +417,9 @@ func TestWithRaw(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/filters:fill(red):raw()/gopher.png", nil))
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "foo", w.Body.String())
-	assert.Equal(t, "script-src 'none'", w.Header().Get("Content-Security-Policy"))
+	// raw() responses carry the full markup policy, not just script-src 'none':
+	// the latter does not stop CSS or image loads from an unsanitized document.
+	assert.Equal(t, SVGContentSecurityPolicy, w.Header().Get("Content-Security-Policy"))
 	assert.Equal(t, "bar", w.Header().Get("Content-Type"))
 }
 
