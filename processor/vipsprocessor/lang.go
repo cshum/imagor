@@ -9,14 +9,14 @@ import (
 	"github.com/cshum/imagor/svg"
 )
 
-// langFilterName selects a language in a multi-language SVG. The rewrite has to
-// happen before the source is loaded, because it decides what the renderer
-// draws - so it is not in the filter table, whose filters run on the image.
+// langFilterName selects a language in a multi-language SVG. The rewrite runs
+// before the source is loaded, so it is not in the filter table, whose filters
+// run on the image.
 const langFilterName = "lang"
 
-// langTags returns the accepted language tags, and whether the request asks for
-// a language at all. The tags are a set: which branch renders is the document's
-// order to decide, the same way the renderer's own language option behaves.
+// langTags returns the accepted language tags, and whether the request asks for a
+// language at all. The tags are a set, as in the renderer's own language option:
+// the document's order decides which branch renders.
 func langTags(p imagorpath.Params) ([]string, bool) {
 	for _, f := range p.Filters {
 		if f.Name != langFilterName {

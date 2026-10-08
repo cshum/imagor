@@ -9,31 +9,26 @@ import (
 	"strings"
 )
 
-// ErrInvalidLanguageTag reports a requested tag that is not a language tag, which
-// is caller input and so a request error rather than a source to fall back on.
+// ErrInvalidLanguageTag reports a tag that is not a language tag: caller input,
+// so a request error rather than a source to fall back on.
 var ErrInvalidLanguageTag = fmt.Errorf("%w: invalid language tag", ErrInvalidSVG)
 
 // languageCond is the conditional this pass resolves. requiredFeatures and
-// requiredExtensions select a branch the same way, and are left to the renderer.
+// requiredExtensions select the same way, and are left to the renderer.
 const languageCond = "systemLanguage"
 
-// tagRe is what a language tag looks like: a primary subtag and any number of
-// subtags, of the shape BCP47 allows in an Accept-Language. A malformed tag is
-// rejected rather than passed on, since the renderer errors on one.
+// tagRe is a language tag as BCP47 writes it in an Accept-Language: a primary
+// subtag and any number of subtags. The renderer errors on a malformed one.
 var tagRe = regexp.MustCompile(`^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*$`)
 
 // SelectLanguage returns the document with its language conditionals resolved for
-// the requested tags: an element whose systemLanguage matches none of them is
-// dropped with its subtree, and the ones that match are returned.
+// the accepted tags. A branch matching none of them is dropped with its subtree,
+// and the condition is removed from one that matches: left on the node, the
+// renderer evaluates it again and passes over the branch chosen here.
 //
-// The condition is removed from a survivor, not merely satisfied. Left on the
-// node, the renderer evaluates it again against its own language and passes over
-// the branch this function chose.
-//
-// Everything else survives, foreign namespace declarations included: this runs on
-// the rendering path, where the document is rasterized rather than served, so the
-// sanitizer's allowlist does not apply and a document it refuses is still a
-// document this can rewrite.
+// This runs on the rendering path, so the sanitizer's policy does not apply and
+// everything else survives - foreign declarations and the document's own CSS
+// included.
 func SelectLanguage(r io.Reader, tags []string) ([]byte, error) {
 	langs, err := parseLanguageTags(tags)
 	if err != nil {
@@ -49,10 +44,9 @@ func SelectLanguage(r io.Reader, tags []string) ([]byte, error) {
 	w := &langWriter{
 		doc:   doc,
 		langs: langs,
-		// A prefix has to be written back with its name, and the decoder hands
-		// attributes over as namespace URLs, so the declarations are tracked as
-		// they are met. Document order makes one map enough: a prefix is declared
-		// before it is used.
+		// The decoder hands attributes over as namespace URLs, so a prefix has to
+		// be tracked to write a name back. One map is enough: a prefix is
+		// declared before it is used.
 		prefix: map[string]string{
 			"":             "", // an attribute with no namespace has no prefix
 			svgNamespace:   "",
@@ -91,8 +85,8 @@ func (w *langWriter) writeChildren(b *bytes.Buffer, from, to int) {
 	for i := from; i < to; i++ {
 		switch t := w.doc.tokens[i].(type) {
 		case xml.CharData:
-			// Escaping is right in every context here: the parser restores it, so
-			// what a stylesheet or a text node holds is unchanged.
+			// Escaping holds in every context: the parser restores it, so a
+			// stylesheet or a text node keeps what it holds.
 			b.WriteString(escapeText(string(t)))
 		case xml.StartElement:
 			elEnd := w.doc.end[i]
@@ -121,8 +115,8 @@ func (w *langWriter) writeChildren(b *bytes.Buffer, from, to int) {
 }
 
 // writeAttrs writes every attribute with its namespace prefix, minus the language
-// condition. Namespace declarations are written as they are met, since a prefix
-// used by an attribute has to be declared for the document to parse.
+// condition. Declarations are written as they are met, or the document will not
+// parse.
 func (w *langWriter) writeAttrs(b *bytes.Buffer, attrs []xml.Attr) {
 	for _, attr := range attrs {
 		switch {
@@ -168,9 +162,8 @@ func (w *langWriter) matches(attrs []xml.Attr) bool {
 	return true
 }
 
-// tagMatches is prefix matching in both directions, so a request for "en" takes
-// "en-US" and a request for "zh-Hans-CN" takes "zh". The spec's rule is one
-// direction; a request means the other too.
+// tagMatches is prefix matching in both directions: "en" takes "en-US", and
+// "zh-Hans-CN" takes "zh". The spec's rule is one direction; a request means both.
 func tagMatches(have, want string) bool {
 	return have != "" && want != "" && (have == want ||
 		strings.HasPrefix(have, want+"-") || strings.HasPrefix(want, have+"-"))

@@ -75,7 +75,7 @@ func (v *Processor) Process(
 	}
 
 	// lang() decides what the renderer draws, so the source is rewritten before it
-	// is loaded. SVG only: systemLanguage is an SVG condition.
+	// is loaded. SVG sources only.
 	if blob != nil && blob.BlobType() == imagor.BlobTypeSVG {
 		if tags, ok := langTags(p); ok {
 			switch rewritten, langErr := selectLanguage(blob, tags); {
@@ -85,8 +85,8 @@ func (v *Processor) Process(
 				v.Logger.Warn(langFilterName, zap.String("error", langErr.Error()))
 				return nil, imagor.ErrInvalid
 			default:
-				// The document cannot be rewritten for the renderer, which is not
-				// the caller's doing: render it as it is, as without the filter.
+				// Not the caller's doing: render the document as it is, as without
+				// the filter.
 				v.Logger.Warn(langFilterName+"-ignored", zap.String("error", langErr.Error()))
 			}
 		}

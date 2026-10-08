@@ -264,10 +264,10 @@ type document struct {
 }
 
 // parse reads the document into tokens, recording where each element ends so a
-// caller can drop one with its subtree. serving marks the sanitizer's use: a
-// document that would have to be restyled, refonted or stripped of a resource
-// reference is refused there, because it is about to be handed to a browser. A
-// caller that rewrites the document for the renderer keeps it.
+// caller can drop one with its subtree. serving marks the sanitizer's use: it
+// refuses a document that would have to be restyled, refonted or stripped of a
+// resource reference, since that document is about to reach a browser. A caller
+// rewriting the document for the renderer keeps it.
 func parse(r io.Reader, serving bool) (*document, error) {
 	dec := xml.NewDecoder(r)
 	dec.CharsetReader = charsetReader
