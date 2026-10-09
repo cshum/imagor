@@ -242,8 +242,10 @@ UPLOAD_LOADER_FORM_FIELD_NAME=image     # Multipart form field name (default ima
 
 ## VIPS / Image Processing
 
+`VIPS_CONCURRENCY` sets the maximum number of libvips worker threads available to an individual image operation. It does not limit how many requests imagor processes at once; use `IMAGOR_PROCESS_CONCURRENCY` under [Imagor Core](#imagor-core) for request-level concurrency. Most deployments should keep `VIPS_CONCURRENCY` at `1`; change it only after benchmarking your workload. See [Benchmarks](./benchmarks.mdx) for measured comparisons.
+
 ```dotenv
-VIPS_CONCURRENCY=1           # libvips thread count per operation. -1 = auto (all CPU cores)
+VIPS_CONCURRENCY=1           # libvips threads per operation. -1 = all CPU cores
 
 # Safety limits
 VIPS_MAX_WIDTH=              # Maximum image width in pixels

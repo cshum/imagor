@@ -75,11 +75,6 @@ export default function Root({ children }: PropsWithChildren): JSX.Element {
       description:
         'Configure imagor with AWS S3 or S3-compatible storage for loader, source storage, result storage, routing, and key normalization.',
     },
-    '/vips-performance': {
-      title: 'imagor libvips concurrency and operation cache | imagor docs',
-      description:
-        'Understand libvips concurrency and operation-cache settings in imagor, and when to adjust them.',
-    },
   };
   const pageMetadata = routeMetadata[normalizedPath];
 

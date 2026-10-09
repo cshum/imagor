@@ -55,7 +55,6 @@ const sidebars: SidebarsConfig = {
         "in-memory-cache",
         "color-image",
         "benchmarks",
-        "vips-performance",
         "post-upload",
         "mozjpeg-support",
         "imagemagick-support",
