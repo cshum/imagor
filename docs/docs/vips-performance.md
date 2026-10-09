@@ -1,13 +1,12 @@
 ---
-description: Tune libvips concurrency and threading to optimize image processing performance for your deployment.
+description: Understand libvips concurrency and operation-cache settings in imagor, and when to adjust them.
 keywords:
-  - imagor performance
-  - imagor libvips tuning
+  - imagor libvips concurrency
+  - imagor libvips operation cache
   - imagor vips concurrency
-  - imagor benchmarks
 ---
 
-# VIPS Performance Tuning
+# libvips Concurrency and Operation Cache
 
 imagor uses [libvips](https://github.com/libvips/libvips) for image processing. libvips provides several configuration options to tune performance and resource usage:
 
