@@ -152,7 +152,7 @@ func (v *Processor) Process(
 	// preview() opts in to base image caching for interactive editing workflows.
 	// Skip for crop/focal/page/dpi: cache stores a downscaled single-page copy at default DPI.
 	// Skip for lang(): the cache is keyed on the source, and the rewritten source differs.
-	if p.Image != "" && imagorpath.HasFilter(p, "preview") && !imagorpath.HasFilter(p, langFilterName) {
+	if p.Image != "" && v.hasEnabledFilter(p, "preview") && !imagorpath.HasFilter(p, langFilterName) {
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0
 			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight &&
@@ -198,12 +198,12 @@ func (v *Processor) Process(
 
 	// Handle metadata response
 	if p.Meta {
-		stripExif := imagorpath.HasFilter(p, "strip_exif")
+		stripExif := v.hasEnabledFilter(p, "strip_exif")
 		var metaRegions []imagor.DetectorRegion
 		// Only run detection when the URL semantically requests it — smart crop, draw_detections() or redact() filter.
 		needsDetection := p.Smart ||
-			imagorpath.HasFilter(p, "draw_detections") ||
-			imagorpath.HasFilter(p, "redact")
+			v.hasEnabledFilter(p, "draw_detections") ||
+			v.hasEnabledFilter(p, "redact")
 		if len(v.Detectors) > 0 && needsDetection {
 			metaRegions = v.detectRegions(ctx, img, p.Image)
 		}
@@ -306,6 +306,14 @@ func (v *Processor) Process(
 		}
 		return blob, nil
 	}
+}
+
+// hasEnabledFilter reports whether the URL asks for a filter and that filter is
+// not disabled. Where a filter is dispatched, disableFilters is checked at the
+// dispatch; a gate that only asks whether the URL mentions a filter has to apply
+// the same policy, or disabling a filter leaves its side effects behind.
+func (v *Processor) hasEnabledFilter(p imagorpath.Params, name string) bool {
+	return !v.disableFilters[name] && imagorpath.HasFilter(p, name)
 }
 
 // extractExportParams reads the export settings a URL's filters ask for, and

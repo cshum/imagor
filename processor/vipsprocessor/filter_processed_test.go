@@ -267,10 +267,14 @@ func TestFilterEventOutcomes(t *testing.T) {
 	}
 }
 
-// VIPS_DISABLE_FILTERS has to be honoured by every loop that applies a filter,
-// not only by the dispatch loop.
+// VIPS_DISABLE_FILTERS has to be honoured everywhere a filter's effect is
+// applied, not only where it is dispatched. A region is returned only if
+// detection actually ran, so it doubles as proof that redact() was inert.
 func TestDisableFilters(t *testing.T) {
 	fileLoader := filestorage.New(testDataDir)
+	detector := &stubDetector{regions: []imagor.DetectorRegion{{
+		Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face",
+	}}}
 	app := imagor.New(
 		imagor.WithLoaders(loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
 			image, _ = fileLoader.Path(image)
@@ -281,7 +285,9 @@ func TestDisableFilters(t *testing.T) {
 		})),
 		imagor.WithUnsafe(true),
 		imagor.WithLogger(zap.NewNop()),
-		imagor.WithProcessors(NewProcessor(WithDisableFilters("avgcolor", "blurhash", "format"))),
+		imagor.WithProcessors(NewProcessor(
+			WithDetector(detector),
+			WithDisableFilters("avgcolor", "blurhash", "format", "strip_exif", "redact"))),
 	)
 	require.NoError(t, app.Startup(context.Background()))
 
@@ -308,6 +314,36 @@ func TestDisableFilters(t *testing.T) {
 		require.Equal(t, 200, w.Code)
 		require.Equal(t, "image/jpeg", w.Header().Get("Content-Type"),
 			"format is disabled, so the source format is kept")
+	})
+
+	// strip_exif used to hide exif from the metadata response whether or not it
+	// was disabled, because the gate only asked whether the URL mentioned it.
+	t.Run("strip_exif does not strip the metadata response", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+			"/unsafe/meta/filters:strip_exif()/Canon_40D.jpg", nil))
+		require.Equal(t, 200, w.Code)
+
+		var meta struct {
+			Exif map[string]string `json:"exif"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &meta))
+		require.NotEmpty(t, meta.Exif, "strip_exif is disabled, so exif is returned")
+	})
+
+	// redact used to trigger detection regardless, so a disabled filter still
+	// ran the detector and still put regions in the response.
+	t.Run("redact does not trigger detection", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+			"/unsafe/meta/filters:redact()/Canon_40D.jpg", nil))
+		require.Equal(t, 200, w.Code)
+
+		var meta struct {
+			DetectedRegions []imagor.DetectorRegion `json:"detected_regions"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &meta))
+		require.Empty(t, meta.DetectedRegions, "redact is disabled, so detection does not run")
 	})
 }
 

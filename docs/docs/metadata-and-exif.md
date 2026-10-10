@@ -65,7 +65,7 @@ http://localhost:8000/unsafe/meta/200x200/filters:blur(5):rotate()/raw.githubuse
 
 - **`processed: true`** — the filter applied.
 - **`processed: false`** — it was recognised but left the image unchanged. `blur()` without a sigma is one such case.
-- **Absent** — this processor did not handle the name. It is not reported as ignored, because a later processor in the chain may handle it, as imagorvideo does for its own filters. Compare against the filters in the URL to spot a typo.
+- **Absent** — the filter did not run, and there is no entry to say why. Either this processor does not handle the name (a later processor in the chain may, as imagorvideo does for its own filters), or the deployment disabled it, or `vips-max-filter-ops` dropped it. Compare against the filters in the URL to spot a typo; the debug log names which.
 
 A filter can repeat, so there is one entry per occurrence, in URL order, and they can disagree.
 
