@@ -45,7 +45,7 @@ func paletteColorForName(name string) string {
 // always maps to the same colour. No-op when no Detector is configured.
 func (v *Processor) drawDetectionsFilter(
 	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string,
-) (err error) {
+) (processed bool, err error) {
 	if len(v.Detectors) == 0 {
 		return
 	}
@@ -55,6 +55,7 @@ func (v *Processor) drawDetectionsFilter(
 		return
 	}
 
+	processed = true
 	w := img.Width()
 	h := img.PageHeight()
 	bands := img.Bands()
@@ -223,15 +224,17 @@ func applyRedactRegion(img *vips.Image, left, top, rw, rh int, mode string, stre
 }
 
 // doRedact is the shared implementation for redactFilter and redactOvalFilter.
-func (v *Processor) doRedact(ctx context.Context, img *vips.Image, oval bool, args ...string) error {
+// processed reports whether any region was actually redacted.
+func (v *Processor) doRedact(ctx context.Context, img *vips.Image, oval bool, args ...string) (processed bool, err error) {
 	if len(v.Detectors) == 0 || isAnimated(img) {
-		return nil
+		return
 	}
 	mode, strength := parseRedactArgs(args)
 	regions := v.detectRegions(ctx, img, "")
 	if len(regions) == 0 {
-		return nil
+		return
 	}
+	processed = true
 	w := img.Width()
 	h := img.PageHeight()
 	for _, r := range regions {
@@ -261,10 +264,10 @@ func (v *Processor) doRedact(ctx context.Context, img *vips.Image, oval bool, ar
 			continue
 		}
 		if err := applyRedactRegion(img, left, top, rw, rh, mode, strength, oval); err != nil {
-			return err
+			return true, err
 		}
 	}
-	return nil
+	return
 }
 
 // redactFilter obscures all detected regions by applying blur, pixelate, or a
@@ -273,13 +276,13 @@ func (v *Processor) doRedact(ctx context.Context, img *vips.Image, oval bool, ar
 // Skips animated images.
 func (v *Processor) redactFilter(
 	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string,
-) error {
+) (processed bool, err error) {
 	return v.doRedact(ctx, img, false, args...)
 }
 
 // redactOvalFilter is identical to redactFilter but applies an elliptical mask
 func (v *Processor) redactOvalFilter(
 	ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string,
-) error {
+) (processed bool, err error) {
 	return v.doRedact(ctx, img, true, args...)
 }

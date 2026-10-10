@@ -45,6 +45,30 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
 }
 ```
 
+### Filter Report
+
+`filters` reports what the processor did with each filter in the URL, so a client can tell a URL whose filters applied from one where they were silently skipped. Omitted when there is nothing to report.
+
+```
+http://localhost:8000/unsafe/meta/200x200/filters:blur(5):rotate()/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
+```
+
+```jsonc
+{
+  // ...
+  "filters": [
+    { "name": "blur", "processed": true },
+    { "name": "rotate", "processed": false }
+  ]
+}
+```
+
+- **`processed: true`** — the filter applied.
+- **`processed: false`** — it was recognised but left the image unchanged. `blur()` without a sigma is one such case.
+- **Absent** — this processor did not handle the name. It is not reported as ignored, because a later processor in the chain may handle it, as imagorvideo does for its own filters. Compare against the filters in the URL to spot a typo.
+
+A filter can repeat, so there is one entry per occurrence, in URL order, and they can disagree.
+
 ## Params Endpoint
 
 Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for previewing the endpoint parameters. Example:

@@ -74,11 +74,13 @@ func (v *Processor) loadFilterImage(
 	ctx context.Context, blob *imagor.Blob, params imagorpath.Params, load imagor.LoadFunc,
 	url string,
 ) (*vips.Image, error) {
+	// An overlay is a separate image with its own filters and its own dispatch
+	// loop, so it gets its own report map rather than sharing the caller's.
 	sizeKnown := params.Width > 0 && params.Height > 0
 
 	if v.cache == nil || blob == nil || !sizeKnown || imagorpath.HasCacheBypass(params) ||
 		params.Width > v.CacheMaxWidth || params.Height > v.CacheMaxHeight {
-		return v.loadAndProcess(ctx, blob, params, load)
+		return v.loadAndProcess(ctx, blob, params, load, newFilterReports())
 	}
 
 	memBlob, origBlob, err := v.loadOrCache(blob, url, 1, nil)
@@ -88,9 +90,9 @@ func (v *Processor) loadFilterImage(
 
 	if origBlob != nil || memBlob == nil {
 		// Animated source or cache miss — run pipeline on original blob.
-		return v.loadAndProcess(ctx, blob, params, load)
+		return v.loadAndProcess(ctx, blob, params, load, newFilterReports())
 	}
-	return v.loadAndProcess(ctx, memBlob, params, load)
+	return v.loadAndProcess(ctx, memBlob, params, load, newFilterReports())
 }
 
 // fullDimRegex matches a single dimension token: optionally a flip prefix -,

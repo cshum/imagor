@@ -16,8 +16,13 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// FilterFunc filter handler function
-type FilterFunc func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error)
+// FilterFunc filter handler function.
+//
+// processed reports whether the filter recognised its arguments and performed the
+// operation; false means it declined and left the image unchanged, whether from
+// missing or invalid arguments, a documented no-op, or a missing dependency such
+// as no configured Detector.
+type FilterFunc func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (processed bool, err error)
 
 // FilterMap filter handler map
 type FilterMap map[string]FilterFunc

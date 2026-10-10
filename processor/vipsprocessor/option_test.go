@@ -32,8 +32,8 @@ func TestWithOption(t *testing.T) {
 			WithDisableFilters("rgb", "fill, watermark"),
 			WithUnlimited(true),
 			WithForceBmpFallback(),
-			WithFilter("noop", func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
-				return nil
+			WithFilter("noop", func(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (processed bool, err error) {
+				return true, nil
 			}),
 			WithCacheSize(52428800),
 			WithCacheMaxWidth(3000),
