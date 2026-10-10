@@ -18,6 +18,8 @@ Filters `/filters:NAME(ARGS):NAME(ARGS):.../` is a pipeline of image operations 
 /filters:fill(white):watermark(raw.githubusercontent.com/cshum/imagor/master/testdata/gopher-front.png,repeat,bottom,10):format(jpeg)/
 ```
 
+Filters come after the parameters and before the image, as in `200x200/filters:grayscale()/photo.jpg`. Everything after `filters:` is read as the image, so a parameter written after the filters becomes part of the image name, and the request fails to load it.
+
 Filters are grouped into:
 
 - [Processing Filters](#processing-filters) — image transforms
