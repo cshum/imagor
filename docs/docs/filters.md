@@ -195,17 +195,17 @@ Composites a processed image onto the current image with full imagor transformat
     - `fit-in/full-20xfull-20/overlay.png` (or `fit-in/f-20xf-20`) — overlay fits within the parent canvas with a 20px inset on each side
     - `fullx200/banner.png` — overlay inherits parent width, fixed 200px height
 - `x` — horizontal position (defaults to 0 if not specified):
-  - Positive number indicates position from the left, negative from the right
-  - Number followed by `p` e.g. `20p` means percentage of image width
-  - `left` or `l`, `right` or `r`, `center` for alignment, optionally with pixel offset e.g. `left-20`, `r-10`
-  - `repeat` to tile horizontally
-  - Float between 0–1 represents percentage e.g. `0.5` for center
+  - A positive number is pixels from the left, a negative number is pixels from the right. On a 400px canvas, `-20` puts a 100px overlay 20px in from the right edge.
+  - `left` or `l`, `right` or `r`, `center` align the overlay against an edge or the middle, e.g. `right` puts its right edge on the canvas edge.
+  - An alignment keyword followed by a negative offset shifts the overlay *past* that edge, so it bleeds off the canvas: `right-20` hangs it 20px beyond the right edge, `left-20` beyond the left.
+  - A number followed by `p` is a percentage of the width, e.g. `20p`. A float between 0 and 1 is a fraction, e.g. `0.5` centres it.
+  - `repeat` tiles the overlay across the width.
 - `y` — vertical position (defaults to 0 if not specified):
-  - Positive number indicates position from the top, negative from the bottom
-  - Number followed by `p` e.g. `20p` means percentage of image height
-  - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally with pixel offset e.g. `top-10`, `b-20`
-  - `repeat` to tile vertically
-  - Float between 0–1 represents percentage e.g. `0.5` for center
+  - A positive number is pixels from the top, a negative number is pixels from the bottom.
+  - `top` or `t`, `bottom` or `b`, `center` align the overlay against an edge or the middle.
+  - An alignment keyword followed by a negative offset shifts the overlay *past* that edge, so it bleeds off the canvas: `bottom-20` hangs it 20px beyond the bottom edge, `top-20` beyond the top.
+  - A number followed by `p` is a percentage of the height, e.g. `20p`. A float between 0 and 1 is a fraction, e.g. `0.5` centres it.
+  - `repeat` tiles the overlay down the height.
 - `alpha` — transparency level, 0 (fully opaque) to 100 (fully transparent)
 - `blend_mode` — compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
 
