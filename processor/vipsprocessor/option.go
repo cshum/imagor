@@ -107,8 +107,8 @@ func WithVectorDisableTargets(targets int64) Option {
 }
 
 // WithMaxFilterOps bounds the filter operations the processor performs per
-// request. Filters handled before the dispatch loop, such as format, are not
-// counted. Zero or less means unlimited.
+// request, as a safety limit. Filters handled before the dispatch loop, such as
+// format and quality, are not counted. Zero or less means unlimited.
 func WithMaxFilterOps(num int) Option {
 	return func(v *Processor) {
 		if num != 0 {

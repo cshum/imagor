@@ -47,7 +47,7 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
 
 ### Filter Report
 
-`filters` reports what the processor did with each filter in the URL, so you can see which filters applied and which were skipped. Omitted when there is nothing to report.
+`filters` reports what the processor did with each filter in the URL, so you can see which filters applied and which were skipped.
 
 ```
 http://localhost:8000/unsafe/meta/200x200/filters:blur(5):rotate()/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
@@ -67,7 +67,7 @@ http://localhost:8000/unsafe/meta/200x200/filters:blur(5):rotate()/raw.githubuse
 - **`processed: false`** — the filter was recognised but left the image unchanged. `blur()` with no sigma is one such case.
 - **Absent** — the filter did not run: the name is not handled here, or it is disabled, or `vips-max-filter-ops` dropped it. Compare with the filters in your URL to spot a typo.
 
-A filter can repeat, so there is one entry per occurrence in URL order, and they can disagree.
+A filter can repeat, and each occurrence gets its own entry in URL order, so the same name can report different results.
 
 ## Params Endpoint
 
