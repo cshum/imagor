@@ -210,6 +210,9 @@ func (v *Processor) Process(
 		m := metadata(img, params.format, stripExif, metaRegions)
 		m.Filters = reports.report()
 		for _, f := range p.Filters {
+			if v.disableFilters[f.Name] {
+				continue
+			}
 			switch f.Name {
 			case "avgcolor":
 				if f.Args != "" {
@@ -490,7 +493,7 @@ func (v *Processor) loadAndProcess(
 	}
 	fallbackFormat := vips.ImageTypeUnknown
 	for _, f := range p.Filters {
-		if f.Name != "fallback_format" {
+		if f.Name != "fallback_format" || v.disableFilters[f.Name] {
 			continue
 		}
 		if imageType, ok := imageTypeMap[f.Args]; ok {

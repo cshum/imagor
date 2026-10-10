@@ -267,6 +267,50 @@ func TestFilterEventOutcomes(t *testing.T) {
 	}
 }
 
+// VIPS_DISABLE_FILTERS has to be honoured by every loop that applies a filter,
+// not only by the dispatch loop.
+func TestDisableFilters(t *testing.T) {
+	fileLoader := filestorage.New(testDataDir)
+	app := imagor.New(
+		imagor.WithLoaders(loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
+			image, _ = fileLoader.Path(image)
+			return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+				reader, err = os.Open(image)
+				return
+			}), nil
+		})),
+		imagor.WithUnsafe(true),
+		imagor.WithLogger(zap.NewNop()),
+		imagor.WithProcessors(NewProcessor(WithDisableFilters("avgcolor", "blurhash", "format"))),
+	)
+	require.NoError(t, app.Startup(context.Background()))
+
+	// The metadata switch used to apply these regardless.
+	t.Run("metadata filters do not run", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+			"/unsafe/meta/filters:avgcolor():blurhash(4,3)/Canon_40D.jpg", nil))
+		require.Equal(t, 200, w.Code)
+
+		var meta struct {
+			AverageColor *AvgColor `json:"average_color"`
+			BlurHash     string    `json:"blurhash"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &meta))
+		require.Nil(t, meta.AverageColor, "avgcolor is disabled")
+		require.Empty(t, meta.BlurHash, "blurhash is disabled")
+	})
+
+	t.Run("export filters do not run", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+			"/unsafe/100x100/filters:format(png)/Canon_40D.jpg", nil))
+		require.Equal(t, 200, w.Code)
+		require.Equal(t, "image/jpeg", w.Header().Get("Content-Type"),
+			"format is disabled, so the source format is kept")
+	})
+}
+
 // A /meta response reports what this processor did, and stays silent about names
 // it did not handle, since a later processor may handle them.
 func TestMetaFilterReport(t *testing.T) {
