@@ -213,7 +213,7 @@ Composites a processed image onto the current image with full imagor transformat
   <tr>
     <th width="33%"><code>image(/fit-in/100x100/IMAGE,center,center)</code></th>
     <th width="33%"><code>image(/fit-in/100x100/IMAGE,center,center,50)</code></th>
-    <th width="33%">Recursive: <code>image(filters:image(…)/OUTER,10,10)</code></th>
+    <th width="33%">Recursive: <code>image(fit-in/100x100/filters:image(fit-in/50x50/INNER,5,5)/OUTER,10,10)</code></th>
   </tr>
   <tr>
     <td><img src="/img/filters/image-center.jpg" /></td>
