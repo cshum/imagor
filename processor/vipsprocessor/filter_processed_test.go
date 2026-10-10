@@ -136,38 +136,18 @@ func TestFilterReportsRecord(t *testing.T) {
 // order, since a filter can repeat and its occurrences can disagree. Only handled
 // filters reach it; see TestMetaFilterReport.
 func TestFilterReportsReport(t *testing.T) {
-	for _, tc := range []struct {
-		name   string
-		events []filterEvent
-		want   []FilterReport
-	}{
-		{
-			name: "one entry per occurrence, in URL order",
-			events: []filterEvent{
-				{"blur", filterResultProcessed},
-				{"rotate", filterResultDeclined},
-				{"blur", filterResultDeclined},
-			},
-			want: []FilterReport{
-				{Name: "blur", Processed: true},
-				{Name: "rotate", Processed: false},
-				{Name: "blur", Processed: false},
-			},
-		},
-		{
-			name:   "nothing recorded reports nothing",
-			events: nil,
-			want:   nil,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			reports := newFilterReports()
-			for _, e := range tc.events {
-				reports.add(e.name, e.result)
-			}
-			require.Equal(t, tc.want, reports.report())
-		})
-	}
+	reports := newFilterReports()
+	// A filter can repeat, and its occurrences can disagree.
+	reports.add("blur", true)
+	reports.add("rotate", false)
+	reports.add("blur", false)
+	require.Equal(t, []FilterReport{
+		{Name: "blur", Processed: true},
+		{Name: "rotate", Processed: false},
+		{Name: "blur", Processed: false},
+	}, reports.report())
+
+	require.Nil(t, newFilterReports().report(), "nothing handled reports nothing")
 }
 
 // A client must be able to tell a working filter URL from an inert one: every case

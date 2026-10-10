@@ -15,57 +15,34 @@ import (
 	"go.uber.org/zap"
 )
 
-// filterResult is what a filter did on this request.
-type filterResult int
-
-const (
-	// filterResultUnknown means this processor did not handle the name. Logged
-	// but never recorded, since a later processor may handle it.
-	filterResultUnknown filterResult = iota
-	// filterResultProcessed means a handler applied the filter.
-	filterResultProcessed
-	// filterResultDeclined means a handler recognised the filter and left the
-	// image unchanged.
-	filterResultDeclined
-)
-
-// event is the debug log event name for this result.
-func (r filterResult) event() string {
-	switch r {
-	case filterResultProcessed:
-		return "filter"
-	case filterResultDeclined:
-		return "filter-declined"
-	default:
-		// Named for what is true of this processor, not of the deployment.
-		return "filter-unhandled"
-	}
-}
-
-// filterEvent is one filter this processor handled, in the order it appeared in
-// the URL. A filter can repeat, so outcomes are kept per occurrence rather than
-// per name.
-type filterEvent struct {
-	name   string
-	result filterResult
+// FilterReport records what the processor did with one filter in the URL. A
+// filter can repeat, so there is one entry per occurrence, in URL order.
+type FilterReport struct {
+	Name string `json:"name"`
+	// Processed is false when the filter was recognised but left the image
+	// unchanged, as blur() does without a sigma. A name this processor did not
+	// handle is omitted, as a later processor in the chain may handle it.
+	Processed bool `json:"processed"`
 }
 
 // filterReports carries what each filter in a URL did. Process and
-// loadAndProcess apply filters in their own switches, before the dispatch loop
-// runs, so they record what they recognised here for the loop to consult.
+// loadAndProcess apply some filters in their own switches, before the dispatch
+// loop runs, and record what they recognised here for the loop to consult.
 type filterReports struct {
-	// recognised maps a filter name to whether a switch handled it and applied
-	// it. A name absent was not recognised by any switch.
+	// recognised maps a filter name to whether a switch applied it. A name
+	// absent was not recognised by any switch.
 	recognised map[string]bool
-	events     []filterEvent
+	// handled is one entry per occurrence, in URL order, for the filters this
+	// processor handled.
+	handled []FilterReport
 }
 
 func newFilterReports() *filterReports {
 	return &filterReports{recognised: map[string]bool{}}
 }
 
-// record notes a filter handled outside the dispatch loop. A name matched at
-// more than one site counts as processed if any of them applied.
+// record notes a filter applied outside the dispatch loop. A name matched at
+// more than one site counts as processed if any applied.
 func (r *filterReports) record(name string, processed bool) {
 	r.recognised[name] = r.recognised[name] || processed
 }
@@ -76,34 +53,28 @@ func (r *filterReports) accepted(name string) (recognised, processed bool) {
 	return
 }
 
-func (r *filterReports) add(name string, result filterResult) {
-	r.events = append(r.events, filterEvent{name: name, result: result})
+// add notes a filter the dispatch loop reached.
+func (r *filterReports) add(name string, processed bool) {
+	r.handled = append(r.handled, FilterReport{Name: name, Processed: processed})
 }
 
-// FilterReport records what the processor did with one filter in the URL. A
-// filter can repeat, so there is one entry per occurrence, in URL order.
-type FilterReport struct {
-	Name string `json:"name"`
-	// Processed is false when the filter was recognised but left the image
-	// unchanged, as blur() does without a sigma.
-	//
-	// A name this processor did not handle is omitted rather than reported: a
-	// later processor in the chain may handle it.
-	Processed bool `json:"processed"`
-}
-
-// report lists what this processor did with each filter, or nil when it has
-// nothing to say. Only handled filters are recorded, so none are filtered out
-// here.
+// report lists what this processor did with each filter, or nil when it handled
+// none.
 func (r *filterReports) report() []FilterReport {
-	var out []FilterReport
-	for _, e := range r.events {
-		out = append(out, FilterReport{
-			Name:      e.name,
-			Processed: e.result == filterResultProcessed,
-		})
+	return r.handled
+}
+
+// filterEventName is the debug log event for an outcome. An unrecognised name is
+// logged as unhandled, not unknown: a later processor may handle it.
+func filterEventName(recognised, processed bool) string {
+	switch {
+	case !recognised:
+		return "filter-unhandled"
+	case processed:
+		return "filter"
+	default:
+		return "filter-declined"
 	}
-	return out
 }
 
 var imageTypeMap = map[string]vips.ImageType{
@@ -982,22 +953,13 @@ func (v *Processor) applyTransformations(
 			}
 			processed = true
 		}
-		result := filterResultUnknown
-		switch {
-		case !recognised:
-			// Nothing handled the name, which returns an unchanged image silently.
-		case processed:
-			result = filterResultProcessed
-		default:
-			result = filterResultDeclined
-		}
 		if recognised {
 			// Unhandled names are logged but not recorded: the report covers
 			// only what this processor did.
-			reports.add(filter.Name, result)
+			reports.add(filter.Name, processed)
 		}
 		if v.Debug {
-			v.Logger.Debug(result.event(),
+			v.Logger.Debug(filterEventName(recognised, processed),
 				zap.String("name", filter.Name), zap.String("args", filter.Args),
 				zap.Duration("took", time.Since(start)))
 		}
