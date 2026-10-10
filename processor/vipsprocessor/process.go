@@ -16,25 +16,22 @@ import (
 )
 
 // FilterReport records what the processor did with one filter in the URL. A
-// filter can repeat, so there is one entry per occurrence, in URL order.
+// filter can repeat, so there is one entry per occurrence, in URL order. A name
+// this processor did not handle is omitted, as a later processor may.
 type FilterReport struct {
 	Name string `json:"name"`
 	// Processed is false when the filter was recognised but left the image
-	// unchanged, as blur() does without a sigma. A name this processor did not
-	// handle is omitted, as a later processor in the chain may handle it.
+	// unchanged, as blur() does with no sigma.
 	Processed bool `json:"processed"`
 }
 
-// filterReports carries what each filter in a URL did. Process and
-// loadAndProcess apply some filters in their own switches, before the dispatch
-// loop runs, and record what they recognised here for the loop to consult.
+// filterReports carries what each filter in a URL did. Switches that run before
+// the dispatch loop record what they recognised here, for the loop to consult.
 type filterReports struct {
-	// recognised maps a filter name to whether a switch applied it. A name
-	// absent was not recognised by any switch.
+	// Absent means no switch recognised the name; false means one recognised it
+	// without applying it.
 	recognised map[string]bool
-	// handled is one entry per occurrence, in URL order, for the filters this
-	// processor handled.
-	handled []FilterReport
+	handled    []FilterReport
 }
 
 func newFilterReports() *filterReports {
@@ -47,7 +44,6 @@ func (r *filterReports) record(name string, processed bool) {
 	r.recognised[name] = r.recognised[name] || processed
 }
 
-// accepted reports whether a switch recognised the name, and whether it applied.
 func (r *filterReports) accepted(name string) (recognised, processed bool) {
 	processed, recognised = r.recognised[name]
 	return
@@ -58,8 +54,6 @@ func (r *filterReports) add(name string, processed bool) {
 	r.handled = append(r.handled, FilterReport{Name: name, Processed: processed})
 }
 
-// report lists what this processor did with each filter, or nil when it handled
-// none.
 func (r *filterReports) report() []FilterReport {
 	return r.handled
 }
