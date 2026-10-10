@@ -26,6 +26,30 @@ Filters are grouped into:
 - [Utility Filters](#utility-filters) — pipeline control
 - [Metadata Filters](./metadata-and-exif.md#metadata-filters) — for the `/meta` endpoint
 
+## Position arguments
+
+`image()`, `text()` and `watermark()` all place their overlay the same way, and `x` and `y` accept the same forms. A negative number insets from the far edge, while an alignment with an offset such as `right-20` moves past that edge: the two go in opposite directions.
+
+### Horizontal position
+
+`x` takes one of these forms:
+
+- Positive number indicates position from the left, negative from the right
+- Number followed by `p` e.g. `20p` means percentage of image width
+- `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
+- `repeat` to tile horizontally
+- Float between 0–1 represents percentage e.g. `0.5` for center
+
+### Vertical position
+
+`y` takes one of these forms:
+
+- Positive number indicates position from the top, negative from the bottom
+- Number followed by `p` e.g. `20p` means percentage of image height
+- `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
+- `repeat` to tile vertically
+- Float between 0–1 represents percentage e.g. `0.5` for center
+
 ## Processing Filters
 
 ### `background_color(color)`
@@ -197,18 +221,8 @@ Composites a processed image onto the current image with full imagor transformat
     - `fullxfull/overlay.png` (or `fxf`) — overlay fills the parent canvas exactly
     - `fit-in/full-20xfull-20/overlay.png` (or `fit-in/f-20xf-20`) — overlay fits within the parent canvas with a 20px inset on each side
     - `fullx200/banner.png` — overlay inherits parent width, fixed 200px height
-- `x` — horizontal position (defaults to 0 if not specified):
-  - Positive number indicates position from the left, negative from the right
-  - Number followed by `p` e.g. `20p` means percentage of image width
-  - `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
-  - `repeat` to tile horizontally
-  - Float between 0–1 represents percentage e.g. `0.5` for center
-- `y` — vertical position (defaults to 0 if not specified):
-  - Positive number indicates position from the top, negative from the bottom
-  - Number followed by `p` e.g. `20p` means percentage of image height
-  - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
-  - `repeat` to tile vertically
-  - Float between 0–1 represents percentage e.g. `0.5` for center
+- `x` — horizontal position (defaults to 0 if not specified): see [Horizontal position](#horizontal-position)
+- `y` — vertical position (defaults to 0 if not specified): see [Vertical position](#vertical-position)
 - `alpha` — transparency level, 0 (fully opaque) to 100 (fully transparent)
 - `blend_mode` — compositing blend mode, defaults to `normal`. Supported modes: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `add`, `mask`, `mask-out`
 
@@ -434,16 +448,8 @@ Removes the embedded ICC color profile from the resulting image. The image is fi
 Renders a text overlay onto the image with full multi-line and Pango font support.
 
 - `text` — the text to render. Supports URL query-encoding and `b64:` prefix for [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding to safely pass arbitrary unicode or multi-word strings.
-- `x` — horizontal position:
-  - Positive number indicates position from the left, negative from the right
-  - Number followed by `p` e.g. `20p` means percentage of image width
-  - `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
-  - Float between 0–1 represents percentage e.g. `0.5` for center
-- `y` — vertical position:
-  - Positive number indicates position from the top, negative from the bottom
-  - Number followed by `p` e.g. `20p` means percentage of image height
-  - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
-  - Float between 0–1 represents percentage e.g. `0.5` for center
+- `x` — horizontal position: see [Horizontal position](#horizontal-position)
+- `y` — vertical position: see [Vertical position](#vertical-position)
 - `font` — Pango font description with hyphens as space separators, e.g. `sans-bold-24` for `sans bold 24`, `monospace-18` for `monospace 18`. Font size is in points; at the default 72 DPI, 1pt = 1px.
 - `color` — color name or hexadecimal rgb expression without the `#` character, defaults to black
 - `alpha` — transparency, 0 (fully opaque) to 100 (fully transparent), defaults to 0
@@ -493,16 +499,8 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 
 - `image` — watermark image URI, using the same image loader configured for imagor.
   Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64).
-- `x` — horizontal position:
-  - Positive number indicates position from the left, negative from the right
-  - Number followed by `p` e.g. `20p` means percentage of image width
-  - `left`, `right`, `center` — positioned left, right or centered respectively
-  - `repeat` — the watermark will be repeated horizontally
-- `y` — vertical position:
-  - Positive number indicates position from the top, negative from the bottom
-  - Number followed by `p` e.g. `20p` means percentage of image height
-  - `top`, `bottom`, `center` — positioned top, bottom or centered respectively
-  - `repeat` — the watermark will be repeated vertically
+- `x` — horizontal position: see [Horizontal position](#horizontal-position)
+- `y` — vertical position: see [Vertical position](#vertical-position)
 - `alpha` — watermark image transparency, a number between 0 (fully opaque) and 100 (fully transparent)
 - `w_ratio` — percentage of the width of the image the watermark should fit-in
 - `h_ratio` — percentage of the height of the image the watermark should fit-in
