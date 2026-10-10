@@ -47,7 +47,7 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
 
 ### Filter Report
 
-`filters` reports what the processor did with each filter in the URL, so you can see which filters applied and which were skipped.
+`filters` reports what the processor did with each filter in the URL, so you can see which filters applied and which were skipped. The field is always present, empty when there was nothing to report, so a client can tell a release that reports filter outcomes from one that predates the field.
 
 ```
 http://localhost:8000/unsafe/meta/200x200/filters:blur(5):rotate()/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg

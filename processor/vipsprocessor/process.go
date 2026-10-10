@@ -65,6 +65,12 @@ func (r *filterReports) add(name string, processed bool, nested *filterReports) 
 }
 
 func (r *filterReports) report() []FilterReport {
+	if r.handled == nil {
+		// An empty list is a result. A client needs to tell a release that
+		// reports outcomes from one that predates the field, and omitting it
+		// makes those two look the same.
+		return []FilterReport{}
+	}
 	return r.handled
 }
 
@@ -998,9 +1004,10 @@ type Metadata struct {
 	BlurHash        string            `json:"blurhash,omitempty"`
 	ThumbHash       string            `json:"thumbhash,omitempty"`
 	AverageColor    *AvgColor         `json:"average_color,omitempty"`
-	// Filters reports what this processor did with each filter in the URL.
-	// Omitted when there is nothing to report.
-	Filters []FilterReport `json:"filters,omitempty"`
+	// Filters reports what this processor did with each filter in the URL. It is
+	// always present, empty when there was nothing to report: a client needs to
+	// tell a release that reports outcomes from one that predates the field.
+	Filters []FilterReport `json:"filters"`
 }
 
 type AvgColor struct {
