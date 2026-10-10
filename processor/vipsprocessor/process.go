@@ -928,19 +928,27 @@ func (v *Processor) applyTransformations(
 			return err
 		}
 	}
-	for i, filter := range p.Filters {
+	ops := 0
+	for _, filter := range p.Filters {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		if v.disableFilters[filter.Name] {
 			continue
 		}
-		if v.MaxFilterOps > 0 && i >= v.MaxFilterOps {
-			if v.Debug {
-				v.Logger.Debug("max-filter-ops-exceeded",
-					zap.String("name", filter.Name), zap.String("args", filter.Args))
+		fn := v.Filters[filter.Name]
+		// MaxFilterOps bounds the operations this loop performs, not the filters
+		// in the URL. One handled by an earlier switch, or by nothing at all,
+		// costs nothing here and must not consume the budget of one that does.
+		if fn != nil || filter.Name == "fill" {
+			if v.MaxFilterOps > 0 && ops >= v.MaxFilterOps {
+				if v.Debug {
+					v.Logger.Debug("max-filter-ops-exceeded",
+						zap.String("name", filter.Name), zap.String("args", filter.Args))
+				}
+				break
 			}
-			break
+			ops++
 		}
 		start := time.Now()
 		var args []string
@@ -950,7 +958,7 @@ func (v *Processor) applyTransformations(
 		// Recognition starts from what Process and loadAndProcess applied, which
 		// this loop cannot see; the rest is unknown.
 		recognised, processed := reports.accepted(filter.Name)
-		if fn := v.Filters[filter.Name]; fn != nil {
+		if fn != nil {
 			recognised = true
 			applied, err := fn(ctx, img, load, args...)
 			if err != nil {

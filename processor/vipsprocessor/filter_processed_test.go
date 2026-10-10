@@ -311,6 +311,59 @@ func TestDisableFilters(t *testing.T) {
 	})
 }
 
+// VIPS_MAX_FILTER_OPS bounds the operations the processor performs, not the
+// filters in the URL: one handled by an earlier switch costs nothing here and
+// must not consume the budget of one that does.
+func TestMaxFilterOpsCountsOperations(t *testing.T) {
+	core, logs := observer.New(zap.DebugLevel)
+	fileLoader := filestorage.New(testDataDir)
+	app := imagor.New(
+		imagor.WithLoaders(loaderFunc(func(r *http.Request, image string) (blob *imagor.Blob, err error) {
+			image, _ = fileLoader.Path(image)
+			return imagor.NewBlob(func() (reader io.ReadCloser, size int64, err error) {
+				reader, err = os.Open(image)
+				return
+			}), nil
+		})),
+		imagor.WithUnsafe(true),
+		imagor.WithLogger(zap.NewNop()),
+		imagor.WithProcessors(NewProcessor(
+			WithDebug(true), WithLogger(zap.New(core)), WithMaxFilterOps(1))),
+	)
+	require.NoError(t, app.Startup(context.Background()))
+
+	// The reported filters are the ones the loop reached, so this is what the
+	// budget was spent on.
+	reported := func(path string) []string {
+		before := logs.Len()
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/unsafe/"+path, nil))
+		require.Equal(t, 200, w.Code)
+
+		var names []string
+		for _, e := range logs.All()[before:] {
+			if !strings.HasPrefix(e.Message, "filter") {
+				continue
+			}
+			if name, ok := e.ContextMap()["name"].(string); ok {
+				names = append(names, name)
+			}
+		}
+		return names
+	}
+
+	// format is handled before the loop, so it must not spend the one allowed
+	// operation. The previous index-based guard broke here and blur never ran.
+	require.Equal(t,
+		[]string{"format", "blur"},
+		reported("100x100/filters:format(jpeg):blur(5)/Canon_40D.jpg"))
+
+	// The cap still applies to the operations the loop performs.
+	require.Equal(t,
+		[]string{"blur"},
+		reported("100x100/filters:blur(5):blur(3)/Canon_40D.jpg"))
+}
+
 // A /meta response reports what this processor did, and stays silent about names
 // it did not handle, since a later processor may handle them.
 func TestMetaFilterReport(t *testing.T) {
