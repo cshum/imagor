@@ -161,7 +161,10 @@ func TestFilterReportsReport(t *testing.T) {
 		}},
 	}, outer.report())
 
-	require.Nil(t, newFilterReports().report(), "nothing handled reports nothing")
+	require.Empty(t, newFilterReports().report(),
+		"nothing handled reports an empty list, not nil: a client reads its presence")
+	require.NotNil(t, newFilterReports().report(),
+		"the report is never nil, so a client can tell this release from one that predates the field")
 }
 
 // A client must be able to tell a working filter URL from an inert one: every case
@@ -431,14 +434,14 @@ func TestMetaFilterReport(t *testing.T) {
 			want: []FilterReport{{Name: "blur", Processed: true}},
 		},
 		{
-			name: "nothing to report omits the field",
+			name: "nothing to report is an empty list",
 			path: "meta/200x200/filters:vintage(70)/gopher-front.png",
-			want: nil,
+			want: []FilterReport{},
 		},
 		{
-			name: "no filters omits the field",
+			name: "no filters is an empty list",
 			path: "meta/200x200/gopher-front.png",
-			want: nil,
+			want: []FilterReport{},
 		},
 		{
 			// image() loads its argument as an image with its own filters, so
