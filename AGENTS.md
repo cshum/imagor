@@ -29,13 +29,9 @@ source rather than restating a value that will change.
 
 ## Code
 
-- Filters are handled in more than one place: switches that run before the
-  dispatch loop, and the loop itself. `disableFilters` is checked at each site,
-  so a new site that misses it produces a filter that ignores the setting.
-  Anything that counts filters has the same problem.
-- The filter reference and the processor's `FilterMap` are independent lists.
-  Some registered filters are undocumented, and some documented filters are
-  handled by a plugin rather than by this processor.
+- When you add a place that dispatches a filter, apply the checks the existing
+  places apply, `disableFilters` among them. A place that misses one produces a
+  filter that quietly ignores the setting rather than failing.
 - The `/meta` body is marshalled by the processor rather than by a response
   writer, so the fields a client reads are defined in `processor/vipsprocessor`.
 - An option lives in three places read by different people: the `With...` option's
