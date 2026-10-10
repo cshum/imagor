@@ -12,7 +12,7 @@ import (
 	"github.com/cshum/vipsgen/vips"
 )
 
-func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
+func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (processed bool, err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -60,10 +60,10 @@ func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.Load
 	}
 
 	// Transform and composite overlay onto image
-	return compositeOverlay(img, overlay, xArg, yArg, alpha, blendMode)
+	return true, compositeOverlay(img, overlay, xArg, yArg, alpha, blendMode)
 }
 
-func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (err error) {
+func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (processed bool, err error) {
 	ln := len(args)
 	if ln < 1 {
 		return
@@ -123,7 +123,7 @@ func (v *Processor) watermark(ctx context.Context, img *vips.Image, load imagor.
 	}
 
 	// Transform and composite overlay onto image
-	return compositeOverlay(img, overlay, xArg, yArg, alpha, vips.BlendModeOver)
+	return true, compositeOverlay(img, overlay, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
 func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, pTop, pRight, pBottom int, colour string) (err error) {
@@ -216,7 +216,7 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 	return
 }
 
-func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
+func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (processed bool, err error) {
 	ln := len(args)
 	if ln == 0 {
 		return
@@ -284,10 +284,10 @@ func label(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string
 			return
 		}
 	}
-	return compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
+	return true, compositeOverlay(img, textImg, xArg, yArg, alpha, vips.BlendModeOver)
 }
 
-func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (err error) {
+func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string) (processed bool, err error) {
 	// text(text,x,y,font,color,alpha,blend_mode,width,align,justify,wrap,spacing,dpi)
 	// font includes size e.g. "sans bold 24", "monospace 18"
 	ln := len(args)
@@ -410,5 +410,5 @@ func text(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 			return
 		}
 	}
-	return compositeOverlay(img, textImg, xArg, yArg, alpha, blendMode)
+	return true, compositeOverlay(img, textImg, xArg, yArg, alpha, blendMode)
 }

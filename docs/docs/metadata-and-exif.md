@@ -45,6 +45,45 @@ http://localhost:8000/unsafe/meta/fit-in/50x50/raw.githubusercontent.com/cshum/i
 }
 ```
 
+### Filter Report
+
+`filters` reports what the processor did with each filter in the URL, so you can see which filters applied and which were skipped. The field is always present, empty when there was nothing to report, so a client can tell a release that reports filter outcomes from one that predates the field.
+
+```
+http://localhost:8000/unsafe/meta/200x200/filters:blur(5):rotate()/raw.githubusercontent.com/cshum/imagor/master/testdata/Canon_40D.jpg
+```
+
+```jsonc
+{
+  // ...
+  "filters": [
+    { "name": "blur", "processed": true },
+    { "name": "rotate", "processed": false }
+  ]
+}
+```
+
+- **`processed: true`** — the filter applied.
+- **`processed: false`** — the filter was recognised but left the image unchanged. `blur()` with no sigma is one such case.
+- **Absent** — the filter did not run: the name is not handled here, or it is disabled, or `vips-max-filter-ops` dropped it. Compare with the filters in your URL to spot a typo.
+
+A filter can repeat, and each occurrence gets its own entry in URL order, so the same name can report different results.
+
+`image()` loads its argument as an image and processes it in its own right, so the filters inside it are reported under it rather than beside it. They ran on other pixels, and a nested path can nest again.
+
+```jsonc
+{
+  "filters": [
+    {
+      "name": "image",
+      "processed": true,
+      "filters": [ { "name": "blur", "processed": true } ]
+    },
+    { "name": "quality", "processed": true }
+  ]
+}
+```
+
 ## Params Endpoint
 
 Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for previewing the endpoint parameters. Example:

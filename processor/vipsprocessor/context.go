@@ -91,3 +91,26 @@ func withContext(ctx context.Context) context.Context {
 	ctx = context.WithValue(ctx, contextRotateKey{}, &contextRotate{})
 	return ctx
 }
+
+// Report context for a path a filter loads (fresh for each filter).
+type contextReportsKey struct{}
+
+type contextReports struct {
+	child *filterReports
+}
+
+// withReportsHolder gives the next handler somewhere to leave the report for a
+// path it loaded, so the dispatch loop can nest it under that filter's entry.
+// The holder is shared by pointer: the handler writes into it and the loop reads
+// it once the handler returns.
+func withReportsHolder(ctx context.Context) (context.Context, *contextReports) {
+	h := &contextReports{}
+	return context.WithValue(ctx, contextReportsKey{}, h), h
+}
+
+// setChildReports records what the filters in a loaded path did.
+func setChildReports(ctx context.Context, r *filterReports) {
+	if h, ok := ctx.Value(contextReportsKey{}).(*contextReports); ok {
+		h.child = r
+	}
+}

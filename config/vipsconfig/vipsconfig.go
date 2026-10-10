@@ -18,7 +18,7 @@ func WithVips(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Option {
 		vipsDisableFilters = fs.String("vips-disable-filters", "",
 			"VIPS disable filters by csv e.g. blur,watermark,rgb")
 		vipsMaxFilterOps = fs.Int("vips-max-filter-ops", -1,
-			"VIPS maximum number of filter operations allowed. Set -1 for unlimited")
+			"VIPS maximum number of filter operations per request. Set -1 for unlimited")
 		vipsConcurrency = fs.Int("vips-concurrency", 1,
 			"VIPS concurrency. Set -1 to be the number of CPU cores")
 		vipsMaxCacheFiles = fs.Int("vips-max-cache-files", 0,

@@ -197,8 +197,10 @@ func TestProcessor(t *testing.T) {
 		require.NoError(t, err)
 		defer out.Close()
 
-		require.NoError(t, filterFn(context.Background(), out, nil))
-		require.NoError(t, filterFn(context.Background(), out, nil))
+		_, err = filterFn(context.Background(), out, nil)
+		require.NoError(t, err)
+		_, err = filterFn(context.Background(), out, nil)
+		require.NoError(t, err)
 
 		require.Equal(t, src.Width(), out.Width(), "width must match")
 		require.Equal(t, src.Height(), out.Height(), "height must match")
@@ -829,8 +831,8 @@ func TestProcessor(t *testing.T) {
 			imagor.WithLogger(zap.NewExample()),
 			imagor.WithProcessors(NewProcessor(
 				WithDebug(true),
-				WithFilter("error", func(_ context.Context, _ *vips.Image, _ imagor.LoadFunc, _ ...string) error {
-					return imagor.NewError("boom", 422)
+				WithFilter("error", func(_ context.Context, _ *vips.Image, _ imagor.LoadFunc, _ ...string) (bool, error) {
+					return false, imagor.NewError("boom", 422)
 				}),
 			)),
 		)
