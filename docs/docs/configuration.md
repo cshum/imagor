@@ -253,8 +253,8 @@ VIPS_MAX_HEIGHT=             # Maximum image height in pixels
 VIPS_MAX_RESOLUTION=         # Maximum image resolution (width × height)
 VIPS_UNLIMITED=1             # Bypass all resolution limits (not recommended for public endpoints)
 VIPS_MAX_ANIMATION_FRAMES=   # Max animation frames to load. 1 = disable animation, -1 = unlimited
-VIPS_MAX_FILTER_OPS=-1       # Max filter operations per request. Not every filter counts.
-                             # -1 = unlimited
+VIPS_MAX_FILTER_OPS=-1       # Max filter operations per request. Some filters, such as
+                             # format and quality, are not counted. -1 = unlimited
 VIPS_DISABLE_BLUR=1          # Disable all blur operations
 VIPS_DISABLE_FILTERS=blur,watermark  # Disable specific filters (csv)
 
