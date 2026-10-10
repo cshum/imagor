@@ -138,14 +138,28 @@ func TestFilterReportsRecord(t *testing.T) {
 func TestFilterReportsReport(t *testing.T) {
 	reports := newFilterReports()
 	// A filter can repeat, and its occurrences can disagree.
-	reports.add("blur", true)
-	reports.add("rotate", false)
-	reports.add("blur", false)
+	reports.add("blur", true, nil)
+	reports.add("rotate", false, nil)
+	reports.add("blur", false, nil)
 	require.Equal(t, []FilterReport{
 		{Name: "blur", Processed: true},
 		{Name: "rotate", Processed: false},
 		{Name: "blur", Processed: false},
 	}, reports.report())
+
+	// A filter that loads a path of its own carries that path's report, so what
+	// the overlay's filters did is not lost.
+	child := newFilterReports()
+	child.add("blur", true, nil)
+	child.add("grayscale", false, nil)
+	outer := newFilterReports()
+	outer.add("image", true, child)
+	require.Equal(t, []FilterReport{
+		{Name: "image", Processed: true, Filters: []FilterReport{
+			{Name: "blur", Processed: true},
+			{Name: "grayscale", Processed: false},
+		}},
+	}, outer.report())
 
 	require.Nil(t, newFilterReports().report(), "nothing handled reports nothing")
 }
@@ -425,6 +439,20 @@ func TestMetaFilterReport(t *testing.T) {
 			name: "no filters omits the field",
 			path: "meta/200x200/gopher-front.png",
 			want: nil,
+		},
+		{
+			// image() loads its argument as an image with its own filters, so
+			// what they did belongs under the entry for image() rather than
+			// beside it.
+			name: "filters inside image() are reported under it",
+			path: "meta/200x200/filters:image(50x50/filters:blur(5):rotate()/gopher-front.png,10,10):quality(80)/gopher-front.png",
+			want: []FilterReport{
+				{Name: "image", Processed: true, Filters: []FilterReport{
+					{Name: "blur", Processed: true},
+					{Name: "rotate", Processed: false},
+				}},
+				{Name: "quality", Processed: true},
+			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

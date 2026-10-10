@@ -23,6 +23,11 @@ type FilterReport struct {
 	// Processed is false when the filter was recognised but left the image
 	// unchanged, as blur() does with no sigma.
 	Processed bool `json:"processed"`
+	// Filters reports what the filters in a path this filter loaded did, for
+	// image(), which parses its argument as an image and processes it in its own
+	// right. They are reported under it rather than beside it because they ran
+	// on other pixels.
+	Filters []FilterReport `json:"filters,omitempty"`
 }
 
 // filterReports carries what each filter in a URL did. Switches that run before
@@ -49,9 +54,14 @@ func (r *filterReports) accepted(name string) (recognised, processed bool) {
 	return
 }
 
-// add notes a filter the dispatch loop reached.
-func (r *filterReports) add(name string, processed bool) {
-	r.handled = append(r.handled, FilterReport{Name: name, Processed: processed})
+// add notes a filter the dispatch loop reached. nested carries the report for a
+// path the filter loaded, when it loaded one.
+func (r *filterReports) add(name string, processed bool, nested *filterReports) {
+	e := FilterReport{Name: name, Processed: processed}
+	if nested != nil {
+		e.Filters = nested.report()
+	}
+	r.handled = append(r.handled, e)
 }
 
 func (r *filterReports) report() []FilterReport {
@@ -931,16 +941,19 @@ func (v *Processor) applyTransformations(
 		// Recognition starts from what Process and loadAndProcess applied, which
 		// this loop cannot see; the rest is unknown.
 		recognised, processed := reports.accepted(filter.Name)
+		// A handler that loads a path of its own (image) leaves that path's
+		// report in the holder, for the entry this occurrence produces.
+		handlerCtx, loaded := withReportsHolder(ctx)
 		if fn != nil {
 			recognised = true
-			applied, err := fn(ctx, img, load, args...)
+			applied, err := fn(handlerCtx, img, load, args...)
 			if err != nil {
 				return err
 			}
 			processed = processed || applied
 		} else if filter.Name == "fill" {
 			recognised = true
-			if err := v.fill(ctx, img, w, h,
+			if err := v.fill(handlerCtx, img, w, h,
 				p.PaddingLeft, p.PaddingTop, p.PaddingRight, p.PaddingBottom,
 				filter.Args); err != nil {
 				return err
@@ -950,7 +963,7 @@ func (v *Processor) applyTransformations(
 		if recognised {
 			// Unhandled names are logged but not recorded: the report covers
 			// only what this processor did.
-			reports.add(filter.Name, processed)
+			reports.add(filter.Name, processed, loaded.child)
 		}
 		if v.Debug {
 			v.Logger.Debug(filterEventName(recognised, processed),

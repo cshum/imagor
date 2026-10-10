@@ -69,6 +69,21 @@ http://localhost:8000/unsafe/meta/200x200/filters:blur(5):rotate()/raw.githubuse
 
 A filter can repeat, and each occurrence gets its own entry in URL order, so the same name can report different results.
 
+`image()` loads its argument as an image and processes it in its own right, so the filters inside it are reported under it rather than beside it. They ran on other pixels, and a nested path can nest again.
+
+```jsonc
+{
+  "filters": [
+    {
+      "name": "image",
+      "processed": true,
+      "filters": [ { "name": "blur", "processed": true } ]
+    },
+    { "name": "quality", "processed": true }
+  ]
+}
+```
+
 ## Params Endpoint
 
 Prepending `/params` to the existing endpoint returns the endpoint attributes in JSON form, useful for previewing the endpoint parameters. Example:
