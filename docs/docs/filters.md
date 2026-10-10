@@ -190,6 +190,7 @@ Composites a processed image onto the current image with full imagor transformat
 - `imagorpath` — an imagor path with transformations e.g. `/200x200/filters:grayscale()/photo.jpg`
   - The nested path supports all imagor operations: resizing, cropping, filters, etc.
   - Enables recursive nesting — images can load other processed images
+  - Positions are relative to the overlay's own canvas, so `center` centres within the overlay rather than the parent. Put a `text()` in the nested path to centre a label under the image it describes.
   - Use `full` (or `f`) in the `WxH` dimension segment to inherit the parent image's width or height. `full` means the full parent dimension; `full-NNN` means the parent dimension minus NNN pixels. Examples:
     - `fullxfull/overlay.png` (or `fxf`) — overlay fills the parent canvas exactly
     - `fit-in/full-20xfull-20/overlay.png` (or `fit-in/f-20xf-20`) — overlay fits within the parent canvas with a 20px inset on each side
