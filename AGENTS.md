@@ -15,8 +15,9 @@ source rather than restating a value that will change.
 - Goldens are in `testdata/golden/`, with per-architecture variants in
   `testdata/golden_arm64/`. Running the suite can leave a new file there, and an
   untracked one blocks a later `git checkout`.
-- CI commits golden updates back to the branch as `test: update golden files`, so
-  a pull request can gain a commit while you work on it.
+- CI commits golden updates back to the branch as `test: update golden files`, but
+  only under `testdata/golden`. It runs the suite on x86 only, so the arm64
+  goldens come from contributors and a change there is yours to commit.
 - The package shares one vips instance, started in `TestMain`. A test that shuts
   its processor down shuts vips down with it and breaks every test that runs
   after, which is why some tests deliberately do not.
