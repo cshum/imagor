@@ -1,31 +1,31 @@
 # Working in this repository
 
-For automated agents and anyone new here. This is the repository-specific
-knowledge that does not show up at a glance from the code. User-facing
-documentation lives in `docs/`.
+For automated agents and anyone new here. Only what the code and the published
+documentation do not already show. Where a fact has a source, this points at the
+source rather than restating a value that will change.
 
 ## Tests and goldens
 
-- The suite needs libvips and the version matters. The project builds against the
-  one in the `Dockerfile` base image, currently `vips8.18.6-r14`. Against a
-  different libvips the `label*` and `text*` golden comparisons fail on rendering
-  differences alone. Judge a run against `master`, not against zero.
-- CI's **Docker Test** job runs the suite in that image. It settles a golden
-  change; a local run does not.
+- The suite needs libvips, and the golden comparisons depend on its version. That
+  version is pinned in the `Dockerfile` base image, so take it from there. Against
+  a different one, the `label*` and `text*` goldens fail on rendering differences
+  alone, so judge a run against `master` rather than against zero failures.
+- CI's **Docker Test** job runs the suite in that image. It is what settles a
+  golden change; a local run is not a substitute.
 - Goldens are in `testdata/golden/`, with per-architecture variants in
   `testdata/golden_arm64/`. Running the suite can leave a new file there, and an
   untracked one blocks a later `git checkout`.
 - CI commits golden updates back to the branch as `test: update golden files`, so
   a pull request can gain a commit while you work on it.
+- The package shares one vips instance, started in `TestMain`. A test that shuts
+  its processor down shuts vips down with it and breaks every test that runs
+  after, which is why some tests deliberately do not.
 
 ## Documentation
 
 - `docs/` is published on every push to `master` rather than on release, so the
   published documentation describes `master` and runs ahead of the latest
   release. A behaviour change and its documentation ship at different times.
-- The filter reference in `docs/docs/filters.md` carries the accepted argument
-  counts in its headings, written `name(args)` with square brackets for optional
-  arguments.
 
 ## Code
 
@@ -33,7 +33,11 @@ documentation lives in `docs/`.
   dispatch loop, and the loop itself. `disableFilters` is checked at each site,
   so a new site that misses it produces a filter that ignores the setting.
   Anything that counts filters has the same problem.
-- `FilterFunc` in `processor/vipsprocessor` is a public extension point, so
-  changing its signature breaks filters implemented outside this module.
+- The filter reference and the processor's `FilterMap` are independent lists.
+  Some registered filters are undocumented, and some documented filters are
+  handled by a plugin rather than by this processor.
 - The `/meta` body is marshalled by the processor rather than by a response
   writer, so the fields a client reads are defined in `processor/vipsprocessor`.
+- An option lives in three places read by different people: the `With...` option's
+  own comment carries the precise rule, and the flag help together with
+  `docs/docs/configuration.md` carries what a user needs.
