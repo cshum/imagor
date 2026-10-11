@@ -425,7 +425,7 @@ Renders a text overlay onto the image with full multi-line and Pango font suppor
 
 - `text` — the text to render. Supports URL query-encoding and `b64:` prefix for [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding to safely pass arbitrary unicode or multi-word strings.
 - `x` — horizontal position: see [Horizontal position](#horizontal-position)
-- `y` — vertical position: see [Vertical position](#vertical-position)
+- `y` — vertical position, the top of the text box rather than a baseline, so a few pixels out is visible: see [Vertical position](#vertical-position)
 - `font` — Pango font description with hyphens as space separators, e.g. `sans-bold-24` for `sans bold 24`, `monospace-18` for `monospace 18`. Font size is in points; at the default 72 DPI, 1pt = 1px.
 - `color` — color name or hexadecimal rgb expression without the `#` character, defaults to black
 - `alpha` — transparency, 0 (fully opaque) to 100 (fully transparent), defaults to 0
