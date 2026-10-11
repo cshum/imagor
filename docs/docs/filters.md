@@ -506,7 +506,7 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 - Number followed by `p` e.g. `20p` means percentage of image width
 - `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
 - `repeat` to tile horizontally
-- Float between 0–1 represents percentage e.g. `0.5` for center
+- Float between 0–1 sets the left edge that far across: `0.5` is `50p`
 
 ### Vertical position
 
@@ -516,7 +516,7 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 - Number followed by `p` e.g. `20p` means percentage of image height
 - `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
 - `repeat` to tile vertically
-- Float between 0–1 represents percentage e.g. `0.5` for center
+- Float between 0–1 sets the top edge that far down: `0.5` is `50p`
 
 ## Utility Filters
 
