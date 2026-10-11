@@ -26,30 +26,6 @@ Filters are grouped into:
 - [Utility Filters](#utility-filters) — pipeline control
 - [Metadata Filters](./metadata-and-exif.md#metadata-filters) — for the `/meta` endpoint
 
-## Position arguments
-
-`image()`, `text()` and `watermark()` place their overlay the same way, so they share these forms. A negative number insets from the far edge; an alignment offset such as `right-20` moves past it. The two go in opposite directions.
-
-### Horizontal position
-
-`x` takes one of these forms:
-
-- Positive number indicates position from the left, negative from the right
-- Number followed by `p` e.g. `20p` means percentage of image width
-- `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
-- `repeat` to tile horizontally
-- Float between 0–1 represents percentage e.g. `0.5` for center
-
-### Vertical position
-
-`y` takes one of these forms:
-
-- Positive number indicates position from the top, negative from the bottom
-- Number followed by `p` e.g. `20p` means percentage of image height
-- `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
-- `repeat` to tile vertically
-- Float between 0–1 represents percentage e.g. `0.5` for center
-
 ## Processing Filters
 
 ### `background_color(color)`
@@ -517,6 +493,30 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 </table>
 
 ---
+
+## Position arguments
+
+`image()`, `text()` and `watermark()` place their overlay the same way, so they share these forms. A negative number insets from the far edge; an alignment offset such as `right-20` moves past it. The two go in opposite directions.
+
+### Horizontal position
+
+`x` takes one of these forms:
+
+- Positive number indicates position from the left, negative from the right
+- Number followed by `p` e.g. `20p` means percentage of image width
+- `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
+- `repeat` to tile horizontally
+- Float between 0–1 represents percentage e.g. `0.5` for center
+
+### Vertical position
+
+`y` takes one of these forms:
+
+- Positive number indicates position from the top, negative from the bottom
+- Number followed by `p` e.g. `20p` means percentage of image height
+- `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
+- `repeat` to tile vertically
+- Float between 0–1 represents percentage e.g. `0.5` for center
 
 ## Utility Filters
 
