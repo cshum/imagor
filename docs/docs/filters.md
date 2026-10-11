@@ -498,6 +498,8 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 
 `image()`, `text()` and `watermark()` place their overlay the same way, so they share these forms. A negative number insets from the far edge; an alignment offset such as `right-20` moves past it. The two go in opposite directions.
 
+These are position forms and not dimension forms: `full` and `full-N` belong to the dimension segment, and as a position are read as `0`, placing the overlay at the origin.
+
 ### Horizontal position
 
 `x` takes one of these forms:
