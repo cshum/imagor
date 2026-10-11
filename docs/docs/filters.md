@@ -26,30 +26,6 @@ Filters are grouped into:
 - [Utility Filters](#utility-filters) — pipeline control
 - [Metadata Filters](./metadata-and-exif.md#metadata-filters) — for the `/meta` endpoint
 
-## Position arguments
-
-`image()`, `text()` and `watermark()` all place their overlay the same way, and `x` and `y` accept the same forms. A negative number insets from the far edge, while an alignment with an offset such as `right-20` moves past that edge: the two go in opposite directions.
-
-### Horizontal position
-
-`x` takes one of these forms:
-
-- Positive number indicates position from the left, negative from the right
-- Number followed by `p` e.g. `20p` means percentage of image width
-- `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
-- `repeat` to tile horizontally
-- Float between 0–1 represents percentage e.g. `0.5` for center
-
-### Vertical position
-
-`y` takes one of these forms:
-
-- Positive number indicates position from the top, negative from the bottom
-- Number followed by `p` e.g. `20p` means percentage of image height
-- `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
-- `repeat` to tile vertically
-- Float between 0–1 represents percentage e.g. `0.5` for center
-
 ## Processing Filters
 
 ### `background_color(color)`
@@ -449,7 +425,7 @@ Renders a text overlay onto the image with full multi-line and Pango font suppor
 
 - `text` — the text to render. Supports URL query-encoding and `b64:` prefix for [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64) encoding to safely pass arbitrary unicode or multi-word strings.
 - `x` — horizontal position: see [Horizontal position](#horizontal-position)
-- `y` — vertical position: see [Vertical position](#vertical-position)
+- `y` — vertical position, the top of the text box rather than a baseline, so a few pixels out is visible: see [Vertical position](#vertical-position)
 - `font` — Pango font description with hyphens as space separators, e.g. `sans-bold-24` for `sans bold 24`, `monospace-18` for `monospace 18`. Font size is in points; at the default 72 DPI, 1pt = 1px.
 - `color` — color name or hexadecimal rgb expression without the `#` character, defaults to black
 - `alpha` — transparency, 0 (fully opaque) to 100 (fully transparent), defaults to 0
@@ -517,6 +493,30 @@ Adds a watermark to the image. It can be positioned inside the image with the al
 </table>
 
 ---
+
+## Position arguments
+
+`image()`, `text()` and `watermark()` place their overlay the same way, so they share these forms. A negative number insets from the far edge; an alignment offset such as `right-20` moves past it. The two go in opposite directions.
+
+### Horizontal position
+
+`x` takes one of these forms:
+
+- Positive number indicates position from the left, negative from the right
+- Number followed by `p` e.g. `20p` means percentage of image width
+- `left` or `l`, `right` or `r`, `center` for alignment, optionally offset past that edge e.g. `left-20`, `r-10`
+- `repeat` to tile horizontally
+- Float between 0–1 represents percentage e.g. `0.5` for center
+
+### Vertical position
+
+`y` takes one of these forms:
+
+- Positive number indicates position from the top, negative from the bottom
+- Number followed by `p` e.g. `20p` means percentage of image height
+- `top` or `t`, `bottom` or `b`, `center` for alignment, optionally offset past that edge e.g. `top-10`, `b-20`
+- `repeat` to tile vertically
+- Float between 0–1 represents percentage e.g. `0.5` for center
 
 ## Utility Filters
 
