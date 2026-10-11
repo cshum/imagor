@@ -50,6 +50,8 @@ Filters are grouped into:
 - `repeat` to tile vertically
 - Float between 0–1 represents percentage e.g. `0.5` for center
 
+For `text()`, `y` is the top of the text box rather than a baseline, so the ink starts a pixel or so below it. Text is placed to the pixel, so being a few pixels out is visible in the result even though the request succeeds.
+
 ## Processing Filters
 
 ### `background_color(color)`
