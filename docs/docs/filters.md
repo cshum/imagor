@@ -28,7 +28,7 @@ Filters are grouped into:
 
 ## Position arguments
 
-`image()`, `text()` and `watermark()` all place their overlay the same way, and `x` and `y` accept the same forms. A negative number insets from the far edge, while an alignment with an offset such as `right-20` moves past that edge: the two go in opposite directions.
+`image()`, `text()` and `watermark()` place their overlay the same way, so they share these forms. A negative number insets from the far edge; an alignment offset such as `right-20` moves past it. The two go in opposite directions.
 
 ### Horizontal position
 
