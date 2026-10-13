@@ -21,11 +21,11 @@ jobs:
         variant:
           - name: magick
             build_args: |
-              BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.6-r15-magick
+              BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.7-r16-magick
               ENABLE_MAGICK=true
           - name: mozjpeg
             build_args: |
-              BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.6-r15-mozjpeg
+              BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.7-r16-mozjpeg
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
