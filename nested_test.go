@@ -2,8 +2,10 @@ package imagor
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -130,10 +132,10 @@ func TestNestedPathIsCoveredByTheOuterSignature(t *testing.T) {
 	signer := imagorpath.NewDefaultSigner("secret")
 
 	for _, tc := range []struct {
-		name    string
-		path    string
-		tamper  string // the path actually requested, if different
-		want    int
+		name   string
+		path   string
+		tamper string // the path actually requested, if different
+		want   int
 	}{
 		{
 			name: "signed nested path",
@@ -213,4 +215,60 @@ func TestNestedPathDepthBound(t *testing.T) {
 		http.MethodGet, "https://example.com/unsafe/"+path, nil))
 	assert.Equal(t, 400, w.Code, "one level past MaxNestedDepth should be refused")
 	assert.Contains(t, w.Body.String(), "too many nested levels")
+}
+
+// The two error paths in the nested-path branch log under Debug. Cover them so
+// the branch is exercised the way it runs in a deployment with debug logging on.
+func TestNestedPathDebugLogsOnFailurePaths(t *testing.T) {
+	t.Run("depth exceeded", func(t *testing.T) {
+		app := New(WithOptions(
+			WithUnsafe(true),
+			WithDebug(true),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("outer")), nil
+			})),
+			WithProcessors(processorFunc(
+				func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+					return NewBlobFromBytes([]byte("processed")), nil
+				})),
+		))
+
+		// One past the bound, so the depth branch returns ErrTooManyNestedLevels
+		// with Debug on.
+		path := "200x200/color:green"
+		for i := 0; i <= MaxNestedDepth; i++ {
+			path = "200x200/path:" + path
+		}
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/"+path, nil))
+		assert.Equal(t, 400, w.Code)
+		assert.Contains(t, w.Body.String(), "too many nested levels")
+	})
+
+	t.Run("nested path fails to resolve", func(t *testing.T) {
+		app := New(WithOptions(
+			WithUnsafe(true),
+			WithDebug(true),
+			// the nested path resolves to an unreachable URL source, so the
+			// inner Do fails and the branch logs before returning
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				if strings.HasPrefix(image, "http") {
+					return nil, errors.New("unreachable")
+				}
+				return NewBlobFromBytes([]byte("outer")), nil
+			})),
+			WithProcessors(processorFunc(
+				func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+					return NewBlobFromBytes([]byte("processed")), nil
+				})),
+		))
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet,
+			"https://example.com/unsafe/400x400/path:"+
+				url.QueryEscape("200x200/http://unreachable.example/img.jpg"), nil))
+		assert.Equal(t, 500, w.Code)
+	})
 }
