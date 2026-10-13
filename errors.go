@@ -35,6 +35,8 @@ var (
 	ErrMaxResolutionExceeded = NewError("maximum resolution exceeded", http.StatusUnprocessableEntity)
 	// ErrTooManyRequests too many requests error
 	ErrTooManyRequests = NewError("too many requests", http.StatusTooManyRequests)
+	// ErrTooManyNestedLevels nested path: source exceeded MaxNestedDepth
+	ErrTooManyNestedLevels = NewError("too many nested levels", http.StatusBadRequest)
 	// ErrInternal internal error
 	ErrInternal = NewError("internal error", http.StatusInternalServerError)
 )

@@ -14,6 +14,25 @@ type contextKey struct {
 var imagorContextKey = contextKey{1}
 var detachContextKey = contextKey{2}
 var sourceImageKeyContextKey = contextKey{3}
+var nestedDepthContextKey = contextKey{4}
+
+// MaxNestedDepth bounds how deep a path: source may nest inside another path:
+// source. A nested path is resolved in-process, so without a bound a
+// self-referencing path recurses until the stack runs out instead of failing.
+const MaxNestedDepth = 4
+
+// withNestedDepth annotates a context with the current path: nesting depth.
+func withNestedDepth(ctx context.Context, depth int) context.Context {
+	return context.WithValue(ctx, nestedDepthContextKey, depth)
+}
+
+// nestedDepthFromContext returns the current path: nesting depth, 0 at the top.
+func nestedDepthFromContext(ctx context.Context) int {
+	if depth, ok := ctx.Value(nestedDepthContextKey).(int); ok {
+		return depth
+	}
+	return 0
+}
 
 type imagorContextRef struct {
 	funcs []func()

@@ -54,6 +54,7 @@ const sidebars: SidebarsConfig = {
         "metadata-and-exif",
         "in-memory-cache",
         "color-image",
+        "nested-path",
         "benchmarks",
         "post-upload",
         "mozjpeg-support",

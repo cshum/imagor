@@ -444,6 +444,26 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var shouldSave bool
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
+		} else if nestedPath, ok := isNestedPath(p.Image); ok {
+			// nested path — resolve in-process. The nested path is authorised by the
+			// outer request's signature, so it is not re-signed; the depth bound
+			// stops a self-referencing path from recursing until the stack runs out.
+			if depth := nestedDepthFromContext(ctx); depth >= MaxNestedDepth {
+				err = ErrTooManyNestedLevels
+				if app.Debug {
+					app.Logger.Debug("nested-depth", zap.Any("params", p), zap.Int("depth", depth))
+				}
+				return blob, err
+			}
+			nestedParams := imagorpath.Parse(nestedPath)
+			nestedParams.Unsafe = true
+			nestedReq := r.WithContext(withNestedDepth(ctx, nestedDepthFromContext(ctx)+1))
+			if blob, err = app.Do(nestedReq, nestedParams); err != nil {
+				if app.Debug {
+					app.Logger.Debug("nested-path", zap.Any("params", nestedParams), zap.Error(err))
+				}
+				return blob, err
+			}
 		} else {
 			// Base image cache is opt-in via filters:preview().
 			// Skip cache for requests that depend on original-space coordinates or
@@ -1144,6 +1164,28 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 // isColorImage checks if the image path is a color image specification (color:xxx)
 func isColorImage(image string) bool {
 	return strings.HasPrefix(strings.ToLower(image), "color:")
+}
+
+// NestedPathPrefix marks a source that is itself an imagor path rather than a URL
+// or a storage key: 400x400/path:1200x628/filters:.../photo.jpg
+//
+// The nested path is parsed and processed in-process, so a transformation that
+// only needs bytes this process already has does not require the server to be
+// able to reach itself over the network.
+const NestedPathPrefix = "path:"
+
+// isNestedPath reports whether a source is a nested imagor path, returning the
+// decoded path if so. The path is percent-decoded because it contains the same
+// separators as the outer path.
+func isNestedPath(image string) (string, bool) {
+	path, ok := strings.CutPrefix(image, NestedPathPrefix)
+	if !ok {
+		return "", false
+	}
+	if unescaped, err := url.QueryUnescape(path); err == nil {
+		path = unescaped
+	}
+	return path, path != ""
 }
 
 func getType(v interface{}) string {
