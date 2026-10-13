@@ -19,6 +19,13 @@ var nestedDepthContextKey = contextKey{4}
 // MaxNestedDepth bounds how deep a path: source may nest inside another path:
 // source. A nested path is resolved in-process, so without a bound a
 // self-referencing path recurses until the stack runs out instead of failing.
+//
+// This bound applies to path: sources only. It deliberately does not apply to
+// the image() filter, which nests for grouping rather than for re-entry and is
+// routinely used far deeper than this: image() resolves a nested path through
+// imagorpath.Parse and loadFilterImage without calling Do, so it never reaches
+// the counter, and a group of nested overlays is not the runaway recursion this
+// guards against. Do not "fix" that by counting image() levels too.
 const MaxNestedDepth = 4
 
 // withNestedDepth annotates a context with the current path: nesting depth.

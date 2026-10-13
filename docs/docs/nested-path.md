@@ -36,6 +36,8 @@ but it requires `imagor.example.com` to resolve **from inside the imagor instanc
 
 A nested path may itself contain a `path:` source, up to `MaxNestedDepth` levels (4 by default). Deeper than that is refused with `400 too many nested levels` rather than recursing further.
 
+**This bound covers `path:` sources only, not the `image()` filter.** `image()` nests for grouping, and is routinely used deeper than four — it composes overlays onto a parent rather than re-entering a request, so it is not the recursion the bound guards against. A deeply nested `image()` group renders normally at any depth.
+
 ## Signing
 
 A nested path is authorised by the outer request's signature and is not re-signed — one signature covers the whole tree. Enable `IMAGOR_UNSAFE` or sign the outer path as usual; nothing extra is needed for the nested part.
