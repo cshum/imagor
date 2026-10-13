@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/vipsgen/vips"
 )
 
@@ -68,13 +69,11 @@ func parseTextWidth(arg string, canvasWidth int) int {
 	if arg == "" {
 		return 0
 	}
-	// full / f / full-N / f-N  (reuses fullDimRegex from overlay.go)
-	if m := fullDimRegex.FindStringSubmatch(arg); m != nil {
-		offset := 0
-		if m[2] != "" {
-			offset, _ = strconv.Atoi(m[2]) // already negative e.g. "-20"
+	// full / f / full-N / f-N  (reuses imagorpath.ResolveFullDim)
+	if resolved := imagorpath.ResolveFullDim(arg, canvasWidth); resolved != arg {
+		if n, err := strconv.Atoi(resolved); err == nil {
+			return n
 		}
-		return canvasWidth + offset
 	}
 	// percentage: e.g. 80p
 	if strings.HasSuffix(arg, "p") {

@@ -455,6 +455,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				}
 				return blob, err
 			}
+			// f-tokens in the nested path resolve against this request's own
+			// dimensions, so fxf/f-20xf-20 inherit the parent the same way they
+			// do inside image().
+			nestedPath = imagorpath.ResolveFullDimensions(nestedPath, p.Width, p.Height)
 			nestedParams := imagorpath.Parse(nestedPath)
 			nestedParams.Unsafe = true
 			nestedReq := r.WithContext(withNestedDepth(ctx, nestedDepthFromContext(ctx)+1))

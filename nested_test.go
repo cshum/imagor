@@ -103,6 +103,26 @@ func TestNestedPathIsNotResigned(t *testing.T) {
 		"the nested path should reach the processor as its own params")
 }
 
+// f-tokens in a nested path resolve against the parent's dimensions, the same way
+// they do inside image(). The two must agree or a preview and a composition would
+// disagree about what f-20xf-20 means.
+func TestNestedPathResolvesFTokens(t *testing.T) {
+	for _, tc := range []struct {
+		inner string
+		want  string // the resolved path, with parent 400x400
+	}{
+		{"fxf", "400x400/color:red"},
+		{"f-20xf-20", "380x380/color:red"},
+		{"full-20xfull-20", "380x380/color:red"},
+		{"fullxfull", "400x400/color:red"},
+		{"200x200", "200x200/color:red"},
+	} {
+		t.Run(tc.inner, func(t *testing.T) {
+			assert.Equal(t, tc.want, imagorpath.ResolveFullDimensions(tc.inner+"/color:red", 400, 400))
+		})
+	}
+}
+
 // Without a bound, a self-referencing path recurses until the stack runs out.
 func TestNestedPathDepthBound(t *testing.T) {
 	app := New(WithOptions(

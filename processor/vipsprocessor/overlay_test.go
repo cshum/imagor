@@ -30,9 +30,9 @@ func TestResolveFullDim(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.token, func(t *testing.T) {
-			got := resolveFullDim(tt.token, tt.parentDim)
+			got := imagorpath.ResolveFullDim(tt.token, tt.parentDim)
 			if got != tt.want {
-				t.Errorf("resolveFullDim(%q, %d) = %q, want %q", tt.token, tt.parentDim, got, tt.want)
+				t.Errorf("ResolveFullDim(%q, %d) = %q, want %q", tt.token, tt.parentDim, got, tt.want)
 			}
 		})
 	}
@@ -109,9 +109,9 @@ func TestResolveFullDimensions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveFullDimensions(tt.path, tt.parentW, tt.parentH)
+			got := imagorpath.ResolveFullDimensions(tt.path, tt.parentW, tt.parentH)
 			if got != tt.want {
-				t.Errorf("resolveFullDimensions(%q, %d, %d) =\n  %q\nwant:\n  %q",
+				t.Errorf("ResolveFullDimensions(%q, %d, %d) =\n  %q\nwant:\n  %q",
 					tt.path, tt.parentW, tt.parentH, got, tt.want)
 			}
 		})
