@@ -295,7 +295,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			return
 		}
 	}
-	if !(app.Unsafe && p.Unsafe) && signer != nil && p.Path != "" {
+	// A nested path: source is authorised by the outer request's signature — the
+	// nested path is part of the outer p.Path — so it is not re-signed. Without
+	// this, every nested path fails with 403 whenever a signer is configured.
+	if !isNestedRequest(ctx) && !(app.Unsafe && p.Unsafe) && signer != nil && p.Path != "" {
 		if hash := signer.Sign(p.Path); hash != p.Hash {
 			err = ErrSignatureMismatch
 			if app.Debug {
@@ -422,7 +425,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				return blob, nil
 			}
 		}
-		if app.queueSema != nil && !isRaw {
+		// A nested path: source is already inside the outer request's concurrency
+		// slot; acquiring another here would deadlock or, when the queue is one
+		// slot wide, fail every nested request with 429.
+		var nestedReq = isNestedRequest(ctx)
+		if app.queueSema != nil && !isRaw && !nestedReq {
 			if !app.queueSema.TryAcquire(1) {
 				err = ErrTooManyRequests
 				if app.Debug {
@@ -432,7 +439,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			defer app.queueSema.Release(1)
 		}
-		if app.sema != nil && !isRaw {
+		if app.sema != nil && !isRaw && !nestedReq {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
 				if app.Debug {
 					app.Logger.Debug("acquire", zap.Error(err))
@@ -444,6 +451,30 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var shouldSave bool
 		if isColorImage(p.Image) {
 			// color image — skip storage/loader, processor will generate it
+		} else if nestedPath, ok := isNestedPath(p.Image); ok {
+			// nested path — resolve in-process. The nested path is authorised by the
+			// outer request's signature, so it is not re-signed; the depth bound
+			// stops a self-referencing path from recursing until the stack runs out.
+			if depth := nestedDepthFromContext(ctx); depth >= MaxNestedDepth {
+				err = ErrTooManyNestedLevels
+				if app.Debug {
+					app.Logger.Debug("nested-depth", zap.Any("params", p), zap.Int("depth", depth))
+				}
+				return blob, err
+			}
+			// f-tokens in the nested path resolve against this request's own
+			// dimensions, so fxf/f-20xf-20 inherit the parent the same way they
+			// do inside image().
+			nestedPath = imagorpath.ResolveFullDimensions(nestedPath, p.Width, p.Height)
+			nestedParams := imagorpath.Parse(nestedPath)
+			nestedParams.Unsafe = true
+			nestedReq := r.WithContext(withNestedDepth(ctx, nestedDepthFromContext(ctx)+1))
+			if blob, err = app.Do(nestedReq, nestedParams); err != nil {
+				if app.Debug {
+					app.Logger.Debug("nested-path", zap.Any("params", nestedParams), zap.Error(err))
+				}
+				return blob, err
+			}
 		} else {
 			// Base image cache is opt-in via filters:preview().
 			// Skip cache for requests that depend on original-space coordinates or
@@ -1144,6 +1175,28 @@ func getContentDisposition(p imagorpath.Params, blob *Blob) string {
 // isColorImage checks if the image path is a color image specification (color:xxx)
 func isColorImage(image string) bool {
 	return strings.HasPrefix(strings.ToLower(image), "color:")
+}
+
+// NestedPathPrefix marks a source that is itself an imagor path rather than a URL
+// or a storage key: 400x400/path:1200x628/filters:.../photo.jpg
+//
+// The nested path is parsed and processed in-process, so a transformation that
+// only needs bytes this process already has does not require the server to be
+// able to reach itself over the network.
+const NestedPathPrefix = "path:"
+
+// isNestedPath reports whether a source is a nested imagor path, returning the
+// decoded path if so. The path is percent-decoded because it contains the same
+// separators as the outer path.
+func isNestedPath(image string) (string, bool) {
+	path, ok := strings.CutPrefix(image, NestedPathPrefix)
+	if !ok {
+		return "", false
+	}
+	if unescaped, err := url.QueryUnescape(path); err == nil {
+		path = unescaped
+	}
+	return path, path != ""
 }
 
 func getType(v interface{}) string {
