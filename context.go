@@ -34,6 +34,15 @@ func nestedDepthFromContext(ctx context.Context) int {
 	return 0
 }
 
+// isNestedRequest reports whether this request is a nested path: source being
+// resolved inside another request. Such a request already occupies the outer
+// request's concurrency slot, so it must not acquire one of its own — with
+// ProcessConcurrency=1 it would take the only slot and then fail to get a
+// second, turning every nested path into 429.
+func isNestedRequest(ctx context.Context) bool {
+	return nestedDepthFromContext(ctx) > 0
+}
+
 type imagorContextRef struct {
 	funcs []func()
 	l     sync.Mutex

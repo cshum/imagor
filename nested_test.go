@@ -123,6 +123,67 @@ func TestNestedPathResolvesFTokens(t *testing.T) {
 	}
 }
 
+// A signed outer request must authorise the nested path, and tampering with the
+// nested path must break the outer signature. The nested path is part of p.Path,
+// so the outer signature covers it — this test holds that claim to account.
+func TestNestedPathIsCoveredByTheOuterSignature(t *testing.T) {
+	signer := imagorpath.NewDefaultSigner("secret")
+
+	for _, tc := range []struct {
+		name    string
+		path    string
+		tamper  string // the path actually requested, if different
+		want    int
+	}{
+		{
+			name: "signed nested path",
+			path: "fit-in/400x400/path:1200x628/color:red",
+			want: 200,
+		},
+		{
+			name:   "nested path tampered after signing",
+			path:   "fit-in/400x400/path:1200x628/color:red",
+			tamper: "fit-in/400x400/path:1200x628/color:blue",
+			want:   403,
+		},
+		{
+			name:   "nested path removed after signing",
+			path:   "fit-in/400x400/path:1200x628/color:red",
+			tamper: "fit-in/400x400/color:red",
+			want:   403,
+		},
+		{
+			name:   "nested path deepened after signing",
+			path:   "fit-in/400x400/path:1200x628/color:red",
+			tamper: "fit-in/400x400/path:200x200/path:1200x628/color:red",
+			want:   403,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := New(WithOptions(
+				WithSigner(signer),
+				WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+					return NewBlobFromBytes([]byte("outer")), nil
+				})),
+				WithProcessors(processorFunc(
+					func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+						return NewBlobFromBytes([]byte("processed")), nil
+					})),
+			))
+
+			requested := tc.path
+			if tc.tamper != "" {
+				requested = tc.tamper
+			}
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(
+				http.MethodGet,
+				"https://example.com/"+signer.Sign(tc.path)+"/"+requested, nil))
+			assert.Equal(t, tc.want, w.Code, w.Body.String())
+		})
+	}
+}
+
 // Without a bound, a self-referencing path recurses until the stack runs out.
 func TestNestedPathDepthBound(t *testing.T) {
 	app := New(WithOptions(

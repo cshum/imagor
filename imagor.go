@@ -295,7 +295,10 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			return
 		}
 	}
-	if !(app.Unsafe && p.Unsafe) && signer != nil && p.Path != "" {
+	// A nested path: source is authorised by the outer request's signature — the
+	// nested path is part of the outer p.Path — so it is not re-signed. Without
+	// this, every nested path fails with 403 whenever a signer is configured.
+	if !isNestedRequest(ctx) && !(app.Unsafe && p.Unsafe) && signer != nil && p.Path != "" {
 		if hash := signer.Sign(p.Path); hash != p.Hash {
 			err = ErrSignatureMismatch
 			if app.Debug {
@@ -422,7 +425,11 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 				return blob, nil
 			}
 		}
-		if app.queueSema != nil && !isRaw {
+		// A nested path: source is already inside the outer request's concurrency
+		// slot; acquiring another here would deadlock or, when the queue is one
+		// slot wide, fail every nested request with 429.
+		var nestedReq = isNestedRequest(ctx)
+		if app.queueSema != nil && !isRaw && !nestedReq {
 			if !app.queueSema.TryAcquire(1) {
 				err = ErrTooManyRequests
 				if app.Debug {
@@ -432,7 +439,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			defer app.queueSema.Release(1)
 		}
-		if app.sema != nil && !isRaw {
+		if app.sema != nil && !isRaw && !nestedReq {
 			if err = app.sema.Acquire(ctx, 1); err != nil {
 				if app.Debug {
 					app.Logger.Debug("acquire", zap.Error(err))
