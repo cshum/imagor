@@ -70,7 +70,7 @@ const sidebars: SidebarsConfig = {
         description:
           "Extend imagor with additional capabilities through plugins.",
       },
-      items: ["imagorvideo", "imagorface"],
+      items: ["imagorvideo", "imagorface", "imagor-mcp"],
     },
     {
       type: "doc",

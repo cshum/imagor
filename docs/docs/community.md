@@ -14,6 +14,7 @@ keywords:
 
 - **[imagorvideo](./imagorvideo.md)** — Video thumbnail server using ffmpeg C bindings
 - **[imagorface](./imagorface.md)** — Fast, on-the-fly face detection for smart crop and privacy redaction
+- **[imagor-mcp](./imagor-mcp.md)** — Template capability for agents: a layout compiles to one imagor URL
 
 ## Go Libraries
 
