@@ -18,8 +18,8 @@ keywords:
 **An MCP server and a skill that add template capability to
 [imagor](https://github.com/cshum/imagor).**
 
-An agent writes a layout — OG cards, a product grid, quotes, testimonials — and it compiles to a
-single imagor URL.
+An agent writes a layout — OG cards, product grids, quotes, testimonials — that compiles to one
+imagor URL.
 
 :::info
 **GitHub:** [github.com/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp)  
