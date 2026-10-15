@@ -146,6 +146,9 @@ func (v *Processor) Process(
 		}
 	}
 
+	// The export and metadata switches share outcomes with the dispatch loop.
+	params, reports := v.extractExportParams(p)
+
 	// lang() decides what the renderer draws, so the source is rewritten before it
 	// is loaded. SVG sources only.
 	if blob != nil && blob.BlobType() == imagor.BlobTypeSVG && v.hasEnabledFilter(p, langFilterName) {
@@ -153,6 +156,7 @@ func (v *Processor) Process(
 			switch rewritten, langErr := selectLanguage(blob, tags); {
 			case langErr == nil:
 				blob = rewritten
+				reports.record(langFilterName, true)
 			case errors.Is(langErr, svg.ErrInvalidLanguageTag):
 				v.Logger.Warn(langFilterName, zap.String("error", langErr.Error()))
 				return nil, imagor.ErrInvalid
@@ -164,10 +168,7 @@ func (v *Processor) Process(
 		}
 	}
 
-	// The export scan below and the decode constraints in loadAndProcess both
-	// apply filters the dispatch loop cannot see, so both report into the same
-	// map for it to consult.
-	params, reports := v.extractExportParams(p)
+	// Decode constraints also report into the map for the dispatch loop.
 	img, err := v.loadAndProcess(ctx, blob, p, load, reports)
 	if err != nil {
 		return nil, err
@@ -204,9 +205,6 @@ func (v *Processor) Process(
 					return nil, WrapErr(err)
 				}
 				m.AverageColor = color
-				// Recorded only here: outside /meta these do nothing, so the loop
-				// reporting them as unknown is honest.
-				reports.record("avgcolor", true)
 			case "blurhash":
 				args := imagorpath.SplitArgs(f.Args)
 				if len(args) != 2 {
@@ -222,7 +220,6 @@ func (v *Processor) Process(
 					return nil, WrapErr(err)
 				}
 				m.BlurHash = hash
-				reports.record("blurhash", true)
 			case "thumbhash":
 				if f.Args != "" {
 					return nil, imagor.NewError("thumbhash takes no arguments", 400)
@@ -232,7 +229,6 @@ func (v *Processor) Process(
 					return nil, WrapErr(err)
 				}
 				m.ThumbHash = hash
-				reports.record("thumbhash", true)
 			}
 		}
 		return imagor.NewBlobFromJsonMarshal(m), nil
@@ -365,6 +361,13 @@ func (v *Processor) extractExportParams(p imagorpath.Params) (*exportParams, *fi
 		case "lossless":
 			lossless = true
 			reports.record("lossless", true)
+		case "avgcolor", "blurhash", "thumbhash":
+			// These are computed after transformations. A successful /meta
+			// response has applied them; an invalid argument returns an error
+			// instead of a report. Register them before the ordered dispatch.
+			if p.Meta {
+				reports.record(f.Name, true)
+			}
 		}
 	}
 
@@ -935,7 +938,9 @@ func (v *Processor) applyTransformations(
 					v.Logger.Debug("max-filter-ops-exceeded",
 						zap.String("name", filter.Name), zap.String("args", filter.Args))
 				}
-				break
+				// Later export and metadata filters still apply outside this
+				// loop, so only skip this operation, not their reports.
+				continue
 			}
 			ops++
 		}
