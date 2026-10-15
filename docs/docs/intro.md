@@ -70,7 +70,7 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 ## Templates
 
-[Imagor MCP](./imagor-mcp.md) — an MCP server and a skill that let an agent write a layout: OG cards, product grids, quotes, testimonials. It compiles to one imagor URL.
+[Imagor MCP](./imagor-mcp.md) — an MCP server and a skill that add a template layer to imagor. An agent writes a layout: OG cards, product grids, quotes, testimonials, and it compiles to one imagor URL.
 
 <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/avatar-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/circles.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/tip.png" height="100" /></a>
 
