@@ -61,9 +61,9 @@ Full documentation is available at [docs.imagor.net](https://docs.imagor.net).
 
 **[Imagor MCP](https://docs.imagor.net/mcp)** — an MCP server and a skill that let an agent write a layout — OG cards, product grids, quotes, testimonials — that compiles to one imagor URL.
 
-<a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/launch-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/og-modern.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/quote-card.png" height="100" /></a>
+<a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/launch-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/og-modern.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/quote-card.png" height="100" /></a>
 
-**[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
+**[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)**
 
 ## Consulting
 

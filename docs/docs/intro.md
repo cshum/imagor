@@ -76,4 +76,4 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/launch-card.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/og-modern.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/quote-card.png" height="100" />
 
-**[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
+**[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)**

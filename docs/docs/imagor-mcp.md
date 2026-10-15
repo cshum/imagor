@@ -29,9 +29,9 @@ imagor URL.
 **Requires:** imagor **1.9.10**
 :::
 
-[![Cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)
+[![Cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)
 
-*[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)*
+*[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)*
 
 ## Quick start
 
@@ -81,7 +81,7 @@ neither. Every client's file path, and the shape each one wants, is in
 **[docs/clients.md](https://github.com/cshum/imagor-mcp/blob/main/docs/clients.md)**.
 
 **4. Ask it for something.** Name a recipe from the
-**[cookbook](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)** — each one carries a prompt to paste — or describe the
+**[cookbook](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)** — each one carries a prompt to paste — or describe the
 image you want. The agent composes through the tools: it writes the layout, renders it, looks at
 the result, and hands you back the url. Neither of you needs imagor's path syntax — the tools
 build the path, and refuse one that cannot work.
@@ -111,7 +111,7 @@ zoomed into regions to read the small text it had drawn. Like a result? `parse_t
 into a recipe.
 
 **A recipe is a result.** The layout is fixed and the agent fills the values, so the same recipe
-looks the same every time. **[Start with one of the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
+looks the same every time. **[Start with one of the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)**
 
 ## What this adds
 
@@ -133,7 +133,7 @@ is for, is in **[docs/tools.md](https://github.com/cshum/imagor-mcp/blob/main/do
 card, quotes, testimonials, an event, a comparison table, a price ladder. Take the
 closest, change the values, render it.
 
-**[Every card, and the path it resolves to »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)** The template is
+**[Every card, and the path it resolves to »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)** The template is
 not on that page: a recipe travels in the server and arrives by name.
 
 Every recipe renders **at three canvas sizes on every commit**, and the contact sheet above
