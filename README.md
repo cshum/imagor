@@ -15,7 +15,7 @@ imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-st
 
 imagor supports a wide range of image-processing use cases, available as a HTTP server with first-class Docker support. It adopts the thumbor URL syntax representing a high-performance drop-in replacement.
 
-imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://docs.imagor.net/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings.
+imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://docs.imagor.net/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings, and [Imagor MCP](https://docs.imagor.net/mcp) bringing template composition to agents.
 
 ### Quick Start
 
@@ -56,6 +56,14 @@ Full documentation is available at [docs.imagor.net](https://docs.imagor.net).
 - [Storage](https://docs.imagor.net/storage)
 - [Security](https://docs.imagor.net/security)
 - [Configuration](https://docs.imagor.net/configuration)
+
+## Templates
+
+**[Imagor MCP](https://docs.imagor.net/mcp)** — an MCP server and a skill that let an agent write a layout: OG cards, product grids, quotes, testimonials. It compiles to one imagor URL.
+
+<a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/avatar-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/circles.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/tip.png" height="100" /></a>
+
+**[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)**
 
 ## Consulting
 

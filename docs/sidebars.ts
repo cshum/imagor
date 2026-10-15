@@ -74,6 +74,11 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: "doc",
+      id: "imagor-mcp",
+      label: "MCP",
+    },
+    {
+      type: "doc",
       id: "configuration",
       label: "Configuration",
     },

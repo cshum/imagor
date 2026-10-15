@@ -3,6 +3,7 @@ title: imagor
 sidebar_label: Getting Started
 sidebar_position: 1
 slug: /
+hide_table_of_contents: true
 description: Fast, secure libvips-based image processing server and Go library with thumbor-compatible URLs, streaming, storage backends, and production-ready deployment options.
 keywords:
   - imagor docs
@@ -27,7 +28,7 @@ imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-st
 
 imagor supports a wide range of image-processing use cases, available as a HTTP server with first-class Docker support. It adopts the thumbor URL syntax representing a high-performance drop-in replacement.
 
-imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](./imagorvideo.md) bringing video thumbnail capability through ffmpeg C bindings.
+imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](./imagorvideo.md) bringing video thumbnail capability through ffmpeg C bindings, and [Imagor MCP](./imagor-mcp.md) bringing template composition to agents.
 
 ```bash
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
@@ -57,12 +58,20 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo1.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo2.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo4.jpg" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo3.gif" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor/master/testdata/demo5.gif" height="100" />
 
-<br /><br />
+<br />
 
-**What's Next**
+## What's Next
 
 - [**Image Endpoint**](./image-endpoint.md) — URL syntax for cropping, resizing, fitting, padding and smart crop
 - [**Filters**](./filters.md) — full filter reference: blur, watermark, format conversion, text overlay and more
 - [**Storage**](./storage.md) — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
 - [**Security**](./security.mdx) — enable URL signing, restrict image sources and harden for production
 - [**Configuration**](./configuration.md) — full configuration reference for all flags and environment variables
+
+## Templates
+
+[Imagor MCP](./imagor-mcp.md) — an MCP server and a skill that let an agent write a layout: OG cards, product grids, quotes, testimonials. It compiles to one imagor URL.
+
+<a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/avatar-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/circles.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/tip.png" height="100" /></a>
+
+[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)
