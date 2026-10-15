@@ -71,25 +71,12 @@ const sidebars: SidebarsConfig = {
           "Extend imagor with additional capabilities through plugins.",
       },
       items: ["imagorvideo", "imagorface"],
-      },
-      {
-      type: "category",
-      label: "Ecosystem",
-      collapsed: false,
-      link: {
-        type: "generated-index",
-        description:
-          "Applications built on imagor, rather than extensions of it.",
-      },
-      items: [
-        "imagor-mcp",
-        {
-          type: "link",
-          label: "imagor-studio",
-          href: "https://github.com/cshum/imagor-studio",
-        },
-      ],
-      },
+    },
+    {
+      type: "doc",
+      id: "imagor-mcp",
+      label: "MCP",
+    },
     {
       type: "doc",
       id: "configuration",

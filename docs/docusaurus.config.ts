@@ -51,7 +51,10 @@ const config: Config = {
         blog: false,
         sitemap: {
           ignorePatterns: ["/search", "/404.html"],
-          createSitemapItems: async ({ defaultCreateSitemapItems, ...rest }) => {
+          createSitemapItems: async ({
+            defaultCreateSitemapItems,
+            ...rest
+          }) => {
             const items = await defaultCreateSitemapItems(rest);
 
             return items.filter((item) => !item.url.includes("/category/"));
@@ -107,6 +110,10 @@ const config: Config = {
             {
               label: "imagorface",
               to: "/imagorface",
+            },
+            {
+              label: "imagor-mcp",
+              to: "/imagor-mcp",
             },
             {
               label: "Imagor Studio",
@@ -171,6 +178,10 @@ const config: Config = {
               to: "/imagorface",
             },
             {
+              label: "imagor-mcp",
+              to: "/imagor-mcp",
+            },
+            {
               label: "Imagor Studio",
               href: "https://studio.imagor.net",
             },
@@ -203,7 +214,14 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
-      additionalLanguages: ["bash", "yaml", "docker", "go", "javascript", "php"],
+      additionalLanguages: [
+        "bash",
+        "yaml",
+        "docker",
+        "go",
+        "javascript",
+        "php",
+      ],
     },
   } satisfies Preset.ThemeConfig,
 };
