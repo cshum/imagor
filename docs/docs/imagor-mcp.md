@@ -92,8 +92,6 @@ trusted with, and what it refuses.
 
 ## Going deeper
 
-The rest of the documentation:
-
 - [Setup](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md) — every setting, the config file each client reads, and what to do
   before it is public.
 - [Reference](https://github.com/cshum/imagor-mcp/blob/main/docs/reference.md) — every tool the server serves, the layout format, and the
