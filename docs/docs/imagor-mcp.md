@@ -19,7 +19,7 @@ keywords:
 [imagor](https://github.com/cshum/imagor).**
 
 An agent writes a layout — OG cards, a product grid, quotes, testimonials — and it compiles to a
-single imagor URL, at any canvas size.
+single imagor URL.
 
 :::info
 **GitHub:** [github.com/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp)  
@@ -31,7 +31,7 @@ single imagor URL, at any canvas size.
 
 [![Cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)
 
-*Every card above is one imagor URL, composed by an agent from a brief. **[All of them, with the URL each resolves to, and a prompt to ask for it »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)***
+*[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)*
 
 ## Quick start
 
