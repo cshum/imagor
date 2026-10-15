@@ -13,6 +13,7 @@ keywords:
 [![Test Status](https://github.com/cshum/imagorvideo/workflows/test/badge.svg)](https://github.com/cshum/imagorvideo/actions/workflows/test.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/cshum/imagorvideo)](https://codecov.io/gh/cshum/imagorvideo)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagorvideo-blue.svg)](https://hub.docker.com/r/shumc/imagorvideo/)
+<iframe src="https://ghbtns.com/github-btn.html?user=cshum&repo=imagorvideo&type=star&count=true" frameBorder="0" scrolling="0" width="110" height="20" title="Star cshum/imagorvideo on GitHub"></iframe>
 
 imagorvideo brings video thumbnail capability to imagor through ffmpeg C bindings. It extracts video thumbnails by selecting the best frame using RMSE histogram analysis, then passes the frame through the full imagor pipeline for [cropping, resizing](./image-endpoint.md) and [filters](./filters.md).
 

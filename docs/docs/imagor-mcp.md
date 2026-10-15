@@ -13,6 +13,7 @@ keywords:
 # Imagor MCP
 
 [![Test Status](https://github.com/cshum/imagor-mcp/workflows/ci/badge.svg)](https://github.com/cshum/imagor-mcp/actions/workflows/ci.yml)
+<iframe src="https://ghbtns.com/github-btn.html?user=cshum&repo=imagor-mcp&type=star&count=true" frameBorder="0" scrolling="0" width="110" height="20" title="Star cshum/imagor-mcp on GitHub"></iframe>
 
 An MCP server and a skill that add a template layer to
 [imagor](https://github.com/cshum/imagor).

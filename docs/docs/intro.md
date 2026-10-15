@@ -18,6 +18,7 @@ keywords:
 [![Test Status](https://github.com/cshum/imagor/workflows/test/badge.svg)](https://github.com/cshum/imagor/actions/workflows/test.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/cshum/imagor)](https://codecov.io/gh/cshum/imagor)
 [![Docker Hub](https://img.shields.io/badge/docker-shumc/imagor-blue.svg)](https://hub.docker.com/r/shumc/imagor/)
+<iframe src="https://ghbtns.com/github-btn.html?user=cshum&repo=imagor&type=star&count=true" frameBorder="0" scrolling="0" width="110" height="20" title="Star cshum/imagor on GitHub"></iframe>
 
 imagor is a fast, secure image processing server and Go library.
 
