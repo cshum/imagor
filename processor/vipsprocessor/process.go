@@ -133,7 +133,7 @@ func (v *Processor) Process(
 	// preview() opts in to base image caching for interactive editing workflows.
 	// Skip for crop/focal/page/dpi: cache stores a downscaled single-page copy at default DPI.
 	// Skip for lang(): the cache is keyed on the source, and the rewritten source differs.
-	if p.Image != "" && v.hasEnabledFilter(p, "preview") && !imagorpath.HasFilter(p, langFilterName) {
+	if p.Image != "" && v.hasEnabledFilter(p, "preview") && !v.hasEnabledFilter(p, langFilterName) {
 		if _, isColor := parseColorImage(p.Image); !isColor {
 			sizeKnown := p.Width > 0 && p.Height > 0
 			if sizeKnown && p.Width <= v.CacheMaxWidth && p.Height <= v.CacheMaxHeight &&
@@ -148,7 +148,7 @@ func (v *Processor) Process(
 
 	// lang() decides what the renderer draws, so the source is rewritten before it
 	// is loaded. SVG sources only.
-	if blob != nil && blob.BlobType() == imagor.BlobTypeSVG {
+	if blob != nil && blob.BlobType() == imagor.BlobTypeSVG && v.hasEnabledFilter(p, langFilterName) {
 		if tags, ok := langTags(p); ok {
 			switch rewritten, langErr := selectLanguage(blob, tags); {
 			case langErr == nil:
