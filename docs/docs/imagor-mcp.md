@@ -23,7 +23,6 @@ imagor URL, rendered by the imagor you already run.
 :::info
 **GitHub:** [github.com/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp)  
 **Registry:** install as `io.github.cshum/imagor-mcp`  
-**Docker:** [ghcr.io/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp/pkgs/container/imagor-mcp)  
 **Releases:** [macOS, Linux and Windows binaries](https://github.com/cshum/imagor-mcp/releases)  
 **Requires:** imagor **1.9.10**
 :::
