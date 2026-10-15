@@ -62,11 +62,11 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 ## What's Next
 
-- [Image Endpoint](./image-endpoint.md) — URL syntax for cropping, resizing, fitting, padding and smart crop
-- [Filters](./filters.md) — full filter reference: blur, watermark, format conversion, text overlay and more
-- [Storage](./storage.md) — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
-- [Security](./security.mdx) — enable URL signing, restrict image sources and harden for production
-- [Configuration](./configuration.md) — full configuration reference for all flags and environment variables
+- **[Image Endpoint](./image-endpoint.md)** — URL syntax for cropping, resizing, fitting, padding and smart crop
+- **[Filters](./filters.md)** — full filter reference: blur, watermark, format conversion, text overlay and more
+- **[Storage](./storage.md)** — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
+- **[Security](./security.mdx)** — enable URL signing, restrict image sources and harden for production
+- **[Configuration](./configuration.md)** — full configuration reference for all flags and environment variables
 
 ## Templates
 
