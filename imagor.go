@@ -23,7 +23,7 @@ import (
 )
 
 // Version imagor version
-const Version = "1.9.10"
+const Version = "1.9.11"
 
 // Loader image loader interface
 type Loader interface {
