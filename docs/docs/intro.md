@@ -3,6 +3,7 @@ title: imagor
 sidebar_label: Getting Started
 sidebar_position: 1
 slug: /
+hide_table_of_contents: true
 description: Fast, secure libvips-based image processing server and Go library with thumbor-compatible URLs, streaming, storage backends, and production-ready deployment options.
 keywords:
   - imagor docs
