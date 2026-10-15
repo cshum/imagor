@@ -31,9 +31,9 @@ CDN.
 **Requires:** imagor **1.9.10**
 :::
 
-[![Fourteen cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)
+[![Cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)
 
-*Every card above is one imagor URL, composed by an agent from a brief. **[All fourteen, with the URL each resolves to, and a prompt to ask for it »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)***
+*Every card above is one imagor URL, composed by an agent from a brief. **[All of them, with the URL each resolves to, and a prompt to ask for it »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)***
 
 ## Quick start
 
@@ -113,7 +113,7 @@ zoomed into regions to read the small text it had drawn. Like a result? `parse_t
 into a recipe.
 
 **A recipe is a result.** The layout is fixed and the agent fills the values, so the same recipe
-looks the same every time. **[Start with one of fourteen »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
+looks the same every time. **[Start with one of the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
 
 ## What this adds
 
@@ -131,7 +131,7 @@ is for, is in **[docs/tools.md](https://github.com/cshum/imagor-mcp/blob/main/do
 
 ## The cookbook
 
-`cookbook/` holds **fourteen ready-made layouts** — OG cards, a product grid, a profile
+`cookbook/` holds **ready-made layouts** — OG cards, a product grid, a profile
 card, quotes, testimonials, an event, a comparison table, a price ladder. Take the
 closest, change the values, render it.
 
