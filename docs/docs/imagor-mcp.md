@@ -24,7 +24,7 @@ imagor URL, rendered by the imagor you already run.
 **GitHub:** [github.com/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp)  
 **Registry:** install as `io.github.cshum/imagor-mcp`  
 **Releases:** [macOS, Linux and Windows binaries](https://github.com/cshum/imagor-mcp/releases)  
-**Requires:** imagor **1.9.10**
+**Requires:** imagor 1.9.10 or above
 :::
 
 [![Cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)
