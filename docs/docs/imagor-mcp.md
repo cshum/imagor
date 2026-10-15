@@ -28,7 +28,7 @@ CDN.
 **Registry:** [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/) — install as `io.github.cshum/imagor-mcp`  
 **Docker:** [ghcr.io/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp/pkgs/container/imagor-mcp)  
 **Releases:** [macOS, Linux and Windows binaries](https://github.com/cshum/imagor-mcp/releases)  
-**Requires:** imagor **1.9.10** or later, for the nested [`path:`](./nested-path.md) source
+**Requires:** imagor **1.9.10**
 :::
 
 [![Fourteen cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)
