@@ -12,8 +12,7 @@ keywords:
 
 [![Test Status](https://github.com/cshum/imagorface/workflows/test/badge.svg)](https://github.com/cshum/imagorface/actions/workflows/test.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/cshum/imagorface)](https://codecov.io/gh/cshum/imagorface)
-[![Docker Hub](https://img.shields.io/badge/docker-shumc/imagorface-blue.svg)](https://hub.docker.com/r/shumc/imagorface/)
-<iframe src="https://ghbtns.com/github-btn.html?user=cshum&repo=imagorface&type=star&count=true" frameBorder="0" scrolling="0" width="110" height="20" title="Star cshum/imagorface on GitHub"></iframe>
+[![Docker Hub](https://img.shields.io/badge/docker-shumc/imagorface-blue.svg)](https://hub.docker.com/r/shumc/imagorface/) <iframe src="https://ghbtns.com/github-btn.html?user=cshum&repo=imagorface&type=star&count=true" frameBorder="0" scrolling="0" width="110" height="20" title="Star cshum/imagorface on GitHub"></iframe>
 
 imagorface brings fast, on-the-fly face detection to imagor. Built on [pigo](https://github.com/esimov/pigo) PICO cascade classifier, it detects faces in images and wires into the imagor pipeline for face-centred smart crop and privacy redaction — all self-hosted with no third-party API calls.
 
