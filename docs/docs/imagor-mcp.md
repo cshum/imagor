@@ -14,7 +14,7 @@ keywords:
 
 [![Test Status](https://github.com/cshum/imagor-mcp/workflows/ci/badge.svg)](https://github.com/cshum/imagor-mcp/actions/workflows/ci.yml)
 
-An MCP server and a skill that add template capability to
+An MCP server and a skill that add a template layer to
 [imagor](https://github.com/cshum/imagor).
 
 An agent writes a layout: OG cards, product grids, quotes, testimonials. It compiles to one
