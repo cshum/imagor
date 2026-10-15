@@ -102,5 +102,3 @@ The rest of the documentation:
   skill.
 - [Cookbook](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md) — the ready-made layouts, and the url each one resolves to.
 - [Contributing](https://github.com/cshum/imagor-mcp/blob/main/CONTRIBUTING.md) — building, testing, and the CLI.
-
-Everything above is the [imagor-mcp README](https://github.com/cshum/imagor-mcp#readme), kept in step with it.
