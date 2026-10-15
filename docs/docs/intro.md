@@ -62,16 +62,16 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 ## What's Next
 
-- [**Image Endpoint**](./image-endpoint.md) — URL syntax for cropping, resizing, fitting, padding and smart crop
-- [**Filters**](./filters.md) — full filter reference: blur, watermark, format conversion, text overlay and more
-- [**Storage**](./storage.md) — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
-- [**Security**](./security.mdx) — enable URL signing, restrict image sources and harden for production
-- [**Configuration**](./configuration.md) — full configuration reference for all flags and environment variables
+- [Image Endpoint](./image-endpoint.md) — URL syntax for cropping, resizing, fitting, padding and smart crop
+- [Filters](./filters.md) — full filter reference: blur, watermark, format conversion, text overlay and more
+- [Storage](./storage.md) — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
+- [Security](./security.mdx) — enable URL signing, restrict image sources and harden for production
+- [Configuration](./configuration.md) — full configuration reference for all flags and environment variables
 
 ## Templates
 
-**[Imagor MCP](./imagor-mcp.md)** — an MCP server and a skill that let an agent write a layout — OG cards, product grids, quotes, testimonials — that compiles to one imagor URL.
+[Imagor MCP](./imagor-mcp.md) — an MCP server and a skill that let an agent write a layout — OG cards, product grids, quotes, testimonials — that compiles to one imagor URL.
 
 <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/avatar-card.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/circles.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/tip.png" height="100" />
 
-**[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)**
+[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)
