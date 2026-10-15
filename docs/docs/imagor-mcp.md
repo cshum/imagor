@@ -92,9 +92,9 @@ trusted with, and what it refuses.
 
 ## Going deeper
 
-- **[Setup](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md)** — every setting, the config file each client reads, and what to do
+- [**Setup**](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md) — every setting, the config file each client reads, and what to do
   before it is public.
-- **[Reference](https://github.com/cshum/imagor-mcp/blob/main/docs/reference.md)** — every tool the server serves, the layout format, and the
+- [**Reference**](https://github.com/cshum/imagor-mcp/blob/main/docs/reference.md) — every tool the server serves, the layout format, and the
   skill.
-- **[Cookbook](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)** — the ready-made layouts, and the url each one resolves to.
-- **[Contributing](https://github.com/cshum/imagor-mcp/blob/main/CONTRIBUTING.md)** — building, testing, and the CLI.
+- [**Cookbook**](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md) — the ready-made layouts, and the url each one resolves to.
+- [**Contributing**](https://github.com/cshum/imagor-mcp/blob/main/CONTRIBUTING.md) — building, testing, and the CLI.
