@@ -15,7 +15,7 @@ imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-st
 
 imagor supports a wide range of image-processing use cases, available as a HTTP server with first-class Docker support. It adopts the thumbor URL syntax representing a high-performance drop-in replacement.
 
-imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://docs.imagor.net/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings, and [Imagor MCP](https://docs.imagor.net/imagor-mcp) bringing template composition to agents.
+imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](https://docs.imagor.net/imagorvideo) bringing video thumbnail capability through ffmpeg C bindings, and [Imagor MCP](https://docs.imagor.net/mcp) bringing template composition to agents.
 
 ### Quick Start
 
@@ -63,7 +63,7 @@ A layout — slots, positions, type, colours — compiles to a single imagor URL
 
 <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/launch-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/og-modern.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/quote-card.png" height="100" /></a>
 
-**[Imagor MCP](https://docs.imagor.net/imagor-mcp)** — an MCP server and a skill that let an agent write the layout and render it, from any MCP client. **[Fourteen recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
+**[Imagor MCP](https://docs.imagor.net/mcp)** — an MCP server and a skill that let an agent write the layout and render it, from any MCP client. **[Fourteen recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
 
 ## Consulting
 

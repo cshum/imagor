@@ -113,7 +113,7 @@ const config: Config = {
             },
             {
               label: "Imagor MCP",
-              to: "/imagor-mcp",
+              to: "/mcp",
             },
             {
               label: "Imagor Studio",
@@ -179,7 +179,7 @@ const config: Config = {
             },
             {
               label: "Imagor MCP",
-              to: "/imagor-mcp",
+              to: "/mcp",
             },
             {
               label: "Imagor Studio",
