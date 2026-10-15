@@ -19,7 +19,7 @@ An MCP server and a skill that add template capability to
 [imagor](https://github.com/cshum/imagor).
 
 An agent writes a layout: OG cards, product grids, quotes, testimonials. It compiles to one
-imagor URL.
+imagor URL, rendered by the imagor you already run.
 
 :::info
 **GitHub:** [github.com/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp)  
@@ -91,32 +91,6 @@ URL, in [Setup](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md). Wi
 
 Before anything is public, read [Security](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md#security): what this server is
 trusted with, and what it refuses.
-
-## What an agent does with it
-
-A brief like this one:
-
-> *Build a 1200×630 launch card: a deep green ground, a serif headline, a product photo
-> on the right, and the price below it. Show me what it looks like.*
-
-It writes the layout, renders it, looks at the image, and revises, from a brief that names no
-position and no size.
-
-A brief is a search, so each run gives a different layout. Given the same brief three times, an
-agent produced three distinct banners, with hierarchy, colour, type pairing and invented copy, and
-zoomed into regions to read the small text it had drawn. Like a result? `parse_template` turns it
-into a recipe.
-
-A recipe is a result. The layout is fixed and the agent fills the values, so the same recipe looks
-the same every time. [See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)
-
-## What this adds
-
-The template layer runs inside your imagor, so rendering stays in the instance you run, at the
-throughput it already has.
-
-A hosted template API returns an image; a layout here compiles to a URL. Those bill and transfer
-bytes on every render. A URL is cached by any browser, proxy or CDN, so the bytes transfer once.
 
 ## Going deeper
 
