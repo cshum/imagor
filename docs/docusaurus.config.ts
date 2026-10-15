@@ -112,7 +112,7 @@ const config: Config = {
               to: "/imagorface",
             },
             {
-              label: "imagor-mcp",
+              label: "Imagor MCP",
               to: "/imagor-mcp",
             },
             {
@@ -178,7 +178,7 @@ const config: Config = {
               to: "/imagorface",
             },
             {
-              label: "imagor-mcp",
+              label: "Imagor MCP",
               to: "/imagor-mcp",
             },
             {

@@ -2,44 +2,61 @@
 description: Extends imagor with template capability for agents — a layout compiles to one imagor URL, at any canvas size.
 keywords:
   - imagor-mcp
+  - Imagor MCP
   - imagor templates
   - imagor MCP server
   - imagor agent skill
   - imagor image composition
 ---
 
-# imagor-mcp
+# Imagor MCP
 
 [![Test Status](https://github.com/cshum/imagor-mcp/workflows/ci/badge.svg)](https://github.com/cshum/imagor-mcp/actions/workflows/ci.yml)
 [![MCP Registry](https://img.shields.io/badge/registry-io.github.cshum%2Fimagor--mcp-white)](https://registry.modelcontextprotocol.io/)
 
-imagor-mcp brings template capability to imagor for agents. An agent writes a layout — slots, positions, type, colours — and the layout compiles to a single [imagor URL](./image-endpoint.md), at any canvas size. That URL is then served like any other, so it is signed, cached and delivered the way the rest of the pipeline already works.
+**An MCP server and a skill that add template capability to [imagor](https://github.com/cshum/imagor).**
 
-The template layer runs inside your imagor: rendering stays in the instance you run, at the throughput it already has. A hosted template API returns an image and bills every render. A URL is cached by any browser, proxy or CDN, so the bytes transfer once.
+An agent writes a layout; the layout compiles to one imagor URL — pasted in a browser, stored, served from a CDN, put in a page.
 
 :::info
-**GitHub:** [cshum/imagor-mcp](https://github.com/cshum/imagor-mcp)  
+**GitHub:** [github.com/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp)  
 **Registry:** [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/) — install as `io.github.cshum/imagor-mcp`  
 **Docker:** [ghcr.io/cshum/imagor-mcp](https://github.com/cshum/imagor-mcp/pkgs/container/imagor-mcp)  
-**Releases:** [github.com/cshum/imagor-mcp/releases](https://github.com/cshum/imagor-mcp/releases) — macOS, Linux and Windows binaries  
+**Releases:** [macOS, Linux and Windows binaries](https://github.com/cshum/imagor-mcp/releases)  
 **Requires:** imagor **1.9.10** or later, for the nested [`path:`](./nested-path.md) source
 :::
 
 [![Fourteen cards, each one a single imagor URL](https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/contact-sheet.png)](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)
 
-*Every card above is one imagor URL — see the **[full gallery](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**.*
+*Every card above is one imagor URL, composed by an agent from a brief. **[All fourteen, with the URL each resolves to, and a prompt to ask for it »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)***
 
-## Quick Start
+## Quick start
+
+**1. Run an imagor.**
 
 ```sh
 docker run --rm -p 8000:8000 shumc/imagor -imagor-unsafe
 ```
 
+Leave it running, and use a second terminal for the rest.
+
+Unsafe mode is for trying things out. Production runs on `IMAGOR_SECRET` — see
+[imagor's security docs](https://docs.imagor.net/security).
+
+**2. Install the MCP server.**
+
 ```sh
 brew trust cshum/tap && brew install imagor-mcp
 ```
 
-Then point a client at it:
+**3. Point a client at it.**
+
+| your client | what to do |
+|---|---|
+| **VS Code** | **[add it from here](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522imagor%2522%252C%2522command%2522%253A%2522imagor-mcp%2522%252C%2522env%2522%253A%257B%2522IMAGOR_UNSAFE%2522%253A%25221%2522%252C%2522IMAGOR_BASE_URL%2522%253A%2522http%253A%252F%252Flocalhost%253A8000%2522%257D%257D)** — one click |
+| **Claude Desktop** | open [`imagor-mcp.mcpb`](https://github.com/cshum/imagor-mcp/releases/latest/download/imagor-mcp.mcpb) — one click |
+| **Cursor, Claude Code, Windsurf** | add the block below to its config file |
+| **Codex** | the same values in TOML, at `~/.codex/config.toml` |
 
 ```json
 {
@@ -52,43 +69,86 @@ Then point a client at it:
 }
 ```
 
-`IMAGOR_UNSAFE` and `IMAGOR_BASE_URL` have to match the imagor you started: the first puts this server in the same mode, the second is where imagor is. Unsafe mode is for trying things out — production runs on `IMAGOR_SECRET`, in [Security](./security.mdx).
+Those two settings have to match what you started in step 1: `IMAGOR_UNSAFE` puts this server
+in the same mode, and `IMAGOR_BASE_URL` is where imagor is. Everything else it takes is in
+[Configuration](https://github.com/cshum/imagor-mcp/blob/main/docs/configuration.md).
 
-VS Code and Claude Desktop install in one click, and every client's file path and config shape is in the **[imagor-mcp repo](https://github.com/cshum/imagor-mcp)** — along with [Configuration](https://github.com/cshum/imagor-mcp/blob/main/docs/configuration.md), which is also where the preview cache is set.
+VS Code keys its servers under `servers` and Codex reads TOML, so the block above fits
+neither. Every client's file path, and the shape each one wants, is in
+**[docs/clients.md](https://github.com/cshum/imagor-mcp/blob/main/docs/clients.md)**.
 
-## Composition, not transformation
+**4. Ask it for something.** Name a recipe from the
+**[cookbook](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)** — each one carries a prompt to paste — or describe the
+image you want. The agent composes through the tools: it writes the layout, renders it, looks at
+the result, and hands you back the url. Neither of you needs imagor's path syntax — the tools
+build the path, and refuse one that cannot work.
 
-The [image endpoint](./image-endpoint.md) grammar transforms one source. A layout composes several — a background, images placed within it, and text — with each slot sized in pixels or as a proportion of the canvas:
+That is the whole install. It is also on the
+[official MCP Registry](https://registry.modelcontextprotocol.io/), where a client can install
+it by name, and as `ghcr.io/cshum/imagor-mcp` in a container — which needs a different base
+URL, in [Configuration](https://github.com/cshum/imagor-mcp/blob/main/docs/configuration.md). Windows binaries are on the
+[releases page](https://github.com/cshum/imagor-mcp/releases).
 
-```json
-{
-  "canvas": [1200, 628],
-  "background": "color:102c2a",
-  "slots": [
-    {"name": "number", "kind": "text", "text": "{{number}}",
-     "x": "8p+4", "y": "14p", "font": "Open-Sans-bold-26", "color": "e5a15b"},
-    {"name": "tip", "kind": "text", "text": "{{tip}}",
-     "x": "11p+2", "y": "31p+5", "width": "80p+6", "height": "35p+4",
-     "font": "Liberation-Serif", "color": "fff7e8", "max_size": 70, "min_size": 48}
-  ]
-}
-```
+**Before anything is public**, read [Security](https://github.com/cshum/imagor-mcp/blob/main/docs/security.md) — what this server is
+trusted with, and what it refuses.
 
-One template serves every size, because positions and type resolve against the canvas. `render_template` returns the compiled path, the URL, and what each slot resolved to.
+## What an agent does with it
 
-## The skill
+A brief like this one:
 
-The server carries a skill: path grammar, the order of segments, the filters, and the method for composing when there is no canvas to look at. An agent reads it from the server, so what it follows is the version you are running rather than a document that has drifted from it.
+> *Build a 1200×630 launch card: a deep green ground, a serif headline, a product photo
+> on the right, and the price below it. Show me what it looks like.*
 
-The skill is served three ways — as a resource, as the `get_imagor_skill` tool, and attached to the `compose-imagor-image` prompt.
+It writes the layout, renders it, **looks at the image**, and revises. The brief names no
+position and no size.
+
+**A brief is a search, so each run gives a different layout.** Given the same brief three times,
+an agent produced three distinct banners — hierarchy, colour, type pairing, invented copy — and
+zoomed into regions to read the small text it had drawn. Like a result? `parse_template` turns it
+into a recipe.
+
+**A recipe is a result.** The layout is fixed and the agent fills the values, so the same recipe
+looks the same every time. **[Start with one of fourteen »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
+
+## What this adds
+
+**The template layer runs inside your imagor.** Rendering stays in the instance you run, at the
+throughput it already has.
+
+**A hosted template API returns an image; a layout here compiles to a URL.** Those bill and
+transfer bytes on every render. A URL is cached by any browser, proxy or CDN, so the bytes
+transfer once.
+
+## Tools
+
+Each tool maps onto a concept in the imagor path grammar. The list, and what each
+is for, is in **[docs/tools.md](https://github.com/cshum/imagor-mcp/blob/main/docs/tools.md)**.
 
 ## The cookbook
 
-Fourteen ready-made layouts ship with the server. They render at three canvas sizes on every commit, so a recipe that stops working fails the build rather than sitting in the list.
+`cookbook/` holds **fourteen ready-made layouts** — OG cards, a product grid, a profile
+card, quotes, testimonials, an event, a comparison table, a price ladder. Take the
+closest, change the values, render it.
 
-**A recipe is a result** — the layout is fixed and the agent fills the values, so the same recipe looks the same every time. **A brief is a search** — ask for a card with no recipe and expect a different layout each run.
+**[Every card, and the path it resolves to »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)** The template is
+not on that page: a recipe travels in the server and arrives by name.
 
-## Configuration
+Every recipe renders **at three canvas sizes on every commit**, and the contact sheet above
+is generated by that same job, so both stay current.
 
-The signer, the allowed sources, the preview cache and the rest are in
-**[Configuration](https://github.com/cshum/imagor-mcp/blob/main/docs/configuration.md)**.
+## Going deeper
+
+The rest of the documentation:
+
+- **[docs/format.md](https://github.com/cshum/imagor-mcp/blob/main/docs/format.md)** — a template carries no canvas size, and why a path
+  cannot be read back into a template.
+- **[docs/tools.md](https://github.com/cshum/imagor-mcp/blob/main/docs/tools.md)** — every tool the server serves, and the prompt.
+- **[docs/skill.md](https://github.com/cshum/imagor-mcp/blob/main/docs/skill.md)** — the skill the server carries, and what it covers.
+- **[docs/security.md](https://github.com/cshum/imagor-mcp/blob/main/docs/security.md)** — what it is trusted with, and what it refuses.
+- **[docs/clients.md](https://github.com/cshum/imagor-mcp/blob/main/docs/clients.md)** — the config file each client reads, and the two that
+  key their servers differently.
+- **[docs/configuration.md](https://github.com/cshum/imagor-mcp/blob/main/docs/configuration.md)** — every setting, and what the cache does
+  for previews.
+- **[docs/development.md](https://github.com/cshum/imagor-mcp/blob/main/docs/development.md)** — building, testing, and the CLI.
+
+Everything above is the [imagor-mcp README](https://github.com/cshum/imagor-mcp#readme), kept in step with it.

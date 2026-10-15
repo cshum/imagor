@@ -23,7 +23,7 @@ keywords:
 
 The imagor ecosystem includes several community-contributed projects that extend and integrate with imagor:
 
-- **[imagor-mcp](./imagor-mcp.md)** — MCP server and skill for agents: compose imagor templates, render them at any canvas size. Uses imagor over HTTP rather than extending it.
+- **[Imagor MCP](./imagor-mcp.md)** — MCP server and skill for agents: compose imagor templates, render them at any canvas size. Uses imagor over HTTP rather than extending it.
 - **[cshum/imagor-base](https://github.com/cshum/imagor-base)** - Shared Docker base images for imagor-family projects
 - **[cshum/imagor-studio](https://github.com/cshum/imagor-studio)** — Self-hosted image workspace with built-in editing, layered compositing, and reusable templates
 - **[sandstorm/laravel-imagor](https://github.com/sandstorm/laravel-imagor)** - Laravel integration for imagor
