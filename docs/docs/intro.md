@@ -59,7 +59,7 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 <br /><br />
 
-**What's Next**
+## What's Next
 
 - [**Image Endpoint**](./image-endpoint.md) — URL syntax for cropping, resizing, fitting, padding and smart crop
 - [**Filters**](./filters.md) — full filter reference: blur, watermark, format conversion, text overlay and more
@@ -69,7 +69,7 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 <br /><br />
 
-**Templates**
+## Templates
 
 **[Imagor MCP](https://docs.imagor.net/mcp)** — an MCP server and a skill that let an agent write a layout — OG cards, product grids, quotes, testimonials — that compiles to one imagor URL. **[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/gallery/cookbook.md)**
 
