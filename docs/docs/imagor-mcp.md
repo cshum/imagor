@@ -18,7 +18,7 @@ keywords:
 An MCP server and a skill that add template capability to
 [imagor](https://github.com/cshum/imagor).
 
-An agent writes a layout — OG cards, product grids, quotes, testimonials — that compiles to one
+An agent writes a layout: OG cards, product grids, quotes, testimonials. It compiles to one
 imagor URL.
 
 :::info
@@ -43,7 +43,7 @@ docker run --rm -p 8000:8000 shumc/imagor -imagor-unsafe
 
 Leave it running, and use a second terminal for the rest.
 
-Unsafe mode is for trying things out. Production runs on `IMAGOR_SECRET` — see
+Unsafe mode is for trying things out. Production runs on `IMAGOR_SECRET`. See
 [imagor's security docs](./security.mdx).
 
 **2. Install the MCP server.**
@@ -79,17 +79,17 @@ VS Code keys its servers under `servers` and Codex reads TOML, so the block abov
 neither. Every client's config file is in [Setup](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md).
 
 **4. Ask it for something.** [See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md) — each one carries a prompt
-to paste — or describe the image you want. The agent composes through the tools: it writes the layout, renders it, looks at
-the result, and hands you back the url. Neither of you needs imagor's path syntax — the tools
+to paste, or describe the image you want. The agent composes through the tools: it writes the layout, renders it, looks at
+the result, and hands you back the url. Neither of you needs imagor's path syntax: the tools
 build the path, and refuse one that cannot work.
 
 That is the whole install. It is also on the
 [official MCP Registry](https://registry.modelcontextprotocol.io/), where a client can install
-it by name, and as `ghcr.io/cshum/imagor-mcp` in a container — which needs a different base
+it by name, and as `ghcr.io/cshum/imagor-mcp` in a container, which needs a different base
 URL, in [Setup](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md). Windows binaries are on the
 [releases page](https://github.com/cshum/imagor-mcp/releases).
 
-Before anything is public, read [Security](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md#security) — what this server is
+Before anything is public, read [Security](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md#security): what this server is
 trusted with, and what it refuses.
 
 ## What an agent does with it
@@ -103,7 +103,7 @@ It writes the layout, renders it, looks at the image, and revises, from a brief 
 position and no size.
 
 A brief is a search, so each run gives a different layout. Given the same brief three times, an
-agent produced three distinct banners — hierarchy, colour, type pairing, invented copy — and
+agent produced three distinct banners, with hierarchy, colour, type pairing and invented copy, and
 zoomed into regions to read the small text it had drawn. Like a result? `parse_template` turns it
 into a recipe.
 
@@ -125,7 +125,7 @@ Each tool maps onto a concept in the imagor path grammar. The list, and what eac
 
 ## The cookbook
 
-`cookbook/` holds ready-made layouts — OG cards, a product grid, a profile card, quotes,
+`cookbook/` holds ready-made layouts: OG cards, a product grid, a profile card, quotes,
 testimonials, an event, a comparison table, a price ladder. Take the closest, change the values,
 render it.
 
