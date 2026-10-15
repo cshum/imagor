@@ -70,7 +70,7 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 
 ## Templates
 
-[Imagor MCP](./imagor-mcp.md) — an MCP server and a skill that let an agent write a layout — OG cards, product grids, quotes, testimonials — that compiles to one imagor URL.
+[Imagor MCP](./imagor-mcp.md) — an MCP server and a skill that let an agent write a layout: OG cards, product grids, quotes, testimonials. It compiles to one imagor URL.
 
 <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/avatar-card.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/circles.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /> <img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/tip.png" height="100" />
 
