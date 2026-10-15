@@ -1,6 +1,6 @@
 ---
 slug: /mcp
-description: Extends imagor with template capability for agents: a layout compiles to one imagor URL, at any canvas size.
+description: Extends imagor with template capability for agents, compiling a layout to one imagor URL at any canvas size.
 keywords:
   - imagor-mcp
   - Imagor MCP
@@ -78,7 +78,7 @@ in the same mode, and `IMAGOR_BASE_URL` is where imagor is.
 VS Code keys its servers under `servers` and Codex reads TOML, so the block above fits
 neither. Every client's config file is in [Setup](https://github.com/cshum/imagor-mcp/blob/main/docs/setup.md).
 
-**4. Ask it for something.** [See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md) — each one carries a prompt
+**4. Ask it for something.** **[See the recipes](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)** — each one carries a prompt
 to paste, or describe the image you want. The agent composes through the tools: it writes the layout, renders it, looks at
 the result, and hands you back the url. Neither of you needs imagor's path syntax: the tools
 build the path, and refuse one that cannot work.
