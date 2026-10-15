@@ -86,7 +86,7 @@ IMAGOR_SAVE_TIMEOUT=          # Storage save timeout
 IMAGOR_PROCESS_TIMEOUT=       # Image processing timeout
 
 IMAGOR_PROCESS_CONCURRENCY=-1   # Max concurrent image operations (-1 = unlimited)
-IMAGOR_PROCESS_QUEUE_SIZE=0     # Max queued requests before returning 429 (0 = unlimited)
+IMAGOR_PROCESS_QUEUE_SIZE=0     # Max queued requests before returning 429 (0 = no waiting queue)
 
 IMAGOR_BASE_PATH_REDIRECT=     # Redirect / base path to this URL
 IMAGOR_MODIFIED_TIME_CHECK=1   # Compare result vs source modified time to avoid stale results

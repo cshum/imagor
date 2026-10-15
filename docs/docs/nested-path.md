@@ -44,4 +44,4 @@ A nested path is authorised by the outer request's signature and is not re-signe
 
 - The nested path resolves first, then the outer transformations apply to its result.
 - `f`-dimensions such as `f-20xf-20` resolve against the parent image, as they do inside `image()`.
-- Result storage is not used for a nested path's intermediate result; only the outer request is cached.
+- Nested requests use the same result-storage rules as outer requests; intermediate results can also be cached.
