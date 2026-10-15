@@ -31,20 +31,30 @@ The template layer runs inside your imagor: rendering stays in the instance you 
 
 ## Quick Start
 
-Run imagor, then the MCP server alongside it:
-
-```bash
-docker run -p 8000:8000 shumc/imagor -imagor-unsafe
+```sh
+docker run --rm -p 8000:8000 shumc/imagor -imagor-unsafe
 ```
 
-```bash
-docker run -i --rm \
-  -e IMAGOR_UNSAFE=1 \
-  -e IMAGOR_BASE_URL=http://host.docker.internal:8000 \
-  ghcr.io/cshum/imagor-mcp
+```sh
+brew trust cshum/tap && brew install imagor-mcp
 ```
 
-Add that to your MCP client and ask for an image. `IMAGOR_UNSAFE` pairs with an imagor running `-imagor-unsafe`; in production both sides move to `IMAGOR_SECRET` — see [Security](./security.mdx).
+Then point a client at it:
+
+```json
+{
+  "mcpServers": {
+    "imagor": {
+      "command": "imagor-mcp",
+      "env": { "IMAGOR_UNSAFE": "1", "IMAGOR_BASE_URL": "http://localhost:8000" }
+    }
+  }
+}
+```
+
+`IMAGOR_UNSAFE` and `IMAGOR_BASE_URL` have to match the imagor you started: the first puts this server in the same mode, the second is where imagor is. Unsafe mode is for trying things out — production runs on `IMAGOR_SECRET`, in [Security](./security.mdx).
+
+VS Code and Claude Desktop install in one click, and every client's file path and config shape is in the **[imagor-mcp repo](https://github.com/cshum/imagor-mcp)** — along with [Configuration](https://github.com/cshum/imagor-mcp/blob/main/docs/configuration.md), which is also where the preview cache is set.
 
 ## Composition, not transformation
 
@@ -80,10 +90,5 @@ Fourteen ready-made layouts ship with the server. They render at three canvas si
 
 ## Configuration
 
-| Variable | |
-|---|---|
-| `IMAGOR_BASE_URL` | where imagor is, and what the returned URLs are prefixed with |
-| `IMAGOR_UNSAFE` | development mode: pair with an imagor running `-imagor-unsafe` |
-| `IMAGOR_SECRET` | production: sign every URL |
-
-Configuration, clients, the full tool list and the security model are in the **[imagor-mcp repo](https://github.com/cshum/imagor-mcp)**.
+The signer, the allowed sources, the preview cache and the rest are in
+**[Configuration](https://github.com/cshum/imagor-mcp/blob/main/docs/configuration.md)**.
