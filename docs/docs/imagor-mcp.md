@@ -46,7 +46,7 @@ docker run --rm -p 8000:8000 shumc/imagor -imagor-unsafe
 Leave it running, and use a second terminal for the rest.
 
 Unsafe mode is for trying things out. Production runs on `IMAGOR_SECRET` — see
-[imagor's security docs](https://docs.imagor.net/security).
+[imagor's security docs](./security.mdx).
 
 **2. Install the MCP server.**
 
