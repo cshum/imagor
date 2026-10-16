@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -775,4 +776,25 @@ func TestLocalstackCompatibility(t *testing.T) {
 			assert.NotEmpty(t, path, "Path should not be empty")
 		})
 	}
+}
+
+func TestPut_UnknownSize(t *testing.T) {
+	ts := fakeS3Server()
+	defer ts.Close()
+
+	ctx := context.Background()
+	r := (&http.Request{}).WithContext(ctx)
+	s := New(fakeS3Config(ts, "test"), "test", WithEndpoint(ts.URL), WithForcePathStyle(true))
+
+	// A loader reports size 0 when the origin sends no Content-Length (chunked response).
+	blob := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		return io.NopCloser(strings.NewReader("chunked body")), 0, nil
+	})
+	require.NoError(t, s.Put(ctx, "/foo/chunked", blob))
+
+	b, err := s.Get(r, "/foo/chunked")
+	require.NoError(t, err)
+	buf, err := b.ReadAll()
+	require.NoError(t, err)
+	assert.Equal(t, "chunked body", string(buf))
 }
