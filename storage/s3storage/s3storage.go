@@ -1,6 +1,7 @@
 package s3storage
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -208,9 +209,21 @@ func (s *S3Storage) Put(ctx context.Context, image string, blob *imagor.Blob) er
 	defer func() {
 		_ = reader.Close()
 	}()
+	var body io.Reader = reader
+	if size <= 0 {
+		// Size unknown, e.g. an HTTP origin answering without Content-Length.
+		// Buffer the body: S3 needs the real length, and sending 0 makes it
+		// reject the checksum (BadDigest) or store an empty object.
+		buf, err := io.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewReader(buf)
+		size = int64(len(buf))
+	}
 
 	input := &s3.PutObjectInput{
-		Body:          reader,
+		Body:          body,
 		Bucket:        aws.String(bucket),
 		ContentType:   aws.String(blob.ContentType()),
 		ContentLength: aws.Int64(size),
