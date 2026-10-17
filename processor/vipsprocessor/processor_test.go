@@ -21,7 +21,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -713,7 +713,7 @@ func TestProcessor(t *testing.T) {
 		blob := imagor.NewBlobFromBytes(w.Body.Bytes())
 		assert.Equal(t, imagor.BlobTypeWEBP, blob.BlobType())
 
-		img, err := vips.NewImageFromBuffer(w.Body.Bytes(), &vips.LoadOptions{N: -1})
+		img, err := vips.NewImageFromBuffer(w.Body.Bytes(), &vips.LoadOptions{N: vips.Ptr(-1)})
 		require.NoError(t, err)
 		defer img.Close()
 		assert.Greater(t, img.Height(), img.PageHeight(), "expected animated frames to be preserved")

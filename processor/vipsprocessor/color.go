@@ -4,7 +4,7 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"golang.org/x/image/colornames"
 )
 
@@ -19,7 +19,7 @@ func normalizeSrgb(img *vips.Image) {
 	if img.HasICCProfile() {
 		opts := vips.DefaultIccTransformOptions()
 		opts.Embedded = true
-		opts.Intent = vips.IntentPerceptual
+		opts.Intent = vips.Ptr(vips.IntentPerceptual)
 		if img.Interpretation() == vips.InterpretationRgb16 {
 			opts.Depth = 16
 		}

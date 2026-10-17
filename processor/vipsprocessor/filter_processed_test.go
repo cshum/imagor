@@ -13,7 +13,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"

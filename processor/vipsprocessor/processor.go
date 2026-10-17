@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
@@ -343,15 +343,15 @@ func (v *Processor) NewThumbnail(
 ) (*vips.Image, error) {
 	var options = &vips.LoadOptions{}
 	if dpi > 0 {
-		options.Dpi = dpi
+		options.Dpi = vips.Ptr(dpi)
 	}
 	if blob != nil {
 		switch blob.BlobType() {
 		case imagor.BlobTypeAVIF, imagor.BlobTypeHEIF:
-			options.Thumbnail = true
+			options.Thumbnail = vips.Ptr(true)
 		}
 	}
-	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
+	options.Unlimited = vips.Ptr(v.Unlimited && unlimitedSupportedByLoader(blob))
 	var err error
 	var img *vips.Image
 	if isMultiPage(blob, n, page) {
@@ -420,9 +420,9 @@ func (v *Processor) newThumbnailFallback(
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi int) (*vips.Image, error) {
 	var options = &vips.LoadOptions{}
 	if dpi > 0 {
-		options.Dpi = dpi
+		options.Dpi = vips.Ptr(dpi)
 	}
-	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
+	options.Unlimited = vips.Ptr(v.Unlimited && unlimitedSupportedByLoader(blob))
 	if isMultiPage(blob, n, page) {
 		applyMultiPageOptions(options, n, page)
 		img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, options))
@@ -527,11 +527,11 @@ func isMultiPage(blob *imagor.Blob, n, page int) bool {
 
 func applyMultiPageOptions(params *vips.LoadOptions, n, page int) {
 	if page < -1 {
-		params.Page = -page - 1
+		params.Page = vips.Ptr(-page - 1)
 	} else if n < -1 {
-		params.N = -n
+		params.N = vips.Ptr(-n)
 	} else {
-		params.N = -1
+		params.N = vips.Ptr(-1)
 	}
 }
 

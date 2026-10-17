@@ -83,8 +83,12 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 h1:aBangftG7EVZoUb69Os8IaYg++6uMOdKK83QtkkvJik=
 github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2/go.mod h1:qwXFYgsP6T7XnJtbKlf1HP8AjxZZyzxMmc+Lq5GjlU4=
-github.com/cshum/vipsgen v1.3.11 h1:ieO5t28G/9GmvCALEGDjBSzS7KKBYLKEEECjHfCloIs=
-github.com/cshum/vipsgen v1.3.11/go.mod h1:AmCpW+vKfu16ZFPN/PBgtLsAl3kt7c0y2uA4bD5Lzk8=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017060321-43a3ddfbd1b0 h1:AbTkSjtitYceKUaQLcMB8T92hBR5SPgwTPzBgVBLM00=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017060321-43a3ddfbd1b0/go.mod h1:JeHERLa2vLOYlfMckcsCKqiZN45SQLifkLkfepxVsAg=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017061653-42cb32a57bff h1:Sxmjpocl7yidoQ7dUsWMzH8PB924x+U5R5f9uj3WklY=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017061653-42cb32a57bff/go.mod h1:JeHERLa2vLOYlfMckcsCKqiZN45SQLifkLkfepxVsAg=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017061845-d606eb2db74e h1:TQsuvKY4lj9tjs2XTXnNYg2Rszt9ppReHou8qXx9ZM0=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017061845-d606eb2db74e/go.mod h1:JeHERLa2vLOYlfMckcsCKqiZN45SQLifkLkfepxVsAg=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgraph-io/ristretto/v2 v2.4.2 h1:x0cvjmUKxt764Yxdk2nr94we1AvPPAMh1rh5TQ+Jo80=

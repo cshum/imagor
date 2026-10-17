@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 )
 
 // linearRGB applies linear RGB transformation to an image

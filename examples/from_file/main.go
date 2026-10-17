@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 )
 
 // downloadFile helper function to download file from url
@@ -39,7 +39,7 @@ func main() {
 	}
 	// Create vips Image from file
 	image, err := vips.NewImageFromFile("dancing-banana.gif", &vips.LoadOptions{
-		N: -1, // load all pages a.k.a animation frames from gif
+		N: vips.Ptr(-1), // load all pages a.k.a animation frames from gif
 	})
 	if err != nil {
 		log.Fatalf("Failed to load image: %v", err)
