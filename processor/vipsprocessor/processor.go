@@ -348,10 +348,10 @@ func (v *Processor) NewThumbnail(
 	if blob != nil {
 		switch blob.BlobType() {
 		case imagor.BlobTypeAVIF, imagor.BlobTypeHEIF:
-			options.Thumbnail = vips.Ptr(true)
+			options.Thumbnail = true
 		}
 	}
-	options.Unlimited = vips.Ptr(v.Unlimited && unlimitedSupportedByLoader(blob))
+	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
 	var err error
 	var img *vips.Image
 	if isMultiPage(blob, n, page) {
@@ -422,7 +422,7 @@ func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int
 	if dpi > 0 {
 		options.Dpi = vips.Ptr(dpi)
 	}
-	options.Unlimited = vips.Ptr(v.Unlimited && unlimitedSupportedByLoader(blob))
+	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
 	if isMultiPage(blob, n, page) {
 		applyMultiPageOptions(options, n, page)
 		img, err := v.CheckResolution(v.newImageFromBlob(ctx, blob, options))
