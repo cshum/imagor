@@ -11,7 +11,7 @@ import (
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
 	"github.com/cshum/imagor/svg"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"go.uber.org/zap"
 )
 
@@ -1075,38 +1075,47 @@ func (v *Processor) export(
 	switch format {
 	case vips.ImageTypePng:
 		opts := &vips.PngsaveBufferOptions{
-			Q:           quality,
-			Palette:     palette,
-			Bitdepth:    bitdepth,
-			Compression: compression,
+			Palette:  palette,
+			Bitdepth: bitdepth,
+		}
+		// our 0 means "not set"; libvips reads a literal 0 as store-uncompressed, so these stay nil
+		if quality > 0 {
+			opts.Q = vips.Ptr(quality)
+		}
+		if compression > 0 {
+			opts.Compression = vips.Ptr(compression)
 		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.PngsaveBuffer(opts)
 	case vips.ImageTypeWebp:
 		opts := &vips.WebpsaveBufferOptions{
-			Q:        quality,
 			Lossless: lossless,
-			Effort:   4,
+			Effort:   vips.Ptr(4),
+		}
+		if quality > 0 {
+			opts.Q = vips.Ptr(quality)
 		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.WebpsaveBuffer(opts)
 	case vips.ImageTypeJxl:
 		opts := &vips.JxlsaveBufferOptions{
-			Q:        quality,
 			Lossless: lossless,
 		}
+		if quality > 0 {
+			opts.Q = vips.Ptr(quality)
+		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.JxlsaveBuffer(opts)
 	case vips.ImageTypeTiff:
@@ -1114,17 +1123,17 @@ func (v *Processor) export(
 			Q: quality,
 		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.TiffsaveBuffer(opts)
 	case vips.ImageTypeGif:
 		opts := &vips.GifsaveBufferOptions{}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.GifsaveBuffer(opts)
 	case vips.ImageTypeAvif:
@@ -1134,11 +1143,11 @@ func (v *Processor) export(
 			Lossless:    lossless,
 		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
-		opts.Effort = 9 - v.AvifSpeed
+		opts.Effort = vips.Ptr(9 - v.AvifSpeed)
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeHeif:
 		opts := &vips.HeifsaveBufferOptions{
@@ -1146,9 +1155,9 @@ func (v *Processor) export(
 			Lossless: lossless,
 		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.HeifsaveBuffer(opts)
 	case vips.ImageTypeJp2k:
@@ -1157,16 +1166,16 @@ func (v *Processor) export(
 			Lossless: lossless,
 		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.Jp2ksaveBuffer(opts)
 	default:
 		opts := &vips.JpegsaveBufferOptions{}
 		if v.MozJPEG {
 			opts.Q = 75
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 			opts.OptimizeCoding = true
 			opts.Interlace = true
 			opts.OptimizeScans = true
@@ -1177,9 +1186,9 @@ func (v *Processor) export(
 			opts.Q = quality
 		}
 		if stripMetadata {
-			opts.Keep = vips.KeepNone
+			opts.Keep = vips.Ptr(vips.KeepNone)
 		} else if !v.MozJPEG {
-			opts.Keep = vips.KeepAll
+			opts.Keep = vips.Ptr(vips.KeepAll)
 		}
 		return image.JpegsaveBuffer(opts)
 	}
@@ -1239,7 +1248,7 @@ func findTrim(
 		return
 	}
 	l, t, w, h, err = tmp.FindTrim(&vips.FindTrimOptions{
-		Threshold:  float64(tolerance),
+		Threshold:  vips.Ptr(float64(tolerance)),
 		Background: background,
 	})
 	return

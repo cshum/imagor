@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/bbrks/go-blurhash"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"go.n16f.net/thumbhash"
 
 	"github.com/cshum/imagor"
@@ -410,8 +410,8 @@ func sharpen(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...st
 	if sigma > 0 {
 		return true, img.Sharpen(&vips.SharpenOptions{
 			Sigma: sigma,
-			X1:    1,
-			M2:    2,
+			X1:    vips.Ptr(1.0),
+			M2:    vips.Ptr(2.0),
 		})
 	}
 	return
@@ -430,9 +430,10 @@ func toColorspace(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ..
 	if !img.HasICCProfile() {
 		return
 	}
-	opts := vips.DefaultIccTransformOptions()
-	opts.Embedded = true
-	opts.Intent = vips.IntentPerceptual
+	opts := &vips.IccTransformOptions{
+		Embedded: true,
+		Intent:   vips.Ptr(vips.IntentPerceptual),
+	}
 	if img.Interpretation() == vips.InterpretationRgb16 {
 		opts.Depth = 16
 	}
@@ -573,7 +574,7 @@ func blurHash(_ context.Context, img *vips.Image, xComponents, yComponents int) 
 	defer thumb.Close()
 	normalizeSrgb(thumb)
 	if thumb.HasAlpha() {
-		if err := thumb.Flatten(vips.DefaultFlattenOptions()); err != nil {
+		if err := thumb.Flatten(nil); err != nil {
 			return "", err
 		}
 	}

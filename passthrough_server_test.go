@@ -14,7 +14,7 @@ import (
 	"github.com/cshum/imagor/loader/httploader"
 	"github.com/cshum/imagor/processor/vipsprocessor"
 	"github.com/cshum/imagor/storage/filestorage"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"

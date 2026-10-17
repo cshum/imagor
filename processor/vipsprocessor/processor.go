@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
@@ -291,7 +291,7 @@ func (v *Processor) dcrawloadFromBlob(ctx context.Context, blob *imagor.Blob) (*
 	if err != nil {
 		return nil, err
 	}
-	img, err := vips.NewDcrawloadSource(src, vips.DefaultDcrawloadSourceOptions())
+	img, err := vips.NewDcrawloadSource(src, nil)
 	if err != nil {
 		src.Close()
 		return nil, err

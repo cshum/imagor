@@ -9,7 +9,7 @@ import (
 
 	"github.com/cshum/imagor"
 	"github.com/cshum/imagor/imagorpath"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 )
 
 func (v *Processor) image(ctx context.Context, img *vips.Image, load imagor.LoadFunc, args ...string) (processed bool, err error) {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/cshum/imagor"
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 	"github.com/dgraph-io/ristretto/v2"
 )
 

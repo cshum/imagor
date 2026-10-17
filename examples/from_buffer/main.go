@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/cshum/vipsgen/vips"
+	"github.com/cshum/vipsgen/v2/vips"
 )
 
 func getBytesFromURL(url string) ([]byte, error) {
