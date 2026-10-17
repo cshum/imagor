@@ -1078,7 +1078,8 @@ func (v *Processor) export(
 			Palette:  palette,
 			Bitdepth: bitdepth,
 		}
-		// zero means "let libvips choose": v1 omitted the option, so v2 leaves it nil
+		// our options use 0 for "not set": libvips reads a literal 0 as store-uncompressed
+		// (and Q as the lowest quantiser quality), so these stay nil to keep v1 behaviour
 		if quality > 0 {
 			opts.Q = vips.Ptr(quality)
 		}
