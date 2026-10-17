@@ -37,9 +37,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to fetch image: %v", err)
 	}
-	// Create vips Image from file
-	image, err := vips.NewImageFromFile("dancing-banana.gif", &vips.LoadOptions{
-		N: -1, // load all pages a.k.a animation frames from gif
+	// Load all animation frames using the GIF-specific file loader
+	image, err := vips.NewGifload("dancing-banana.gif", &vips.GifloadOptions{
+		N: -1, // -1 = load all animation frames
 	})
 	if err != nil {
 		log.Fatalf("Failed to load image: %v", err)
