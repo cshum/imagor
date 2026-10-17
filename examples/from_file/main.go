@@ -39,7 +39,7 @@ func main() {
 	}
 	// Create vips Image from file
 	image, err := vips.NewImageFromFile("dancing-banana.gif", &vips.LoadOptions{
-		N: vips.Ptr(-1), // load all pages a.k.a animation frames from gif
+		N: -1, // load all pages a.k.a animation frames from gif
 	})
 	if err != nil {
 		log.Fatalf("Failed to load image: %v", err)

@@ -91,6 +91,8 @@ github.com/cshum/vipsgen/v2 v2.0.0-20261017061845-d606eb2db74e h1:TQsuvKY4lj9tjs
 github.com/cshum/vipsgen/v2 v2.0.0-20261017061845-d606eb2db74e/go.mod h1:JeHERLa2vLOYlfMckcsCKqiZN45SQLifkLkfepxVsAg=
 github.com/cshum/vipsgen/v2 v2.0.0-20261017083253-7a754cb91f0e h1:q+JQTWB/V7Ayvm2BWSD+fScz2RWZ3LX/sWm++6s1kps=
 github.com/cshum/vipsgen/v2 v2.0.0-20261017083253-7a754cb91f0e/go.mod h1:JeHERLa2vLOYlfMckcsCKqiZN45SQLifkLkfepxVsAg=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017102115-84f4d65d17de h1:QrmPjU1VQruxrCXRalrPI0UskhnJR+rL67fol4I16Dg=
+github.com/cshum/vipsgen/v2 v2.0.0-20261017102115-84f4d65d17de/go.mod h1:JeHERLa2vLOYlfMckcsCKqiZN45SQLifkLkfepxVsAg=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgraph-io/ristretto/v2 v2.4.2 h1:x0cvjmUKxt764Yxdk2nr94we1AvPPAMh1rh5TQ+Jo80=

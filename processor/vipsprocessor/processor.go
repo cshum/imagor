@@ -343,7 +343,7 @@ func (v *Processor) NewThumbnail(
 ) (*vips.Image, error) {
 	var options = &vips.LoadOptions{}
 	if dpi > 0 {
-		options.Dpi = vips.Ptr(dpi)
+		options.Dpi = dpi
 	}
 	if blob != nil {
 		switch blob.BlobType() {
@@ -420,7 +420,7 @@ func (v *Processor) newThumbnailFallback(
 func (v *Processor) NewImage(ctx context.Context, blob *imagor.Blob, n, page int, dpi int) (*vips.Image, error) {
 	var options = &vips.LoadOptions{}
 	if dpi > 0 {
-		options.Dpi = vips.Ptr(dpi)
+		options.Dpi = dpi
 	}
 	options.Unlimited = v.Unlimited && unlimitedSupportedByLoader(blob)
 	if isMultiPage(blob, n, page) {
@@ -527,11 +527,11 @@ func isMultiPage(blob *imagor.Blob, n, page int) bool {
 
 func applyMultiPageOptions(params *vips.LoadOptions, n, page int) {
 	if page < -1 {
-		params.Page = vips.Ptr(-page - 1)
+		params.Page = -page - 1
 	} else if n < -1 {
-		params.N = vips.Ptr(-n)
+		params.N = -n
 	} else {
-		params.N = vips.Ptr(-1)
+		params.N = -1
 	}
 }
 
