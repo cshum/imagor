@@ -17,9 +17,10 @@ import (
 //     profile, and also acts as a fallback if IccTransform failed.
 func normalizeSrgb(img *vips.Image) {
 	if img.HasICCProfile() {
-		opts := vips.DefaultIccTransformOptions()
-		opts.Embedded = true
-		opts.Intent = vips.Ptr(vips.IntentPerceptual)
+		opts := &vips.IccTransformOptions{
+			Embedded: true,
+			Intent:   vips.Ptr(vips.IntentPerceptual),
+		}
 		if img.Interpretation() == vips.InterpretationRgb16 {
 			opts.Depth = 16
 		}

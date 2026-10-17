@@ -291,7 +291,7 @@ func (v *Processor) dcrawloadFromBlob(ctx context.Context, blob *imagor.Blob) (*
 	if err != nil {
 		return nil, err
 	}
-	img, err := vips.NewDcrawloadSource(src, vips.DefaultDcrawloadSourceOptions())
+	img, err := vips.NewDcrawloadSource(src, nil)
 	if err != nil {
 		src.Close()
 		return nil, err

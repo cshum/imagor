@@ -430,9 +430,10 @@ func toColorspace(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ..
 	if !img.HasICCProfile() {
 		return
 	}
-	opts := vips.DefaultIccTransformOptions()
-	opts.Embedded = true
-	opts.Intent = vips.Ptr(vips.IntentPerceptual)
+	opts := &vips.IccTransformOptions{
+		Embedded: true,
+		Intent:   vips.Ptr(vips.IntentPerceptual),
+	}
 	if img.Interpretation() == vips.InterpretationRgb16 {
 		opts.Depth = 16
 	}
@@ -573,7 +574,7 @@ func blurHash(_ context.Context, img *vips.Image, xComponents, yComponents int) 
 	defer thumb.Close()
 	normalizeSrgb(thumb)
 	if thumb.HasAlpha() {
-		if err := thumb.Flatten(vips.DefaultFlattenOptions()); err != nil {
+		if err := thumb.Flatten(nil); err != nil {
 			return "", err
 		}
 	}
