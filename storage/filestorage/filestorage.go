@@ -57,7 +57,29 @@ func (s *FileStorage) Path(image string) (string, bool) {
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	return filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix)), true
+	return confineJoin(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
+}
+
+// confineJoin joins the image key with the base directory, rejecting keys
+// whose joined path would resolve outside the base directory, so that
+// storage paths cannot escape the base directory even when the blacklist
+// configuration does not block dot segments or backslash separators.
+func confineJoin(baseDir, key string) (string, bool) {
+	p := filepath.Join(baseDir, key)
+	if !withinBase(baseDir, p) {
+		return "", false
+	}
+	return p, true
+}
+
+// withinBase reports whether path p stays inside baseDir, lexically,
+// after both are resolved by filepath join semantics.
+func withinBase(baseDir, p string) bool {
+	rel, err := filepath.Rel(filepath.Clean(baseDir), p)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // Get implements imagor.Storage interface
