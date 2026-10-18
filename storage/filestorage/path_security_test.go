@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -14,21 +15,26 @@ import (
 
 // adversarialKeys are image keys aimed at escaping the configured base
 // directory through the storage path.
-var adversarialKeys = []string{
-	"../../../../etc/passwd",
-	"../foo/../../bar",
-	"a/../../..",
-	"foo/../../bar",
-	"....//....//escaped",
-	// backslash separators are path separators on Windows once they reach
-	// filepath.Join, and are only escaped in Normalize when SafeChars is
-	// not the no-op "--" config
-	"a\\..\\..\\evil",
-	"..\\..\\evil",
-	// absolute keys are clamped by imagorpath.Normalize onto the pseudo
-	// root, so they must stay accepted and confined
-	"/../../etc/passwd",
-}
+var adversarialKeys = func() []string {
+	keys := []string{
+		"../../../../etc/passwd",
+		"../foo/../../bar",
+		"a/../../..",
+		"foo/../../bar",
+		"....//....//escaped",
+		// absolute keys are clamped by imagorpath.Normalize onto the pseudo
+		// root, so they must stay accepted and confined
+		"/../../etc/passwd",
+	}
+	if runtime.GOOS == "windows" {
+		// Backslashes are path separators on Windows once they reach
+		// filepath.Join, and survive Normalize unescaped only when SafeChars
+		// is the no-op "--" config. On other platforms a backslash is an
+		// ordinary filename byte, so these keys assert nothing there.
+		keys = append(keys, "a\\..\\..\\evil", "..\\..\\evil")
+	}
+	return keys
+}()
 
 func assertConfined(t *testing.T, baseDir, p string) {
 	t.Helper()
@@ -96,7 +102,9 @@ func TestFileStoragePutConfinedToBaseDir(t *testing.T) {
 	err := s.Put(context.Background(), "../../escaped.txt",
 		imagor.NewBlobFromBytes([]byte("pwned")))
 	assert.ErrorIs(t, err, imagor.ErrInvalid)
-	_, statErr := os.Stat(filepath.Join(filepath.Dir(baseDir), "escaped.txt"))
+	// the path the key would resolve to without containment
+	escapeTarget := filepath.Join(baseDir, "../../escaped.txt")
+	_, statErr := os.Stat(escapeTarget)
 	assert.True(t, os.IsNotExist(statErr),
 		"nothing may be written outside the base dir")
 }
