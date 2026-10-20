@@ -126,7 +126,7 @@ type exportParams struct {
 func (v *Processor) Process(
 	ctx context.Context, blob *imagor.Blob, p imagorpath.Params, load imagor.LoadFunc,
 ) (*imagor.Blob, error) {
-	ctx = withContext(ctx)
+	ctx, srcReads := withSourceReadTracker(withContext(ctx))
 	defer contextDone(ctx)
 
 	// Use image cache for preview() requests: known-size, within cache max dims, no bypass conditions.
@@ -276,6 +276,12 @@ func (v *Processor) Process(
 				}
 				continue
 			}
+		}
+		// A source that failed partway through still renders, so the failure has
+		// to fail the request here; otherwise the half image is served and cached
+		// under the key.
+		if err := srcReads.err(); err != nil {
+			return nil, err
 		}
 		blob := imagor.NewBlobFromBytes(buf)
 		if typ, ok := params.format.MimeType(); ok {

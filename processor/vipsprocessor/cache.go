@@ -82,9 +82,10 @@ func (v *Processor) loadOrCache(
 			}
 		}
 
-		// Decode at maxW×maxH with SizeDown. Fresh context so the VipsSource
-		// is released immediately after serialization.
-		decodeCtx := withContext(context.Background())
+		// Decode at maxW×maxH with SizeDown. Fresh context so the VipsSource is
+		// released right after serialization, with its own read tracker: a half
+		// image cached here would outlive the request it came from.
+		decodeCtx, decodeSrcs := withSourceReadTracker(withContext(context.Background()))
 
 		img, err := v.NewThumbnail(decodeCtx, blob, v.CacheMaxWidth, v.CacheMaxHeight,
 			vips.InterestingNone, vips.SizeDown, n, 1, 0)
@@ -144,6 +145,9 @@ func (v *Processor) loadOrCache(
 		}
 
 		// Cache if within max dims (result may be smaller than max due to SizeDown).
+		if readErr := decodeSrcs.err(); readErr != nil {
+			return nil, readErr
+		}
 		if imgW <= v.CacheMaxWidth && imgH <= v.CacheMaxHeight {
 			cost := int64(len(buf))
 			if v.CacheTTL > 0 {

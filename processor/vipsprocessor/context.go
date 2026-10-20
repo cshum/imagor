@@ -2,6 +2,9 @@ package vipsprocessor
 
 import (
 	"context"
+	"sync"
+
+	"github.com/cshum/vipsgen/v2/vips"
 )
 
 // Global resource tracking context (persists across parent/child)
@@ -113,4 +116,48 @@ func setChildReports(ctx context.Context, r *filterReports) {
 	if h, ok := ctx.Value(contextReportsKey{}).(*contextReports); ok {
 		h.child = r
 	}
+}
+
+// Source read tracking for one Process call. libvips reports a failed read to
+// the loader as end of file, so a loader that only warns renders a half image
+// and reports success. The sources are asked once the render is done.
+type contextSourceReadKey struct{}
+
+type contextSourceRead struct {
+	lock    sync.Mutex
+	sources []*vips.Source
+}
+
+// withSourceReadTracker gives this processing level somewhere to collect the
+// sources it opens. Each level gets its own, as a nested path does its own
+// loading.
+func withSourceReadTracker(ctx context.Context) (context.Context, *contextSourceRead) {
+	t := &contextSourceRead{}
+	return context.WithValue(ctx, contextSourceReadKey{}, t), t
+}
+
+// trackSourceRead records a source opened for this request.
+func trackSourceRead(ctx context.Context, src *vips.Source) {
+	if t, ok := ctx.Value(contextSourceReadKey{}).(*contextSourceRead); ok {
+		t.lock.Lock()
+		t.sources = append(t.sources, src)
+		t.lock.Unlock()
+	}
+}
+
+// err returns the first read failure recorded for this request, if any.
+func (t *contextSourceRead) err() error {
+	if t == nil {
+		return nil
+	}
+	t.lock.Lock()
+	sources := t.sources
+	t.sources = nil
+	t.lock.Unlock()
+	for _, src := range sources {
+		if err := src.Err(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

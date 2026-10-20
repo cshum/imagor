@@ -1653,3 +1653,84 @@ type loaderFunc func(r *http.Request, image string) (blob *imagor.Blob, err erro
 func (f loaderFunc) Get(r *http.Request, image string) (*imagor.Blob, error) {
 	return f(r, image)
 }
+
+// truncatedReader serves half of its data and then reports err instead of
+// io.EOF, the way an interrupted upstream body or an expired load timeout looks
+// to the reader.
+type truncatedReader struct {
+	r   *bytes.Reader
+	err error
+}
+
+func (r *truncatedReader) Read(p []byte) (int, error) {
+	n, err := r.r.Read(p)
+	if err == io.EOF {
+		return 0, r.err
+	}
+	return n, err
+}
+
+func (r *truncatedReader) Seek(offset int64, whence int) (int64, error) {
+	return r.r.Seek(offset, whence)
+}
+
+func (r *truncatedReader) Close() error { return nil }
+
+func truncatedTestBlob(t *testing.T, image string) *imagor.Blob {
+	data, err := os.ReadFile(filepath.Join(testDataDir, image))
+	require.NoError(t, err)
+	return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		return &truncatedReader{
+			r:   bytes.NewReader(data[:len(data)/2]),
+			err: io.ErrUnexpectedEOF,
+		}, int64(len(data)), nil
+	})
+}
+
+func TestProcessSourceReadError(t *testing.T) {
+	// libvips reports a failed source read to the loader as end of file, and
+	// jpegload with the default fail_on=none fills the missing part and
+	// succeeds, so the truncation only shows up here.
+	//
+	// No Shutdown: stopping the last processor shuts libvips down for every
+	// test after this one.
+	processor := NewProcessor()
+	require.NoError(t, processor.Startup(context.Background()))
+
+	t.Run("process fails", func(t *testing.T) {
+		out, err := processor.Process(context.Background(), truncatedTestBlob(t, "demo1.jpg"),
+			imagorpath.Params{Image: "demo1.jpg", Width: 100, Height: 100, FitIn: true}, nil)
+		assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
+		assert.Nil(t, out)
+	})
+
+	t.Run("result not stored", func(t *testing.T) {
+		// The half image must not reach result storage: it would be served from
+		// there long after the source recovered.
+		resultDir := t.TempDir()
+		app := imagor.New(
+			imagor.WithUnsafe(true),
+			imagor.WithLoaders(loaderFunc(func(r *http.Request, image string) (*imagor.Blob, error) {
+				return truncatedTestBlob(t, "demo1.jpg"), nil
+			})),
+			imagor.WithProcessors(processor),
+			imagor.WithResultStorages(filestorage.New(resultDir)),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() { _ = app.Shutdown(context.Background()) })
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(
+			http.MethodGet, "/unsafe/fit-in/100x100/demo1.jpg", nil))
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+		stored := 0
+		require.NoError(t, filepath.Walk(resultDir, func(path string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() {
+				stored++
+			}
+			return nil
+		}))
+		assert.Zero(t, stored)
+	})
+}
