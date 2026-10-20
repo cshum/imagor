@@ -225,6 +225,7 @@ func (v *Processor) newSourceFromBlob(ctx context.Context, blob *imagor.Blob) (*
 		return nil, err
 	}
 	src := vips.NewSource(reader)
+	trackSourceRead(ctx, src)
 	contextDefer(ctx, src.Close)
 	return src, nil
 }
