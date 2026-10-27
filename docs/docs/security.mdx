@@ -316,18 +316,17 @@ IMAGOR_SANITIZE_SVG=1               # 1 sanitizes; 0 serves byte for byte
 
 ### Sanitization
 
-Sanitization decides whether the request gets the document or a raster.
+Sanitization decides between the document and a raster.
 
-* **Sanitized before it is served.** imagor returns the document only if it can sanitize it, and rasterizes the request otherwise.
-* **An allowlist decides what stays.** Elements and attributes that are not on it are dropped, including `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments and processing instructions.
-* **References must stay inside the document.** `url(#id)` and `xlink:href="#id"` survive. A reference that points outside the document does not.
-* **Links stay links.** An absolute http(s) `<a href>` survives, because it navigates only on a click. A relative one does not, since it would resolve against imagor's address rather than the document's.
-* **`<image>` takes embedded rasters only.** An inline `data:` image survives. A nested SVG does not, because the allowlist cannot inspect it.
-* **Output is re-serialized.** Whitespace, comments and namespace prefixes are lost.
-* **The result is UTF-8**, whatever the source declared.
-* **Accepted charsets.** UTF-8, ASCII and ISO-8859-1.
-* **Rasterized instead of served** when the document declares another charset, fails to parse, carries its own CSS in a `<style>` element, or is larger than 32 MB. A `format(svg)` request fails instead, as described above.
-* **`IMAGOR_SANITIZE_SVG=0` skips sanitization** and serves the document byte for byte. Set it only when every source SVG is trusted.
+* **Sanitized first.** imagor returns the document only if the sanitizer accepts it; otherwise it serves a raster.
+* **An allowlist of elements and attributes.** Everything else is dropped, including `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments and processing instructions.
+* **References.** `url(#id)` and `xlink:href="#id"` resolve inside the document. A reference that leaves it is dropped.
+* **Links.** An absolute http(s) `<a href>` is kept: it only goes somewhere when a reader clicks. A relative link is dropped, since it would resolve against imagor's host.
+* **`<image>`.** An embedded `data:` raster is kept. A nested SVG is dropped, because the allowlist cannot look inside it.
+* **Re-serialized.** Whitespace, comments and namespace prefixes are lost.
+* **UTF-8 output**, whatever the source declared. UTF-8, ASCII and ISO-8859-1 are the charsets read.
+* **Rasterized** when a document declares another charset, fails to parse, carries CSS in a `<style>` element, or is larger than 32 MB. A `format(svg)` request fails instead, as described above.
+* **`IMAGOR_SANITIZE_SVG=0`** serves the document byte for byte with no sanitization. Set it only when every source SVG is trusted.
 
 ### Response headers
 
