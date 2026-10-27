@@ -43,6 +43,8 @@ The full request path including processing parameters is used as the result stor
 
 On backends that normalize keys, reserved characters in that path may still be escaped unless configured as safe.
 
+A [pass-through](./security.mdx#svg-pass-through) request carries a `passthrough()` filter in the key, so it never reuses the rasterized result cached for the same path. Enabling pass-through needs no cache flush.
+
 ### `digest`
 
 SHA1 hashes the full request path (including processing parameters) into a `xx/xx/hash` directory structure.
