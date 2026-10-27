@@ -307,14 +307,12 @@ imagor renders SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`,
 Both `IMAGOR_PASSTHROUGH_FORMATS=svg` and [`format(svg)`](./filters.md#formatsvg) return that document, sanitized.
 
 ```dotenv
-IMAGOR_PASSTHROUGH_FORMATS=svg      # svg, or unset (the default)
+IMAGOR_PASSTHROUGH_FORMATS=svg
 ```
-
-The setting covers requests with no operations. `format(svg)` names the document on one request, and needs no setting.
 
 ### SVG Sanitization
 
-Sanitization inspects and rewrites the document.
+imagor sanitizes the SVG document before serving it, for pass-through and `format(svg)` alike. It inspects and rewrites the document.
 
 * **An allowlist of elements and attributes.** Everything else is dropped, including `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments and processing instructions.
 * **References.** `url(#id)` and `xlink:href="#id"` resolve inside the document. A reference that leaves it is dropped.
