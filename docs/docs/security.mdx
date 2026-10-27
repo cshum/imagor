@@ -302,15 +302,15 @@ IMAGOR_PROCESS_QUEUE_SIZE=100       # max queued jobs before 429 is returned
 
 ## SVG Pass-through
 
-imagor renders SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`, AVIF with `IMAGOR_AUTO_AVIF=1`, or whatever a [`format()`](./filters.md#formatformat) filter asks for. Serving the SVG itself means any script in it runs from imagor's origin.
+imagor renders SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`, AVIF with `IMAGOR_AUTO_AVIF=1`, or whatever a [`format()`](./filters.md#formatformat) filter asks for. Serving the SVG itself means any script in it runs from imagor's origin, so both pass-through and [`format(svg)`](./filters.md#formatsvg) are sanitized before the SVG is served.
 
-Set `IMAGOR_PASSTHROUGH_FORMATS=svg`, or put [`format(svg)`](./filters.md#formatsvg) on the request.
+Set `IMAGOR_PASSTHROUGH_FORMATS=svg` to pass through requests with no operations.
 
 ```dotenv
 IMAGOR_PASSTHROUGH_FORMATS=svg      # svg, or unset (the default)
 ```
 
-Pass-through covers requests with no operations. `format(svg)` asks for the document directly, so it works with pass-through off, and it refuses a request that carries an operation. Both are sanitized before the SVG is served.
+`format(svg)` asks for the document per request instead. It works without the setting, and it refuses a request that carries an operation.
 
 ### SVG Sanitization
 
