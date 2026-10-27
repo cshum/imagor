@@ -302,19 +302,19 @@ IMAGOR_PROCESS_QUEUE_SIZE=100       # max queued jobs before 429 is returned
 
 ## SVG Pass-through
 
-imagor renders SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`, AVIF with `IMAGOR_AUTO_AVIF=1`, or whatever a [`format()`](./filters.md#formatformat) filter asks for. Serving the SVG itself means any script in it runs from imagor's origin, so both pass-through and [`format(svg)`](./filters.md#formatsvg) are sanitized before the SVG is served.
+imagor renders SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`, AVIF with `IMAGOR_AUTO_AVIF=1`, or whatever a [`format()`](./filters.md#formatformat) filter asks for. Serving the SVG itself means any script in it runs from imagor's origin, so imagor sanitizes the SVG document before serving it.
 
-Set `IMAGOR_PASSTHROUGH_FORMATS=svg` to pass through requests with no operations.
+Both `IMAGOR_PASSTHROUGH_FORMATS=svg` and [`format(svg)`](./filters.md#formatsvg) return that document, sanitized.
 
 ```dotenv
 IMAGOR_PASSTHROUGH_FORMATS=svg      # svg, or unset (the default)
 ```
 
-`format(svg)` asks for the document per request instead. It works without the setting, and it refuses a request that carries an operation.
+The setting covers requests with no operations. `format(svg)` names the document on one request, and needs no setting.
 
 ### SVG Sanitization
 
-imagor sanitizes the SVG document before serving it, for pass-through and `format(svg)` alike. It inspects and rewrites the document.
+Sanitization inspects and rewrites the document.
 
 * **An allowlist of elements and attributes.** Everything else is dropped, including `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments and processing instructions.
 * **References.** `url(#id)` and `xlink:href="#id"` resolve inside the document. A reference that leaves it is dropped.
