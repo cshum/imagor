@@ -302,19 +302,19 @@ IMAGOR_PROCESS_QUEUE_SIZE=100       # max queued jobs before 429 is returned
 
 ## SVG Pass-through
 
-imagor renders an SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`, AVIF with `IMAGOR_AUTO_AVIF=1`, or whatever a [`format()`](./filters.md#formatformat) filter asks for. An SVG can carry script, and a browser that opens one runs it on the origin that served it.
+imagor renders SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`, AVIF with `IMAGOR_AUTO_AVIF=1`, or whatever a [`format()`](./filters.md#formatformat) filter asks for. Serving the SVG itself means any script in it runs from imagor's origin.
 
-To get the document itself, set `IMAGOR_PASSTHROUGH_FORMATS=svg`, or put [`format(svg)`](./filters.md#formatsvg) on the request.
+Set `IMAGOR_PASSTHROUGH_FORMATS=svg`, or put [`format(svg)`](./filters.md#formatsvg) on the request.
 
 ```dotenv
 IMAGOR_PASSTHROUGH_FORMATS=svg      # svg, or unset (the default)
 ```
 
-Pass-through covers requests with no operations. `format(svg)` asks for the document directly, so it works with pass-through off, and it refuses a request that carries an operation. Either path is sanitized before the document is served.
+Pass-through covers requests with no operations. `format(svg)` asks for the document directly, so it works with pass-through off, and it refuses a request that carries an operation. Both are sanitized before the SVG is served.
 
-### Sanitization
+### SVG Sanitization
 
-Sanitization is on by default. imagor returns the document only if the sanitizer accepts it; otherwise it serves a raster.
+SVG sanitization is on by default. imagor serves the SVG only if the sanitizer accepts it; otherwise it renders the image.
 
 * **An allowlist of elements and attributes.** Everything else is dropped, including `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments and processing instructions.
 * **References.** `url(#id)` and `xlink:href="#id"` resolve inside the document. A reference that leaves it is dropped.
@@ -322,7 +322,7 @@ Sanitization is on by default. imagor returns the document only if the sanitizer
 * **`<image>`.** An embedded `data:` raster is kept. A nested SVG is dropped, because the allowlist cannot look inside it.
 * **Re-serialized.** Whitespace, comments and namespace prefixes are lost.
 * **UTF-8 output**, whatever the source declared. UTF-8, ASCII and ISO-8859-1 are the charsets read.
-* **Rasterized** when a document declares another charset, fails to parse, carries CSS in a `<style>` element, or is larger than 32 MB. A `format(svg)` request answers with an error instead.
+* **Rendered as an image instead** when a document declares another charset, fails to parse, carries CSS in a `<style>` element, or is larger than 32 MB. A `format(svg)` request answers with an error.
 * **`IMAGOR_SANITIZE_SVG=0`** serves the document byte for byte with no sanitization. Set it only when every source SVG is trusted.
 
 ### Response headers
@@ -338,7 +338,7 @@ X-Content-Type-Options: nosniff
 `default-src 'none'` blocks CSS and image loads, which `script-src 'none'` alone would not. `sandbox` gives a document served with sanitization off its own origin. `nosniff` stops the browser from reading the bytes as another type.
 
 :::warning
-Turning this on does not make an untrusted SVG safe. If you do not control the sources, leave `IMAGOR_PASSTHROUGH_FORMATS` unset and keep rasterizing.
+Turning this on does not make an untrusted SVG safe. If you do not control the sources, leave `IMAGOR_PASSTHROUGH_FORMATS` unset and keep rendering the SVG as an image.
 :::
 
 ---
