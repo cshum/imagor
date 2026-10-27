@@ -314,7 +314,7 @@ Pass-through covers requests with no operations. `format(svg)` asks for the docu
 
 ### SVG Sanitization
 
-SVG sanitization is on by default. imagor serves the SVG only if the sanitizer accepts it; otherwise it renders the image.
+SVG sanitization is on by default. imagor inspects and rewrites the document before serving it.
 
 * **An allowlist of elements and attributes.** Everything else is dropped, including `<script>`, event handlers such as `onload`, `<foreignObject>`, animation, DOCTYPE, comments and processing instructions.
 * **References.** `url(#id)` and `xlink:href="#id"` resolve inside the document. A reference that leaves it is dropped.
@@ -323,7 +323,8 @@ SVG sanitization is on by default. imagor serves the SVG only if the sanitizer a
 * **Re-serialized.** Whitespace, comments and namespace prefixes are lost.
 * **UTF-8 output**, whatever the source declared. UTF-8, ASCII and ISO-8859-1 are the charsets read.
 * **Rendered as an image instead** when a document declares another charset, fails to parse, carries CSS in a `<style>` element, or is larger than 32 MB. A `format(svg)` request answers with an error.
-* **`IMAGOR_SANITIZE_SVG=0`** serves the document byte for byte with no sanitization. Set it only when every source SVG is trusted.
+
+`IMAGOR_SANITIZE_SVG=0` serves the document byte for byte with no sanitization. Set it only when every source SVG is trusted.
 
 ### Response headers
 
