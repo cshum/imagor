@@ -196,6 +196,9 @@ func rotate(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...str
 	if err = rotateMultiPageImage(img, angle); err != nil {
 		return
 	}
+	if err = rotateGainmap(img, angle); err != nil {
+		return
+	}
 	return
 }
 
