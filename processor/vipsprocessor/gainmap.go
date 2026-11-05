@@ -31,7 +31,7 @@ func rotateGainmap(img *vips.Image, angle float64) error {
 		if err = gainmap.RotMultiPage(getAngle(int(angle))); err != nil {
 			return err
 		}
-	} else if err = gainmap.Rotate(angle, &vips.RotateOptions{}); err != nil {
+	} else if err = gainmap.Rotate(angle, nil); err != nil {
 		return err
 	}
 	img.SetGainmap(gainmap)
