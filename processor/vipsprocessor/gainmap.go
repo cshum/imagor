@@ -6,11 +6,10 @@ import (
 	"github.com/cshum/vipsgen/v2/vips"
 )
 
-// libvips updates a gain map only in thumbnail; the operations below mirror
-// geometry applied outside it.
+// libvips updates a gain map only in thumbnail; these mirror the rest.
 
 func gainmapOf(img *vips.Image) (*vips.Image, error) {
-	// Only UltraHDR JPEGs carry a gain map; Format() is a field read.
+	// Only UltraHDR images carry a gain map.
 	if img.Format() != vips.ImageTypeUhdr {
 		return nil, nil
 	}
@@ -39,7 +38,7 @@ func rotateGainmap(img *vips.Image, angle float64) error {
 	return nil
 }
 
-// flipGainmap mirrors the gain map along with the base image.
+// flipGainmap flips the gain map with the image.
 func flipGainmap(img *vips.Image, direction vips.Direction) error {
 	gainmap, err := gainmapOf(img)
 	if err != nil || gainmap == nil {
@@ -53,8 +52,8 @@ func flipGainmap(img *vips.Image, direction vips.Direction) error {
 	return nil
 }
 
-// cropGainmap crops the gain map to the region the image is about to keep.
-// Call it before the base image is cropped.
+// cropGainmap crops the gain map to the region the image keeps. Call it
+// before the crop.
 func cropGainmap(img *vips.Image, left, top, width, height int) error {
 	gainmap, err := gainmapOf(img)
 	if err != nil || gainmap == nil {
@@ -92,8 +91,8 @@ func cropGainmap(img *vips.Image, left, top, width, height int) error {
 	return nil
 }
 
-// attachGainmap attaches the decoded gain map so libvips thumbnail can update
-// it while the image is resized. Call it before the resize.
+// attachGainmap attaches the gain map so thumbnail updates it on resize.
+// Call it before the resize.
 func attachGainmap(img *vips.Image) error {
 	gainmap, err := gainmapOf(img)
 	if err != nil || gainmap == nil {
