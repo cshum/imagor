@@ -783,14 +783,15 @@ func (v *Processor) applyTransformations(
 			cropRight = math.Round(cropRight * origWidth)
 			cropBottom = math.Round(cropBottom * origHeight)
 		}
+		// right/bottom are exclusive, so the full extent is the image size.
 		if cropRight == 0 {
-			cropRight = origWidth - 1
+			cropRight = origWidth
 		}
 		if cropBottom == 0 {
-			cropBottom = origHeight - 1
+			cropBottom = origHeight
 		}
-		cropRight = math.Min(cropRight, origWidth-1)
-		cropBottom = math.Min(cropBottom, origHeight-1)
+		cropRight = math.Min(cropRight, origWidth)
+		cropBottom = math.Min(cropBottom, origHeight)
 	}
 	if p.Trim {
 		if l, t, w, h, err := findTrim(ctx, img, p.TrimBy, p.TrimTolerance); err == nil {
