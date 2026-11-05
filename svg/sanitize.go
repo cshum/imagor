@@ -23,6 +23,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -46,12 +47,6 @@ var resourceElements = map[string]struct{}{
 	"font-face-uri": {},
 }
 
-// fontElements declare SVG fonts; only font-face-uri is a resource reference,
-// since it points at font data outside the document.
-var fontElements = map[string]struct{}{
-	"font-face-uri": {},
-}
-
 // unservableReason reports why this element cannot be served as authored, or an
 // empty string when it can. The checks reuse the same attribute rules the
 // serializer applies, so a value that would be dropped there is recognised here.
@@ -60,7 +55,7 @@ func unservableReason(el xml.StartElement) string {
 	if local == "style" {
 		return "the document's own CSS"
 	}
-	if _, ok := fontElements[local]; ok {
+	if local == "font-face-uri" {
 		return "font data outside the document"
 	}
 	_, isResource := resourceElements[local]
@@ -69,13 +64,18 @@ func unservableReason(el xml.StartElement) string {
 		if !ok {
 			continue
 		}
+		isResourceHref := isResource && isHrefAttr(name)
+		_, isURL := urlAttrs[name]
+		if !isResourceHref && !isURL && name != "style" {
+			continue
+		}
 		if _, kept := sanitizeAttrValue(name, attr.Value, local); kept {
 			continue
 		}
-		if isResource && isHrefAttr(name) {
+		if isResourceHref {
 			return "a reference to a resource outside the document"
 		}
-		if _, ok := urlAttrs[name]; ok && strings.Contains(attr.Value, "url(") {
+		if isURL && strings.Contains(attr.Value, "url(") {
 			return "a reference to a resource outside the document"
 		}
 		if name == "style" {
@@ -374,7 +374,7 @@ func (d *document) writeChildren(b *bytes.Buffer, from, to int) error {
 	for i := from; i < to; i++ {
 		switch t := d.tokens[i].(type) {
 		case xml.CharData:
-			b.WriteString(escapeText(string(t)))
+			writeEscapedText(b, t)
 		case xml.StartElement:
 			elEnd := d.end[i]
 			if elEnd < 0 || elEnd > to {
@@ -417,7 +417,11 @@ func (d *document) writeAttrs(b *bytes.Buffer, el string, attrs []xml.Attr) {
 		if !ok {
 			continue
 		}
-		b.WriteString(` ` + name + `="` + escapeAttr(value) + `"`)
+		b.WriteByte(' ')
+		b.WriteString(name)
+		b.WriteString(`="`)
+		writeEscapedAttr(b, value)
+		b.WriteByte('"')
 	}
 }
 
@@ -446,8 +450,7 @@ func attrName(n xml.Name) (string, bool) {
 }
 
 func isHrefAttr(name string) bool {
-	_, ok := hrefAttrs[strings.TrimPrefix(name, "xlink:")]
-	return ok && (name == "href" || strings.HasPrefix(name, "xlink:"))
+	return name == "href" || name == "xlink:href"
 }
 
 func sanitizeAttrValue(name, value, el string) (string, bool) {
@@ -533,11 +536,16 @@ func urlAttrValue(value string) (string, bool) {
 		}
 		return v, true
 	}
-	for _, m := range styleURLRe.FindAllStringSubmatch(v, -1) {
-		ref := strings.TrimSpace(m[1])
+	for rest := v; ; {
+		m := styleURLRe.FindStringSubmatchIndex(rest)
+		if m == nil {
+			break
+		}
+		ref := strings.TrimSpace(rest[m[2]:m[3]])
 		if !strings.HasPrefix(ref, "#") || len(ref) == 1 {
 			return "", false
 		}
+		rest = rest[m[1]:]
 	}
 	if strings.ContainsAny(v, "\\") || strings.Contains(strings.ToLower(v), "@import") {
 		return "", false
@@ -578,7 +586,31 @@ var imageRasterTypes = []string{"png", "jpeg", "jpg", "gif", "webp", "avif", "bm
 
 // isRasterDataURI reports whether value is a data: URI of a raster image type.
 func isRasterDataURI(value string) bool {
-	lower := strings.ToLower(value)
+	if len(value) < len("data:image/png,") {
+		return false
+	}
+	if c := value[0]; c < utf8.RuneSelf && c != 'd' && c != 'D' {
+		return false
+	}
+	// The longest accepted header is data:image/jpeg followed by a separator.
+	// Preserve ToLower's rune mapping, but never normalize the image payload.
+	var header [len("data:image/jpeg;")]byte
+	n := 0
+	for _, r := range value {
+		if n == len(header) {
+			break
+		}
+		r = unicode.ToLower(r)
+		if r > unicode.MaxASCII {
+			return false
+		}
+		header[n] = byte(r)
+		n++
+		if r == ';' || r == ',' {
+			break
+		}
+	}
+	lower := string(header[:n])
 	rest, ok := strings.CutPrefix(lower, "data:image/")
 	if !ok {
 		return false
@@ -603,11 +635,16 @@ func styleValue(value string) (string, bool) {
 	if styleForbiddenRe.MatchString(v) {
 		return "", false
 	}
-	for _, m := range styleURLRe.FindAllStringSubmatch(v, -1) {
-		ref := strings.TrimSpace(m[1])
+	for rest := v; ; {
+		m := styleURLRe.FindStringSubmatchIndex(rest)
+		if m == nil {
+			break
+		}
+		ref := strings.TrimSpace(rest[m[2]:m[3]])
 		if !strings.HasPrefix(ref, "#") || len(ref) == 1 {
 			return "", false
 		}
+		rest = rest[m[1]:]
 	}
 	return v, true
 }
@@ -619,6 +656,46 @@ var schemeRe = regexp.MustCompile(`^([a-zA-Z][a-zA-Z0-9+.\-]*):`)
 // characters inside the scheme are normalized away first, so "java\nscript:" is
 // still detected.
 func hasScheme(s string) (string, bool) {
+	started, controls := false, false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= utf8.RuneSelf {
+			return hasUnicodeScheme(s)
+		}
+		if c <= ' ' || c == 0x7f {
+			controls = true
+			continue
+		}
+		if c == ':' {
+			if !started {
+				return "", false
+			}
+			scheme := strings.ToLower(s[:i])
+			if controls {
+				scheme = strings.Map(func(r rune) rune {
+					if r <= ' ' || r == 0x7f {
+						return -1
+					}
+					return r
+				}, scheme)
+			}
+			return scheme, true
+		}
+		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' {
+			started = true
+			continue
+		}
+		if started && (c >= '0' && c <= '9' || c == '+' || c == '.' || c == '-') {
+			continue
+		}
+		return "", false
+	}
+	return "", false
+}
+
+// Unicode lowercase can turn a non-ASCII rune into an ASCII scheme character.
+// Keep the original normalization for that uncommon path.
+func hasUnicodeScheme(s string) (string, bool) {
 	cleaned := strings.Map(func(r rune) rune {
 		if r <= ' ' || r == 0x7f {
 			return -1
@@ -647,7 +724,7 @@ func decodeEntities(s string) string {
 			i++
 			continue
 		}
-		semi := strings.IndexByte(s[i:], ';')
+		semi := strings.IndexByte(s[i:min(i+13, len(s))], ';')
 		if semi < 0 || semi > 12 {
 			b.WriteByte(c)
 			i++
@@ -713,50 +790,57 @@ func decodeNumericEntity(entity string) (rune, bool) {
 	return rune(v), true
 }
 
-// escapeText escapes the characters that are special in XML content. Nothing
-// else needs dropping: a value reaches the serializer either from the XML
-// parser or from decodeEntities, and both enforce the XML character range.
-func escapeText(s string) string {
-	var b strings.Builder
-	b.Grow(len(s))
-	for _, r := range s {
-		switch {
-		case r == '&':
-			b.WriteString("&amp;")
-		case r == '<':
-			b.WriteString("&lt;")
-		case r == '>':
-			b.WriteString("&gt;")
+// writeEscapedText escapes the characters that are special in XML content.
+// Nothing else needs dropping: data comes from the XML parser, which enforces
+// the XML character range.
+func writeEscapedText(b *bytes.Buffer, data []byte) {
+	start := 0
+	for i, c := range data {
+		var escaped string
+		switch c {
+		case '&':
+			escaped = "&amp;"
+		case '<':
+			escaped = "&lt;"
+		case '>':
+			escaped = "&gt;"
 		default:
-			b.WriteRune(r)
+			continue
 		}
+		b.Write(data[start:i])
+		b.WriteString(escaped)
+		start = i + 1
 	}
-	return b.String()
+	b.Write(data[start:])
 }
 
-// escapeAttr escapes the characters that are special in an attribute value.
-func escapeAttr(s string) string {
-	var b strings.Builder
-	b.Grow(len(s))
-	for _, r := range s {
-		switch {
-		case r == '&':
-			b.WriteString("&amp;")
-		case r == '<':
-			b.WriteString("&lt;")
-		case r == '"':
-			b.WriteString("&quot;")
-		case r == '	':
-			b.WriteString("&#9;")
-		case r == '\n':
-			b.WriteString("&#10;")
-		case r == '\r':
-			b.WriteString("&#13;")
+// writeEscapedAttr escapes an attribute value, which has already been validated
+// by the XML parser or decodeEntities, directly into the output buffer.
+func writeEscapedAttr(b *bytes.Buffer, value string) {
+	start := 0
+	for i := 0; i < len(value); i++ {
+		var escaped string
+		switch value[i] {
+		case '&':
+			escaped = "&amp;"
+		case '<':
+			escaped = "&lt;"
+		case '"':
+			escaped = "&quot;"
+		case '\t':
+			escaped = "&#9;"
+		case '\n':
+			escaped = "&#10;"
+		case '\r':
+			escaped = "&#13;"
 		default:
-			b.WriteRune(r)
+			continue
 		}
+		b.WriteString(value[start:i])
+		b.WriteString(escaped)
+		start = i + 1
 	}
-	return b.String()
+	b.WriteString(value[start:])
 }
 
 // isValidXMLChar reports whether a rune may appear in XML 1.0 content. It is

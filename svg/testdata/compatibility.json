@@ -1,0 +1,44 @@
+[
+  {
+    "name": "escaping-and-attribute-order",
+    "input": "<svg viewBox=\"0 0 24 24\" xml:space=\"preserve\" class=\"a&quot;b&#9;c&#10;d&#13;e&amp;&lt;>'\"><text>Привет &amp; &lt;世界&gt; \"'\t\n</text></svg>",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" xml:space=\"preserve\" class=\"a&quot;b&#9;c&#10;d&#13;e&amp;&lt;>'\"><text>Привет &amp; &lt;世界&gt; \"'\t\n</text></svg>"
+  },
+  {
+    "name": "empty-elements-and-discarded-tokens",
+    "input": "<?xml version=\"1.0\"?><!DOCTYPE svg><!--before--><svg><g/><g></g><g><!--comment--></g><g><?instruction value?></g><g><metadata>discard</metadata></g><g><![CDATA[]]></g></svg><!--after-->",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g/><g/><g></g><g></g><g></g><g></g></svg>"
+  },
+  {
+    "name": "namespaces-and-nested-svg",
+    "input": "<svg xmlns:s=\"http://www.w3.org/2000/svg\" xmlns:x=\"http://www.w3.org/1999/xlink\" xmlns:f=\"urn:foreign\"><s:svg x=\"1\" viewBox=\"0 0 1 1\"><s:use x:href=\"#icon\" f:fill=\"red\" xml:lang=\"en\"/></s:svg></svg>",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><svg x=\"1\" viewBox=\"0 0 1 1\"><use xlink:href=\"#icon\" xml:lang=\"en\"/></svg></svg>"
+  },
+  {
+    "name": "unicode-mime-and-payload",
+    "input": "<svg><image href=\"DATA:İMAGE/PNG;base64,Ab09世界\"/></svg>",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><image href=\"DATA:İMAGE/PNG;base64,Ab09世界\"/></svg>"
+  },
+  {
+    "name": "repeated-decoding",
+    "input": "<svg><use href=\"&amp;#35;icon\"/><image href=\"&amp;amp;#35;icon\"/><a href=\"&amp;amp;#35;icon\"/><rect fill=\"&amp;#35;fff\"/></svg>",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><use href=\"#icon\"/><image href=\"#icon\"/><a/><rect fill=\"#fff\"/></svg>"
+  },
+  {
+    "name": "raw-url-spelling-controls-refusal",
+    "input": "<svg><rect fill=\"URL(https://example.test/g)\" stroke=\"url (https://example.test/g)\" filter=\"&amp;#117;rl(https://example.test/g)\"/><rect style=\"fill:URL('#g');stroke:url (#s)\"/></svg>",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><rect/><rect style=\"fill:URL('#g');stroke:url (#s)\"/></svg>"
+  },
+  {
+    "name": "language-escaping-and-branches",
+    "tags": ["en-US"],
+    "input": "<svg xml:lang=\"en\" class=\"a&quot;b&#9;c&#10;d&#13;e&amp;&lt;>'\"><style>.a > .b { content: '&amp;' }</style><switch><text systemLanguage=\"fr\">Bonjour</text><text systemLanguage=\"en\">Hello &amp; 世界</text><text>Default</text></switch><g><!--comment--></g><image href=\"https://example.test/a\"/></svg>",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xml:lang=\"en\" class=\"a&quot;b&#9;c&#10;d&#13;e&amp;&lt;>'\"><style>.a &gt; .b { content: '&amp;' }</style><switch><text>Hello &amp; 世界</text><text>Default</text></switch><g></g><image href=\"https://example.test/a\"/></svg>"
+  },
+  {
+    "name": "language-foreign-attributes",
+    "tags": ["en"],
+    "input": "<svg xmlns:f=\"urn:foreign\"><text f:label=\"a&quot;b&#9;c\" systemLanguage=\"en\">Text</text></svg>",
+    "output": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\"><text f:label=\"a&quot;b&#9;c\">Text</text></svg>"
+  }
+]
