@@ -1054,11 +1054,6 @@ func metadata(img *vips.Image, format vips.ImageType, stripExif bool, regions []
 		})
 	}
 	mimeType, _ := format.MimeType()
-	if format == vips.ImageTypeUhdr {
-		// An UltraHDR image is a JPEG carrying a gain map, but vips names
-		// its own type, which has no mime type of its own.
-		mimeType = "image/jpeg"
-	}
 	return &Metadata{
 		Format:          string(format),
 		ContentType:     mimeType,
