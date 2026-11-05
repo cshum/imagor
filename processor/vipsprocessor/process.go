@@ -470,7 +470,7 @@ func (v *Processor) loadAndProcess(
 		dpi                   = 0
 		err                   error
 	)
-	if p.Trim || p.VFlip || p.HFlip || p.FullFitIn || p.AdaptiveFitIn {
+	if p.Trim || p.VFlip || p.FullFitIn || p.AdaptiveFitIn {
 		thumbnailNotSupported = true
 	}
 	// When a detector is configured, load the full-resolution source so detection
