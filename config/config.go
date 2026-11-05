@@ -74,6 +74,7 @@ func NewImagor(
 		imagorSignerType             = fs.String("imagor-signer-type", "sha1", "imagor URL signature hasher type: sha1, sha256, sha512")
 		imagorSignerTruncate         = fs.Int("imagor-signer-truncate", 0, "imagor URL signature truncate at length")
 		imagorStoragePathStyle       = fs.String("imagor-storage-path-style", "original", "imagor storage path style: original, digest")
+		imagorStorageSkipPrefixes    = fs.String("imagor-storage-skip-prefixes", "", "Image path prefixes read in place, never saved to imagor Storage (csv)")
 		imagorResultStoragePathStyle = fs.String("imagor-result-storage-path-style", "original", "imagor result storage path style: original, digest, suffix")
 
 		imagorPassthroughFormats = fs.String("imagor-passthrough-formats", "",
@@ -132,6 +133,7 @@ func NewImagor(
 		imagor.WithResponseRawOnError(*imagorResponseRawOnError),
 		imagor.WithStoragePathStyle(hasher),
 		imagor.WithResultStoragePathStyle(resultHasher),
+		imagor.WithStorageSkipPrefixes(parseStorageSkipPrefixes(*imagorStorageSkipPrefixes)...),
 		imagor.WithUnsafe(*imagorUnsafe),
 		imagor.WithPassthroughFormats(parsePassthroughFormats(*imagorPassthroughFormats)...),
 		imagor.WithSanitizeSVG(*imagorSanitizeSVG),
@@ -149,6 +151,17 @@ func parsePassthroughFormats(s string) []imagor.BlobType {
 		panic(err)
 	}
 	return formats
+}
+
+// parseStorageSkipPrefixes parses the imagor-storage-skip-prefixes csv,
+// dropping whitespace and empty entries.
+func parseStorageSkipPrefixes(s string) (prefixes []string) {
+	for _, v := range strings.Split(s, ",") {
+		if v = strings.TrimSpace(v); v != "" {
+			prefixes = append(prefixes, v)
+		}
+	}
+	return
 }
 
 // CreateServer create server from config flags. Returns nil on version or help command

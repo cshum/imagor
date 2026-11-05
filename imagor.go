@@ -87,6 +87,7 @@ type Imagor struct {
 	GetResultKey           func(*http.Request, imagorpath.Params) string
 	StoragePathStyle       imagorpath.StorageHasher
 	ResultStoragePathStyle imagorpath.ResultStorageHasher
+	StorageSkipPrefixes    []string
 	BasePathRedirect       string
 	Loaders                []Loader
 	Storages               []Storage
@@ -749,10 +750,31 @@ func (app *Imagor) loadStorage(r *http.Request, key string) (blob *Blob, shouldS
 	var origin Storage
 	blob, origin, err = app.fromStoragesAndLoaders(r, app.Storages, app.Loaders, key)
 	if !isBlobEmpty(blob) && origin == nil &&
-		key != "" && err == nil && len(app.Storages) > 0 {
+		key != "" && err == nil && len(app.Storages) > 0 &&
+		!app.skipStorage(key) {
 		shouldSave = true
 	}
 	return
+}
+
+// skipStorage reports whether image is covered by StorageSkipPrefixes. Prefixes
+// match the image path as it appears in the request, on whole path parts,
+// so "museado" covers "museado/a.jpg" but not "museado2/a.jpg".
+func (app *Imagor) skipStorage(image string) bool {
+	if len(app.StorageSkipPrefixes) == 0 {
+		return false
+	}
+	image = strings.TrimPrefix(image, "/")
+	for _, prefix := range app.StorageSkipPrefixes {
+		prefix = strings.Trim(strings.TrimSpace(prefix), "/")
+		if prefix == "" {
+			continue
+		}
+		if image == prefix || strings.HasPrefix(image, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 func (app *Imagor) fromStoragesAndLoaders(
@@ -766,7 +788,7 @@ func (app *Imagor) fromStoragesAndLoaders(
 				for _, loader := range loaders {
 					b, e := loader.Get(r, image)
 					if b != nil {
-						b.setFanout(image != "" && len(storages) > 0)
+						b.setFanout(image != "" && len(storages) > 0 && !app.skipStorage(image))
 					}
 					b, e = checkBlob(b, e)
 					if !isBlobEmpty(b) {
@@ -791,7 +813,8 @@ func (app *Imagor) fromStoragesAndLoaders(
 	if app.StoragePathStyle != nil {
 		storageKey = app.StoragePathStyle.Hash(image)
 	}
-	if storageKey != "" {
+	var skipStorage = app.skipStorage(image)
+	if storageKey != "" && !skipStorage {
 		blob, origin, err = fromStorages(r, storages, storageKey)
 		if !isBlobEmpty(blob) && origin != nil && err == nil {
 			return
@@ -800,7 +823,7 @@ func (app *Imagor) fromStoragesAndLoaders(
 	for _, loader := range loaders {
 		b, e := loader.Get(r, image)
 		if b != nil {
-			b.setFanout(image != "" && len(storages) > 0)
+			b.setFanout(image != "" && len(storages) > 0 && !skipStorage)
 		}
 		b, e = checkBlob(b, e)
 		if !isBlobEmpty(b) {

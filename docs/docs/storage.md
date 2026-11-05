@@ -61,3 +61,17 @@ GCLOUD_SAFE_CHARS=--
 ## [Storage and Result Storage Path Style](./storage-path-style.md)
 
 Enables additional hashing rules to the storage key when loading and saving images. Accepts `original` (default), `digest`, `suffix`, or `size`.
+
+## Skipping Storage by Prefixes
+
+Storage saves an image the first time a loader returns it, so later requests reuse the copy. `IMAGOR_STORAGE_SKIP_PREFIXES` lists image prefixes that are read in place instead: imagor loads them from their origin and neither reads nor writes Storage.
+
+```dotenv
+IMAGOR_STORAGE_SKIP_PREFIXES=museado/,nara/
+```
+
+- Prefixes match whole path parts: `museado` covers `museado/a.jpg`, not `museado2/a.jpg`.
+- Applies to every loader — S3, Google Cloud Storage, File System, and HTTP.
+- Copies already in Storage for these prefixes are ignored; normal expiry or lifecycle rules clean them up.
+- Result Storage is unaffected.
+- `IMAGOR_MODIFIED_TIME_CHECK` stats Storage, so skipped prefixes serve cached results without revalidation.

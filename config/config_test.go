@@ -42,9 +42,16 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, time.Hour*24, app.CacheHeaderSWR)
 	assert.Empty(t, app.ResultStorages)
 	assert.Empty(t, app.Storages)
+	assert.Empty(t, app.StorageSkipPrefixes)
 	loader := app.Loaders[0].(*httploader.HTTPLoader)
 	assert.Empty(t, loader.BaseURL)
 	assert.Equal(t, "https", loader.DefaultScheme)
+}
+
+func TestStorageSkipPrefixes(t *testing.T) {
+	srv := CreateServer([]string{"-imagor-storage-skip-prefixes", "museado/, nara ,,"})
+	app := srv.App.(*imagor.Imagor)
+	assert.Equal(t, []string{"museado/", "nara"}, app.StorageSkipPrefixes)
 }
 
 func TestBasic(t *testing.T) {
