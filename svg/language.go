@@ -87,7 +87,7 @@ func (w *langWriter) writeChildren(b *bytes.Buffer, from, to int) {
 		case xml.CharData:
 			// Escaping holds in every context: the parser restores it, so a
 			// stylesheet or a text node keeps what it holds.
-			b.WriteString(escapeText(string(t)))
+			writeEscapedText(b, t)
 		case xml.StartElement:
 			elEnd := w.doc.end[i]
 			if elEnd < 0 || elEnd > to {
@@ -122,7 +122,11 @@ func (w *langWriter) writeAttrs(b *bytes.Buffer, attrs []xml.Attr) {
 		switch {
 		case attr.Name.Space == "xmlns": // xmlns:foo="..."
 			w.prefix[attr.Value] = attr.Name.Local
-			b.WriteString(" " + attr.Name.Local + `="` + escapeAttr(attr.Value) + `"`)
+			b.WriteByte(' ')
+			b.WriteString(attr.Name.Local)
+			b.WriteString(`="`)
+			writeEscapedAttr(b, attr.Value)
+			b.WriteByte('"')
 			continue
 		case attr.Name.Space == "" && attr.Name.Local == "xmlns":
 			// The default namespace, already written on the document element.
@@ -139,7 +143,12 @@ func (w *langWriter) writeAttrs(b *bytes.Buffer, attrs []xml.Attr) {
 		if name != "" {
 			name += ":"
 		}
-		b.WriteString(" " + name + attr.Name.Local + `="` + escapeAttr(attr.Value) + `"`)
+		b.WriteByte(' ')
+		b.WriteString(name)
+		b.WriteString(attr.Name.Local)
+		b.WriteString(`="`)
+		writeEscapedAttr(b, attr.Value)
+		b.WriteByte('"')
 	}
 }
 

@@ -1,0 +1,648 @@
+{
+  "baseline": "fdcc6eaf89531418b0555aa066219c64799ec266",
+  "cases": [
+    {
+      "seed": 0,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003cg/\u003e\u003cg/\u003e\u003cg\u003e\u003c/g\u003e\u003cg\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003cg/\u003e\u003cg/\u003e\u003cg\u003e\u003c/g\u003e\u003cg\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 1,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003csvg x=\"1\"\u003e\u003cuse xlink:href=\"#icon\" xml:lang=\"en\"/\u003e\u003c/svg\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003csvg x=\"1\"\u003e\u003cuse x:href=\"#icon\" f:label=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\" xml:lang=\"en\"/\u003e\u003c/svg\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 2,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cimage href=\"data:image/png,Ab09\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cimage href=\"data:image/png,Ab09\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 3,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cpath style=\"fill:url('#icon');stroke:URL( \u0026quot;#icon\u0026quot; )\" fill=\"url(#icon)\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cpath style=\"fill:url('#icon');stroke:URL( \u0026quot;#icon\u0026quot; )\" fill=\"url(#icon)\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 4,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cuse href=\"#icon\"/\u003e\u003cimage href=\"#icon\"/\u003e\u003ca/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cuse href=\"\u0026amp;#35;icon\"/\u003e\u003cimage href=\"\u0026amp;amp;#35;icon\"/\u003e\u003ca href=\"\u0026amp;amp;#35;icon\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 5,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003crect width=\"2\"/\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cmetadata\u003e\u003cunknown data=\"value\"\u003ediscard\u003c/unknown\u003e\u003c/metadata\u003e\u003cg onclick=\"alert(1)\" f:fill=\"url(external)\"\u003e\u003crect width=\"2\"/\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 6,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003ctext\u003ecafé \u0026amp; bye\u003c/text\u003e\u003crect class=\"\u0026#9;\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003ctext\u003ecafé \u0026amp; bye\u003c/text\u003e\u003crect class=\"\u0026#9;\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 7,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: text before root element",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 8,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: the document's own CSS",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cmetadata\u003e\u003cstyle\u003e.a { fill: red }\u003c/style\u003e\u003c/metadata\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 9,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: an inline style declaration",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"icon\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eHello \u0026amp; 世界\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003crect style=\"expression(1)\" fill=\"url(https://example.test/g)\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 10,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: a reference to a resource outside the document",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: unexpected EOF",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 11,
+      "sanitize": {
+        "error": "svg: invalid svg document: root element is \u003chtml\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: root element is \u003chtml\u003e",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 12,
+      "sanitize": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: element \u003cg\u003e closed by \u003c/svg\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: element \u003cg\u003e closed by \u003c/svg\u003e",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 13,
+      "sanitize": {
+        "error": "svg: invalid svg document: content after root element",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: content after root element",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 14,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: the document's own CSS",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cstyle/\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 15,
+      "sanitize": {
+        "error": "svg: invalid svg document: xml: opening charset \"windows-1252\": svg: invalid svg document: unsupported charset \"windows-1252\"",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: xml: opening charset \"windows-1252\": svg: invalid svg document: unsupported charset \"windows-1252\"",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 16,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003cg/\u003e\u003cg/\u003e\u003cg\u003e\u003c/g\u003e\u003cg\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003cg/\u003e\u003cg/\u003e\u003cg\u003e\u003c/g\u003e\u003cg\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 17,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003csvg x=\"1\"\u003e\u003cuse xlink:href=\"#icon\" xml:lang=\"en\"/\u003e\u003c/svg\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003csvg x=\"1\"\u003e\u003cuse x:href=\"#icon\" f:label=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\" xml:lang=\"en\"/\u003e\u003c/svg\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 18,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cimage href=\"DATA:IMAGE/JPEG;base64,Ab09\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cimage href=\"DATA:IMAGE/JPEG;base64,Ab09\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 19,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cpath style=\"fill:url('#icon');stroke:URL( \u0026quot;#icon\u0026quot; )\" fill=\"url(#icon)\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cpath style=\"fill:url('#icon');stroke:URL( \u0026quot;#icon\u0026quot; )\" fill=\"url(#icon)\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 20,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cuse href=\"#icon\"/\u003e\u003cimage href=\"#icon\"/\u003e\u003ca/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cuse href=\"\u0026amp;#35;icon\"/\u003e\u003cimage href=\"\u0026amp;amp;#35;icon\"/\u003e\u003ca href=\"\u0026amp;amp;#35;icon\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 21,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003crect width=\"2\"/\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cmetadata\u003e\u003cunknown data=\"value\"\u003ediscard\u003c/unknown\u003e\u003c/metadata\u003e\u003cg onclick=\"alert(1)\" f:fill=\"url(external)\"\u003e\u003crect width=\"2\"/\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 22,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003ctext\u003ecafé \u0026amp; bye\u003c/text\u003e\u003crect class=\"\u0026#9;\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003ctext\u003ecafé \u0026amp; bye\u003c/text\u003e\u003crect class=\"\u0026#9;\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 23,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: text before root element",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 24,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: the document's own CSS",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cmetadata\u003e\u003cstyle\u003e.a { fill: red }\u003c/style\u003e\u003c/metadata\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 25,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: a reference to a resource outside the document",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"a\u0026#9;b\u0026#10;c\u0026#13;d\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003eПривет \u0026lt; svg \u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eFrançais\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003crect fill=\"url(https://example.test/g)\" style=\"expression(1)\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 26,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: a reference to a resource outside the document",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: unexpected EOF",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 27,
+      "sanitize": {
+        "error": "svg: invalid svg document: root element is \u003chtml\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: root element is \u003chtml\u003e",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 28,
+      "sanitize": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: element \u003cg\u003e closed by \u003c/svg\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: element \u003cg\u003e closed by \u003c/svg\u003e",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 29,
+      "sanitize": {
+        "error": "svg: invalid svg document: content after root element",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: content after root element",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 30,
+      "sanitize": {
+        "error": "svg: invalid svg document: exceeds max element depth 256",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: exceeds max element depth 256",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 31,
+      "sanitize": {
+        "error": "svg: invalid svg document: xml: opening charset \"windows-1252\": svg: invalid svg document: unsupported charset \"windows-1252\"",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: xml: opening charset \"windows-1252\": svg: invalid svg document: unsupported charset \"windows-1252\"",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 32,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003cg/\u003e\u003cg/\u003e\u003cg\u003e\u003c/g\u003e\u003cg\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003cg/\u003e\u003cg/\u003e\u003cg\u003e\u003c/g\u003e\u003cg\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 33,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003csvg x=\"1\"\u003e\u003cuse xlink:href=\"#icon\" xml:lang=\"en\"/\u003e\u003c/svg\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003csvg x=\"1\"\u003e\u003cuse x:href=\"#icon\" f:label=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\" xml:lang=\"en\"/\u003e\u003c/svg\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 34,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cimage href=\"data:İmage/tiff,世界\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cimage href=\"data:İmage/tiff,世界\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 35,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cpath style=\"fill:url('#icon');stroke:URL( \u0026quot;#icon\u0026quot; )\" fill=\"url(#icon)\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cpath style=\"fill:url('#icon');stroke:URL( \u0026quot;#icon\u0026quot; )\" fill=\"url(#icon)\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 36,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cuse href=\"#icon\"/\u003e\u003cimage href=\"#icon\"/\u003e\u003ca/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cuse href=\"\u0026amp;#35;icon\"/\u003e\u003cimage href=\"\u0026amp;amp;#35;icon\"/\u003e\u003ca href=\"\u0026amp;amp;#35;icon\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 37,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003crect width=\"2\"/\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cmetadata\u003e\u003cunknown data=\"value\"\u003ediscard\u003c/unknown\u003e\u003c/metadata\u003e\u003cg onclick=\"alert(1)\" f:fill=\"url(external)\"\u003e\u003crect width=\"2\"/\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 38,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003ctext\u003ecafé \u0026amp; bye\u003c/text\u003e\u003crect class=\"\u0026#9;\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003ctext\u003ecafé \u0026amp; bye\u003c/text\u003e\u003crect class=\"\u0026#9;\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 39,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: text before root element",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 40,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: the document's own CSS",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cmetadata\u003e\u003cstyle\u003e.a { fill: red }\u003c/style\u003e\u003c/metadata\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 41,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: an inline style declaration",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"http://www.w3.org/1999/xlink\" f=\"urn:foreign\" viewBox=\"0 0 24 24\" class=\"\u0026amp;\u0026lt;\u003e\u0026quot;'\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\ttext\n\u003c/text\u003e\u003cswitch\u003e\u003ctext\u003eEnglish\u003c/text\u003e\u003ctext\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003crect style=\"expression(1)\" fill=\"url(https://example.test/g)\"/\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 42,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: a reference to a resource outside the document",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: unexpected EOF",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 43,
+      "sanitize": {
+        "error": "svg: invalid svg document: root element is \u003chtml\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: root element is \u003chtml\u003e",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 44,
+      "sanitize": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: element \u003cg\u003e closed by \u003c/svg\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: element \u003cg\u003e closed by \u003c/svg\u003e",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 45,
+      "sanitize": {
+        "error": "svg: invalid svg document: content after root element",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: content after root element",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 46,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: the document's own CSS",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cg\u003e\u003cstyle/\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      }
+    },
+    {
+      "seed": 47,
+      "sanitize": {
+        "error": "svg: invalid svg document: xml: opening charset \"windows-1252\": svg: invalid svg document: unsupported charset \"windows-1252\"",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: xml: opening charset \"windows-1252\": svg: invalid svg document: unsupported charset \"windows-1252\"",
+        "kind": "invalid-svg"
+      }
+    },
+    {
+      "seed": 48,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"世界İ\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\"'\u0026amp;\u0026lt;\u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003cg/\u003e\u003cg/\u003e\u003cg\u003e\u003c/g\u003e\u003cg\u003e\u003c/g\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 49,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"世界İ\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\"'\u0026amp;\u0026lt;\u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003csvg x=\"1\"\u003e\u003cuse xlink:href=\"#icon\" xml:lang=\"en\"/\u003e\u003c/svg\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 50,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"世界İ\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\"'\u0026amp;\u0026lt;\u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cimage href=\"#icon\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 51,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"世界İ\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\"'\u0026amp;\u0026lt;\u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cpath style=\"fill:url('#icon');stroke:URL( \u0026quot;#icon\u0026quot; )\" fill=\"url(#icon)\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 52,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"世界İ\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\"'\u0026amp;\u0026lt;\u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cuse href=\"#icon\"/\u003e\u003cimage href=\"#icon\"/\u003e\u003ca/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 53,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"世界İ\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\"'\u0026amp;\u0026lt;\u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003cg\u003e\u003crect width=\"2\"/\u003e\u003c/g\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 54,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\u003e\u003ctext\u003ecafé \u0026amp; bye\u003c/text\u003e\u003crect class=\"\u0026#9;\"/\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 55,
+      "sanitize": {
+        "output": "\u003c?xml version=\"1.0\" encoding=\"UTF-8\"?\u003e\u003csvg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 24 24\" class=\"世界İ\"\u003e\u003cdefs\u003e\u003cpath id=\"icon\" d=\"M0 0h1v1Z\"/\u003e\u003c/defs\u003e\u003ctext xml:space=\"preserve\"\u003e\"'\u0026amp;\u0026lt;\u0026gt;\u003c/text\u003e\u003cswitch\u003e\u003ctext systemLanguage=\"en\"\u003eEnglish\u003c/text\u003e\u003ctext systemLanguage=\"fr\"\u003eFrançais\u003c/text\u003e\u003ctext systemLanguage=\"zh\"\u003e中文\u003c/text\u003e\u003ctext\u003eDefault\u003c/text\u003e\u003c/switch\u003e\u003c/svg\u003e"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 56,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: the document's own CSS",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 57,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: a reference to a resource outside the document",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 58,
+      "sanitize": {
+        "error": "svg: serving this document would change how it looks: a reference to a resource outside the document",
+        "kind": "rendering-changed"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 59,
+      "sanitize": {
+        "error": "svg: invalid svg document: root element is \u003chtml\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 60,
+      "sanitize": {
+        "error": "svg: invalid svg document: XML syntax error on line 1: element \u003cg\u003e closed by \u003c/svg\u003e",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 61,
+      "sanitize": {
+        "error": "svg: invalid svg document: content after root element",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 62,
+      "sanitize": {
+        "error": "svg: invalid svg document: exceeds max element depth 256",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: \"en_US\"",
+        "kind": "invalid-language-tag"
+      }
+    },
+    {
+      "seed": 63,
+      "sanitize": {
+        "error": "svg: invalid svg document: xml: opening charset \"windows-1252\": svg: invalid svg document: unsupported charset \"windows-1252\"",
+        "kind": "invalid-svg"
+      },
+      "select_language": {
+        "error": "svg: invalid svg document: invalid language tag: no tag requested",
+        "kind": "invalid-language-tag"
+      }
+    }
+  ]
+}
