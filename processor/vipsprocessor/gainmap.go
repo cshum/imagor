@@ -52,23 +52,17 @@ func flipGainmap(img *vips.Image, direction vips.Direction) error {
 	return nil
 }
 
-// cropGainmap crops the gain map to the region the image keeps. Call it
-// before the crop.
-func cropGainmap(img *vips.Image, left, top, width, height int) error {
-	gainmap, err := gainmapOf(img)
-	if err != nil || gainmap == nil {
-		return err
-	}
-	defer gainmap.Close()
+// scaledRect maps a rectangle in image pixels onto the gain map.
+func scaledRect(img, gainmap *vips.Image, left, top, width, height int) (x, y, w, h int) {
 	if img.Width() == 0 || img.PageHeight() == 0 {
-		return nil
+		return 0, 0, 0, 0
 	}
 	scaleX := float64(gainmap.Width()) / float64(img.Width())
 	scaleY := float64(gainmap.PageHeight()) / float64(img.PageHeight())
-	x := int(math.Round(float64(left) * scaleX))
-	y := int(math.Round(float64(top) * scaleY))
-	w := int(math.Round(float64(width) * scaleX))
-	h := int(math.Round(float64(height) * scaleY))
+	x = int(math.Round(float64(left) * scaleX))
+	y = int(math.Round(float64(top) * scaleY))
+	w = int(math.Round(float64(width) * scaleX))
+	h = int(math.Round(float64(height) * scaleY))
 	if x < 0 {
 		x = 0
 	}
@@ -81,10 +75,58 @@ func cropGainmap(img *vips.Image, left, top, width, height int) error {
 	if h > gainmap.PageHeight()-y {
 		h = gainmap.PageHeight() - y
 	}
+	return
+}
+
+// cropGainmap crops the gain map to the region the image keeps. Call it
+// before the crop.
+func cropGainmap(img *vips.Image, left, top, width, height int) error {
+	gainmap, err := gainmapOf(img)
+	if err != nil || gainmap == nil {
+		return err
+	}
+	defer gainmap.Close()
+	x, y, w, h := scaledRect(img, gainmap, left, top, width, height)
 	if w <= 0 || h <= 0 {
 		return nil
 	}
 	if err = gainmap.ExtractArea(x, y, w, h); err != nil {
+		return err
+	}
+	img.SetGainmap(gainmap)
+	return nil
+}
+
+// scaledCanvas maps a target canvas and offset onto the gain map. Unlike a
+// crop, the result can extend past the gain map, so it is not clamped.
+func scaledCanvas(img, gainmap *vips.Image, left, top, width, height int) (x, y, w, h int) {
+	if img.Width() == 0 || img.PageHeight() == 0 {
+		return 0, 0, 0, 0
+	}
+	scaleX := float64(gainmap.Width()) / float64(img.Width())
+	scaleY := float64(gainmap.PageHeight()) / float64(img.PageHeight())
+	x = int(math.Round(float64(left) * scaleX))
+	y = int(math.Round(float64(top) * scaleY))
+	w = int(math.Round(float64(width) * scaleX))
+	h = int(math.Round(float64(height) * scaleY))
+	if w < 1 {
+		w = 1
+	}
+	if h < 1 {
+		h = 1
+	}
+	return
+}
+
+// embedGainmap pads the gain map like the image, with no boost in the padding.
+func embedGainmap(img *vips.Image, left, top, width, height int, opts *vips.EmbedMultiPageOptions) error {
+	gainmap, err := gainmapOf(img)
+	if err != nil || gainmap == nil {
+		return err
+	}
+	defer gainmap.Close()
+	x, y, w, h := scaledCanvas(img, gainmap, left, top, width, height)
+	if err = gainmap.EmbedMultiPage(x, y, w, h, opts); err != nil {
 		return err
 	}
 	img.SetGainmap(gainmap)

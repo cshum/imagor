@@ -458,6 +458,9 @@ func (v *Processor) Thumbnail(
 
 // FocalThumbnail handles thumbnail with custom focal point
 func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, imgAspect, fx, fy float64) (err error) {
+	if err = attachGainmap(img); err != nil {
+		return
+	}
 	if float64(w)/float64(h) > imgAspect {
 		if err = img.ThumbnailImage(w, &vips.ThumbnailImageOptions{
 			Height: v.MaxHeight, Crop: vips.InterestingNone,
@@ -476,6 +479,9 @@ func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, imgAspect, fx, fy 
 	top = float64(img.PageHeight())*fy - float64(h)/2
 	left = math.Max(0, math.Min(left, float64(img.Width()-w)))
 	top = math.Max(0, math.Min(top, float64(img.PageHeight()-h)))
+	if err = cropGainmap(img, int(left), int(top), w, h); err != nil {
+		return
+	}
 	return img.ExtractAreaMultiPage(int(left), int(top), w, h)
 }
 
