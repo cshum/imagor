@@ -221,6 +221,9 @@ func proportion(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...s
 	if width <= 0 || height <= 0 {
 		return // op ops
 	}
+	if err = attachGainmap(img); err != nil {
+		return
+	}
 	return true, img.ThumbnailImage(width, &vips.ThumbnailImageOptions{
 		Height: height,
 		Crop:   vips.InterestingNone,
@@ -459,7 +462,10 @@ func trim(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 	if ln > 1 {
 		pos = args[1]
 	}
-	if l, t, w, h, err := findTrim(ctx, img, pos, tolerance); err == nil {
+	if l, t, w, h, trimErr := findTrim(ctx, img, pos, tolerance); trimErr == nil {
+		if err = cropGainmap(img, l, t, w, h); err != nil {
+			return
+		}
 		return true, img.ExtractAreaMultiPage(l, t, w, h)
 	}
 	return
@@ -506,6 +512,9 @@ func crop(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ...string)
 		return
 	}
 
+	if err = cropGainmap(img, int(left), int(top), int(width), int(height)); err != nil {
+		return
+	}
 	return true, img.ExtractAreaMultiPage(int(left), int(top), int(width), int(height))
 }
 

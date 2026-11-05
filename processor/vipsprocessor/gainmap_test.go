@@ -63,6 +63,65 @@ func TestFlipGainmap(t *testing.T) {
 	assert.Equal(t, height, gotHeight)
 }
 
+func TestAttachGainmap(t *testing.T) {
+	if !vips.HasOperation("uhdrload") {
+		t.Skip("libvips is built without libultrahdr")
+	}
+	img, err := vips.NewImageFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg"), nil)
+	require.NoError(t, err)
+	defer img.Close()
+
+	require.False(t, img.HasField("gainmap"))
+	require.NoError(t, attachGainmap(img))
+	assert.True(t, img.HasField("gainmap"))
+}
+
+func TestEmbedGainmap(t *testing.T) {
+	if !vips.HasOperation("uhdrload") {
+		t.Skip("libvips is built without libultrahdr")
+	}
+	img, err := vips.NewImageFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg"), nil)
+	require.NoError(t, err)
+	defer img.Close()
+
+	width, height := img.Width(), img.PageHeight()
+	gainmapWidth, gainmapHeight := gainmapSize(t, img)
+	opts := &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}
+	require.NoError(t, embedGainmap(img, 10, 20, width+20, height+40, opts))
+	require.NoError(t, img.EmbedMultiPage(10, 20, width+20, height+40, opts))
+	gotWidth, gotHeight := gainmapSize(t, img)
+	assert.InDelta(t, img.Width()*gainmapWidth/width, gotWidth, 2)
+	assert.InDelta(t, img.PageHeight()*gainmapHeight/height, gotHeight, 2)
+}
+
+func TestRotateGainmapArbitraryAngle(t *testing.T) {
+	if !vips.HasOperation("uhdrload") {
+		t.Skip("libvips is built without libultrahdr")
+	}
+	img, err := vips.NewImageFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg"), nil)
+	require.NoError(t, err)
+	defer img.Close()
+
+	require.NoError(t, rotateGainmap(img, 45))
+	width, height := gainmapSize(t, img)
+	assert.InDelta(t, width, height, 2)
+}
+
+func TestFlipGainmapVertical(t *testing.T) {
+	if !vips.HasOperation("uhdrload") {
+		t.Skip("libvips is built without libultrahdr")
+	}
+	img, err := vips.NewImageFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg"), nil)
+	require.NoError(t, err)
+	defer img.Close()
+
+	width, height := gainmapSize(t, img)
+	require.NoError(t, flipGainmap(img, vips.DirectionVertical))
+	gotWidth, gotHeight := gainmapSize(t, img)
+	assert.Equal(t, width, gotWidth)
+	assert.Equal(t, height, gotHeight)
+}
+
 func TestRotateGainmapWithoutGainmap(t *testing.T) {
 	img, err := vips.NewImageFromFile(filepath.Join(testDataDir, "demo1.jpg"), nil)
 	require.NoError(t, err)
