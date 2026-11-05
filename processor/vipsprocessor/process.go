@@ -470,7 +470,7 @@ func (v *Processor) loadAndProcess(
 		dpi                   = 0
 		err                   error
 	)
-	if p.Trim || p.VFlip || p.FullFitIn || p.AdaptiveFitIn {
+	if p.Trim || p.VFlip || p.HFlip || p.FullFitIn || p.AdaptiveFitIn {
 		thumbnailNotSupported = true
 	}
 	// When a detector is configured, load the full-resolution source so detection
@@ -812,6 +812,11 @@ func (v *Processor) applyTransformations(
 		}
 	}
 	if cropRight > cropLeft && cropBottom > cropTop {
+		if err := cropGainmap(img,
+			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
+		); err != nil {
+			return err
+		}
 		if err := img.ExtractAreaMultiPage(
 			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
 		); err != nil {
@@ -869,6 +874,9 @@ func (v *Processor) applyTransformations(
 			}
 
 			if upscale || w < imgW || h < imgH {
+				if err := attachGainmap(img); err != nil {
+					return err
+				}
 				opts := &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}
 				if err := img.ThumbnailImage(w, opts); err != nil {
 					return err
@@ -876,6 +884,9 @@ func (v *Processor) applyTransformations(
 			}
 		} else if stretch {
 			if upscale || (w < imgW && h < imgH) {
+				if err := attachGainmap(img); err != nil {
+					return err
+				}
 				if err := img.ThumbnailImage(
 					w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone, Size: vips.SizeForce},
 				); err != nil {
@@ -910,6 +921,9 @@ func (v *Processor) applyTransformations(
 					return err
 				}
 			} else {
+				if err := attachGainmap(img); err != nil {
+					return err
+				}
 				if err := v.Thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
 					return err
 				}
@@ -920,11 +934,17 @@ func (v *Processor) applyTransformations(
 		}
 	}
 	if p.HFlip {
+		if err := flipGainmap(img, vips.DirectionHorizontal); err != nil {
+			return err
+		}
 		if err := img.Flip(vips.DirectionHorizontal); err != nil {
 			return err
 		}
 	}
 	if p.VFlip {
+		if err := flipGainmap(img, vips.DirectionVertical); err != nil {
+			return err
+		}
 		if err := img.Flip(vips.DirectionVertical); err != nil {
 			return err
 		}
