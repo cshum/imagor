@@ -292,3 +292,21 @@ The `IMAGE` path at the end supports several special forms:
   /unsafe/400x400/color:ff8800
   /unsafe/400x400/color:none
   ```
+
+---
+
+## Image Formats
+
+imagor reads JPEG, PNG, WebP, AVIF, HEIF, JPEG XL, GIF, TIFF, JPEG 2000, SVG, PDF, BMP and camera RAW.
+
+It writes JPEG, PNG, WebP, AVIF, HEIF, JPEG XL, GIF, TIFF and JPEG 2000. Output defaults to the source format when imagor can write it, and to JPEG otherwise. Pick one with [`format()`](./filters.md#formatformat).
+
+SVG and PDF sources are rasterized. [`format(svg)`](./filters.md#formatsvg) serves an SVG source as the document itself instead.
+
+Formats libvips cannot read, such as PSD and XCF, need the [ImageMagick variant](./imagemagick-support.md).
+
+### Ultra HDR
+
+Ultra HDR photos are JPEGs with a gain map, as written by recent Android phones and iPhones. imagor reads and writes them as Ultra HDR JPEGs: resize, crop, trim, flip, rotate and padding apply the same geometry to the gain map, so HDR displays keep the highlights while SDR displays show the tone-mapped image.
+
+The gain map is dropped when the output is not JPEG, for example with `format(webp)`, or when metadata is stripped with `strip_metadata()` or `-vips-strip-metadata`. The [MozJPEG variant](./mozjpeg-support.md) writes JPEG without it.
