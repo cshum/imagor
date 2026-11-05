@@ -151,7 +151,7 @@ Adds a focal region or focal point for custom transformations.
 
 Specifies the output format of the image.
 
-- `format` — accepts `jpeg`, `png`, `gif`, `webp`, `avif`, `jxl`, `tiff`, `jp2`
+- `format` — accepts `jpeg`, `png`, `gif`, `webp`, `avif`, `heif`, `jxl`, `tiff`, `jp2`
 
 #### `format(svg)`
 
