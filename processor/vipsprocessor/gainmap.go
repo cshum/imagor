@@ -10,6 +10,10 @@ import (
 // geometry applied outside it.
 
 func gainmapOf(img *vips.Image) (*vips.Image, error) {
+	// Only UltraHDR JPEGs carry a gain map; Format() is a field read.
+	if img.Format() != vips.ImageTypeUhdr {
+		return nil, nil
+	}
 	gainmap, ok := img.Gainmap()
 	if !ok {
 		return nil, nil
