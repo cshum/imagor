@@ -34,6 +34,16 @@ For production-safe URLs, see [Security](./security.mdx). For the full filter pi
   - Base64 URLs: Use `b64:` prefix to encode image URLs with special characters as [base64url](https://developer.mozilla.org/en-US/docs/Glossary/Base64#url_and_filename_safe_base64)
   - Color image: Use `color:<color>` to generate a solid color or transparent image without loading from a source. See [Color Image](./color-image.md) section.
 
+## Image Formats
+
+imagor reads JPEG, PNG, WebP, AVIF, HEIF, JPEG XL, GIF, TIFF, JPEG 2000, SVG, PDF, BMP and camera RAW.
+
+It writes JPEG, PNG, WebP, AVIF, HEIF, JPEG XL, GIF, TIFF and JPEG 2000. Output defaults to the source format when imagor can write it, and to JPEG otherwise. Pick one with [`format()`](./filters.md#formatformat).
+
+SVG and PDF sources are rasterized. [`format(svg)`](./filters.md#formatsvg) serves an SVG source as the document itself instead.
+
+PSD, XCF and other legacy formats need the [ImageMagick variant](./imagemagick-support.md), which retries a failed load through `magickload`. The default image never calls ImageMagick.
+
 ---
 
 ## Resize & Crop
@@ -295,17 +305,7 @@ The `IMAGE` path at the end supports several special forms:
 
 ---
 
-## Image Formats
-
-imagor reads JPEG, PNG, WebP, AVIF, HEIF, JPEG XL, GIF, TIFF, JPEG 2000, SVG, PDF, BMP and camera RAW.
-
-It writes JPEG, PNG, WebP, AVIF, HEIF, JPEG XL, GIF, TIFF and JPEG 2000. Output defaults to the source format when imagor can write it, and to JPEG otherwise. Pick one with [`format()`](./filters.md#formatformat).
-
-SVG and PDF sources are rasterized. [`format(svg)`](./filters.md#formatsvg) serves an SVG source as the document itself instead.
-
-Formats libvips cannot read, such as PSD and XCF, need the [ImageMagick variant](./imagemagick-support.md).
-
-### Ultra HDR
+## Ultra HDR
 
 Ultra HDR photos are JPEGs with a gain map, as written by recent Android phones and iPhones. imagor reads and writes them as Ultra HDR JPEGs: resize, crop, trim, flip, rotate and padding apply the same geometry to the gain map, so HDR displays keep the highlights while SDR displays show the tone-mapped image.
 
