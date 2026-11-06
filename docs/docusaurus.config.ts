@@ -12,6 +12,9 @@ const config: Config = {
   // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl: "/",
 
+  // Cloudflare Pages serves directory URLs; keep generated links in the same form
+  trailingSlash: true,
+
   // GitHub pages deployment config.
   organizationName: "cshum",
   projectName: "imagor",
