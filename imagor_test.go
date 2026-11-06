@@ -1416,6 +1416,125 @@ func TestWithProcessConcurrency(t *testing.T) {
 	assert.Equal(t, 4, result[429])
 }
 
+func TestSkipStorage(t *testing.T) {
+	app := New(WithStorageSkipPrefixes("museado", "/nara/", "", "  ", "s3://bucket"))
+	assert.True(t, app.skipStorage("museado"))
+	assert.True(t, app.skipStorage("/museado"))
+	assert.True(t, app.skipStorage("museado/a.jpg"))
+	assert.True(t, app.skipStorage("museado/a/b.jpg"))
+	assert.False(t, app.skipStorage("museado2/a.jpg"))
+	assert.True(t, app.skipStorage("nara/a.jpg"))
+	assert.True(t, app.skipStorage("s3://bucket/a.jpg"))
+	assert.False(t, app.skipStorage("other/a.jpg"))
+	assert.False(t, New().skipStorage("museado/a.jpg"))
+}
+
+func TestWithStorageSkipPrefixes(t *testing.T) {
+	store := newMapStore()
+	resultStore := newMapStore()
+	app := New(
+		WithStorages(store),
+		WithResultStorages(resultStore),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+		WithUnsafe(true),
+		WithStorageSkipPrefixes("museado/"),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/100x100/museado/a.jpg", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "museado/a.jpg", w.Body.String())
+	assert.Equal(t, 0, store.saveCount("museado/a.jpg"), "skipped source must not be saved")
+	assert.Equal(t, 1, resultStore.saveCount("100x100/museado/a.jpg"), "result storage still saves")
+
+	// A skipped source must not be re-read from storage once a result is cached.
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/100x100/museado/a.jpg", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 1, resultStore.loadCount("100x100/museado/a.jpg"))
+	assert.Equal(t, 0, store.loadCountLen())
+
+	// Images outside the prefixes keep the default copy behaviour.
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/100x100/other/a.jpg", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 1, store.saveCount("other/a.jpg"))
+}
+
+func TestWithStorageSkipPrefixesDisablesFanout(t *testing.T) {
+	store := newMapStore()
+	app := New(
+		WithStorages(store),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("source")), nil
+		})),
+		WithProcessors(processorFunc(func(
+			ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc,
+		) (*Blob, error) {
+			assert.False(t, blob.fanout, "no concurrent save, so no fanout buffering")
+			return NewBlobFromBytes([]byte("out")), nil
+		})),
+		WithUnsafe(true),
+		WithStorageSkipPrefixes("museado/"),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/museado/a.jpg", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, 0, store.saveCount("museado/a.jpg"))
+}
+
+func TestWithStorageSkipPrefixesIgnoresStoredCopy(t *testing.T) {
+	store := newMapStore()
+	require.NoError(t, store.Put(context.Background(), "museado/a.jpg", NewBlobFromBytes([]byte("stored"))))
+	app := New(
+		WithStorages(store),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("origin")), nil
+		})),
+		WithUnsafe(true),
+		WithStorageSkipPrefixes("museado/"),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/museado/a.jpg", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "origin", w.Body.String())
+	assert.Equal(t, 0, store.loadCount("museado/a.jpg"), "Storage must not be read for skipped prefixes")
+}
+
+func TestWithStorageSkipPrefixesDigestPathStyle(t *testing.T) {
+	store := newMapStore()
+	app := New(
+		WithStorages(store),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte(image)), nil
+		})),
+		WithUnsafe(true),
+		WithStoragePathStyle(imagorpath.DigestStorageHasher),
+		WithStorageSkipPrefixes("museado/"),
+	)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/museado/a.jpg", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, 0, store.saveCountLen(), "skipped source must not be saved under any digest key")
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, httptest.NewRequest(
+		http.MethodGet, "https://example.com/unsafe/other/a.jpg", nil))
+	time.Sleep(time.Millisecond * 10)
+	assert.Equal(t, 1, store.saveCount(imagorpath.DigestStorageHasher.Hash("other/a.jpg")))
+}
+
 func TestWithModifiedTimeCheck(t *testing.T) {
 	store := newMapStore()
 	resultStore := newMapStore()

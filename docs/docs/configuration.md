@@ -75,6 +75,7 @@ IMAGOR_SIGNER_TRUNCATE=    # Truncate URL signature to this length
 
 IMAGOR_RESULT_STORAGE_PATH_STYLE=original  # Result storage path style: original, digest, suffix
 IMAGOR_STORAGE_PATH_STYLE=original         # Loader storage path style: original, digest
+IMAGOR_STORAGE_SKIP_PREFIXES=              # Image prefixes read in place, never saved to Storage (csv)
 
 IMAGOR_CACHE_HEADER_TTL=168h              # HTTP Cache-Control max-age for successful responses (default 7d)
 IMAGOR_CACHE_HEADER_SWR=24h              # HTTP Cache-Control stale-while-revalidate (default 24h)

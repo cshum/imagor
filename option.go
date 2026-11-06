@@ -250,6 +250,16 @@ func WithStoragePathStyle(hasher imagorpath.StorageHasher) Option {
 	}
 }
 
+// WithStorageSkipPrefixes with image path prefixes read in place option. A
+// loaded image under one of these prefixes is loaded from its origin and never
+// read from or written to Storage. Prefixes match whole path parts; empty
+// prefixes are ignored.
+func WithStorageSkipPrefixes(prefixes ...string) Option {
+	return func(app *Imagor) {
+		app.StorageSkipPrefixes = append(app.StorageSkipPrefixes, prefixes...)
+	}
+}
+
 // WithSigner with URL signature signer option
 func WithSigner(signer imagorpath.Signer) Option {
 	return func(app *Imagor) {
