@@ -169,27 +169,45 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 					return
 				}
 			}
+			if err = embedGainmap(img, left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
+				return
+			}
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
 				return
 			}
 		} else if isBlack(c) {
+			if err = embedGainmap(img, left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
+				return
+			}
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
 				return
 			}
 		} else if isWhite(c) {
+			if err = embedGainmap(img, left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendWhite}); err != nil {
+				return
+			}
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendWhite}); err != nil {
 				return
 			}
 		} else {
-			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{
+			opts := &vips.EmbedMultiPageOptions{
 				Extend:     vips.ExtendBackground,
 				Background: c,
-			}); err != nil {
+			}
+			if err = embedGainmap(img, left, top, width, height, opts); err != nil {
+				return
+			}
+			if err = img.EmbedMultiPage(left, top, width, height, opts); err != nil {
 				return
 			}
 		}
 	} else {
 		// fill blur
+		// The blur fill resizes the image to the canvas, which updates the
+		// attached gain map; padding it here would scale it twice.
+		if err = attachGainmap(img); err != nil {
+			return
+		}
 		var cp *vips.Image
 		if cp, err = img.Copy(nil); err != nil {
 			return

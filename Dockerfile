@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.27.3
-ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.7-r17
+ARG BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.7-r20
 ARG DEV_BASE_IMAGE=${BASE_IMAGE}-dev
 
 FROM golang:${GOLANG_VERSION}-bookworm AS golang-base

@@ -683,6 +683,9 @@ func (v *Processor) loadAndProcess(
 		if err = img.RotMultiPage(getAngle(orient)); err != nil {
 			return nil, err
 		}
+		if err = rotateGainmap(img, float64(int(getAngle(orient)))); err != nil {
+			return nil, err
+		}
 		// clear EXIF orientation to prevent unexpected rotation from ThumbnailImage
 		if err = img.RemoveOrientation(); err != nil {
 			return nil, err
@@ -810,6 +813,11 @@ func (v *Processor) applyTransformations(
 		}
 	}
 	if cropRight > cropLeft && cropBottom > cropTop {
+		if err := cropGainmap(img,
+			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
+		); err != nil {
+			return err
+		}
 		if err := img.ExtractAreaMultiPage(
 			int(cropLeft), int(cropTop), int(cropRight-cropLeft), int(cropBottom-cropTop),
 		); err != nil {
@@ -867,6 +875,9 @@ func (v *Processor) applyTransformations(
 			}
 
 			if upscale || w < imgW || h < imgH {
+				if err := attachGainmap(img); err != nil {
+					return err
+				}
 				opts := &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}
 				if err := img.ThumbnailImage(w, opts); err != nil {
 					return err
@@ -874,6 +885,9 @@ func (v *Processor) applyTransformations(
 			}
 		} else if stretch {
 			if upscale || (w < imgW && h < imgH) {
+				if err := attachGainmap(img); err != nil {
+					return err
+				}
 				if err := img.ThumbnailImage(
 					w, &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone, Size: vips.SizeForce},
 				); err != nil {
@@ -908,6 +922,9 @@ func (v *Processor) applyTransformations(
 					return err
 				}
 			} else {
+				if err := attachGainmap(img); err != nil {
+					return err
+				}
 				if err := v.Thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {
 					return err
 				}
@@ -918,11 +935,17 @@ func (v *Processor) applyTransformations(
 		}
 	}
 	if p.HFlip {
+		if err := flipGainmap(img, vips.DirectionHorizontal); err != nil {
+			return err
+		}
 		if err := img.Flip(vips.DirectionHorizontal); err != nil {
 			return err
 		}
 	}
 	if p.VFlip {
+		if err := flipGainmap(img, vips.DirectionVertical); err != nil {
+			return err
+		}
 		if err := img.Flip(vips.DirectionVertical); err != nil {
 			return err
 		}
