@@ -26,10 +26,10 @@ keywords:
 
 ## Projects
 
-- [**cshum/imagor-base**](https://github.com/cshum/imagor-base) - Shared Docker base images for imagor-family projects
 - [**cshum/imagor-mcp**](./imagor-mcp.md) — An MCP server and a skill that add a template layer to imagor. An agent writes a layout: OG cards, product grids, quotes, testimonials, and it compiles to one imagor URL.
 - [**cshum/imagor-studio**](https://github.com/cshum/imagor-studio) — Self-hosted image workspace with built-in editing, layered compositing, and reusable templates
 - [**codedoga/imagor-toy**](https://github.com/codedoga/imagor-toy) - A ReactJS based app to play with Imagor
+- [**cshum/imagor-base**](https://github.com/cshum/imagor-base) - Shared Docker base images for imagor-family projects
 
 ## Blog Posts & Articles
 
