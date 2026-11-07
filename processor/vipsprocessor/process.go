@@ -683,7 +683,8 @@ func (v *Processor) loadAndProcess(
 		if err = img.RotMultiPage(getAngle(orient)); err != nil {
 			return nil, err
 		}
-		if err = rotateGainmap(img, float64(int(getAngle(orient)))); err != nil {
+		// the enum the base rotates by, expressed in degrees
+		if err = rotateGainmap(img, float64(int(getAngle(orient)))*90); err != nil {
 			return nil, err
 		}
 		// clear EXIF orientation to prevent unexpected rotation from ThumbnailImage
