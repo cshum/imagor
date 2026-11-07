@@ -448,17 +448,7 @@ func toColorspace(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ..
 
 func stripExif(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (processed bool, err error) {
 	if img.Format() == vips.ImageTypeUhdr {
-		// RemoveExif drops the gain map metadata, so remove the identifying
-		// fields one by one and leave the image intact.
-		for _, field := range img.GetFields() {
-			if strings.HasPrefix(field, "exif") ||
-				strings.HasPrefix(field, "iptc") ||
-				strings.HasPrefix(field, "xmp") ||
-				field == "xml" {
-				img.RemoveField(field)
-			}
-		}
-		return true, nil
+		return true, stripExifKeepingGainmap(img)
 	}
 	return true, img.RemoveExif()
 }

@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"math"
+	"strings"
 
 	"github.com/cshum/vipsgen/v2/vips"
 )
@@ -138,5 +139,19 @@ func attachGainmap(img *vips.Image) error {
 	}
 	defer gainmap.Close()
 	img.SetGainmap(gainmap)
+	return nil
+}
+
+// stripExifKeepingGainmap removes the identifying metadata fields one by one.
+// RemoveExif would drop the gain map fields with them.
+func stripExifKeepingGainmap(img *vips.Image) error {
+	for _, field := range img.GetFields() {
+		if strings.HasPrefix(field, "exif") ||
+			strings.HasPrefix(field, "iptc") ||
+			strings.HasPrefix(field, "xmp") ||
+			field == "xml" {
+			img.RemoveField(field)
+		}
+	}
 	return nil
 }
