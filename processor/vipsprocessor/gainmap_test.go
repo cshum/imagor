@@ -86,9 +86,10 @@ func TestEmbedGainmap(t *testing.T) {
 
 	width, height := img.Width(), img.PageHeight()
 	gainmapWidth, gainmapHeight := gainmapSize(t, img)
-	opts := &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}
-	require.NoError(t, embedGainmap(img, 10, 20, width+20, height+40, opts))
-	require.NoError(t, img.EmbedMultiPage(10, 20, width+20, height+40, opts))
+	require.NoError(t, embedGainmap(img, 10, 20, width+20, height+40,
+		&vips.EmbedOptions{Extend: vips.ExtendBlack}))
+	require.NoError(t, img.EmbedMultiPage(10, 20, width+20, height+40,
+		&vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}))
 	gotWidth, gotHeight := gainmapSize(t, img)
 	assert.InDelta(t, img.Width()*gainmapWidth/width, gotWidth, 2)
 	assert.InDelta(t, img.PageHeight()*gainmapHeight/height, gotHeight, 2)

@@ -56,9 +56,10 @@ func TestGainmapFilters(t *testing.T) {
 	t.Run("trim", func(t *testing.T) {
 		img := loadUltraHDR(t)
 		defer img.Close()
-		opts := &vips.EmbedMultiPageOptions{Extend: vips.ExtendWhite}
-		require.NoError(t, embedGainmap(img, 60, 60, srcWidth+120, srcHeight+120, opts))
-		require.NoError(t, img.EmbedMultiPage(60, 60, srcWidth+120, srcHeight+120, opts))
+		require.NoError(t, embedGainmap(img, 60, 60, srcWidth+120, srcHeight+120,
+			&vips.EmbedOptions{Extend: vips.ExtendWhite}))
+		require.NoError(t, img.EmbedMultiPage(60, 60, srcWidth+120, srcHeight+120,
+			&vips.EmbedMultiPageOptions{Extend: vips.ExtendWhite}))
 
 		processed, err := trim(context.Background(), img, nil, "10")
 		require.NoError(t, err)
@@ -95,7 +96,7 @@ func TestGainmapHelperEdges(t *testing.T) {
 		require.NoError(t, attachGainmap(img))
 		require.NoError(t, cropGainmap(img, 10, 10, 100, 100))
 		require.NoError(t, embedGainmap(img, 10, 10, img.Width()+20, img.PageHeight()+20,
-			&vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}))
+			&vips.EmbedOptions{Extend: vips.ExtendBlack}))
 		require.NoError(t, rotateGainmap(img, 90))
 		require.NoError(t, flipGainmap(img, vips.DirectionHorizontal))
 	})
@@ -124,6 +125,7 @@ func TestUltraHDRPipeline(t *testing.T) {
 		{"filters:proportion(50)/ultra-hdr.jpg", int(float64(srcWidth) * 0.5), int(float64(srcHeight) * 0.5)},
 		{"filters:crop(0.1,0.1,0.8,0.8)/ultra-hdr.jpg", 0, 0},
 		{"filters:rotate(90)/ultra-hdr.jpg", srcHeight, srcWidth},
+		{"filters:orient(90)/ultra-hdr.jpg", srcHeight, srcWidth},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
