@@ -317,7 +317,11 @@ func blur(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 		sigma /= 2
 	}
 	if sigma > 0 {
-		return true, img.Gaussblur(sigma, nil)
+		width := img.Width()
+		if err = img.Gaussblur(sigma, nil); err != nil {
+			return true, err
+		}
+		return true, blurGainmap(img, sigma, width)
 	}
 	return
 }
