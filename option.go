@@ -147,6 +147,13 @@ func WithUnsafe(unsafe bool) Option {
 	}
 }
 
+// WithAutoJXL with auto JPEG XL option based on browser Accept header
+func WithAutoJXL(enable bool) Option {
+	return func(app *Imagor) {
+		app.AutoJXL = enable
+	}
+}
+
 // WithAutoWebP with auto WebP option based on browser Accept header
 func WithAutoWebP(enable bool) Option {
 	return func(app *Imagor) {
@@ -154,7 +161,7 @@ func WithAutoWebP(enable bool) Option {
 	}
 }
 
-// WithAutoAVIF experimental with auto AVIF option based on browser Accept header
+// WithAutoAVIF with auto AVIF option based on browser Accept header
 func WithAutoAVIF(enable bool) Option {
 	return func(app *Imagor) {
 		app.AutoAVIF = enable

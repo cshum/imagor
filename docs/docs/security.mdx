@@ -302,7 +302,7 @@ IMAGOR_PROCESS_QUEUE_SIZE=100       # max queued jobs before 429 is returned
 
 ## SVG Pass-through
 
-imagor renders SVG as an image by default: JPEG, WebP with `IMAGOR_AUTO_WEBP=1`, AVIF with `IMAGOR_AUTO_AVIF=1`, or whatever a [`format()`](./filters.md#formatformat) filter asks for. Serving the SVG itself means any script in it runs from imagor's origin, so imagor sanitizes the SVG document before serving it.
+imagor renders SVG as an image: JPEG, or whatever a [`format()`](./filters.md#formatformat) filter or the `Accept` header asks for. Serving the SVG itself means any script in it runs from imagor's origin, so imagor sanitizes the SVG document before serving it.
 
 Both `IMAGOR_PASSTHROUGH_FORMATS=svg` and [`format(svg)`](./filters.md#formatsvg) return that document, sanitized.
 

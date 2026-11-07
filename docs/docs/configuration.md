@@ -63,7 +63,8 @@ IMAGOR_SECRET=             # Secret key for URL signing
 IMAGOR_UNSAFE=1            # Disable URL signature check (development only)
 
 IMAGOR_AUTO_WEBP=1         # Serve WebP automatically if browser supports
-IMAGOR_AUTO_AVIF=1         # Serve AVIF automatically if browser supports (experimental)
+IMAGOR_AUTO_AVIF=1         # Serve AVIF automatically if browser supports
+IMAGOR_AUTO_JXL=1          # Serve JPEG XL automatically if browser supports
 IMAGOR_AUTO_JPEG=1         # Serve JPEG automatically if JPEG or no format requested
 
 IMAGOR_PASSTHROUGH_FORMATS=svg  # Serve a source format as-is for requests that ask for nothing: svg, or unset
@@ -95,6 +96,18 @@ IMAGOR_DISABLE_PARAMS_ENDPOINT=1  # Disable /params debug endpoint
 IMAGOR_DISABLE_ERROR_BODY=1    # Omit response body on errors
 IMAGOR_RESPONSE_RAW_ON_ERROR=1 # Return raw source image on processing error
 ```
+
+### Auto format
+
+imagor picks the output format from the `Accept` header when the URL names none. A [`format()`](./filters.md#formatformat) filter overrides it.
+
+- `image/jxl` — JPEG XL
+- `image/avif` — AVIF
+- `image/webp` — WebP
+- `image/jpeg`, `image/*`, `*/*`, no header — JPEG
+- anything else — the source format
+
+WebP is the fallback for JPEG XL and AVIF, since it supports animation.
 
 ## HTTP Loader
 

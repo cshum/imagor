@@ -33,6 +33,7 @@ func TestDefault(t *testing.T) {
 	assert.Empty(t, app.ProcessConcurrency)
 	assert.Empty(t, app.BaseParams)
 	assert.False(t, app.ModifiedTimeCheck)
+	assert.False(t, app.AutoJXL)
 	assert.False(t, app.AutoWebP)
 	assert.False(t, app.AutoAVIF)
 	assert.False(t, app.AutoJPEG)
@@ -60,6 +61,7 @@ func TestBasic(t *testing.T) {
 		"-port", "2345",
 		"-imagor-secret", "foo",
 		"-imagor-unsafe",
+		"-imagor-auto-jxl",
 		"-imagor-auto-webp",
 		"-imagor-auto-avif",
 		"-imagor-auto-jpeg",
@@ -84,6 +86,7 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, ":2345", srv.Addr)
 	assert.True(t, app.Debug)
 	assert.True(t, app.Unsafe)
+	assert.True(t, app.AutoJXL)
 	assert.True(t, app.AutoWebP)
 	assert.True(t, app.AutoAVIF)
 	assert.True(t, app.AutoJPEG)

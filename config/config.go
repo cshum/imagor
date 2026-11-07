@@ -41,7 +41,9 @@ func NewImagor(
 		imagorAutoWebP = fs.Bool("imagor-auto-webp", false,
 			"Output WebP format automatically if browser supports")
 		imagorAutoAVIF = fs.Bool("imagor-auto-avif", false,
-			"Output AVIF format automatically if browser supports (experimental)")
+			"Output AVIF format automatically if browser supports")
+		imagorAutoJXL = fs.Bool("imagor-auto-jxl", false,
+			"Output JPEG XL format automatically if browser supports")
 		imagorAutoJPEG = fs.Bool("imagor-auto-jpeg", false,
 			"Output JPEG format automatically if JPEG or no specific format is requested")
 		imagorRequestTimeout = fs.Duration("imagor-request-timeout",
@@ -126,6 +128,7 @@ func NewImagor(
 		imagor.WithCacheHeaderNoCache(*imagorCacheHeaderNoCache),
 		imagor.WithAutoWebP(*imagorAutoWebP),
 		imagor.WithAutoAVIF(*imagorAutoAVIF),
+		imagor.WithAutoJXL(*imagorAutoJXL),
 		imagor.WithAutoJPEG(*imagorAutoJPEG),
 		imagor.WithModifiedTimeCheck(*imagorModifiedTimeCheck),
 		imagor.WithDisableErrorBody(*imagorDisableErrorBody),

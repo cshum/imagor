@@ -135,6 +135,28 @@ func TestProcessor(t *testing.T) {
 			{name: "lossless skips max_bytes retry", path: "filters:format(webp):lossless():max_bytes(100)/gopher-front.png", arm64Golden: true},
 		}, WithDebug(true), WithLogger(zap.NewExample()))
 	})
+	t.Run("vips jxl keeps the libvips quality", func(t *testing.T) {
+		load := func(image string) (*imagor.Blob, error) {
+			return imagor.NewBlobFromFile(filepath.Join(testDataDir, "gopher-front.png")), nil
+		}
+		render := func(path string) []byte {
+			out, err := v.Process(context.Background(),
+				imagor.NewBlobFromFile(filepath.Join(testDataDir, "gopher-front.png")),
+				imagorpath.Parse(path), load)
+			require.NoError(t, err)
+			buf, err := out.ReadAll()
+			require.NoError(t, err)
+			return buf
+		}
+		// No filter means the quality of libvips, 75: the encoder stays out of
+		// it, and quality() is what decides.
+		def := render("100x100/filters:format(jxl)/gopher-front.png")
+		at75 := render("100x100/filters:format(jxl):quality(75)/gopher-front.png")
+		at90 := render("100x100/filters:format(jxl):quality(90)/gopher-front.png")
+		assert.Equal(t, at75, def)
+		assert.Less(t, len(def), len(at90))
+	})
+
 	t.Run("vips lossless webp round-trip", func(t *testing.T) {
 		src, err := vips.NewImageFromFile(filepath.Join(testDataDir, "gopher-front.png"), nil)
 		require.NoError(t, err)

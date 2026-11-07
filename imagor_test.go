@@ -1881,11 +1881,70 @@ func TestAutoJPEG(t *testing.T) {
 	})
 }
 
-func TestAutoFormatPrecedence(t *testing.T) {
-	factory := func(autoAVIF, autoWebP, autoJPEG bool) *Imagor {
+func TestAutoJXL(t *testing.T) {
+	factory := func(isAuto bool) *Imagor {
 		return New(
 			WithDebug(true),
 			WithUnsafe(true),
+			WithAutoJXL(isAuto),
+			WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+				return NewBlobFromBytes([]byte("foo")), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return NewBlobFromBytes([]byte(p.Path)), nil
+			})),
+			WithDebug(true))
+	}
+
+	t.Run("supported auto img tag not enabled", func(t *testing.T) {
+		app := factory(false)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jxl,image/avif,image/webp,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+	t.Run("supported auto img tag", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jxl,image/avif,image/webp,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, w.Body.String(), "filters:format(jxl)/abc.png")
+	})
+	t.Run("jxl not accepted", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "abc.png")
+	})
+	t.Run("explicit format no auto", func(t *testing.T) {
+		app := factory(true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/filters:format(jpg)/abc.png", nil)
+		r.Header.Set("Accept", "image/jxl,image/avif,image/webp,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, w.Body.String(), "filters:format(jpg)/abc.png")
+	})
+}
+
+func TestAutoFormatPrecedence(t *testing.T) {
+	factory := func(autoJXL, autoAVIF, autoWebP, autoJPEG bool) *Imagor {
+		return New(
+			WithDebug(true),
+			WithUnsafe(true),
+			WithAutoJXL(autoJXL),
 			WithAutoAVIF(autoAVIF),
 			WithAutoWebP(autoWebP),
 			WithAutoJPEG(autoJPEG),
@@ -1898,8 +1957,65 @@ func TestAutoFormatPrecedence(t *testing.T) {
 			WithDebug(true))
 	}
 
+	t.Run("JXL takes precedence over AVIF, WebP and JPEG", func(t *testing.T) {
+		app := factory(true, true, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jxl,image/avif,image/webp,image/jpeg,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(jxl):fallback_format(webp)/abc.png", w.Body.String())
+	})
+
+	t.Run("JXL falls back to AVIF when WebP not accepted", func(t *testing.T) {
+		app := factory(true, true, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jxl,image/avif,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "filters:format(jxl):fallback_format(avif)/abc.png", w.Body.String())
+	})
+
+	t.Run("JXL falls back to WebP when AVIF disabled", func(t *testing.T) {
+		app := factory(true, false, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jxl,image/avif,image/webp,image/jpeg,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "filters:format(jxl):fallback_format(webp)/abc.png", w.Body.String())
+	})
+
+	t.Run("JXL without a fallback when only JXL accepted", func(t *testing.T) {
+		app := factory(true, true, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/jxl")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "filters:format(jxl)/abc.png", w.Body.String())
+	})
+
+	t.Run("JXL enabled but not accepted falls through to AVIF", func(t *testing.T) {
+		app := factory(true, true, true, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(
+			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
+		r.Header.Set("Accept", "image/avif,image/webp,image/jpeg,image/*,*/*;q=0.8")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, 200, w.Code)
+		assert.Equal(t, "Accept", w.Header().Get("Vary"))
+		assert.Equal(t, "filters:format(avif):fallback_format(webp)/abc.png", w.Body.String())
+	})
+
 	t.Run("AVIF takes precedence over WebP and JPEG", func(t *testing.T) {
-		app := factory(true, true, true)
+		app := factory(false, true, true, true)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
@@ -1911,7 +2027,7 @@ func TestAutoFormatPrecedence(t *testing.T) {
 	})
 
 	t.Run("WebP takes precedence over JPEG when AVIF not supported", func(t *testing.T) {
-		app := factory(true, true, true)
+		app := factory(false, true, true, true)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
@@ -1923,7 +2039,7 @@ func TestAutoFormatPrecedence(t *testing.T) {
 	})
 
 	t.Run("JPEG fallback when AVIF and WebP not supported", func(t *testing.T) {
-		app := factory(true, true, true)
+		app := factory(false, true, true, true)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
@@ -1935,7 +2051,7 @@ func TestAutoFormatPrecedence(t *testing.T) {
 	})
 
 	t.Run("JPEG only when AVIF and WebP disabled", func(t *testing.T) {
-		app := factory(false, false, true)
+		app := factory(false, false, false, true)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
@@ -1947,7 +2063,7 @@ func TestAutoFormatPrecedence(t *testing.T) {
 	})
 
 	t.Run("no auto format when none supported and JPEG fallback disabled", func(t *testing.T) {
-		app := factory(true, true, false)
+		app := factory(false, true, true, false)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(
 			http.MethodGet, "https://example.com/unsafe/abc.png", nil)
