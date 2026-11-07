@@ -189,3 +189,38 @@ func TestStripMetadataKeepsGainmap(t *testing.T) {
 	_, ok := img.Gainmap()
 	assert.True(t, ok, "the gain map is part of the image, not metadata")
 }
+
+// TestGainmapSurvivesFilters holds the invariant the per-op replay relies on:
+// whatever a filter does to the image, a JPEG result still carries its gain map.
+func TestGainmapSurvivesFilters(t *testing.T) {
+	// grayscale() turns the image to one band, which cannot carry a gain map,
+	// and trim() fails on an image without a border.
+	filters := []string{
+		"rotate(90)", "crop(0.1,0.1,0.8,0.8)", "proportion(50)",
+		"fill(white)", "blur(2)", "sharpen(2)", "saturation(50)", "contrast(20)",
+		"brightness(10)", "hue(90)", "invert()", "pixelate(5)",
+		"round_corner(10)", "background_color(white)", "strip_exif()", "strip_icc()",
+		"to_colorspace(srgb)", "quality(80)", "max_bytes(100000)", "format(jpeg)",
+	}
+	v := NewProcessor()
+	for _, filter := range filters {
+		t.Run(filter, func(t *testing.T) {
+			load := func(string) (*imagor.Blob, error) {
+				return imagor.NewBlobFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg")), nil
+			}
+			blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg"))
+			path := "400x400/filters:" + filter + "/ultra-hdr.jpg"
+			out, err := v.Process(context.Background(), blob, imagorpath.Parse(path), load)
+			require.NoError(t, err)
+			data, err := out.ReadAll()
+			require.NoError(t, err)
+
+			img, err := vips.NewImageFromBuffer(data, nil)
+			require.NoError(t, err)
+			defer img.Close()
+			gainmap, ok := img.Gainmap()
+			require.True(t, ok, "%s should keep the gain map", filter)
+			gainmap.Close()
+		})
+	}
+}

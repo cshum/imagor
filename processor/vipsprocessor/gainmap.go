@@ -181,7 +181,7 @@ func setGainmapColourSpace(img *vips.Image) {
 	if img.Format() != vips.ImageTypeUhdr {
 		return
 	}
-	if img.Bands() != 3 {
+	if img.Bands() == 1 || img.Interpretation() == vips.InterpretationCmyk {
 		img.RemoveField("gainmap")
 		img.RemoveField("gainmap-data")
 		return
@@ -270,3 +270,62 @@ func attachGainmapShrunk(img *vips.Image, targetWidth int) error {
 	return nil
 }
 
+// gainmapMeta is the part of the gain map that an operation rebuilding the
+// image drops: the image and the fields uhdrsave reads.
+type gainmapMeta struct {
+	img     *vips.Image
+	data    []byte
+	arrays  map[string][]float64
+	doubles map[string]float64
+}
+
+var gainmapArrays = []string{
+	"gainmap-max-content-boost", "gainmap-min-content-boost", "gainmap-gamma",
+	"gainmap-offset-sdr", "gainmap-offset-hdr",
+}
+
+var gainmapDoubles = []string{"gainmap-hdr-capacity-min", "gainmap-hdr-capacity-max"}
+
+// saveGainmapMeta captures the gain map before an operation rebuilds the image.
+func saveGainmapMeta(img *vips.Image) *gainmapMeta {
+	gainmap, err := gainmapOf(img)
+	if err != nil || gainmap == nil {
+		return nil
+	}
+	meta := &gainmapMeta{img: gainmap, arrays: map[string][]float64{}, doubles: map[string]float64{}}
+	if data, err := img.GetBlob("gainmap-data"); err == nil {
+		meta.data = data
+	}
+	for _, name := range gainmapArrays {
+		if values, err := img.GetArrayDouble(name); err == nil {
+			meta.arrays[name] = values
+		}
+	}
+	for _, name := range gainmapDoubles {
+		if value, err := img.GetDouble(name); err == nil {
+			meta.doubles[name] = value
+		}
+	}
+	return meta
+}
+
+// restore sets the saved gain map on the rebuilt image.
+func (m *gainmapMeta) restore(img *vips.Image) error {
+	if m == nil {
+		return nil
+	}
+	defer m.img.Close()
+	if len(m.data) > 0 {
+		img.SetBlob("gainmap-data", m.data)
+	}
+	img.SetGainmap(m.img)
+	for name, values := range m.arrays {
+		if err := img.SetArrayDouble(name, values); err != nil {
+			return err
+		}
+	}
+	for name, value := range m.doubles {
+		img.SetDouble(name, value)
+	}
+	return nil
+}

@@ -212,7 +212,7 @@ func TestGainmapIPhoneColourSpace(t *testing.T) {
 func TestSetGainmapColourSpaceDropsNonRGB(t *testing.T) {
 	img := loadUltraHDR(t)
 	defer img.Close()
-	require.NoError(t, img.BandjoinConst([]float64{0}))
+	require.NoError(t, img.ExtractBand(0, nil))
 	require.True(t, img.HasField("gainmap-data"))
 
 	setGainmapColourSpace(img)
