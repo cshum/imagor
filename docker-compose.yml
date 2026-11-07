@@ -1,0 +1,7 @@
+version: "3"
+services:
+  imagor:
+    image: shumc/imagor:build
+    tty: true
+    volumes:
+      - ./:/go/src/github.com/cshum/imagor

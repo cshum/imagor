@@ -288,17 +288,29 @@ func TestIPhoneGainmapNeedsBaseColourSpace(t *testing.T) {
 	if !vips.HasOperation("uhdrload") {
 		t.Skip("libvips is built without libultrahdr")
 	}
-	img, err := vips.NewImageFromFile(filepath.Join(testDataDir, "iphone-ultrahdr.jpg"), nil)
+	data, err := os.ReadFile(filepath.Join(testDataDir, "iphone-ultrahdr.jpg"))
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "iphone.jpg")
+	require.NoError(t, os.WriteFile(path, data, 0o644))
+	img, err := vips.NewImageFromFile(path, nil)
 	require.NoError(t, err)
 	defer img.Close()
 	require.NoError(t, img.ThumbnailImage(400, &vips.ThumbnailImageOptions{}))
 
-	_, err = img.JpegsaveBuffer(nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "UHDR_CODEC_UNSUPPORTED_FEATURE")
-
 	setGainmapColourSpace(img)
+	value, err := img.GetInt("gainmap-use-base-cg")
+	require.NoError(t, err)
+	require.Equal(t, 1, value)
+
 	buf, err := img.JpegsaveBuffer(nil)
 	require.NoError(t, err)
-	assert.NotEmpty(t, buf)
+	out, err := vips.NewImageFromBuffer(buf, nil)
+	require.NoError(t, err)
+	defer out.Close()
+	gainmap, ok := out.Gainmap()
+	require.True(t, ok)
+	defer gainmap.Close()
+	mean, err := gainmap.Avg()
+	require.NoError(t, err)
+	assert.Greater(t, mean, 1.0)
 }
