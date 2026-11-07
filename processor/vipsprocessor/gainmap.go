@@ -66,6 +66,18 @@ func scaledRect(img, gainmap *vips.Image, left, top, width, height int) (x, y, w
 	if y < 0 {
 		y = 0
 	}
+	if x > gainmap.Width()-1 {
+		x = gainmap.Width() - 1
+	}
+	if y > gainmap.PageHeight()-1 {
+		y = gainmap.PageHeight() - 1
+	}
+	if w < 1 {
+		w = 1
+	}
+	if h < 1 {
+		h = 1
+	}
 	if w > gainmap.Width()-x {
 		w = gainmap.Width() - x
 	}
@@ -84,9 +96,6 @@ func cropGainmap(img *vips.Image, left, top, width, height int) error {
 	}
 	defer gainmap.Close()
 	x, y, w, h := scaledRect(img, gainmap, left, top, width, height)
-	if w <= 0 || h <= 0 {
-		return nil
-	}
 	if err = gainmap.ExtractArea(x, y, w, h); err != nil {
 		return err
 	}
@@ -123,6 +132,12 @@ func embedGainmap(img *vips.Image, left, top, width, height int, opts *vips.Embe
 	}
 	defer gainmap.Close()
 	x, y, w, h := scaledCanvas(img, gainmap, left, top, width, height)
+	if opts != nil && opts.Extend != vips.ExtendCopy && opts.Extend != vips.ExtendRepeat {
+		opts = &vips.EmbedOptions{
+			Extend:     vips.ExtendBackground,
+			Background: neutralGain(img, gainmap.Bands()),
+		}
+	}
 	if err = gainmap.Embed(x, y, w, h, opts); err != nil {
 		return err
 	}
@@ -162,4 +177,48 @@ func setGainmapColourSpace(img *vips.Image) {
 	if img.Format() == vips.ImageTypeUhdr {
 		img.SetInt("gainmap-use-base-cg", 1)
 	}
+}
+
+// neutralGain returns the value of a gain of one in every band, for new edges.
+func neutralGain(img *vips.Image, bands int) []float64 {
+	values := make([]float64, bands)
+	minBoost, _ := img.GetArrayDouble("gainmap-min-content-boost")
+	maxBoost, _ := img.GetArrayDouble("gainmap-max-content-boost")
+	gamma, _ := img.GetArrayDouble("gainmap-gamma")
+	for i := range values {
+		lo, hi := log2At(minBoost, i), log2At(maxBoost, i)
+		g := 1.0
+		if i < len(gamma) && gamma[i] > 0 {
+			g = gamma[i]
+		}
+		if hi > lo {
+			values[i] = 255 * math.Pow(math.Min(math.Max(-lo/(hi-lo), 0), 1), g)
+		}
+	}
+	return values
+}
+
+func log2At(values []float64, i int) float64 {
+	if i >= len(values) || values[i] <= 0 {
+		return 0
+	}
+	return math.Log2(values[i])
+}
+
+// blurGainmap blurs the gain map like the image, so the highlights keep their edges.
+func blurGainmap(img *vips.Image, sigma float64, width int) error {
+	gainmap, err := gainmapOf(img)
+	if err != nil || gainmap == nil {
+		return err
+	}
+	defer gainmap.Close()
+	sigma *= float64(gainmap.Width()) / float64(width)
+	if sigma <= 0 {
+		return nil
+	}
+	if err = gainmap.Gaussblur(sigma, nil); err != nil {
+		return err
+	}
+	img.SetGainmap(gainmap)
+	return nil
 }

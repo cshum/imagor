@@ -148,3 +148,32 @@ func TestAngleDegrees(t *testing.T) {
 		assert.Equal(t, tt.want, angleDegrees(tt.angle))
 	}
 }
+
+func TestEmbedGainmapUsesNeutralGain(t *testing.T) {
+	img := loadUltraHDR(t)
+	defer img.Close()
+
+	require.NoError(t, embedGainmap(img, 10, 10, img.Width()+20, img.PageHeight()+20,
+		&vips.EmbedOptions{Extend: vips.ExtendWhite}))
+	require.NoError(t, img.EmbedMultiPage(10, 10, img.Width()+20, img.PageHeight()+20,
+		&vips.EmbedMultiPageOptions{Extend: vips.ExtendWhite}))
+
+	gainmap, ok := img.Gainmap()
+	require.True(t, ok)
+	defer gainmap.Close()
+	corner, err := gainmap.Getpoint(0, 0, nil)
+	require.NoError(t, err)
+	assert.Less(t, corner[0], 10.0, "padding carries no boost, not the fill colour")
+}
+
+func TestCropGainmapTinyArea(t *testing.T) {
+	img := loadUltraHDR(t)
+	defer img.Close()
+
+	width, height := img.Width(), img.PageHeight()
+	require.NoError(t, cropGainmap(img, width-1, height-1, width, height))
+
+	gainWidth, gainHeight := gainmapSize(t, img)
+	assert.GreaterOrEqual(t, gainWidth, 1)
+	assert.GreaterOrEqual(t, gainHeight, 1)
+}
