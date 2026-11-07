@@ -248,11 +248,16 @@ var gainmapPathTests = []struct {
 	{"400x400/filters:max_frames(1)/ultra-hdr.jpg", true},
 	{"400x400/filters:grayscale()/ultra-hdr.jpg", false},
 	{"400x400/filters:to_colorspace(cmyk)/ultra-hdr.jpg", false},
+	{"400x400/filters:redact(blur)/ultra-hdr.jpg", true},
+	{"400x400/filters:redact_oval(blur)/ultra-hdr.jpg", true},
+	{"400x400/filters:draw_detections()/ultra-hdr.jpg", true},
 	{"400x400/filters:format(webp)/ultra-hdr.jpg", false},
 }
 
 func TestGainmapPaths(t *testing.T) {
-	v := NewProcessor()
+	v := NewProcessor(WithDetector(&stubDetector{regions: []imagor.DetectorRegion{
+		{Name: "face", Left: 0.25, Top: 0.25, Right: 0.75, Bottom: 0.75},
+	}}))
 	for _, tt := range gainmapPathTests {
 		t.Run(tt.path, func(t *testing.T) {
 			load := func(name string) (*imagor.Blob, error) {
@@ -285,19 +290,9 @@ func TestGainmapFilterRegistry(t *testing.T) {
 			covered[m[1]] = true
 		}
 	}
-	skip := map[string]string{
-		"draw_detections": "needs a detector",
-		"redact":          "needs a detector",
-		"redact_oval":     "needs a detector",
-	}
 	for name := range NewProcessor().Filters {
-		if covered[name] {
-			continue
+		if !covered[name] {
+			t.Errorf("%s has no gain map case in TestGainmapPaths", name)
 		}
-		if reason, ok := skip[name]; ok {
-			t.Logf("%s: %s", name, reason)
-			continue
-		}
-		t.Errorf("%s has no gain map case in TestGainmapPaths", name)
 	}
 }
