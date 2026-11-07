@@ -101,6 +101,7 @@ type Imagor struct {
 	CacheHeaderSWR         time.Duration
 	ProcessConcurrency     int64
 	ProcessQueueSize       int64
+	AutoJXL                bool
 	AutoWebP               bool
 	AutoAVIF               bool
 	AutoJPEG               bool
@@ -354,8 +355,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		})
 		isPathChanged = true
 	}
-	// auto WebP / AVIF / JPEG
-	if !hasFormat && (app.AutoWebP || app.AutoAVIF || app.AutoJPEG) {
+	// auto JPEG XL / WebP / AVIF / JPEG
+	if !hasFormat && (app.AutoJXL || app.AutoWebP || app.AutoAVIF || app.AutoJPEG) {
 		accept := r.Header.Get("Accept")
 		// The selected representation depends on Accept even when negotiation ends up
 		// keeping the source format (e.g. Accept: */* with only auto-avif/webp on).
@@ -363,7 +364,28 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		// shared cache may reuse the source-format response for clients that would
 		// have been served AVIF/WebP.
 		r.Header.Set("Imagor-Auto-Format", "none")
-		if app.AutoAVIF && strings.Contains(accept, "image/avif") {
+		switch {
+		case app.AutoJXL && strings.Contains(accept, "image/jxl"):
+			p.Filters = append(p.Filters, imagorpath.Filter{
+				Name: "format",
+				Args: "jxl",
+			})
+			// WebP first: it is the one that animates, so an animated source keeps
+			// moving, and a libvips without libjxl lands here too.
+			if app.AutoWebP && strings.Contains(accept, "image/webp") {
+				p.Filters = append(p.Filters, imagorpath.Filter{
+					Name: "fallback_format",
+					Args: "webp",
+				})
+			} else if app.AutoAVIF && strings.Contains(accept, "image/avif") {
+				p.Filters = append(p.Filters, imagorpath.Filter{
+					Name: "fallback_format",
+					Args: "avif",
+				})
+			}
+			r.Header.Set("Imagor-Auto-Format", "jxl") // response Vary: Accept header
+			isPathChanged = true
+		case app.AutoAVIF && strings.Contains(accept, "image/avif"):
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
 				Args: "avif",
@@ -376,14 +398,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 			}
 			r.Header.Set("Imagor-Auto-Format", "avif") // response Vary: Accept header
 			isPathChanged = true
-		} else if app.AutoWebP && strings.Contains(accept, "image/webp") {
+		case app.AutoWebP && strings.Contains(accept, "image/webp"):
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
 				Args: "webp",
 			})
 			r.Header.Set("Imagor-Auto-Format", "webp") // response Vary: Accept header
 			isPathChanged = true
-		} else if app.AutoJPEG && (accept == "" || strings.Contains(accept, "image/jpeg") || strings.Contains(accept, "image/*") || strings.Contains(accept, "*/*")) {
+		case app.AutoJPEG && (accept == "" || strings.Contains(accept, "image/jpeg") || strings.Contains(accept, "image/*") || strings.Contains(accept, "*/*")):
 			p.Filters = append(p.Filters, imagorpath.Filter{
 				Name: "format",
 				Args: "jpeg",

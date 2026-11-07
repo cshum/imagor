@@ -39,9 +39,9 @@ For production-safe URLs, see [Security](./security.mdx). For the full filter pi
 - **Reads** — JPEG, PNG, WebP, GIF, AVIF, HEIF, JPEG XL, TIFF, JPEG 2000, SVG, PDF, BMP, camera RAW, PPM and Radiance HDR
 - **Writes** — JPEG, PNG, WebP, GIF, AVIF, HEIF, JPEG XL, TIFF and JPEG 2000
 
-Output defaults to the source format when imagor supports it, and to JPEG otherwise. Specify one with [`format()`](./filters.md#formatformat).
+Output defaults to the source format when imagor supports it, and to JPEG otherwise. Specify one with [`format()`](./filters.md#formatformat), or with the [auto format](./configuration.md#auto-format) flags.
 
-SVG and PDF sources are rasterized. [`format(svg)`](./filters.md#formatsvg) serves an SVG source as the document itself instead; the document is sanitized before it is served, see [SVG sanitization](./security.mdx#svg-sanitization).
+SVG and PDF sources are rasterized. [`format(svg)`](./filters.md#formatsvg) serves an SVG source as the document itself instead, sanitized; see [SVG sanitization](./security.mdx#svg-sanitization).
 
 PSD, XCF and other legacy formats need the [ImageMagick variant](./imagemagick-support.md).
 
