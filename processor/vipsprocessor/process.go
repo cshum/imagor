@@ -1219,6 +1219,10 @@ func (v *Processor) export(
 		}
 		if stripMetadata {
 			opts.Keep = vips.Ptr(vips.KeepNone)
+			if image.HasField("gainmap-data") {
+				// The gain map is part of the image, not metadata.
+				opts.Keep = vips.Ptr(vips.KeepGainmap)
+			}
 		} else if !v.MozJPEG {
 			opts.Keep = vips.Ptr(vips.KeepAll)
 		}

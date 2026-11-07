@@ -170,3 +170,22 @@ func TestSetGainmapColourSpace(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, value)
 }
+
+func TestStripMetadataKeepsGainmap(t *testing.T) {
+	v := NewProcessor()
+	load := func(string) (*imagor.Blob, error) {
+		return imagor.NewBlobFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg")), nil
+	}
+	blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg"))
+	out, err := v.Process(context.Background(), blob,
+		imagorpath.Parse("400x400/filters:strip_metadata()/ultra-hdr.jpg"), load)
+	require.NoError(t, err)
+	data, err := out.ReadAll()
+	require.NoError(t, err)
+
+	img, err := vips.NewImageFromBuffer(data, nil)
+	require.NoError(t, err)
+	defer img.Close()
+	_, ok := img.Gainmap()
+	assert.True(t, ok, "the gain map is part of the image, not metadata")
+}

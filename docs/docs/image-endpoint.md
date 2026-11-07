@@ -310,4 +310,4 @@ The `IMAGE` path at the end supports several special forms:
 
 Ultra HDR photos are JPEGs with a gain map, as written by recent Android phones and iPhones. imagor reads and writes them as Ultra HDR JPEGs: resize, crop, trim, flip, rotate and padding apply the same geometry to the gain map, so HDR displays keep the highlights while SDR displays show the tone-mapped image.
 
-The gain map is dropped when the output is not JPEG, for example with `format(webp)`, or when metadata is stripped with `strip_metadata()` or `-vips-strip-metadata`. The [MozJPEG variant](./mozjpeg-support.md) writes JPEG without it.
+The gain map is part of the image, not metadata, so it survives `strip_metadata()` and `strip_exif()`. It is dropped when the output is not JPEG, for example with `format(webp)`, and by the [MozJPEG variant](./mozjpeg-support.md).
