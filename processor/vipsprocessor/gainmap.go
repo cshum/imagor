@@ -175,11 +175,18 @@ func stripExifKeepingGainmap(img *vips.Image) error {
 }
 
 // setGainmapColourSpace marks the gain map as sharing the colour space of the
-// image. libultrahdr fails to save the gain maps of iPhones without it.
+// image. libultrahdr fails to save the gain maps of iPhones without it, and
+// refuses images that are no longer RGB.
 func setGainmapColourSpace(img *vips.Image) {
-	if img.Format() == vips.ImageTypeUhdr {
-		img.SetInt("gainmap-use-base-cg", 1)
+	if img.Format() != vips.ImageTypeUhdr {
+		return
 	}
+	if img.Bands() != 3 {
+		img.RemoveField("gainmap")
+		img.RemoveField("gainmap-data")
+		return
+	}
+	img.SetInt("gainmap-use-base-cg", 1)
 }
 
 // neutralGain returns the value of a gain of one in every band, for new edges.
