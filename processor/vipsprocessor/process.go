@@ -243,6 +243,8 @@ func (v *Processor) Process(
 		}
 	}
 
+	setGainmapColourSpace(img)
+
 	// Export with max_bytes retry loop
 	params.format = supportedSaveFormat(params.format)
 	for {

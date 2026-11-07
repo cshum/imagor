@@ -160,3 +160,13 @@ func TestUltraHDRPipeline(t *testing.T) {
 		})
 	}
 }
+
+func TestSetGainmapColourSpace(t *testing.T) {
+	img := loadUltraHDR(t)
+	defer img.Close()
+
+	setGainmapColourSpace(img)
+	value, err := img.GetInt("gainmap-use-base-cg")
+	require.NoError(t, err)
+	assert.Equal(t, 1, value)
+}
