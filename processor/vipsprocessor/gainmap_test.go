@@ -280,3 +280,25 @@ func TestGainmapHelpersWithoutGainmap(t *testing.T) {
 	assert.False(t, img.HasField("gainmap-use-base-cg"))
 	assert.NoError(t, blurGainmap(img, 5, img.Width()))
 }
+
+// TestIPhoneGainmapNeedsBaseColourSpace covers a gain map with no ICC of its
+// own: libultrahdr refuses to encode it until the gain map is told to use the
+// colour space of the base image.
+func TestIPhoneGainmapNeedsBaseColourSpace(t *testing.T) {
+	if !vips.HasOperation("uhdrload") {
+		t.Skip("libvips is built without libultrahdr")
+	}
+	img, err := vips.NewImageFromFile(filepath.Join(testDataDir, "iphone-ultrahdr.jpg"), nil)
+	require.NoError(t, err)
+	defer img.Close()
+	require.NoError(t, img.ThumbnailImage(400, &vips.ThumbnailImageOptions{}))
+
+	_, err = img.JpegsaveBuffer(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "UHDR_CODEC_UNSUPPORTED_FEATURE")
+
+	setGainmapColourSpace(img)
+	buf, err := img.JpegsaveBuffer(nil)
+	require.NoError(t, err)
+	assert.NotEmpty(t, buf)
+}
