@@ -63,7 +63,7 @@ IMAGOR_SECRET=             # Secret key for URL signing
 IMAGOR_UNSAFE=1            # Disable URL signature check (development only)
 
 IMAGOR_AUTO_WEBP=1         # Serve WebP automatically if browser supports
-IMAGOR_AUTO_AVIF=1         # Serve AVIF automatically if browser supports (experimental)
+IMAGOR_AUTO_AVIF=1         # Serve AVIF automatically if browser supports
 IMAGOR_AUTO_JXL=1          # Serve JPEG XL automatically if browser supports
 IMAGOR_AUTO_JPEG=1         # Serve JPEG automatically if JPEG or no format requested
 

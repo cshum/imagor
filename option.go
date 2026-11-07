@@ -161,7 +161,7 @@ func WithAutoWebP(enable bool) Option {
 	}
 }
 
-// WithAutoAVIF experimental with auto AVIF option based on browser Accept header
+// WithAutoAVIF with auto AVIF option based on browser Accept header
 func WithAutoAVIF(enable bool) Option {
 	return func(app *Imagor) {
 		app.AutoAVIF = enable
