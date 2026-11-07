@@ -99,13 +99,13 @@ IMAGOR_RESPONSE_RAW_ON_ERROR=1 # Return raw source image on processing error
 
 ### Auto format
 
-imagor picks the output format from the `Accept` header when the URL names none. A [`format()`](./filters.md#formatformat) filter overrides it.
+imagor automatically serves images in the optimal format based on the enabled flags and the browser's Accept request header.
 
-- `image/jxl` — JPEG XL
-- `image/avif` — AVIF
-- `image/webp` — WebP
-- `image/jpeg`, `image/*`, `*/*`, no header — JPEG
-- anything else — the source format
+- `IMAGOR_AUTO_JXL=1` — JPEG XL when `Accept` includes `image/jxl`
+- `IMAGOR_AUTO_AVIF=1` — AVIF when `Accept` includes `image/avif`
+- `IMAGOR_AUTO_WEBP=1` — WebP when `Accept` includes `image/webp`
+- `IMAGOR_AUTO_JPEG=1` — JPEG when `Accept` includes `image/jpeg`, `image/*`, `*/*` or no format requested
+- otherwise — the source format
 
 WebP is the fallback for JPEG XL and AVIF, since it supports animation.
 
