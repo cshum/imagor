@@ -53,6 +53,18 @@ func TestGainmapFilters(t *testing.T) {
 		assert.InDelta(t, img.PageHeight()/2, height, 2)
 	})
 
+	t.Run("strip exif", func(t *testing.T) {
+		img := loadUltraHDR(t)
+		defer img.Close()
+
+		processed, err := stripExif(context.Background(), img, nil)
+		require.NoError(t, err)
+		assert.True(t, processed)
+		width, height := gainmapSize(t, img)
+		assert.NotZero(t, width, "the gain map should survive strip_exif")
+		assert.NotZero(t, height)
+	})
+
 	t.Run("trim", func(t *testing.T) {
 		img := loadUltraHDR(t)
 		defer img.Close()
