@@ -2,6 +2,7 @@ package vipsprocessor
 
 import (
 	"math"
+	"strings"
 
 	"github.com/cshum/vipsgen/v2/vips"
 )
@@ -27,11 +28,7 @@ func rotateGainmap(img *vips.Image, angle float64) error {
 		return err
 	}
 	defer gainmap.Close()
-	if angle == float64(int(angle)) && int(angle)%90 == 0 {
-		if err = gainmap.RotMultiPage(getAngle(int(angle))); err != nil {
-			return err
-		}
-	} else if err = gainmap.Rotate(angle, nil); err != nil {
+	if err = gainmap.Rotate(angle, nil); err != nil {
 		return err
 	}
 	img.SetGainmap(gainmap)
@@ -119,14 +116,14 @@ func scaledCanvas(img, gainmap *vips.Image, left, top, width, height int) (x, y,
 }
 
 // embedGainmap pads the gain map like the image, with no boost in the padding.
-func embedGainmap(img *vips.Image, left, top, width, height int, opts *vips.EmbedMultiPageOptions) error {
+func embedGainmap(img *vips.Image, left, top, width, height int, opts *vips.EmbedOptions) error {
 	gainmap, err := gainmapOf(img)
 	if err != nil || gainmap == nil {
 		return err
 	}
 	defer gainmap.Close()
 	x, y, w, h := scaledCanvas(img, gainmap, left, top, width, height)
-	if err = gainmap.EmbedMultiPage(x, y, w, h, opts); err != nil {
+	if err = gainmap.Embed(x, y, w, h, opts); err != nil {
 		return err
 	}
 	img.SetGainmap(gainmap)
@@ -142,5 +139,19 @@ func attachGainmap(img *vips.Image) error {
 	}
 	defer gainmap.Close()
 	img.SetGainmap(gainmap)
+	return nil
+}
+
+// stripExifKeepingGainmap removes the identifying metadata fields, keeping the
+// gain map fields.
+func stripExifKeepingGainmap(img *vips.Image) error {
+	for _, field := range img.GetFields() {
+		if strings.HasPrefix(field, "exif") ||
+			strings.HasPrefix(field, "iptc") ||
+			strings.HasPrefix(field, "xmp") ||
+			field == "xml" {
+			img.RemoveField(field)
+		}
+	}
 	return nil
 }

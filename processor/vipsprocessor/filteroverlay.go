@@ -169,21 +169,21 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 					return
 				}
 			}
-			if err = embedGainmap(img, left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
+			if err = embedGainmap(img, left, top, width, height, &vips.EmbedOptions{Extend: vips.ExtendBlack}); err != nil {
 				return
 			}
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
 				return
 			}
 		} else if isBlack(c) {
-			if err = embedGainmap(img, left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
+			if err = embedGainmap(img, left, top, width, height, &vips.EmbedOptions{Extend: vips.ExtendBlack}); err != nil {
 				return
 			}
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}); err != nil {
 				return
 			}
 		} else if isWhite(c) {
-			if err = embedGainmap(img, left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendWhite}); err != nil {
+			if err = embedGainmap(img, left, top, width, height, &vips.EmbedOptions{Extend: vips.ExtendWhite}); err != nil {
 				return
 			}
 			if err = img.EmbedMultiPage(left, top, width, height, &vips.EmbedMultiPageOptions{Extend: vips.ExtendWhite}); err != nil {
@@ -194,7 +194,10 @@ func (v *Processor) fill(ctx context.Context, img *vips.Image, w, h int, pLeft, 
 				Extend:     vips.ExtendBackground,
 				Background: c,
 			}
-			if err = embedGainmap(img, left, top, width, height, opts); err != nil {
+			if err = embedGainmap(img, left, top, width, height, &vips.EmbedOptions{
+				Extend:     vips.ExtendBackground,
+				Background: c,
+			}); err != nil {
 				return
 			}
 			if err = img.EmbedMultiPage(left, top, width, height, opts); err != nil {

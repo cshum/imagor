@@ -86,9 +86,10 @@ func TestEmbedGainmap(t *testing.T) {
 
 	width, height := img.Width(), img.PageHeight()
 	gainmapWidth, gainmapHeight := gainmapSize(t, img)
-	opts := &vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}
-	require.NoError(t, embedGainmap(img, 10, 20, width+20, height+40, opts))
-	require.NoError(t, img.EmbedMultiPage(10, 20, width+20, height+40, opts))
+	require.NoError(t, embedGainmap(img, 10, 20, width+20, height+40,
+		&vips.EmbedOptions{Extend: vips.ExtendBlack}))
+	require.NoError(t, img.EmbedMultiPage(10, 20, width+20, height+40,
+		&vips.EmbedMultiPageOptions{Extend: vips.ExtendBlack}))
 	gotWidth, gotHeight := gainmapSize(t, img)
 	assert.InDelta(t, img.Width()*gainmapWidth/width, gotWidth, 2)
 	assert.InDelta(t, img.PageHeight()*gainmapHeight/height, gotHeight, 2)
@@ -130,4 +131,20 @@ func TestRotateGainmapWithoutGainmap(t *testing.T) {
 	assert.False(t, img.HasField("gainmap-data"))
 	assert.NoError(t, rotateGainmap(img, 90))
 	assert.False(t, img.HasField("gainmap-data"))
+}
+
+func TestAngleDegrees(t *testing.T) {
+	tests := []struct {
+		angle vips.Angle
+		want  float64
+	}{
+		{vips.AngleD0, 0},
+		{vips.AngleD90, 90},
+		{vips.AngleD180, 180},
+		{vips.AngleD270, 270},
+		{vips.Angle(9), 0},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, angleDegrees(tt.angle))
+	}
 }

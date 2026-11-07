@@ -447,6 +447,9 @@ func toColorspace(_ context.Context, img *vips.Image, _ imagor.LoadFunc, args ..
 }
 
 func stripExif(_ context.Context, img *vips.Image, _ imagor.LoadFunc, _ ...string) (processed bool, err error) {
+	if img.Format() == vips.ImageTypeUhdr {
+		return true, stripExifKeepingGainmap(img)
+	}
 	return true, img.RemoveExif()
 }
 
