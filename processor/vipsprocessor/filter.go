@@ -474,6 +474,10 @@ func trim(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 		pos = args[1]
 	}
 	if l, t, w, h, trimErr := findTrim(ctx, img, pos, tolerance); trimErr == nil {
+		if w <= 0 || h <= 0 {
+			// nothing to trim, an empty area would fail the extract
+			return false, nil
+		}
 		if err = cropGainmap(img, l, t, w, h); err != nil {
 			return
 		}
