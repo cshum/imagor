@@ -90,7 +90,6 @@ func parseTextWidth(arg string, canvasWidth int) int {
 	return v
 }
 
-// angleDegrees returns the rotation of a vips.Angle in degrees
 func angleDegrees(angle vips.Angle) float64 {
 	switch angle {
 	case vips.AngleD90:

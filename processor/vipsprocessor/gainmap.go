@@ -142,8 +142,8 @@ func attachGainmap(img *vips.Image) error {
 	return nil
 }
 
-// stripExifKeepingGainmap removes the identifying metadata fields one by one.
-// RemoveExif would drop the gain map fields with them.
+// stripExifKeepingGainmap removes the identifying metadata fields, keeping the
+// gain map fields.
 func stripExifKeepingGainmap(img *vips.Image) error {
 	for _, field := range img.GetFields() {
 		if strings.HasPrefix(field, "exif") ||
