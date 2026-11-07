@@ -877,7 +877,7 @@ func (v *Processor) applyTransformations(
 			}
 
 			if upscale || w < imgW || h < imgH {
-				if err := attachGainmapShrunk(img, w); err != nil {
+				if err := attachGainmap(img); err != nil {
 					return err
 				}
 				opts := &vips.ThumbnailImageOptions{Height: h, Crop: vips.InterestingNone}
@@ -887,7 +887,7 @@ func (v *Processor) applyTransformations(
 			}
 		} else if stretch {
 			if upscale || (w < imgW && h < imgH) {
-				if err := attachGainmapShrunk(img, w); err != nil {
+				if err := attachGainmap(img); err != nil {
 					return err
 				}
 				if err := img.ThumbnailImage(
@@ -924,7 +924,7 @@ func (v *Processor) applyTransformations(
 					return err
 				}
 			} else {
-				if err := attachGainmapShrunk(img, w); err != nil {
+				if err := attachGainmap(img); err != nil {
 					return err
 				}
 				if err := v.Thumbnail(img, w, h, interest, vips.SizeBoth); err != nil {

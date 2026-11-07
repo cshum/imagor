@@ -189,3 +189,74 @@ func TestStripMetadataKeepsGainmap(t *testing.T) {
 	_, ok := img.Gainmap()
 	assert.True(t, ok, "the gain map is part of the image, not metadata")
 }
+
+// TestGainmapPaths holds the invariant the per-op replay relies on: whatever
+// a request does to an Ultra HDR image, a JPEG result keeps its gain map.
+func TestGainmapPaths(t *testing.T) {
+	tests := []struct {
+		path string
+		kept bool
+	}{
+		{"400x400/ultra-hdr.jpg", true},
+		{"fit-in/400x400/ultra-hdr.jpg", true},
+		{"-400x400/ultra-hdr.jpg", true},
+		{"400x-400/ultra-hdr.jpg", true},
+		{"300x200:500x400/400x400/ultra-hdr.jpg", true},
+		{"400x400/20x20/filters:fill(white)/ultra-hdr.jpg", true},
+		{"400x400/filters:orient(90)/ultra-hdr.jpg", true},
+		{"400x400/filters:rotate(45)/ultra-hdr.jpg", true},
+		{"400x400/filters:crop(0.1,0.1,0.8,0.8)/ultra-hdr.jpg", true},
+		{"400x400/filters:proportion(50)/ultra-hdr.jpg", true},
+		{"400x400/filters:fill(white)/ultra-hdr.jpg", true},
+		{"400x400/filters:blur(2)/ultra-hdr.jpg", true},
+		{"400x400/filters:sharpen(2)/ultra-hdr.jpg", true},
+		{"400x400/filters:saturation(50)/ultra-hdr.jpg", true},
+		{"400x400/filters:hue(90)/ultra-hdr.jpg", true},
+		{"400x400/filters:invert()/ultra-hdr.jpg", true},
+		{"400x400/filters:pixelate(5)/ultra-hdr.jpg", true},
+		{"400x400/filters:round_corner(10)/ultra-hdr.jpg", true},
+		{"400x400/filters:round_corner(10,10,white)/ultra-hdr.jpg", true},
+		{"400x400/filters:background_color(white)/ultra-hdr.jpg", true},
+		{"400x400/filters:strip_exif()/ultra-hdr.jpg", true},
+		{"400x400/filters:strip_metadata()/ultra-hdr.jpg", true},
+		{"400x400/filters:strip_icc()/ultra-hdr.jpg", true},
+		{"400x400/filters:to_colorspace(srgb)/ultra-hdr.jpg", true},
+		{"400x400/filters:quality(80)/ultra-hdr.jpg", true},
+		{"400x400/filters:max_bytes(100000)/ultra-hdr.jpg", true},
+		{"400x400/filters:watermark(gopher-front.png,10,10,50)/ultra-hdr.jpg", true},
+		{"400x400/filters:text(hello,10,10)/ultra-hdr.jpg", true},
+		{"400x400/filters:image(/fit-in/50x50/gopher-front.png,10,10)/ultra-hdr.jpg", true},
+		{"400x400/filters:trim(10)/ultra-hdr.jpg", true},
+		{"400x400/filters:format(jpeg)/ultra-hdr.jpg", true},
+		{"400x400/filters:raw()/ultra-hdr.jpg", true},
+		{"400x400/filters:preview()/ultra-hdr.jpg", true},
+		{"400x400/filters:no_upscale()/ultra-hdr.jpg", true},
+		{"400x400/filters:lossless()/ultra-hdr.jpg", true},
+		{"400x400/filters:max_frames(1)/ultra-hdr.jpg", true},
+		{"400x400/filters:grayscale()/ultra-hdr.jpg", false},
+		{"400x400/filters:to_colorspace(cmyk)/ultra-hdr.jpg", false},
+		{"400x400/filters:format(webp)/ultra-hdr.jpg", false},
+	}
+	v := NewProcessor()
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			load := func(name string) (*imagor.Blob, error) {
+				return imagor.NewBlobFromFile(filepath.Join(testDataDir, name)), nil
+			}
+			blob := imagor.NewBlobFromFile(filepath.Join(testDataDir, "ultra-hdr.jpg"))
+			out, err := v.Process(context.Background(), blob, imagorpath.Parse(tt.path), load)
+			require.NoError(t, err)
+			data, err := out.ReadAll()
+			require.NoError(t, err)
+
+			img, err := vips.NewImageFromBuffer(data, nil)
+			require.NoError(t, err)
+			defer img.Close()
+			gainmap, ok := img.Gainmap()
+			if ok {
+				gainmap.Close()
+			}
+			assert.Equal(t, tt.kept, ok, tt.path)
+		})
+	}
+}

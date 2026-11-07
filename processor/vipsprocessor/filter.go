@@ -37,6 +37,7 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		ry, _ = strconv.Atoi(args[1])
 	}
 	processed = true
+	gainmap := saveGainmapMeta(img)
 
 	var rounded *vips.Image
 	var w = img.Width()
@@ -66,6 +67,9 @@ func roundCorner(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args .
 		if err = img.Flatten(&vips.FlattenOptions{Background: c}); err != nil {
 			return
 		}
+	}
+	if err = gainmap.restore(img); err != nil {
+		return
 	}
 	return
 }
@@ -470,6 +474,9 @@ func trim(ctx context.Context, img *vips.Image, _ imagor.LoadFunc, args ...strin
 		pos = args[1]
 	}
 	if l, t, w, h, trimErr := findTrim(ctx, img, pos, tolerance); trimErr == nil {
+		if w <= 0 || h <= 0 {
+			return false, nil
+		}
 		if err = cropGainmap(img, l, t, w, h); err != nil {
 			return
 		}
