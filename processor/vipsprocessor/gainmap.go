@@ -51,11 +51,13 @@ func flipGainmap(img *vips.Image, direction vips.Direction) error {
 
 // scaledRect maps a rectangle in image pixels onto the gain map.
 func scaledRect(img, gainmap *vips.Image, left, top, width, height int) (x, y, w, h int) {
-	if img.Width() == 0 || img.PageHeight() == 0 {
+	imgWidth, imgHeight := img.Width(), img.PageHeight()
+	if imgWidth == 0 || imgHeight == 0 {
 		return 0, 0, 0, 0
 	}
-	scaleX := float64(gainmap.Width()) / float64(img.Width())
-	scaleY := float64(gainmap.PageHeight()) / float64(img.PageHeight())
+	gmWidth, gmHeight := gainmap.Width(), gainmap.PageHeight()
+	scaleX := float64(gmWidth) / float64(imgWidth)
+	scaleY := float64(gmHeight) / float64(imgHeight)
 	x = int(math.Round(float64(left) * scaleX))
 	y = int(math.Round(float64(top) * scaleY))
 	w = int(math.Round(float64(width) * scaleX))
@@ -66,11 +68,11 @@ func scaledRect(img, gainmap *vips.Image, left, top, width, height int) (x, y, w
 	if y < 0 {
 		y = 0
 	}
-	if x > gainmap.Width()-1 {
-		x = gainmap.Width() - 1
+	if x > gmWidth-1 {
+		x = gmWidth - 1
 	}
-	if y > gainmap.PageHeight()-1 {
-		y = gainmap.PageHeight() - 1
+	if y > gmHeight-1 {
+		y = gmHeight - 1
 	}
 	if w < 1 {
 		w = 1
@@ -78,11 +80,11 @@ func scaledRect(img, gainmap *vips.Image, left, top, width, height int) (x, y, w
 	if h < 1 {
 		h = 1
 	}
-	if w > gainmap.Width()-x {
-		w = gainmap.Width() - x
+	if w > gmWidth-x {
+		w = gmWidth - x
 	}
-	if h > gainmap.PageHeight()-y {
-		h = gainmap.PageHeight() - y
+	if h > gmHeight-y {
+		h = gmHeight - y
 	}
 	return
 }
@@ -106,11 +108,12 @@ func cropGainmap(img *vips.Image, left, top, width, height int) error {
 // scaledCanvas maps a target canvas and offset onto the gain map. Unlike a
 // crop, the result can extend past the gain map, so it is not clamped.
 func scaledCanvas(img, gainmap *vips.Image, left, top, width, height int) (x, y, w, h int) {
-	if img.Width() == 0 || img.PageHeight() == 0 {
+	imgWidth, imgHeight := img.Width(), img.PageHeight()
+	if imgWidth == 0 || imgHeight == 0 {
 		return 0, 0, 0, 0
 	}
-	scaleX := float64(gainmap.Width()) / float64(img.Width())
-	scaleY := float64(gainmap.PageHeight()) / float64(img.PageHeight())
+	scaleX := float64(gainmap.Width()) / float64(imgWidth)
+	scaleY := float64(gainmap.PageHeight()) / float64(imgHeight)
 	x = int(math.Round(float64(left) * scaleX))
 	y = int(math.Round(float64(top) * scaleY))
 	w = int(math.Round(float64(width) * scaleX))
