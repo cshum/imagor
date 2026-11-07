@@ -1140,6 +1140,8 @@ func (v *Processor) export(
 	case vips.ImageTypeJxl:
 		opts := &vips.JxlsaveBufferOptions{
 			Lossless: lossless,
+			// Half the encode time of the libvips default of 7, same bytes.
+			Effort: 5,
 		}
 		if quality > 0 {
 			opts.Q = vips.Ptr(quality)
