@@ -232,3 +232,41 @@ func blurGainmap(img *vips.Image, sigma float64, width int) error {
 	img.SetGainmap(gainmap)
 	return nil
 }
+
+// attachGainmapShrunk attaches the gain map decoded at most as large as the
+// resize needs, so a large gain map is not decoded for a small result.
+func attachGainmapShrunk(img *vips.Image, targetWidth int) error {
+	if img.Format() != vips.ImageTypeUhdr || targetWidth <= 0 || !img.HasField("gainmap-data") {
+		return attachGainmap(img)
+	}
+	data, err := img.GetBlob("gainmap-data")
+	if err != nil || len(data) == 0 {
+		return attachGainmap(img)
+	}
+	probe, err := vips.NewJpegloadBuffer(data, nil)
+	if err != nil {
+		return err
+	}
+	gainWidth, imgWidth := probe.Width(), img.Width()
+	probe.Close()
+
+	shrink := 1
+	if imgWidth > 0 && gainWidth > 0 && targetWidth < imgWidth {
+		want := float64(gainWidth) * float64(targetWidth) / float64(imgWidth)
+		for shrink < 8 && float64(gainWidth)/float64(shrink+1) >= want {
+			shrink++
+		}
+	}
+	if shrink == 1 {
+		return attachGainmap(img)
+	}
+	gainmap, err := vips.NewJpegloadBuffer(data, &vips.JpegloadBufferOptions{Shrink: shrink})
+	if err != nil {
+		return err
+	}
+	defer gainmap.Close()
+	img.RemoveField("gainmap")
+	img.SetGainmap(gainmap)
+	return nil
+}
+

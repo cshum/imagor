@@ -458,7 +458,7 @@ func (v *Processor) Thumbnail(
 
 // FocalThumbnail handles thumbnail with custom focal point
 func (v *Processor) FocalThumbnail(img *vips.Image, w, h int, imgAspect, fx, fy float64) (err error) {
-	if err = attachGainmap(img); err != nil {
+	if err = attachGainmapShrunk(img, w); err != nil {
 		return
 	}
 	if float64(w)/float64(h) > imgAspect {

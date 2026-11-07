@@ -280,3 +280,28 @@ func TestGainmapHelpersWithoutGainmap(t *testing.T) {
 	assert.False(t, img.HasField("gainmap-use-base-cg"))
 	assert.NoError(t, blurGainmap(img, 5, img.Width()))
 }
+
+func TestAttachGainmapShrunk(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(testDataDir, "iphone-ultrahdr.jpg"))
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "iphone.jpg")
+	require.NoError(t, os.WriteFile(path, data, 0o644))
+	img, err := vips.NewImageFromFile(path, nil)
+	require.NoError(t, err)
+	defer img.Close()
+
+	full, ok := img.Gainmap()
+	require.True(t, ok)
+	fullWidth := full.Width()
+	full.Close()
+
+	target := img.Width() / 8
+	require.NoError(t, attachGainmapShrunk(img, target))
+
+	shrunk, ok := img.Gainmap()
+	require.True(t, ok)
+	defer shrunk.Close()
+	want := fullWidth * target / img.Width()
+	assert.Less(t, shrunk.Width(), fullWidth)
+	assert.GreaterOrEqual(t, shrunk.Width(), want)
+}
