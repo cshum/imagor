@@ -1,0 +1,33 @@
+name: dockerhub-readme
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'README.md'
+      - '.github/workflows/dockerhub-readme.yml'
+  workflow_dispatch:
+
+jobs:
+  description:
+    name: Sync Docker Hub description
+    runs-on: ubuntu-latest
+    if: github.repository == 'cshum/imagor'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Generate Docker Hub description
+        run: |
+          echo "dropping $(grep -c -E '<|^\[!\[' README.md) line(s) carrying raw HTML or badges"
+          grep -v -E '<|^\[!\[' README.md | cat -s > "$RUNNER_TEMP/dockerhub-readme.md"
+
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: shumc/imagor
+          short-description: Fast, secure image processing server and Go library, using libvips
+          readme-filepath: ${{ runner.temp }}/dockerhub-readme.md
