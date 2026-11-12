@@ -43,6 +43,8 @@ Output defaults to the source format when imagor supports it, and to JPEG otherw
 
 SVG and PDF sources are rasterized. [`format(svg)`](./filters.md#formatsvg) serves an SVG source as the document itself instead, sanitized; see [SVG sanitization](./security.mdx#svg-sanitization).
 
+Ultra HDR photos are JPEGs with a gain map; imagor applies the same resize, crop, trim, flip, rotate and padding to it, so HDR displays keep the highlights. It is dropped when the output is not JPEG, for example `format(webp)`.
+
 ---
 
 ## Resize & Crop
@@ -302,10 +304,3 @@ The `IMAGE` path at the end supports several special forms:
   /unsafe/400x400/color:none
   ```
 
----
-
-## Ultra HDR
-
-Ultra HDR photos are JPEGs with a gain map, as written by recent Android phones and iPhones. imagor reads and writes them as Ultra HDR JPEGs: resize, crop, trim, flip, rotate and padding apply the same geometry to the gain map, so HDR displays keep the highlights while SDR displays show the tone-mapped image.
-
-The gain map is part of the image, not metadata, so it survives `strip_metadata()` and `strip_exif()`. It is dropped when the output is not JPEG, for example with `format(webp)`, and by the [MozJPEG variant](./mozjpeg-support.md).
