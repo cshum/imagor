@@ -654,36 +654,42 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	return seekstream.New(reader, buffer), size, err
 }
 
-// ReadAll real all bytes from Blob
+// maxReadAllSize caps what ReadAll holds in memory; a variable so tests can
+// exercise it.
+var maxReadAllSize = maxMemorySize
+
+// ReadAll reads all bytes from Blob, stopping at maxReadAllSize. The declared
+// size is a claim, so it does not size the buffer.
 func (b *Blob) ReadAll() ([]byte, error) {
 	b.init()
 	if b.blobType == BlobTypeEmpty {
 		return nil, b.err
 	}
 	reader, size, err := b.NewReader()
-	if reader != nil {
-		defer func() {
-			_ = reader.Close()
-		}()
-		if size > 0 {
-			buf := make([]byte, size)
-			s := int(size)
-			n, err2 := io.ReadAtLeast(reader, buf, s)
-			if n < s {
-				buf = buf[:n]
-			}
-			if err != nil {
-				return buf, err
-			}
-			return buf, err2
-		}
-		buf, err2 := io.ReadAll(reader)
-		if err != nil {
-			return buf, err
-		}
-		return buf, err2
+	if reader == nil {
+		return nil, err
 	}
-	return nil, err
+	defer func() {
+		_ = reader.Close()
+	}()
+	var buf bytes.Buffer
+	if size > 0 && size <= maxReadAllSize {
+		buf.Grow(int(size))
+	}
+	n, copyErr := io.Copy(&buf, io.LimitReader(reader, maxReadAllSize+1))
+	if n > maxReadAllSize {
+		return nil, ErrMaxSizeExceeded
+	}
+	if err != nil {
+		return buf.Bytes(), err
+	}
+	if copyErr != nil {
+		return buf.Bytes(), copyErr
+	}
+	if size > 0 && n < size {
+		return buf.Bytes(), io.ErrUnexpectedEOF
+	}
+	return buf.Bytes(), nil
 }
 
 // Err returns Blob error
