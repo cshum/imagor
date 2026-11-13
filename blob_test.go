@@ -675,3 +675,41 @@ func TestBlobKnownSizeNonFanoutPreservesSeekableFirstReader(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, buf, data)
 }
+
+func TestBlobReadAllDeclaredSize(t *testing.T) {
+	body := []byte("hello world")
+
+	declaring := func(size int64) *Blob {
+		return NewBlob(func() (io.ReadCloser, int64, error) {
+			return nopReadCloser{bytes.NewReader(body)}, size, nil
+		})
+	}
+
+	t.Run("declared size is not allocated", func(t *testing.T) {
+		// what an origin that lies about Content-Length declares
+		buf, err := declaring(1 << 62).ReadAll()
+		assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
+		assert.Equal(t, body, buf)
+	})
+
+	t.Run("body over the cap", func(t *testing.T) {
+		restore := maxReadAllSize
+		maxReadAllSize = 8
+		t.Cleanup(func() { maxReadAllSize = restore })
+
+		_, err := declaring(0).ReadAll()
+		assert.ErrorIs(t, err, ErrMaxSizeExceeded)
+	})
+
+	t.Run("short read against a declared size", func(t *testing.T) {
+		buf, err := declaring(64).ReadAll()
+		assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
+		assert.Equal(t, body, buf)
+	})
+
+	t.Run("unknown size", func(t *testing.T) {
+		buf, err := declaring(0).ReadAll()
+		require.NoError(t, err)
+		assert.Equal(t, body, buf)
+	})
+}
