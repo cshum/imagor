@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -654,13 +655,20 @@ func (b *Blob) NewReadSeeker() (io.ReadSeekCloser, int64, error) {
 	return seekstream.New(reader, buffer), size, err
 }
 
-// maxReadAllSize caps what ReadAll holds in memory; a variable so tests can
-// exercise it.
-var maxReadAllSize = maxMemorySize
+// maxGrowHint caps what a read pre-allocates from a declared size.
+const maxGrowHint = 1 << 20
 
-// ReadAll reads all bytes from Blob, stopping at maxReadAllSize. The declared
-// size is a claim, so it does not size the buffer.
+// ReadAll reads all bytes from Blob.
 func (b *Blob) ReadAll() ([]byte, error) {
+	return b.readAll(-1)
+}
+
+// ReadAllLimit reads at most max bytes from Blob; a negative max reads without limit.
+func (b *Blob) ReadAllLimit(max int64) ([]byte, error) {
+	return b.readAll(max)
+}
+
+func (b *Blob) readAll(max int64) ([]byte, error) {
 	b.init()
 	if b.blobType == BlobTypeEmpty {
 		return nil, b.err
@@ -673,11 +681,23 @@ func (b *Blob) ReadAll() ([]byte, error) {
 		_ = reader.Close()
 	}()
 	var buf bytes.Buffer
-	if size > 0 && size <= maxReadAllSize {
-		buf.Grow(int(size))
+	if size > 0 {
+		hint := size
+		if hint > maxGrowHint {
+			hint = maxGrowHint
+		}
+		buf.Grow(int(hint))
 	}
-	n, copyErr := io.Copy(&buf, io.LimitReader(reader, maxReadAllSize+1))
-	if n > maxReadAllSize {
+	var src io.Reader = reader
+	if max >= 0 {
+		limit := max
+		if limit < math.MaxInt64 {
+			limit++
+		}
+		src = io.LimitReader(reader, limit)
+	}
+	n, copyErr := io.Copy(&buf, src)
+	if max >= 0 && n > max {
 		return nil, ErrMaxSizeExceeded
 	}
 	if err != nil {

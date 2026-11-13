@@ -166,7 +166,9 @@ func (v *Processor) Startup(ctx context.Context) error {
 	}
 	if v.FallbackFunc == nil {
 		if vips.HasOperation("magickload_buffer") {
-			v.FallbackFunc = bufferFallbackFunc
+			v.FallbackFunc = func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
+				return bufferFallbackFunc(blob, options, v.fallbackBufferLimit())
+			}
 			v.Logger.Debug("source fallback", zap.String("fallback", "magickload_buffer"))
 		} else {
 			v.FallbackFunc = v.bmpFallbackFunc
