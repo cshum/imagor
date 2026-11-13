@@ -64,5 +64,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.7-r20
+            BASE_IMAGE=ghcr.io/cshum/imagor-base:vips8.18.7-r21
             ENABLE_MAGICK=false
