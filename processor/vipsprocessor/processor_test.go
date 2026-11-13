@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"image/gif"
@@ -25,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"golang.org/x/image/bmp"
 )
 
 var testDataDir string
@@ -46,6 +48,22 @@ type nonSeekableReadCloser struct {
 }
 
 func (r *nonSeekableReadCloser) Close() error { return nil }
+
+// bmpHeaderOnly returns a 24-bit BMP header that declares w x h and carries no
+// pixel data: the shape of the 1 KB out-of-memory repro.
+func bmpHeaderOnly(w, h int32) []byte {
+	b := make([]byte, 54)
+	copy(b, "BM")
+	le := binary.LittleEndian
+	le.PutUint32(b[2:], 54)  // file size
+	le.PutUint32(b[10:], 54) // pixel data offset
+	le.PutUint32(b[14:], 40) // BITMAPINFOHEADER
+	le.PutUint32(b[18:], uint32(w))
+	le.PutUint32(b[22:], uint32(h))
+	le.PutUint16(b[26:], 1)  // planes
+	le.PutUint16(b[28:], 24) // bits per pixel
+	return b
+}
 
 func TestMain(m *testing.M) {
 	vips.Startup(&vips.Config{
@@ -802,6 +820,42 @@ func TestProcessor(t *testing.T) {
 		app.ServeHTTP(w, httptest.NewRequest(
 			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
 		assert.Equal(t, 422, w.Code)
+	})
+	t.Run("bmp fallback header guard", func(t *testing.T) {
+		// bmp.Decode allocates Width*Height*4 from the header before any limit
+		// applies, so a small file declaring 40000x40000 used to cost 6.4 GB.
+		// The declared dimensions must be rejected on the header alone.
+		p := NewProcessor()
+		_, err := p.loadImageFromBMP(bytes.NewReader(bmpHeaderOnly(40000, 40000)))
+		assert.ErrorIs(t, err, imagor.ErrMaxResolutionExceeded)
+
+		p = NewProcessor(WithMaxResolution(10_000))
+		_, err = p.loadImageFromBMP(bytes.NewReader(bmpHeaderOnly(4000, 4000)))
+		assert.ErrorIs(t, err, imagor.ErrMaxResolutionExceeded)
+
+		p = NewProcessor(WithMaxWidth(199))
+		_, err = p.loadImageFromBMP(bytes.NewReader(bmpHeaderOnly(400, 10)))
+		assert.ErrorIs(t, err, imagor.ErrMaxResolutionExceeded)
+
+		p = NewProcessor(WithMaxHeight(199))
+		_, err = p.loadImageFromBMP(bytes.NewReader(bmpHeaderOnly(10, 400)))
+		assert.ErrorIs(t, err, imagor.ErrMaxResolutionExceeded)
+	})
+	t.Run("bmp fallback decodes after header replay", func(t *testing.T) {
+		// The header bytes read by DecodeConfig are replayed into Decode, so
+		// both the 24-bit and the paletted 8-bit paths must still load whole.
+		p := NewProcessor()
+		for _, name := range []string{"bmp_24.bmp", "lena_gray.bmp"} {
+			buf, err := os.ReadFile(filepath.Join(testDataDir, name))
+			require.NoError(t, err)
+			want, err := bmp.Decode(bytes.NewReader(buf))
+			require.NoError(t, err)
+			img, err := p.loadImageFromBMP(bytes.NewReader(buf))
+			require.NoError(t, err, name)
+			assert.Equal(t, want.Bounds().Dx(), img.Width(), name)
+			assert.Equal(t, want.Bounds().Dy(), img.Height(), name)
+			img.Close()
+		}
 	})
 	t.Run("resolution exceeded max frames within", func(t *testing.T) {
 		app := imagor.New(

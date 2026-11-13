@@ -1,6 +1,7 @@
 package vipsprocessor
 
 import (
+	"bytes"
 	"image"
 	"image/draw"
 	"io"
@@ -32,13 +33,29 @@ func estimateMaxBMPFileSize(maxResolution int64) int64 {
 }
 
 func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
-	goImg, err := bmp.Decode(r)
+	// bmp.Decode allocates the whole pixel buffer from the dimensions in the
+	// header, so the resolution limits have to be applied to the header alone.
+	// DecodeConfig reads only the header and palette; replay those bytes into
+	// Decode instead of re-reading the source.
+	var header bytes.Buffer
+	cfg, err := bmp.DecodeConfig(io.TeeReader(r, &header))
+	if err != nil {
+		return nil, err
+	}
+	if !v.Unlimited && (cfg.Width > v.MaxWidth || cfg.Height > v.MaxHeight ||
+		int64(cfg.Width)*int64(cfg.Height) > int64(v.MaxResolution)) {
+		return nil, imagor.ErrMaxResolutionExceeded
+	}
+	goImg, err := bmp.Decode(io.MultiReader(&header, r))
 	if err != nil {
 		return nil, err
 	}
 	rect := goImg.Bounds()
 	size := rect.Size()
-	if !v.Unlimited && (size.X > v.MaxWidth || size.Y > v.MaxHeight || size.X*size.Y > v.MaxResolution) {
+	// Second line of defence: the header the config was read from is not
+	// necessarily the one Decode allocated from.
+	if !v.Unlimited && (size.X > v.MaxWidth || size.Y > v.MaxHeight ||
+		int64(size.X)*int64(size.Y) > int64(v.MaxResolution)) {
 		return nil, imagor.ErrMaxResolutionExceeded
 	}
 	rgba, ok := goImg.(*image.RGBA)
@@ -63,7 +80,10 @@ func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 
 func (v *Processor) bmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error) {
 	if blob.BlobType() == imagor.BlobTypeBMP {
-		if blob.Size() > estimateMaxBMPFileSize(int64(v.MaxResolution)) {
+		// The declared dimensions are checked against the limits by
+		// loadImageFromBMP before any pixel buffer is allocated; this only
+		// keeps an oversized file from being read in the first place.
+		if !v.Unlimited && blob.Size() > estimateMaxBMPFileSize(int64(v.MaxResolution)) {
 			return nil, imagor.ErrMaxResolutionExceeded
 		}
 		r, _, err := blob.NewReader()
