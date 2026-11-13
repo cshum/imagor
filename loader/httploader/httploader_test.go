@@ -347,6 +347,16 @@ func TestBlockNetworks(t *testing.T) {
 			addr: "[64:ff9b::a9fe:101]:1000",
 			opt:  WithBlockLinkLocalNetworks(true),
 		},
+		{
+			name: "link local with zone",
+			addr: "[fe80::1%eth0]:1000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
+			name: "unparseable host",
+			addr: "not-an-ip:1000",
+			opt:  WithBlockLoopbackNetworks(true),
+		},
 	} {
 		t.Run(v.name, func(t *testing.T) {
 			loader := New(
@@ -363,6 +373,9 @@ func TestBlockNetworks(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = loader.DialControl("tcp", "[::]:8080", nil)
+		assert.NoError(t, err)
+
+		err = loader.DialControl("tcp", "not-an-ip:8080", nil)
 		assert.NoError(t, err)
 	})
 }

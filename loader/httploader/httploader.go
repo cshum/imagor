@@ -297,6 +297,12 @@ func (h *HTTPLoader) checkRedirect(r *http.Request, via []*http.Request) error {
 // ErrUnauthorizedRequest unauthorized request error
 var ErrUnauthorizedRequest = errors.New("unauthorized request")
 
+// hasNetworkBlocks reports whether any network restriction is configured.
+func (h *HTTPLoader) hasNetworkBlocks() bool {
+	return h.BlockLoopbackNetworks || h.BlockLinkLocalNetworks ||
+		h.BlockPrivateNetworks || len(h.BlockNetworks) > 0
+}
+
 func dialTargetIPs(addr net.IP) []net.IP {
 	if addr == nil {
 		return nil
@@ -342,7 +348,15 @@ func (h *HTTPLoader) DialControl(network string, address string, conn syscall.Ra
 	if err != nil {
 		return err
 	}
+	// A scoped literal does not parse as an IP; classify the address under it
+	// rather than letting it through unclassified.
+	if zone := strings.LastIndexByte(host, '%'); zone > 0 {
+		host = host[:zone]
+	}
 	addr := net.ParseIP(host)
+	if addr == nil && h.hasNetworkBlocks() {
+		return ErrUnauthorizedRequest
+	}
 	for _, target := range dialTargetIPs(addr) {
 		if h.BlockLoopbackNetworks && (target.IsLoopback() || target.IsUnspecified()) {
 			return ErrUnauthorizedRequest
