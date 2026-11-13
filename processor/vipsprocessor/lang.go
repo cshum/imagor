@@ -33,10 +33,14 @@ func langTags(p imagorpath.Params) ([]string, bool) {
 	return nil, false
 }
 
+// maxVectorSourceBytes matches the SVG sanitize limit; past it a document is not
+// served as a vector either.
+const maxVectorSourceBytes = 32 << 20
+
 // selectLanguage returns the source with its language conditionals resolved for
 // the requested tags.
 func selectLanguage(blob *imagor.Blob, tags []string) (*imagor.Blob, error) {
-	data, err := blob.ReadAll()
+	data, err := blob.ReadAllLimit(maxVectorSourceBytes)
 	if err != nil {
 		return nil, err
 	}

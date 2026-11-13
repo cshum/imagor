@@ -243,14 +243,14 @@ func (app *Imagor) passthroughEnabled(t BlobType) bool {
 var maxSanitizeBytes = 32 << 20
 
 func (app *Imagor) sanitizeSVG(blob *Blob) (*Blob, error) {
-	data, err := blob.ReadAll()
+	data, err := blob.ReadAllLimit(int64(maxSanitizeBytes))
 	if err != nil {
+		if errors.Is(err, ErrMaxSizeExceeded) {
+			return nil, NewError(fmt.Sprintf(
+				"svg source exceeds the sanitize limit of %d bytes",
+				maxSanitizeBytes), http.StatusUnprocessableEntity)
+		}
 		return nil, WrapError(err)
-	}
-	if len(data) > maxSanitizeBytes {
-		return nil, NewError(fmt.Sprintf(
-			"svg source of %d bytes exceeds the sanitize limit of %d bytes",
-			len(data), maxSanitizeBytes), http.StatusUnprocessableEntity)
 	}
 	sanitized, err := svg.Sanitize(bytes.NewReader(data))
 	if err != nil {

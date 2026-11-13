@@ -685,20 +685,20 @@ func TestBlobReadAllDeclaredSize(t *testing.T) {
 		})
 	}
 
-	t.Run("declared size is not allocated", func(t *testing.T) {
+	t.Run("declared size does not size the buffer", func(t *testing.T) {
 		// what an origin that lies about Content-Length declares
 		buf, err := declaring(1 << 62).ReadAll()
 		assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
 		assert.Equal(t, body, buf)
 	})
 
-	t.Run("body over the cap", func(t *testing.T) {
-		restore := maxReadAllSize
-		maxReadAllSize = 8
-		t.Cleanup(func() { maxReadAllSize = restore })
-
-		_, err := declaring(0).ReadAll()
+	t.Run("limit", func(t *testing.T) {
+		_, err := declaring(0).ReadAllLimit(8)
 		assert.ErrorIs(t, err, ErrMaxSizeExceeded)
+
+		buf, err := declaring(0).ReadAllLimit(int64(len(body)))
+		require.NoError(t, err)
+		assert.Equal(t, body, buf)
 	})
 
 	t.Run("short read against a declared size", func(t *testing.T) {

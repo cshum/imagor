@@ -15,8 +15,8 @@ import (
 type FallbackFunc func(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error)
 
 // bufferFallbackFunc load image from buffer FallbackFunc
-func bufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions) (*vips.Image, error) {
-	buf, err := blob.ReadAll()
+func bufferFallbackFunc(blob *imagor.Blob, options *vips.LoadOptions, limit int64) (*vips.Image, error) {
+	buf, err := blob.ReadAllLimit(limit)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +73,15 @@ func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 		return copied, nil
 	}
 	return img, nil
+}
+
+// fallbackBufferLimit is the memory a decode at MaxResolution would cost;
+// negative means no limit.
+func (v *Processor) fallbackBufferLimit() int64 {
+	if v.Unlimited || v.MaxResolution <= 0 {
+		return -1
+	}
+	return int64(v.MaxResolution) * 4
 }
 
 func (v *Processor) bmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error) {
