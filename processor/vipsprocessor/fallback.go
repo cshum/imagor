@@ -33,10 +33,8 @@ func estimateMaxBMPFileSize(maxResolution int64) int64 {
 }
 
 func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
-	// bmp.Decode allocates the whole pixel buffer from the dimensions in the
-	// header, so the resolution limits have to be applied to the header alone.
-	// DecodeConfig reads only the header and palette; replay those bytes into
-	// Decode instead of re-reading the source.
+	// bmp.Decode sizes its buffer from the header, so the limits are applied to
+	// DecodeConfig's dimensions first and the bytes it consumed are replayed.
 	var header bytes.Buffer
 	cfg, err := bmp.DecodeConfig(io.TeeReader(r, &header))
 	if err != nil {
@@ -52,8 +50,7 @@ func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 	}
 	rect := goImg.Bounds()
 	size := rect.Size()
-	// Second line of defence: the header the config was read from is not
-	// necessarily the one Decode allocated from.
+	// Second check against the image Decode returned.
 	if !v.Unlimited && (size.X > v.MaxWidth || size.Y > v.MaxHeight ||
 		int64(size.X)*int64(size.Y) > int64(v.MaxResolution)) {
 		return nil, imagor.ErrMaxResolutionExceeded
@@ -80,9 +77,8 @@ func (v *Processor) loadImageFromBMP(r io.Reader) (*vips.Image, error) {
 
 func (v *Processor) bmpFallbackFunc(blob *imagor.Blob, _ *vips.LoadOptions) (*vips.Image, error) {
 	if blob.BlobType() == imagor.BlobTypeBMP {
-		// The declared dimensions are checked against the limits by
-		// loadImageFromBMP before any pixel buffer is allocated; this only
-		// keeps an oversized file from being read in the first place.
+		// loadImageFromBMP checks what the file declares; this only keeps an
+		// oversized one from being read.
 		if !v.Unlimited && blob.Size() > estimateMaxBMPFileSize(int64(v.MaxResolution)) {
 			return nil, imagor.ErrMaxResolutionExceeded
 		}

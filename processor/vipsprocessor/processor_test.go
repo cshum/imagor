@@ -49,8 +49,7 @@ type nonSeekableReadCloser struct {
 
 func (r *nonSeekableReadCloser) Close() error { return nil }
 
-// bmpHeaderOnly returns a 24-bit BMP header that declares w x h and carries no
-// pixel data: the shape of the 1 KB out-of-memory repro.
+// bmpHeaderOnly returns a 24-bit BMP header declaring w x h, with no pixel data.
 func bmpHeaderOnly(w, h int32) []byte {
 	b := make([]byte, 54)
 	copy(b, "BM")
@@ -822,9 +821,7 @@ func TestProcessor(t *testing.T) {
 		assert.Equal(t, 422, w.Code)
 	})
 	t.Run("bmp fallback header guard", func(t *testing.T) {
-		// bmp.Decode allocates Width*Height*4 from the header before any limit
-		// applies, so a small file declaring 40000x40000 used to cost 6.4 GB.
-		// The declared dimensions must be rejected on the header alone.
+		// bmp.Decode allocates from the header, so the declared size must be refused.
 		p := NewProcessor()
 		_, err := p.loadImageFromBMP(bytes.NewReader(bmpHeaderOnly(40000, 40000)))
 		assert.ErrorIs(t, err, imagor.ErrMaxResolutionExceeded)
@@ -842,8 +839,6 @@ func TestProcessor(t *testing.T) {
 		assert.ErrorIs(t, err, imagor.ErrMaxResolutionExceeded)
 	})
 	t.Run("bmp fallback decodes after header replay", func(t *testing.T) {
-		// The header bytes read by DecodeConfig are replayed into Decode, so
-		// both the 24-bit and the paletted 8-bit paths must still load whole.
 		p := NewProcessor()
 		for _, name := range []string{"bmp_24.bmp", "lena_gray.bmp"} {
 			buf, err := os.ReadFile(filepath.Join(testDataDir, name))
