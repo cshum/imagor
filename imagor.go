@@ -450,7 +450,7 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		var blob *Blob
 		var err error
 		if resultKey != "" && !isRaw {
-			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
+			if blob := app.loadResult(r, resultKey, p.Image, true); blob != nil {
 				blob.isResult = true
 				return blob, nil
 			}
@@ -628,7 +628,8 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 	if blob != nil && blob.isResult && !isLeader.Load() {
 		// A result storage blob reopens its reader with the request that
 		// loaded it, which may have ended by now. Load it with this request.
-		if own := app.loadResult(r, resultKey, p.Image); own != nil {
+		// The flight already checked the source's modified time.
+		if own := app.loadResult(r, resultKey, p.Image, false); own != nil {
 			return own, nil
 		}
 	}
@@ -693,13 +694,14 @@ func (app *Imagor) requestWithLoadContext(r *http.Request) *http.Request {
 	return r
 }
 
-func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob {
+// loadResult loads a stored result; checkSource applies the modified time check.
+func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string, checkSource bool) *Blob {
 	r = app.requestWithLoadContext(r)
 	r = r.WithContext(ContextWithSourceImageKey(r.Context(), imageKey))
 	ctx := r.Context()
 	blob, origin, err := fromStorages(r, app.ResultStorages, resultKey)
 	if err == nil && !isBlobEmpty(blob) {
-		if app.ModifiedTimeCheck && origin != nil && blob.Stat != nil {
+		if checkSource && app.ModifiedTimeCheck && origin != nil && blob.Stat != nil {
 			var sourceStat *Stat
 			var sourceStatErr error
 
@@ -752,6 +754,7 @@ func (app *Imagor) loadResult(r *http.Request, resultKey, imageKey string) *Blob
 				app.Logger.Debug("modified-time-check-skipped",
 					zap.Bool("has_origin", origin != nil),
 					zap.Bool("has_blob_stat", blob.Stat != nil),
+					zap.Bool("check_source", checkSource),
 					zap.String("result_key", resultKey))
 			}
 			return blob
