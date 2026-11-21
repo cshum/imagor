@@ -249,7 +249,11 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
-	reader, size, _ := blob.NewReader()
+	reader, size, err := blob.NewReader()
+	if err != nil {
+		app.handleErrorResponse(w, r, err)
+		return
+	}
 	writeBody(w, r, reader, size)
 	return
 }
@@ -440,11 +444,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 		blob, _, err := app.loadStorage(r, image)
 		return blob, err
 	}
-	return app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+	var isLeader atomic.Bool
+	blob, err = app.suppress(ctx, resultKey, func(ctx context.Context, cb func(*Blob, error)) (*Blob, error) {
+		isLeader.Store(true)
 		var blob *Blob
 		var err error
 		if resultKey != "" && !isRaw {
 			if blob := app.loadResult(r, resultKey, p.Image); blob != nil {
+				blob.isResult = true
 				return blob, nil
 			}
 		}
@@ -618,6 +625,14 @@ func (app *Imagor) Do(r *http.Request, p imagorpath.Params) (blob *Blob, err err
 
 		return blob, err
 	})
+	if blob != nil && blob.isResult && !isLeader.Load() {
+		// A result storage blob reopens its reader with the request that
+		// loaded it, which may have ended by now. Load it with this request.
+		if own := app.loadResult(r, resultKey, p.Image); own != nil {
+			return own, nil
+		}
+	}
+	return blob, err
 }
 
 // handlePostRequest handles POST upload requests

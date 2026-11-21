@@ -3754,3 +3754,92 @@ func TestGetResultKey(t *testing.T) {
 	assert.NotNil(t, resultStore.getBlob("space-a/photo.jpg"))
 	assert.Nil(t, resultStore.getBlob("photo.jpg"))
 }
+
+// ctxResultStore opens every reader with the context of the request that
+// called Get, the way the S3 and GCS storages do.
+type ctxResultStore struct {
+	buf     []byte
+	entered chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func (s *ctxResultStore) Get(r *http.Request, _ string) (*Blob, error) {
+	ctx := r.Context()
+	s.once.Do(func() {
+		close(s.entered)
+		<-s.release
+	})
+	return NewBlob(func() (io.ReadCloser, int64, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, 0, err
+		}
+		return io.NopCloser(bytes.NewReader(s.buf)), int64(len(s.buf)), nil
+	}), nil
+}
+
+func (s *ctxResultStore) Stat(context.Context, string) (*Stat, error) { return nil, ErrNotFound }
+func (s *ctxResultStore) Put(context.Context, string, *Blob) error    { return nil }
+func (s *ctxResultStore) Delete(context.Context, string) error        { return nil }
+
+// headerWaitWriter holds the response at its first Header call, which
+// ServeHTTP makes before it opens the blob reader.
+type headerWaitWriter struct {
+	*httptest.ResponseRecorder
+	wait chan struct{}
+	once sync.Once
+}
+
+func (w *headerWaitWriter) Header() http.Header {
+	w.once.Do(func() { <-w.wait })
+	return w.ResponseRecorder.Header()
+}
+
+func TestSharedResultBlobAfterLeaderRequestDone(t *testing.T) {
+	store := &ctxResultStore{
+		buf:     []byte("result bytes"),
+		entered: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	app := New(
+		WithUnsafe(true),
+		WithLoadTimeout(time.Second),
+		WithLoaders(loaderFunc(func(r *http.Request, image string) (*Blob, error) {
+			return NewBlobFromBytes([]byte("source")), nil
+		})),
+		WithResultStorages(store),
+	)
+	require.NoError(t, app.Startup(context.Background()))
+	defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+	const path = "/unsafe/fit-in/100x100/foo.jpg"
+	leaderCtx, cancelLeader := context.WithCancel(context.Background())
+	defer cancelLeader()
+	leaderDone := make(chan struct{})
+	leaderW := httptest.NewRecorder()
+	go func() {
+		defer close(leaderDone)
+		app.ServeHTTP(leaderW, httptest.NewRequest(http.MethodGet, path, nil).WithContext(leaderCtx))
+	}()
+	<-store.entered
+
+	// The follower joins the leader's flight and is held until the leader's
+	// request has ended, as a slower client would be.
+	followerW := &headerWaitWriter{ResponseRecorder: httptest.NewRecorder(), wait: make(chan struct{})}
+	followerDone := make(chan any, 1)
+	go func() {
+		defer func() { followerDone <- recover() }()
+		app.ServeHTTP(followerW, httptest.NewRequest(http.MethodGet, path, nil))
+	}()
+	time.Sleep(50 * time.Millisecond)
+	close(store.release)
+	<-leaderDone
+	cancelLeader()
+	close(followerW.wait)
+
+	require.Nil(t, <-followerDone, "follower request panicked")
+	assert.Equal(t, http.StatusOK, leaderW.Code)
+	assert.Equal(t, "result bytes", leaderW.Body.String())
+	assert.Equal(t, http.StatusOK, followerW.Code)
+	assert.Equal(t, "result bytes", followerW.Body.String())
+}
