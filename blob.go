@@ -63,6 +63,7 @@ type Blob struct {
 	filepath       string
 	contentType    string
 	memory         *memory
+	isResult       bool // loaded from a result storage
 
 	Header http.Header
 	Stat   *Stat
