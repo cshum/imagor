@@ -3759,6 +3759,7 @@ func TestGetResultKey(t *testing.T) {
 // called Get, the way the S3 and GCS storages do.
 type ctxResultStore struct {
 	buf     []byte
+	stat    *Stat // the stored result's Stat, nil for none
 	entered chan struct{}
 	release chan struct{}
 	once    sync.Once
@@ -3770,12 +3771,14 @@ func (s *ctxResultStore) Get(r *http.Request, _ string) (*Blob, error) {
 		close(s.entered)
 		<-s.release
 	})
-	return NewBlob(func() (io.ReadCloser, int64, error) {
+	blob := NewBlob(func() (io.ReadCloser, int64, error) {
 		if err := ctx.Err(); err != nil {
 			return nil, 0, err
 		}
 		return io.NopCloser(bytes.NewReader(s.buf)), int64(len(s.buf)), nil
-	}), nil
+	})
+	blob.Stat = s.stat
+	return blob, nil
 }
 
 func (s *ctxResultStore) Stat(context.Context, string) (*Stat, error) { return nil, ErrNotFound }
@@ -3842,4 +3845,58 @@ func TestSharedResultBlobAfterLeaderRequestDone(t *testing.T) {
 	assert.Equal(t, "result bytes", leaderW.Body.String())
 	assert.Equal(t, http.StatusOK, followerW.Code)
 	assert.Equal(t, "result bytes", followerW.Body.String())
+}
+
+func TestSharedResultBlobChecksSourceOncePerFlight(t *testing.T) {
+	now := time.Now()
+	store := &ctxResultStore{
+		buf:     []byte("result bytes"),
+		stat:    &Stat{ModifiedTime: now},
+		entered: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	loader := newLoaderWithStat()
+	loader.data["foo.jpg"] = NewBlobFromBytes([]byte("source"))
+	loader.modTime["foo.jpg"] = now.Add(-time.Hour)
+	app := New(
+		WithUnsafe(true),
+		WithLoadTimeout(time.Second),
+		WithLoaders(loader),
+		WithResultStorages(store),
+		WithModifiedTimeCheck(true),
+	)
+	require.NoError(t, app.Startup(context.Background()))
+	defer func() { require.NoError(t, app.Shutdown(context.Background())) }()
+
+	const path = "/unsafe/fit-in/100x100/foo.jpg"
+	leaderCtx, cancelLeader := context.WithCancel(context.Background())
+	defer cancelLeader()
+	leaderDone := make(chan struct{})
+	leaderW := httptest.NewRecorder()
+	go func() {
+		defer close(leaderDone)
+		app.ServeHTTP(leaderW, httptest.NewRequest(http.MethodGet, path, nil).WithContext(leaderCtx))
+	}()
+	<-store.entered
+
+	// The follower is held until the leader's request ends, so it reloads with its own.
+	followerW := &headerWaitWriter{ResponseRecorder: httptest.NewRecorder(), wait: make(chan struct{})}
+	followerDone := make(chan struct{})
+	go func() {
+		defer close(followerDone)
+		app.ServeHTTP(followerW, httptest.NewRequest(http.MethodGet, path, nil))
+	}()
+	time.Sleep(50 * time.Millisecond)
+	close(store.release)
+	<-leaderDone
+	cancelLeader()
+	close(followerW.wait)
+	<-followerDone
+
+	assert.Equal(t, http.StatusOK, leaderW.Code)
+	assert.Equal(t, "result bytes", leaderW.Body.String())
+	assert.Equal(t, http.StatusOK, followerW.Code)
+	assert.Equal(t, "result bytes", followerW.Body.String())
+	// A follower that missed the flight checks the source again, so this cannot pass by luck.
+	assert.Equal(t, 1, loader.GetStatCalls(), "source stat calls for one flight")
 }
