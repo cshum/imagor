@@ -137,7 +137,6 @@ const config: Config = {
           href: "https://github.com/sponsors/cshum",
           label: "Sponsor",
           position: "right",
-          className: "navbar-sponsor-button",
         },
       ],
     },
