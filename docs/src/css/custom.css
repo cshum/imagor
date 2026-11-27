@@ -146,6 +146,35 @@
   background-color: var(--ifm-color-emphasis-100);
 }
 
+/* Sponsor navbar CTA button */
+.navbar-sponsor-button {
+  background-color: var(--ifm-color-primary) !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+  margin-left: 0.5rem !important;
+  margin-right: 0.75rem !important;
+}
+
+.navbar-sponsor-button:hover {
+  background-color: var(--ifm-color-primary-light) !important;
+  color: white !important;
+  text-decoration: none !important;
+}
+
+[data-theme="dark"] .navbar-sponsor-button {
+  background-color: var(--ifm-color-primary) !important;
+  color: #0a0a0a !important;
+}
+
+[data-theme="dark"] .navbar-sponsor-button:hover {
+  background-color: var(--ifm-color-primary-light) !important;
+  color: #0a0a0a !important;
+}
+
 /* Screenshot image containers */
 .screenshot-container {
   max-width: 800px;
