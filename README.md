@@ -55,5 +55,3 @@ Full documentation is available at [docs.imagor.net](https://docs.imagor.net).
 - [Storage](https://docs.imagor.net/storage)
 - [Security](https://docs.imagor.net/security)
 - [Configuration](https://docs.imagor.net/configuration)
-
-For bugs and feature requests, please use [GitHub Issues](https://github.com/cshum/imagor/issues).
