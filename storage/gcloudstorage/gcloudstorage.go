@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -81,8 +80,11 @@ func (s *GCloudStorage) pathFromNormalized(image string) (string, bool) {
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	joinedPath := filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
-	return strings.Trim(joinedPath, "/"), true
+	joinedPath, ok := imagorpath.ConfineJoin(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
+	if !ok {
+		return "", false
+	}
+	return joinedPath, true
 }
 
 // Get implements imagor.Storage interface
@@ -178,9 +180,11 @@ func (s *GCloudStorage) Path(image string) (string, bool) {
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	joinedPath := filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
-	// Google cloud paths don't need to start with "/"
-	return strings.Trim(joinedPath, "/"), true
+	joinedPath, ok := imagorpath.ConfineJoin(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
+	if !ok {
+		return "", false
+	}
+	return joinedPath, true
 }
 
 // Stat implements imagor.Storage interface

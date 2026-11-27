@@ -77,6 +77,19 @@ func TestGCloudStorage_Path(t *testing.T) {
 			image:      "/fooo/bar",
 			expectedOk: false,
 		},
+		{
+			name:       "dot segments cannot leave the base dir",
+			baseDir:    "home/imagor",
+			image:      "../other/photo.jpg",
+			expectedOk: false,
+		},
+		{
+			name:         "dot segments inside the base dir are resolved",
+			baseDir:      "home/imagor",
+			image:        "sub/../photo.jpg",
+			expectedPath: "home/imagor/photo.jpg",
+			expectedOk:   true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
