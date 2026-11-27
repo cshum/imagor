@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -3360,9 +3361,16 @@ func TestResultStorageCleanupWithProcessingError(t *testing.T) {
 	})
 }
 
+func pngImageBytes(t *testing.T) []byte {
+	t.Helper()
+	b, err := os.ReadFile("testdata/gopher-front.png")
+	require.NoError(t, err)
+	return b
+}
+
 func TestResponseRawOnError(t *testing.T) {
 	t.Run("disabled returns error JSON", func(t *testing.T) {
-		testImageData := []byte("test image data")
+		testImageData := pngImageBytes(t)
 		app := New(
 			WithUnsafe(true),
 			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
@@ -3384,7 +3392,7 @@ func TestResponseRawOnError(t *testing.T) {
 	})
 
 	t.Run("enabled returns raw image with error status", func(t *testing.T) {
-		testImageData := []byte("test image data")
+		testImageData := pngImageBytes(t)
 		app := New(
 			WithUnsafe(true),
 			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
@@ -3428,7 +3436,7 @@ func TestResponseRawOnError(t *testing.T) {
 	})
 
 	t.Run("raw body is still served when the source returns it with an error", func(t *testing.T) {
-		body := []byte("upstream error page")
+		body := pngImageBytes(t)
 		app := New(
 			WithUnsafe(true),
 			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
@@ -3467,6 +3475,102 @@ func TestResponseRawOnError(t *testing.T) {
 
 		assert.Equal(t, 406, w.Code)
 		assert.Contains(t, w.Body.String(), "unsupported format")
+	})
+
+	t.Run("a source that is not an image is not served raw", func(t *testing.T) {
+		page := []byte("<html><script>alert(document.domain)</script></html>")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				blob := NewBlobFromBytes(page)
+				blob.SetContentType("text/html")
+				return blob, nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrUnsupportedFormat
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 406, w.Code)
+		assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+		assert.NotContains(t, w.Body.String(), "<script>")
+	})
+
+	t.Run("the bytes decide the content type, not the loader", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				blob := NewBlobFromBytes(pngImageBytes(t))
+				blob.SetContentType("text/html") // a lying loader
+				return blob, nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrMaxResolutionExceeded
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 422, w.Code)
+		assert.Equal(t, "image/png", w.Header().Get("Content-Type"))
+		assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options"))
+	})
+
+	t.Run("an svg source keeps the sandbox policy", func(t *testing.T) {
+		svg := []byte(`<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`)
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlobFromBytes(svg), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrMaxResolutionExceeded
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.svg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 422, w.Code)
+		assert.Equal(t, "image/svg+xml", w.Header().Get("Content-Type"))
+		assert.NotEmpty(t, w.Header().Get("Content-Security-Policy"))
+		assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options"))
+	})
+
+	t.Run("a non-image media type is still served raw", func(t *testing.T) {
+		// imagor is used for more than images: a custom processor or passthrough
+		// can hand back video, PDF or any other binary.
+		video := []byte("\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				blob := NewBlobFromBytes(video)
+				blob.SetContentType("video/mp4")
+				return blob, nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrUnsupportedFormat
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.mp4", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 406, w.Code)
+		assert.Equal(t, "video/mp4", w.Header().Get("Content-Type"))
+		assert.Equal(t, video, w.Body.Bytes())
 	})
 
 	t.Run("no blob returns normal error", func(t *testing.T) {
@@ -3520,7 +3624,7 @@ func TestResponseRawOnError(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				testImageData := []byte("test image")
+				testImageData := pngImageBytes(t)
 				app := New(
 					WithUnsafe(true),
 					WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {

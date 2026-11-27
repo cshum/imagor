@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/cshum/imagor/imagorpath"
@@ -419,7 +420,8 @@ func TestImagor_PostUpload_DoesNotEnableFanoutWithStorages(t *testing.T) {
 }
 
 func TestImagor_PostUpload_ResponseRawOnError(t *testing.T) {
-	imageData := []byte("fake-jpeg-data")
+	imageData, err := os.ReadFile("testdata/demo1.jpg")
+	require.NoError(t, err)
 	app := New(
 		WithUnsafe(true),
 		WithEnablePostRequests(true),

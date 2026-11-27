@@ -234,14 +234,24 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				app.handleErrorResponse(w, r, rerr)
 				return
 			}
+			// The bytes decide the type; markup is never served from this origin.
+			contentType := rawOnErrorContentType(blob)
+			if isMarkupContentType(contentType) {
+				app.handleErrorResponse(w, r, err)
+				return
+			}
 			app.Logger.Warn("response-raw-on-error",
 				zap.Any("params", p),
 				zap.Error(err),
 				zap.Int("status", e.Code))
 
 			// Write error status code but serve raw image
-			w.WriteHeader(e.Code)
 			app.setResponseHeaders(w, r, blob, p)
+			w.Header().Set("Content-Type", contentType)
+			if contentType == SVGContentType {
+				w.Header().Set("Content-Security-Policy", SVGContentSecurityPolicy)
+			}
+			w.WriteHeader(e.Code)
 			writeBody(w, r, reader, size)
 			return
 		}
@@ -672,13 +682,22 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 				app.handleErrorResponse(w, r, rerr)
 				return
 			}
+			contentType := rawOnErrorContentType(blob)
+			if isMarkupContentType(contentType) {
+				app.handleErrorResponse(w, r, err)
+				return
+			}
 			app.Logger.Warn("response-raw-on-error",
 				zap.Any("params", p),
 				zap.Error(err),
 				zap.Int("status", e.Code))
 
-			w.WriteHeader(e.Code)
 			app.setResponseHeaders(w, r, blob, p)
+			w.Header().Set("Content-Type", contentType)
+			if contentType == SVGContentType {
+				w.Header().Set("Content-Security-Policy", SVGContentSecurityPolicy)
+			}
+			w.WriteHeader(e.Code)
 			writeBody(w, r, reader, size)
 			return
 		}
@@ -1021,6 +1040,27 @@ func (app *Imagor) suppress(
 }
 
 // setResponseHeaders sets common response headers for blob responses
+// rawOnErrorContentType returns the type of the bytes, falling back to what the
+// loader claimed when the bytes are not a sniffed image (video, PDF, a custom
+// processor's output).
+func rawOnErrorContentType(blob *Blob) string {
+	if contentType := blob.SniffedContentType(); contentType != "" {
+		return contentType
+	}
+	if contentType := blob.ContentType(); contentType != "" {
+		return contentType
+	}
+	return "application/octet-stream"
+}
+
+// isMarkupContentType reports whether a type would be rendered as a document,
+// and so executed as one on the imagor origin.
+func isMarkupContentType(contentType string) bool {
+	contentType = strings.ToLower(contentType)
+	return strings.HasPrefix(contentType, "text/html") ||
+		strings.HasPrefix(contentType, "application/xhtml")
+}
+
 func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, blob *Blob, p imagorpath.Params) {
 	if blob == nil {
 		w.Header().Set("Content-Type", "application/octet-stream")
