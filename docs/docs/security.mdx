@@ -265,12 +265,6 @@ HTTP_LOADER_BASE_URL=https://assets.mydomain.com/
 
 With a base URL set the image path is appended to it, so `500x500/photo.jpg` loads `https://assets.mydomain.com/photo.jpg`.
 
-**HTTPS only** — refuse plain-HTTP image sources:
-
-```dotenv
-HTTP_LOADER_HTTPS_ONLY=1
-```
-
 See [HTTP Loader](./loader-http.md) for the full configuration reference.
 
 ---
@@ -359,7 +353,6 @@ services:
       IMAGOR_SIGNER_TRUNCATE: 40           # truncate to 40 chars
 
       HTTP_LOADER_ALLOWED_SOURCES: "*.mydomain.com,assets.cdn.io"  # restrict sources
-      HTTP_LOADER_HTTPS_ONLY: 1            # refuse plain-HTTP image URLs
 
       VIPS_MAX_RESOLUTION: 16800000        # reject images over ~4K×4K
       VIPS_MAX_WIDTH: 5000
