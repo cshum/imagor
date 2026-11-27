@@ -635,6 +635,50 @@ func TestProcessor(t *testing.T) {
 			http.MethodGet, "/unsafe/100x100/bmp_24.bmp", nil))
 		assert.Equal(t, 422, w.Code)
 	})
+	t.Run("resolution checked before decode without shrink-on-load", func(t *testing.T) {
+		// Only the loaders libvips can pre-shrink or scale (jpeg, webp) reach the
+		// thumbnail source; gif, avif and heif decode at full size, so the
+		// declared dimensions are checked before any pixel is read.
+		paths := []struct {
+			path string
+			want int
+		}{
+			{"/unsafe/fit-in/50x50/dancing-banana.gif", 422},
+			{"/unsafe/fit-in/50x50/gopher-front.avif", 422},
+			{"/unsafe/fit-in/50x50/gopher-front.heif", 422},
+			// jpeg keeps its loader shrink, so only the output is judged
+			{"/unsafe/fit-in/50x50/demo1.jpg", 200},
+		}
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithProcessors(NewProcessor(WithMaxResolution(10000))),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		for _, tt := range paths {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, tt.path, nil))
+			assert.Equal(t, tt.want, w.Code, tt.path)
+		}
+
+		app = imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithProcessors(NewProcessor()),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		for _, tt := range paths {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, tt.path, nil))
+			assert.Equal(t, 200, w.Code, tt.path)
+		}
+	})
 	t.Run("grayscale composite regressions", func(t *testing.T) {
 		stub := &stubDetector{regions: []imagor.DetectorRegion{{
 			Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face",
