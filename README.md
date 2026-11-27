@@ -56,20 +56,4 @@ Full documentation is available at [docs.imagor.net](https://docs.imagor.net).
 - [Security](https://docs.imagor.net/security)
 - [Configuration](https://docs.imagor.net/configuration)
 
-## Templates
-
-**[Imagor MCP](https://docs.imagor.net/mcp)** — an MCP server and a skill that add a template layer to imagor. An agent writes a layout: OG cards, product grids, quotes, testimonials, and it compiles to one imagor URL.
-
-<a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/avatar-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/circles.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/tip.png" height="100" /></a>
-
-**[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)**
-
-## Consulting
-
-If your team is running imagor in production and needs help with architecture, custom
-imagor components, multi-tenant setups, loaders/storage backends, migration planning,
-or performance tuning, commercial support and consulting are available.
-See the [Consulting](https://docs.imagor.net/consulting) page for details.
-
-For bugs and feature requests, please continue to use [GitHub Issues](https://github.com/cshum/imagor/issues).
-For consulting inquiries, contact [imagor@cshum.com](mailto:imagor@cshum.com).
+For bugs and feature requests, please use [GitHub Issues](https://github.com/cshum/imagor/issues).
