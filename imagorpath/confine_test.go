@@ -25,6 +25,9 @@ func TestJoin(t *testing.T) {
 		{"/", "../other/photo.jpg", "", false},
 		{"", "..", "", false},
 		{"", "..photo.jpg", "..photo.jpg", true},
+		{"", "a/../../x", "", false},
+		{"", "a/b/../../../y.jpg", "", false},
+		{"home/imagor", "a/../../x", "", false},
 	} {
 		got, ok := ConfineJoin(tt.base, tt.key)
 		if got != tt.want || ok != tt.ok {
