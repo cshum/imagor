@@ -225,6 +225,15 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Check if we should respond with raw image on error
 		if app.ResponseRawOnError && !isBlobEmpty(blob) {
 			e := WrapError(err)
+			// Reader first: a source with nothing to serve still has to be reported.
+			reader, size, rerr := blob.NewReader()
+			if reader == nil {
+				if rerr == nil {
+					rerr = err
+				}
+				app.handleErrorResponse(w, r, rerr)
+				return
+			}
 			app.Logger.Warn("response-raw-on-error",
 				zap.Any("params", p),
 				zap.Error(err),
@@ -233,7 +242,6 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// Write error status code but serve raw image
 			w.WriteHeader(e.Code)
 			app.setResponseHeaders(w, r, blob, p)
-			reader, size, _ := blob.NewReader()
 			writeBody(w, r, reader, size)
 			return
 		}
@@ -656,6 +664,14 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if app.ResponseRawOnError && !isBlobEmpty(blob) {
 			e := WrapError(err)
+			reader, size, rerr := blob.NewReader()
+			if reader == nil {
+				if rerr == nil {
+					rerr = err
+				}
+				app.handleErrorResponse(w, r, rerr)
+				return
+			}
 			app.Logger.Warn("response-raw-on-error",
 				zap.Any("params", p),
 				zap.Error(err),
@@ -663,7 +679,6 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 
 			w.WriteHeader(e.Code)
 			app.setResponseHeaders(w, r, blob, p)
-			reader, size, _ := blob.NewReader()
 			writeBody(w, r, reader, size)
 			return
 		}
