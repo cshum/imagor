@@ -2,7 +2,12 @@ package filestorage
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -103,7 +108,8 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	if !ok {
 		return imagor.ErrInvalid
 	}
-	if err = os.MkdirAll(filepath.Dir(image), s.MkdirPermission); err != nil {
+	dir := filepath.Dir(image)
+	if err = os.MkdirAll(dir, s.MkdirPermission); err != nil {
 		return
 	}
 	reader, _, err := blob.NewReader()
@@ -113,18 +119,26 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	defer func() {
 		_ = reader.Close()
 	}()
-	flag := os.O_RDWR | os.O_CREATE | os.O_TRUNC
-	if s.SaveErrIfExists {
-		flag = os.O_RDWR | os.O_CREATE | os.O_EXCL
+	// Written beside the target and renamed, so a reader never sees a partial file.
+	perm, replacing := s.WritePermission, false
+	if st, statErr := os.Lstat(image); statErr == nil && st.Mode().IsRegular() {
+		perm, replacing = st.Mode().Perm(), true
 	}
-	w, err := os.OpenFile(image, flag, s.WritePermission)
+	w, err := createTemp(dir, perm)
 	if err != nil {
-		return
+		return err
+	}
+	tmp := w.Name()
+	if replacing {
+		// The umask shapes a new file's mode; an overwrite keeps the file's own.
+		if err = os.Chmod(tmp, perm); err != nil {
+			return
+		}
 	}
 	defer func() {
 		_ = w.Close()
 		if err != nil {
-			_ = os.Remove(w.Name())
+			_ = os.Remove(tmp)
 		}
 	}()
 	if _, err = io.Copy(w, reader); err != nil {
@@ -133,7 +147,51 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	if err = w.Sync(); err != nil {
 		return
 	}
-	return
+	if err = w.Close(); err != nil {
+		return
+	}
+	if s.SaveErrIfExists {
+		err = linkIntoPlace(tmp, image)
+		return
+	}
+	return renameFile(tmp, image)
+}
+
+// createTemp creates a dot-prefixed temp file in dir, which the storage
+// blacklist already ignores.
+func createTemp(dir string, perm os.FileMode) (*os.File, error) {
+	for i := 0; i < 100; i++ {
+		var rnd [9]byte
+		if _, err := rand.Read(rnd[:]); err != nil {
+			return nil, err
+		}
+		name := filepath.Join(dir, ".imagor-tmp-"+base64.RawURLEncoding.EncodeToString(rnd[:]))
+		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
+		if err == nil {
+			return f, nil
+		}
+		if !errors.Is(err, fs.ErrExist) {
+			return nil, err
+		}
+	}
+	return nil, fmt.Errorf("filestorage: cannot create a temporary file in %s", dir)
+}
+
+// linkIntoPlace adds the target only if it has none, by link; the fallback is a
+// check and a rename, which is not exclusive.
+func linkIntoPlace(tmp, image string) error {
+	err := os.Link(tmp, image)
+	if err == nil {
+		_ = os.Remove(tmp)
+		return nil
+	}
+	if errors.Is(err, fs.ErrExist) {
+		return err
+	}
+	if _, statErr := os.Stat(image); statErr == nil {
+		return fs.ErrExist
+	}
+	return renameFile(tmp, image)
 }
 
 // Delete implements imagor.Storage interface
