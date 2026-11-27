@@ -679,6 +679,36 @@ func TestProcessor(t *testing.T) {
 			assert.Equal(t, 200, w.Code, tt.path)
 		}
 	})
+	t.Run("heif embedded thumbnail is not used for a larger request", func(t *testing.T) {
+		// heic-thumbnail.heic is 2000x2000 with a 320x320 embedded thumbnail. The
+		// image route asks heifload for the main image, or a request larger than
+		// the thumbnail would be served the thumbnail.
+		app := imagor.New(
+			imagor.WithLoaders(filestorage.New(testDataDir)),
+			imagor.WithUnsafe(true),
+			imagor.WithProcessors(NewProcessor()),
+		)
+		require.NoError(t, app.Startup(context.Background()))
+		t.Cleanup(func() {
+			assert.NoError(t, app.Shutdown(context.Background()))
+		})
+		for _, tc := range []struct {
+			path  string
+			width int
+		}{
+			{"/unsafe/fit-in/1000x1000/heic-thumbnail.heic", 1000},
+			{"/unsafe/fit-in/3000x3000/heic-thumbnail.heic", 2000},
+		} {
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, tc.path, nil))
+			require.Equal(t, 200, w.Code, tc.path)
+			img, err := vips.NewImageFromBuffer(w.Body.Bytes(), nil)
+			require.NoError(t, err, tc.path)
+			assert.Equal(t, tc.width, img.Width(), tc.path)
+			img.Close()
+		}
+	})
+
 	t.Run("grayscale composite regressions", func(t *testing.T) {
 		stub := &stubDetector{regions: []imagor.DetectorRegion{{
 			Left: 0.1, Top: 0.1, Right: 0.4, Bottom: 0.6, Name: "face",
