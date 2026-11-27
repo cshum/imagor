@@ -139,6 +139,23 @@ func TestS3Store_Path(t *testing.T) {
 			expectedPath:   "images/foo/bar",
 			expectedOk:     true,
 		},
+		{
+			name:           "dot segments cannot leave the base dir",
+			bucket:         "mybucket",
+			baseDir:        "home/imagor",
+			image:          "../other/photo.jpg",
+			expectedBucket: "mybucket",
+			expectedOk:     false,
+		},
+		{
+			name:           "dot segments inside the base dir are resolved",
+			bucket:         "mybucket",
+			baseDir:        "home/imagor",
+			image:          "sub/../photo.jpg",
+			expectedBucket: "mybucket",
+			expectedPath:   "home/imagor/photo.jpg",
+			expectedOk:     true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

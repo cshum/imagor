@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -129,9 +128,9 @@ func (s *S3Storage) pathFromNormalized(image string) (string, bool) {
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	result := filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
-	if len(result) > 0 && result[0] == '/' {
-		result = result[1:]
+	result, ok := imagorpath.ConfineJoin(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
+	if !ok {
+		return "", false
 	}
 	return result, true
 }
@@ -142,9 +141,9 @@ func (s *S3Storage) Path(image string) (string, bool) {
 	if !strings.HasPrefix(image, s.PathPrefix) {
 		return "", false
 	}
-	result := filepath.Join(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
-	if len(result) > 0 && result[0] == '/' {
-		result = result[1:]
+	result, ok := imagorpath.ConfineJoin(s.BaseDir, strings.TrimPrefix(image, s.PathPrefix))
+	if !ok {
+		return "", false
 	}
 	return result, true
 }
