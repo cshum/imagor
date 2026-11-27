@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -787,6 +788,103 @@ func TestWithMaxAllowedSize(t *testing.T) {
 			target: ts.URL,
 			err:    "imagor: 400 maximum size exceeded",
 		},
+	})
+
+	t.Run("no content-length on HEAD", func(t *testing.T) {
+		body := make([]byte, 1024)
+		rand.Read(body)
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodHead {
+				w.WriteHeader(http.StatusNotFound) // no Content-Length
+				return
+			}
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write(body)
+		}))
+		defer ts.Close()
+
+		loader := New(WithMaxAllowedSize(512))
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, ts.URL)
+		assert.NoError(t, err)
+		_, err = blob.ReadAll()
+		assert.ErrorContains(t, err, "maximum size exceeded")
+	})
+
+	t.Run("head unsupported falls back to the body limit", func(t *testing.T) {
+		body := make([]byte, 1024)
+		rand.Read(body)
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodHead {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write(body)
+		}))
+		defer ts.Close()
+
+		loader := New(WithMaxAllowedSize(2048))
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, ts.URL)
+		assert.NoError(t, err)
+		b, err := blob.ReadAll()
+		assert.NoError(t, err)
+		assert.Len(t, b, 1024)
+	})
+
+	t.Run("gzip body expands past the limit", func(t *testing.T) {
+		var buf bytes.Buffer
+		zw := gzip.NewWriter(&buf)
+		_, _ = zw.Write(make([]byte, 1<<20))
+		assert.NoError(t, zw.Close())
+		gz := buf.Bytes()
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Content-Length", strconv.Itoa(len(gz)))
+			if r.Method != http.MethodHead {
+				_, _ = w.Write(gz)
+			}
+		}))
+		defer ts.Close()
+
+		loader := New(
+			WithMaxAllowedSize(4096), // larger than the compressed body
+			WithForwardHeaders("Accept-Encoding"),
+		)
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		assert.NoError(t, err)
+		req.Header.Set("Accept-Encoding", "gzip")
+		blob, err := loader.Get(req, ts.URL)
+		assert.NoError(t, err)
+		_, err = blob.ReadAll()
+		assert.ErrorContains(t, err, "maximum size exceeded")
+	})
+
+	t.Run("body under the limit is unaffected", func(t *testing.T) {
+		body := make([]byte, 1024)
+		rand.Read(body)
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+			if r.Method != http.MethodHead {
+				_, _ = w.Write(body)
+			}
+		}))
+		defer ts.Close()
+
+		loader := New(WithMaxAllowedSize(1024)) // exactly the size
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, ts.URL)
+		assert.NoError(t, err)
+		b, err := blob.ReadAll()
+		assert.NoError(t, err)
+		assert.Len(t, b, 1024)
 	})
 }
 
