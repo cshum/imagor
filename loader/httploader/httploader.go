@@ -366,14 +366,12 @@ func extractEmbeddedIPv4(addr net.IP) []net.IP {
 		return []net.IP{net.IPv4(v6[12], v6[13], v6[14], v6[15])}
 	}
 
-	// NAT64 local-use prefix 64:ff9b:1::/48, where the translation prefix may be
-	// /48, /56, /64 or /96 long (RFC 6052) and the address does not say which,
-	// so every IPv4 it could carry is returned. Bits 64-71 are zero in the
-	// /48, /56 and /64 layouts.
+	// NAT64 local-use prefix: the /48, /56, /64 and /96 layouts are all read,
+	// since the address names none and a translator ignores the suffix.
 	if v6[0] == 0x00 && v6[1] == 0x64 && v6[2] == 0xff && v6[3] == 0x9b &&
 		v6[4] == 0x00 && v6[5] == 0x01 {
-		candidates := [][4]byte{{v6[12], v6[13], v6[14], v6[15]}}
-		if v6[8] == 0x00 {
+		candidates := [][4]byte{{v6[12], v6[13], v6[14], v6[15]}} // /96
+		if v6[8] == 0x00 {                                        // bits 64-71, zero in the /48, /56 and /64 layouts
 			candidates = append(candidates,
 				[4]byte{v6[6], v6[7], v6[9], v6[10]},   // /48
 				[4]byte{v6[7], v6[9], v6[10], v6[11]},  // /56
@@ -382,10 +380,13 @@ func extractEmbeddedIPv4(addr net.IP) []net.IP {
 		}
 		var ips []net.IP
 		for _, v4 := range candidates {
-			// an all-zero candidate is what a different prefix length yields
+			// all-zero readings belong to another prefix length
 			if v4 != [4]byte{} {
 				ips = append(ips, net.IPv4(v4[0], v4[1], v4[2], v4[3]))
 			}
+		}
+		if len(ips) == 0 {
+			ips = append(ips, net.IPv4zero)
 		}
 		return ips
 	}
