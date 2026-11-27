@@ -28,7 +28,7 @@ imagor implements libvips [streaming](https://www.libvips.org/2019/11/29/True-st
 
 imagor supports a wide range of image-processing use cases, available as a HTTP server with first-class Docker support. It adopts the thumbor URL syntax representing a high-performance drop-in replacement.
 
-imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](./imagorvideo.md) bringing video thumbnail capability through ffmpeg C bindings, and [Imagor MCP](./imagor-mcp.md) bringing template composition to agents.
+imagor is built with speed, security and extensibility in mind. Alongside there is [imagorvideo](./imagorvideo.md) bringing video thumbnail capability through ffmpeg C bindings.
 
 ```bash
 docker run -p 8000:8000 shumc/imagor -imagor-unsafe -imagor-auto-webp
@@ -67,11 +67,3 @@ http://localhost:8000/unsafe/fit-in/200x150/filters:fill(yellow):watermark(raw.g
 - [**Storage**](./storage.md) — configure loaders and storage backends: File System, S3, Google Cloud, HTTP
 - [**Security**](./security.mdx) — enable URL signing, restrict image sources and harden for production
 - [**Configuration**](./configuration.md) — full configuration reference for all flags and environment variables
-
-## Templates
-
-[Imagor MCP](./imagor-mcp.md) — an MCP server and a skill that add a template layer to imagor. An agent writes a layout: OG cards, product grids, quotes, testimonials, and it compiles to one imagor URL.
-
-<a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/avatar-card.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/circles.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/product-grid.png" height="100" /></a> <a href="https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md"><img src="https://raw.githubusercontent.com/cshum/imagor-mcp/main/docs/gallery/tip.png" height="100" /></a>
-
-[See the recipes »](https://github.com/cshum/imagor-mcp/blob/main/docs/cookbook.md)

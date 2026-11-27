@@ -134,10 +134,10 @@ const config: Config = {
           position: "right",
         },
         {
-          label: "Consulting",
-          to: "/consulting",
+          href: "https://github.com/sponsors/cshum",
+          label: "Sponsor",
           position: "right",
-          className: "navbar-consulting-button",
+          className: "navbar-sponsor-button",
         },
       ],
     },
