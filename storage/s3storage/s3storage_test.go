@@ -815,3 +815,21 @@ func TestPut_UnknownSize(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "chunked body", string(buf))
 }
+
+func TestPutRejectsShortBody(t *testing.T) {
+	ts := fakeS3Server()
+	defer ts.Close()
+	s := New(fakeS3Config(ts, "test"), "test", WithPathPrefix("/foo"), WithEndpoint(ts.URL), WithForcePathStyle(true))
+	ctx := context.Background()
+
+	body := []byte(strings.Repeat("x", 4096))
+	// Sends 2 KB while declaring 4 KB: the transport rejects it, so no object
+	// is ever created.
+	blob := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		return io.NopCloser(strings.NewReader(string(body[:2048]))), int64(len(body)), nil
+	})
+
+	assert.Error(t, s.Put(ctx, "/foo/short", blob))
+	_, err := s.Stat(ctx, "/foo/short")
+	assert.ErrorIs(t, err, imagor.ErrNotFound)
+}

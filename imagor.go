@@ -39,7 +39,7 @@ type Storage interface {
 	// Stat get Blob Stat by key
 	Stat(ctx context.Context, key string) (*Stat, error)
 
-	// Put data Blob by key
+	// Put data Blob by key, atomically.
 	Put(ctx context.Context, key string, blob *Blob) error
 
 	// Delete delete data Blob by key
@@ -947,12 +947,6 @@ func (app *Imagor) saveWithErrorHandling(ctx context.Context, storages []Storage
 			defer wg.Done()
 			if err := storage.Put(ctx, key, blob); err != nil {
 				app.Logger.Warn("save", zap.String("key", key), zap.Error(err))
-				if delErr := storage.Delete(ctx, key); delErr != nil {
-					app.Logger.Warn("delete-after-save-error",
-						zap.String("key", key), zap.Error(delErr))
-				} else if app.Debug {
-					app.Logger.Debug("deleted-after-save-error", zap.String("key", key))
-				}
 			} else if app.Debug {
 				app.Logger.Debug("saved", zap.String("key", key))
 			}

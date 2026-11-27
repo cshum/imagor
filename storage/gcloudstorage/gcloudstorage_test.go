@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -535,4 +536,70 @@ func TestGCloudStorage_GzipContentEncoding(t *testing.T) {
 
 	// The key fix is that content is fully readable despite size mismatch
 	// (the fanout optimization is disabled internally for gzip content)
+}
+
+type erroringReader struct {
+	data  []byte
+	err   error
+	after int
+	read  int
+}
+
+func (e *erroringReader) Read(p []byte) (int, error) {
+	if e.read >= e.after {
+		return 0, e.err
+	}
+	if len(p) > e.after-e.read {
+		p = p[:e.after-e.read]
+	}
+	n := copy(p, e.data[e.read:e.after])
+	e.read += n
+	return n, nil
+}
+
+func TestPutAbortsOnReaderError(t *testing.T) {
+	srv, err := fakestorage.NewServerWithOptions(fakestorage.Options{
+		InitialObjects: []fakestorage.Object{{
+			ObjectAttrs: fakestorage.ObjectAttrs{BucketName: "test", Name: "placeholder"},
+			Content:     []byte(""),
+		}},
+		NoListener: true,
+	})
+	require.NoError(t, err)
+	defer srv.Stop()
+
+	client, err := storage.NewClient(context.Background(), option.WithHTTPClient(srv.HTTPClient()))
+	require.NoError(t, err)
+	defer client.Close()
+
+	ctx := context.Background()
+	s := New(client, "test", WithPathPrefix("/foo"))
+
+	require.NoError(t, s.Put(ctx, "/foo/keep", imagor.NewBlobFromBytes([]byte("previous"))))
+
+	body := bytes.Repeat([]byte("x"), 4096)
+	failing := func() *imagor.Blob {
+		// large enough to sniff, then the source fails halfway through
+		return imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+			return io.NopCloser(&erroringReader{
+				data:  body,
+				after: 2048,
+				err:   io.ErrUnexpectedEOF,
+			}), int64(len(body)), nil
+		})
+	}
+
+	// the truncation is reported rather than committed as a short object.
+	// (fakestorage finalises on request end, so it cannot show the abort that a
+	// cancelled context performs against real GCS.)
+	// Either the source error or the size check reports it; either way the
+	// upload is abandoned rather than committed short.
+	require.Error(t, s.Put(ctx, "/foo/keep", failing()))
+
+	// A reader that ends cleanly early is only visible through the declared
+	// size: the copy reports no error at all.
+	shortEOF := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		return io.NopCloser(bytes.NewReader(body[:2048])), int64(len(body)), nil
+	})
+	require.Error(t, s.Put(ctx, "/foo/short", shortEOF))
 }
