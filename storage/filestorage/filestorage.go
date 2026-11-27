@@ -112,7 +112,7 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 	if err = os.MkdirAll(dir, s.MkdirPermission); err != nil {
 		return
 	}
-	reader, _, err := blob.NewReader()
+	reader, size, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,13 @@ func (s *FileStorage) Put(_ context.Context, image string, blob *imagor.Blob) (e
 			_ = os.Remove(tmp)
 		}
 	}()
-	if _, err = io.Copy(w, reader); err != nil {
+	n, err := io.Copy(w, reader)
+	if err != nil {
+		return
+	}
+	if size > 0 && n != size {
+		// A short read ends cleanly; only the declared size shows it.
+		err = fmt.Errorf("filestorage: truncated write, %d of %d bytes", n, size)
 		return
 	}
 	if err = w.Sync(); err != nil {

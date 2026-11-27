@@ -3,6 +3,7 @@ package gcloudstorage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -144,24 +145,32 @@ func (s *GCloudStorage) Put(ctx context.Context, image string, blob *imagor.Blob
 	if !ok {
 		return imagor.ErrInvalid
 	}
-	reader, _, err := blob.NewReader()
+	reader, size, err := blob.NewReader()
 	if err != nil {
 		return err
 	}
-	objectHandle := s.client.Bucket(bucket).Object(image)
-	writer := objectHandle.NewWriter(ctx)
 	defer func() {
 		_ = reader.Close()
-		_ = writer.Close()
 	}()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	objectHandle := s.client.Bucket(bucket).Object(image)
+	writer := objectHandle.NewWriter(ctx)
 	if s.ACL != "" {
 		writer.PredefinedACL = s.ACL
 	}
 	writer.ContentType = blob.ContentType()
-	if _, err = io.Copy(writer, reader); err != nil {
-		return err
+	n, copyErr := io.Copy(writer, reader)
+	if copyErr == nil && size > 0 && n != size {
+		// A short read ends cleanly; only the declared size shows it.
+		copyErr = fmt.Errorf("gcloudstorage: truncated upload, %d of %d bytes", n, size)
 	}
-	return
+	if copyErr != nil {
+		cancel() // Close alone would commit the partial upload.
+		_ = writer.Close()
+		return copyErr
+	}
+	return writer.Close()
 }
 
 // Delete implements imagor.Storage interface

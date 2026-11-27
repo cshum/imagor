@@ -388,3 +388,22 @@ func TestFileStorage_PutKeepsModeAndReplacesLinks(t *testing.T) {
 		assert.Equal(t, "new", string(buf))
 	})
 }
+
+func TestFileStorage_PutRejectsShortBody(t *testing.T) {
+	ctx := context.Background()
+	dir, err := os.MkdirTemp("", "imagor-test")
+	require.NoError(t, err)
+	defer os.RemoveAll(dir)
+	s := New(dir)
+
+	blob := imagor.NewBlob(func() (io.ReadCloser, int64, error) {
+		return io.NopCloser(strings.NewReader("short")), 1024, nil
+	})
+	err = s.Put(ctx, "/short/file.jpg", blob)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "truncated write")
+
+	_, statErr := os.Stat(filepath.Join(dir, "short", "file.jpg"))
+	assert.True(t, errors.Is(statErr, fs.ErrNotExist), "a short body must not reach the target")
+	assertNoTempFiles(t, dir)
+}
