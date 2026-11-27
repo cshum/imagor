@@ -175,6 +175,11 @@
   color: #0a0a0a !important;
 }
 
+/* Docusaurus appends an external-link glyph; the pill reads cleaner without it */
+.navbar-sponsor-button svg {
+  display: none !important;
+}
+
 /* Screenshot image containers */
 .screenshot-container {
   max-width: 800px;
