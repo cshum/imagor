@@ -393,10 +393,13 @@ func (v *Processor) NewThumbnail(
 		}
 	} else {
 		switch blob.BlobType() {
-		case imagor.BlobTypeJPEG, imagor.BlobTypeGIF, imagor.BlobTypeWEBP,
-			imagor.BlobTypeAVIF, imagor.BlobTypeHEIF:
+		case imagor.BlobTypeJPEG, imagor.BlobTypeWEBP:
 			// Use libvips thumbnail-source loaders when the format supports it.
 			img, err = v.newThumbnailFromBlob(ctx, blob, width, height, crop, size, options)
+		case imagor.BlobTypeGIF, imagor.BlobTypeAVIF, imagor.BlobTypeHEIF:
+			// No shrink-on-load: check the declared size before decoding.
+			options.Access = vips.AccessSequential
+			fallthrough
 		default:
 			img, err = v.newThumbnailFallback(ctx, blob, width, height, crop, size, options)
 		}
