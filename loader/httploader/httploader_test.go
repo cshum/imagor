@@ -579,6 +579,54 @@ func TestWithBaseURL(t *testing.T) {
 			err:    "imagor: 404 Not Found",
 		},
 	})
+
+	t.Run("dot segments cannot leave the base path", func(t *testing.T) {
+		trans := testTransport{
+			"https://foo.com/bar.org/some/path/ping.jpg": "pong",
+			"https://foo.com/other/ping.jpg":             "escaped",
+		}
+		loader := New(
+			WithBaseURL("https://foo.com/bar.org"),
+			WithTransport(trans),
+		)
+		for _, target := range []string{
+			"../../../other/ping.jpg",
+			"some/path/../../../other/ping.jpg",
+			"..%2f..%2fother/ping.jpg",
+		} {
+			req, err := http.NewRequest(http.MethodGet, "https://foo.com", nil)
+			assert.NoError(t, err)
+			_, err = loader.Get(req, target)
+			assert.ErrorContains(t, err, "invalid", target)
+		}
+		req, err := http.NewRequest(http.MethodGet, "https://foo.com", nil)
+		assert.NoError(t, err)
+		blob, err := loader.Get(req, "some/path/ping.jpg")
+		assert.NoError(t, err)
+		b, err := blob.ReadAll()
+		assert.NoError(t, err)
+		assert.Equal(t, "pong", string(b))
+
+		// a base segment that is escaped stays opaque
+		loader = New(
+			WithBaseURL("https://foo.com/a%2Fb"),
+			WithTransport(testTransport{
+				"https://foo.com/a%2Fb/x.jpg":  "pong",
+				"https://foo.com/a/b/evil.jpg": "escaped",
+			}),
+		)
+		req, err = http.NewRequest(http.MethodGet, "https://foo.com", nil)
+		assert.NoError(t, err)
+		_, err = loader.Get(req, "../a/b/evil.jpg")
+		assert.ErrorContains(t, err, "invalid")
+		req, err = http.NewRequest(http.MethodGet, "https://foo.com", nil)
+		assert.NoError(t, err)
+		blob, err = loader.Get(req, "x.jpg")
+		assert.NoError(t, err)
+		b, err = blob.ReadAll()
+		assert.NoError(t, err)
+		assert.Equal(t, "pong", string(b))
+	})
 }
 
 func TestWithUserAgent(t *testing.T) {

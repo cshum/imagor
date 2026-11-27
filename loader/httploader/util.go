@@ -35,6 +35,16 @@ func randomProxyFunc(proxyURLs, hosts string) func(*http.Request) (*url.URL, err
 	}
 }
 
+// withinBasePath reports whether a joined path stays under the base path.
+func withinBasePath(base, target string) bool {
+	base = path.Clean("/" + strings.Trim(base, "/"))
+	if base == "/" {
+		return true
+	}
+	target = path.Clean("/" + strings.Trim(target, "/"))
+	return target == base || strings.HasPrefix(target, base+"/")
+}
+
 func isURLAllowed(u *url.URL, allowedSources []AllowedSource) bool {
 	if len(allowedSources) == 0 {
 		return true
