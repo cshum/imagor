@@ -199,12 +199,12 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			return nil, err
 		}
 		_ = resp.Body.Close()
-		if resp.StatusCode < 200 && resp.StatusCode > 206 {
-			return nil, imagor.NewErrorFromStatusCode(resp.StatusCode)
-		}
-		contentLength, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
-		if contentLength > h.MaxAllowedSize {
-			return nil, imagor.ErrMaxSizeExceeded
+		// A refused HEAD falls through to the body limit.
+		if resp.StatusCode >= 200 && resp.StatusCode <= 206 {
+			contentLength, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
+			if contentLength > h.MaxAllowedSize {
+				return nil, imagor.ErrMaxSizeExceeded
+			}
 		}
 	}
 	req, err := h.newRequest(r, http.MethodGet, image)
@@ -248,6 +248,11 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 			body = gzipBody
 			size = 0 // size unknown after decompress
 		}
+		if h.MaxAllowedSize > 0 {
+			// The stream decides: a HEAD length can lie or be missing, and a
+			// gzip body has no size after decompress.
+			body = &maxSizeReader{r: body, max: int64(h.MaxAllowedSize)}
+		}
 		if resp.StatusCode >= 400 {
 			return body, size, imagor.NewErrorFromStatusCode(resp.StatusCode)
 		}
@@ -257,6 +262,29 @@ func (h *HTTPLoader) Get(r *http.Request, image string) (*imagor.Blob, error) {
 		return body, size, nil
 	})
 	return blob, nil
+}
+
+// maxSizeReader errors once a body grows past the configured limit.
+type maxSizeReader struct {
+	r   io.Reader
+	max int64
+	n   int64
+}
+
+func (m *maxSizeReader) Read(p []byte) (int, error) {
+	n, err := m.r.Read(p)
+	m.n += int64(n)
+	if m.n > m.max {
+		return n, imagor.ErrMaxSizeExceeded
+	}
+	return n, err
+}
+
+func (m *maxSizeReader) Close() error {
+	if c, ok := m.r.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
 }
 
 func (h *HTTPLoader) newRequest(r *http.Request, method, url string) (*http.Request, error) {
