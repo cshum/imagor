@@ -109,6 +109,14 @@ HTTP_LOADER_BLOCK_PRIVATE_NETWORKS=1       # block private IPs e.g. 10.x.x.x, 19
 HTTP_LOADER_BLOCK_LINK_LOCAL_NETWORKS=1    # block link-local IPs e.g. 169.254.x.x
 ```
 
+`HTTP_LOADER_BLOCK_PRIVATE_NETWORKS` covers the RFC 1918 and ULA ranges only. Ranges that are not globally routable but outside those — carrier-grade NAT `100.64.0.0/10` (where some cloud metadata services answer, e.g. `100.100.100.200`), `192.0.0.0/24`, `198.18.0.0/15` and `240.0.0.0/4` — have to be listed explicitly:
+
+```dotenv
+HTTP_LOADER_BLOCK_NETWORKS=100.64.0.0/10,192.0.0.0/24,198.18.0.0/15,240.0.0.0/4
+```
+
+The blocks are checked on the address actually dialled. With `HTTP_LOADER_PROXY_URLS` or an `HTTP_PROXY`/`HTTPS_PROXY` in the environment, that address is the proxy's, so the blocks do not classify the upstream target — restrict those at the proxy.
+
 To block specific custom networks in CIDR notation:
 
 ```dotenv
