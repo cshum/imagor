@@ -5,8 +5,7 @@ import (
 	"strings"
 )
 
-// ConfineJoin joins a storage key under baseDir and reports whether it stays
-// there. Keys use forward slashes, as object storage does.
+// ConfineJoin joins a storage key under baseDir and reports whether it stays there.
 func ConfineJoin(baseDir, key string) (string, bool) {
 	// Refused even with no base dir: clamping it would serve the wrong object.
 	if key == ".." || strings.HasPrefix(key, "../") || strings.HasPrefix(key, "/../") {
