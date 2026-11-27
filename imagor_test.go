@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -3522,6 +3523,8 @@ func TestResponseRawOnError(t *testing.T) {
 		assert.Equal(t, 422, w.Code)
 		assert.Equal(t, "image/png", w.Header().Get("Content-Type"))
 		assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options"))
+		assert.Equal(t, strconv.Itoa(len(pngImageBytes(t))), w.Header().Get("Content-Length"))
+		assert.Equal(t, "private, no-store", w.Header().Get("Cache-Control"))
 	})
 
 	t.Run("an svg source keeps the sandbox policy", func(t *testing.T) {
@@ -3545,6 +3548,57 @@ func TestResponseRawOnError(t *testing.T) {
 		assert.Equal(t, "image/svg+xml", w.Header().Get("Content-Type"))
 		assert.NotEmpty(t, w.Header().Get("Content-Security-Policy"))
 		assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options"))
+	})
+
+	t.Run("xhtml smuggled as xml is refused", func(t *testing.T) {
+		doc := []byte(`<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><script>alert(1)</script></html>`)
+		for _, claimed := range []string{"text/xml", "application/xml", ""} {
+			app := New(
+				WithUnsafe(true),
+				WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+					blob := NewBlobFromBytes(doc)
+					if claimed != "" {
+						blob.SetContentType(claimed)
+					}
+					return blob, nil
+				})),
+				WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+					return nil, ErrUnsupportedFormat
+				})),
+				WithResponseRawOnError(true),
+			)
+
+			w := httptest.NewRecorder()
+			app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/unsafe/x.jpg", nil))
+
+			assert.Equal(t, 406, w.Code, "claimed %q", claimed)
+			assert.NotContains(t, w.Body.String(), "<script>", "claimed %q", claimed)
+		}
+	})
+
+	t.Run("an svg claim the sniffer misses still gets the sandbox", func(t *testing.T) {
+		svg := []byte(`<?xml version="1.0"?>
+<!DOCTYPE svg [<!ENTITY a "b">]>
+<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`)
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				blob := NewBlobFromBytes(svg)
+				blob.SetContentType("image/svg+xml; charset=utf-8")
+				return blob, nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrUnsupportedFormat
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/unsafe/x.svg", nil))
+
+		assert.Equal(t, 406, w.Code)
+		assert.Equal(t, "image/svg+xml", w.Header().Get("Content-Type"))
+		assert.Contains(t, w.Header().Get("Content-Security-Policy"), "sandbox")
 	})
 
 	t.Run("a non-image media type is still served raw", func(t *testing.T) {

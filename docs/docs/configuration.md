@@ -94,7 +94,7 @@ IMAGOR_BASE_PATH_REDIRECT=     # Redirect / base path to this URL
 IMAGOR_MODIFIED_TIME_CHECK=1   # Compare result vs source modified time to avoid stale results
 IMAGOR_DISABLE_PARAMS_ENDPOINT=1  # Disable /params debug endpoint
 IMAGOR_DISABLE_ERROR_BODY=1    # Omit response body on errors
-IMAGOR_RESPONSE_RAW_ON_ERROR=1 # Return raw source image on processing error
+IMAGOR_RESPONSE_RAW_ON_ERROR=1 # Return raw source on processing error, markup excluded
 ```
 
 ### Auto format
