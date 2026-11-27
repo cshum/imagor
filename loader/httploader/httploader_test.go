@@ -349,6 +349,31 @@ func TestBlockNetworks(t *testing.T) {
 			opt:  WithBlockLinkLocalNetworks(true),
 		},
 		{
+			name: "private nat64 local-use pl96 low octets",
+			addr: "[64:ff9b:1::a00:0]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "loopback nat64 local-use pl96 low octets",
+			addr: "[64:ff9b:1::7f00:0]:1000",
+			opt:  WithBlockLoopbackNetworks(true),
+		},
+		{
+			name: "link local nat64 local-use non-zero suffix",
+			addr: "[64:ff9b:1:a9fe:a9:fe00:808:808]:1000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
+			name: "private nat64 local-use non-zero suffix",
+			addr: "[64:ff9b:1:a00:4:300:101:101]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "unspecified nat64 local-use",
+			addr: "[64:ff9b:1::]:1000",
+			opt:  WithBlockLoopbackNetworks(true),
+		},
+		{
 			name: "private nat64 local-use pl96",
 			addr: "[64:ff9b:1::a00:403]:1000",
 			opt:  WithBlockPrivateNetworks(true),
