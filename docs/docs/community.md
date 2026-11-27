@@ -22,7 +22,7 @@ keywords:
 
 - [**symfony/ux-imagor-image**](https://packagist.org/packages/symfony/ux-imagor-image) — Imagor integration for Symfony UX Image, through transformation parameters in the image server's URL path. *Experimental.*
 - [**sandstorm/laravel-imagor**](https://github.com/sandstorm/laravel-imagor) — Laravel integration for imagor
-- [**vipsgen**](https://github.com/cshum/vipsgen) — Go binding for libvips, the image processing library powering imagor. Use this for low-level image operations directly in Go.
+- [**cshum/vipsgen**](https://github.com/cshum/vipsgen) — Go binding for libvips, the image processing library powering imagor. Use this for low-level image operations directly in Go.
 
 ## Projects
 
