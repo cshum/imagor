@@ -348,6 +348,76 @@ func TestBlockNetworks(t *testing.T) {
 			opt:  WithBlockLinkLocalNetworks(true),
 		},
 		{
+			name: "private nat64 local-use pl96",
+			addr: "[64:ff9b:1::a00:403]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "loopback nat64 local-use pl96",
+			addr: "[64:ff9b:1::7f00:1]:1000",
+			opt:  WithBlockLoopbackNetworks(true),
+		},
+		{
+			name: "link local nat64 local-use pl96",
+			addr: "[64:ff9b:1::a9fe:a9fe]:1000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
+			name: "private nat64 local-use pl48",
+			addr: "[64:ff9b:1:a00:4:300::]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "loopback nat64 local-use pl48",
+			addr: "[64:ff9b:1:7f00:0:100::]:1000",
+			opt:  WithBlockLoopbackNetworks(true),
+		},
+		{
+			name: "link local nat64 local-use pl48",
+			addr: "[64:ff9b:1:a9fe:a9:fe00::]:1000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
+			name: "private nat64 local-use pl56",
+			addr: "[64:ff9b:1:a:0:403::]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "link local nat64 local-use pl56",
+			addr: "[64:ff9b:1:a9:fe:a9fe::]:1000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
+			name: "private nat64 local-use pl64",
+			addr: "[64:ff9b:1:0:a:4:300:0]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "loopback nat64 local-use pl64",
+			addr: "[64:ff9b:1:0:7f:0:100:0]:1000",
+			opt:  WithBlockLoopbackNetworks(true),
+		},
+		{
+			name: "link local nat64 local-use pl64",
+			addr: "[64:ff9b:1:0:a9:fea9:fe00:0]:1000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
+			name: "private ipv4-compatible",
+			addr: "[::a00:403]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "private ipv4-translated",
+			addr: "[::ffff:0:a00:403]:1000",
+			opt:  WithBlockPrivateNetworks(true),
+		},
+		{
+			name: "link local ipv4-translated",
+			addr: "[::ffff:0:a9fe:a9fe]:1000",
+			opt:  WithBlockLinkLocalNetworks(true),
+		},
+		{
 			name: "link local with zone",
 			addr: "[fe80::1%eth0]:1000",
 			opt:  WithBlockLinkLocalNetworks(true),
@@ -366,6 +436,40 @@ func TestBlockNetworks(t *testing.T) {
 			assert.ErrorContains(t, err, "unauthorized request")
 		})
 	}
+
+	t.Run("public transition addresses allowed", func(t *testing.T) {
+		loader := New(
+			WithBlockLoopbackNetworks(true),
+			WithBlockLinkLocalNetworks(true),
+			WithBlockPrivateNetworks(true),
+		)
+		for _, addr := range []string{
+			"[64:ff9b::808:808]:1000",
+			"[64:ff9b:1::808:808]:1000",
+			"[64:ff9b:1:808:8:800::]:1000",
+			"[64:ff9b:1:8:8:808::]:1000",
+			"[64:ff9b:1:0:8:808:800:0]:1000",
+			"[64:ff9b:1::101:101]:1000",
+			"[64:ff9b:1:101:1:100::]:1000",
+			"[64:ff9b:1:1:1:101::]:1000",
+			"[64:ff9b:1:0:1:101:100:0]:1000",
+			"[::ffff:0:808:808]:1000",
+			"[::808:808]:1000",
+			"[2002:808:808::]:1000",
+			"[2606:4700:4700::1111]:1000",
+		} {
+			assert.NoError(t, loader.DialControl("tcp", addr, nil), addr)
+		}
+	})
+
+	t.Run("unspecified and loopback carry no embedded ipv4", func(t *testing.T) {
+		_, network, err := net.ParseCIDR("0.0.0.0/8")
+		assert.NoError(t, err)
+		loader := New(WithBlockNetworks(network))
+		for _, addr := range []string{"[::]:1000", "[::1]:1000"} {
+			assert.NoError(t, loader.DialControl("tcp", addr, nil), addr)
+		}
+	})
 
 	t.Run("unspecified allowed when loopback blocking disabled", func(t *testing.T) {
 		loader := New()

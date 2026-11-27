@@ -309,32 +309,70 @@ func dialTargetIPs(addr net.IP) []net.IP {
 	}
 
 	targets := []net.IP{addr}
-	v4InV6 := extractEmbeddedIPv4(addr)
-	if v4InV6 != nil && !v4InV6.Equal(addr) {
-		targets = append(targets, v4InV6)
+	for _, target := range extractEmbeddedIPv4(addr) {
+		if !target.Equal(addr) {
+			targets = append(targets, target)
+		}
 	}
 
 	return targets
 }
 
-func extractEmbeddedIPv4(addr net.IP) net.IP {
+// extractEmbeddedIPv4 returns the IPv4 addresses an IPv6 transition address may
+// carry, so the network blocks also apply to the target behind it.
+func extractEmbeddedIPv4(addr net.IP) []net.IP {
 	v6 := addr.To16()
-	if v6 == nil || addr.To4() != nil {
+	if v6 == nil || addr.To4() != nil || addr.IsUnspecified() || addr.IsLoopback() {
 		return nil
 	}
 
+	// NAT64 well-known prefix 64:ff9b::/96
 	if v6[0] == 0x00 && v6[1] == 0x64 && v6[2] == 0xff && v6[3] == 0x9b &&
 		v6[4] == 0x00 && v6[5] == 0x00 && v6[6] == 0x00 && v6[7] == 0x00 &&
 		v6[8] == 0x00 && v6[9] == 0x00 && v6[10] == 0x00 && v6[11] == 0x00 {
-		return net.IPv4(v6[12], v6[13], v6[14], v6[15])
+		return []net.IP{net.IPv4(v6[12], v6[13], v6[14], v6[15])}
 	}
 
+	// NAT64 local-use prefix 64:ff9b:1::/48, where the translation prefix may be
+	// /48, /56, /64 or /96 long (RFC 6052) and the address does not say which,
+	// so every IPv4 it could carry is returned. Bits 64-71 are zero in the
+	// /48, /56 and /64 layouts.
+	if v6[0] == 0x00 && v6[1] == 0x64 && v6[2] == 0xff && v6[3] == 0x9b &&
+		v6[4] == 0x00 && v6[5] == 0x01 {
+		candidates := [][4]byte{{v6[12], v6[13], v6[14], v6[15]}}
+		if v6[8] == 0x00 {
+			candidates = append(candidates,
+				[4]byte{v6[6], v6[7], v6[9], v6[10]},   // /48
+				[4]byte{v6[7], v6[9], v6[10], v6[11]},  // /56
+				[4]byte{v6[9], v6[10], v6[11], v6[12]}, // /64
+			)
+		}
+		var ips []net.IP
+		for _, v4 := range candidates {
+			// an all-zero candidate is what a different prefix length yields
+			if v4 != [4]byte{} {
+				ips = append(ips, net.IPv4(v4[0], v4[1], v4[2], v4[3]))
+			}
+		}
+		return ips
+	}
+
+	// 6to4 2002::/16
 	if v6[0] == 0x20 && v6[1] == 0x02 {
-		return net.IPv4(v6[2], v6[3], v6[4], v6[5])
+		return []net.IP{net.IPv4(v6[2], v6[3], v6[4], v6[5])}
 	}
 
+	// Teredo 2001:0::/32, the IPv4 client address is XOR'd
 	if v6[0] == 0x20 && v6[1] == 0x01 && v6[2] == 0x00 && v6[3] == 0x00 {
-		return net.IPv4(v6[12]^0xff, v6[13]^0xff, v6[14]^0xff, v6[15]^0xff)
+		return []net.IP{net.IPv4(v6[12]^0xff, v6[13]^0xff, v6[14]^0xff, v6[15]^0xff)}
+	}
+
+	// IPv4-translated ::ffff:0:0/96 and IPv4-compatible ::/96, both deprecated
+	if v6[0] == 0x00 && v6[1] == 0x00 && v6[2] == 0x00 && v6[3] == 0x00 &&
+		v6[4] == 0x00 && v6[5] == 0x00 && v6[6] == 0x00 && v6[7] == 0x00 &&
+		v6[10] == 0x00 && v6[11] == 0x00 &&
+		((v6[8] == 0xff && v6[9] == 0xff) || (v6[8] == 0x00 && v6[9] == 0x00)) {
+		return []net.IP{net.IPv4(v6[12], v6[13], v6[14], v6[15])}
 	}
 
 	return nil
