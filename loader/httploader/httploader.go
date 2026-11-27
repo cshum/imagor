@@ -144,6 +144,11 @@ func (h *HTTPLoader) parseAndValidateURL(image string) (string, error) {
 	if h.BaseURL != nil {
 		newU := h.BaseURL.JoinPath(u.Path)
 		newU.RawQuery = u.RawQuery
+		// JoinPath resolves dot segments, so the joined path can leave the base;
+		// escaped paths are compared so an a%2Fb segment cannot be split.
+		if !withinBasePath(h.BaseURL.EscapedPath(), newU.EscapedPath()) {
+			return "", imagor.ErrInvalid
+		}
 		image = newU.String()
 		u = newU
 	}

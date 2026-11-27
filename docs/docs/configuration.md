@@ -131,7 +131,7 @@ HTTP_LOADER_PROXY_ALLOWED_SOURCES=     # Hosts that use proxy transport (glob, c
 HTTP_LOADER_BLOCK_LOOPBACK_NETWORKS=1  # Block loopback addresses (127.0.0.0/8, ::1)
 HTTP_LOADER_BLOCK_LINK_LOCAL_NETWORKS=1  # Block link-local addresses (169.254.0.0/16)
 HTTP_LOADER_BLOCK_PRIVATE_NETWORKS=1   # Block private network addresses (RFC 1918)
-HTTP_LOADER_BLOCK_NETWORKS=::1/128,127.0.0.0/8  # Block specific CIDRs (csv)
+HTTP_LOADER_BLOCK_NETWORKS=::1/128,127.0.0.0/8  # Block specific CIDRs (csv), e.g. also 100.64.0.0/10
 
 HTTP_LOADER_DISABLE=1                  # Disable HTTP Loader entirely
 ```

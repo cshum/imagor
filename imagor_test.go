@@ -3405,6 +3405,70 @@ func TestResponseRawOnError(t *testing.T) {
 		assert.NotContains(t, w.Header().Get("Content-Type"), "application/json")
 	})
 
+	t.Run("failed source returns an error instead of a panic", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlob(func() (io.ReadCloser, int64, error) {
+					return nil, 0, errors.New("source unavailable")
+				}), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrMaxResolutionExceeded
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 500, w.Code)
+		assert.Contains(t, w.Body.String(), "source unavailable")
+	})
+
+	t.Run("raw body is still served when the source returns it with an error", func(t *testing.T) {
+		body := []byte("upstream error page")
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlob(func() (io.ReadCloser, int64, error) {
+					return io.NopCloser(bytes.NewReader(body)), int64(len(body)), ErrNotFound
+				}), nil
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 404, w.Code)
+		assert.Equal(t, body, w.Body.Bytes())
+	})
+
+	t.Run("source with no reader and no error reports the processing error", func(t *testing.T) {
+		app := New(
+			WithUnsafe(true),
+			WithLoaders(loaderFunc(func(r *http.Request, key string) (*Blob, error) {
+				return NewBlob(func() (io.ReadCloser, int64, error) {
+					return nil, 1, nil
+				}), nil
+			})),
+			WithProcessors(processorFunc(func(ctx context.Context, blob *Blob, p imagorpath.Params, load LoadFunc) (*Blob, error) {
+				return nil, ErrUnsupportedFormat
+			})),
+			WithResponseRawOnError(true),
+		)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/unsafe/test.jpg", nil)
+		app.ServeHTTP(w, req)
+
+		assert.Equal(t, 406, w.Code)
+		assert.Contains(t, w.Body.String(), "unsupported format")
+	})
+
 	t.Run("no blob returns normal error", func(t *testing.T) {
 		app := New(
 			WithUnsafe(true),

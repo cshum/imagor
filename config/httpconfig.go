@@ -49,7 +49,7 @@ func withHTTPLoader(fs *flag.FlagSet, cb func() (*zap.Logger, bool)) imagor.Opti
 			"Disable HTTP Loader")
 	)
 	fs.Var((*CIDRSliceFlag)(&httpLoaderBlockNetworks), "http-loader-block-networks",
-		"HTTP Loader rejects connections to link local network IP addresses. This options takes a comma separated list of networks in CIDR notation e.g. ::1/128,127.0.0.0/8.")
+		"HTTP Loader rejects connections to a comma separated list of networks in CIDR notation e.g. ::1/128,127.0.0.0/8.")
 	_, _ = cb()
 	return func(app *imagor.Imagor) {
 		if !*httpLoaderDisable {
