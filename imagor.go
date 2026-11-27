@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -225,7 +226,13 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Check if we should respond with raw image on error
 		if app.ResponseRawOnError && !isBlobEmpty(blob) {
 			e := WrapError(err)
-			// Reader first: a source with nothing to serve still has to be reported.
+			// The bytes decide the type; markup is never served from this origin.
+			contentType := rawOnErrorContentType(blob)
+			if isMarkupContentType(contentType) {
+				app.handleErrorResponse(w, r, err)
+				return
+			}
+			// A source with nothing to serve still has to be reported.
 			reader, size, rerr := blob.NewReader()
 			if reader == nil {
 				if rerr == nil {
@@ -239,9 +246,10 @@ func (app *Imagor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				zap.Error(err),
 				zap.Int("status", e.Code))
 
-			// Write error status code but serve raw image
-			w.WriteHeader(e.Code)
+			// Serve the source bytes with the error status.
 			app.setResponseHeaders(w, r, blob, p)
+			setRawOnErrorHeaders(w, contentType, size)
+			w.WriteHeader(e.Code)
 			writeBody(w, r, reader, size)
 			return
 		}
@@ -664,6 +672,11 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if app.ResponseRawOnError && !isBlobEmpty(blob) {
 			e := WrapError(err)
+			contentType := rawOnErrorContentType(blob)
+			if isMarkupContentType(contentType) {
+				app.handleErrorResponse(w, r, err)
+				return
+			}
 			reader, size, rerr := blob.NewReader()
 			if reader == nil {
 				if rerr == nil {
@@ -677,8 +690,9 @@ func (app *Imagor) handlePostRequest(w http.ResponseWriter, r *http.Request) {
 				zap.Error(err),
 				zap.Int("status", e.Code))
 
-			w.WriteHeader(e.Code)
 			app.setResponseHeaders(w, r, blob, p)
+			setRawOnErrorHeaders(w, contentType, size)
+			w.WriteHeader(e.Code)
 			writeBody(w, r, reader, size)
 			return
 		}
@@ -1020,7 +1034,37 @@ func (app *Imagor) suppress(
 	}
 }
 
-// setResponseHeaders sets common response headers for blob responses
+// rawOnErrorContentType returns the type of the bytes, else the loader's claim.
+func rawOnErrorContentType(blob *Blob) string {
+	if contentType := blob.SniffedContentType(); contentType != "" {
+		return contentType
+	}
+	if contentType := blob.ContentType(); contentType != "" {
+		return contentType
+	}
+	return "application/octet-stream"
+}
+
+// isMarkupContentType reports whether a type would render as a document. XML
+// counts: XHTML served as text/xml still runs its script.
+func isMarkupContentType(contentType string) bool {
+	mediaType := baseContentType(contentType)
+	switch mediaType {
+	case "text/html", "application/xhtml+xml", "text/xml", "application/xml":
+		return true
+	}
+	return strings.HasSuffix(mediaType, "+xml") && mediaType != SVGContentType
+}
+
+// baseContentType strips parameters: image/svg+xml; charset=utf-8 is SVG.
+func baseContentType(contentType string) string {
+	if mediaType, _, err := mime.ParseMediaType(contentType); err == nil {
+		return strings.ToLower(mediaType)
+	}
+	return strings.ToLower(strings.TrimSpace(strings.SplitN(contentType, ";", 2)[0]))
+}
+
+// setResponseHeaders sets the type, disposition, cache and markup policy.
 func (app *Imagor) setResponseHeaders(w http.ResponseWriter, r *http.Request, blob *Blob, p imagorpath.Params) {
 	if blob == nil {
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -1208,6 +1252,21 @@ func writeJSONIndent(w http.ResponseWriter, r *http.Request, v interface{}) {
 		_, _ = w.Write(buf)
 	}
 	return
+}
+
+// setRawOnErrorHeaders sets the type, no-store and sandbox policy.
+func setRawOnErrorHeaders(w http.ResponseWriter, contentType string, size int64) {
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Del("Expires")
+	// Nothing here was verified as the type it claims, so nothing may run.
+	w.Header().Set("Content-Security-Policy", SVGContentSecurityPolicy)
+	if size > 0 {
+		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	} else {
+		// Unknown size: the body may be decompressed, so a forwarded length lies.
+		w.Header().Del("Content-Length")
+	}
 }
 
 func writeBody(w http.ResponseWriter, r *http.Request, reader io.ReadCloser, size int64) {

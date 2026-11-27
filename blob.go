@@ -470,46 +470,9 @@ func (b *Blob) doInit() {
 		}
 	}
 	if b.contentType == "" {
-		switch b.blobType {
-		case BlobTypeJSON:
-			b.contentType = "application/json"
-		case BlobTypeJPEG:
-			b.contentType = "image/jpeg"
-		case BlobTypePNG:
-			b.contentType = "image/png"
-		case BlobTypeGIF:
-			b.contentType = "image/gif"
-		case BlobTypeWEBP:
-			b.contentType = "image/webp"
-		case BlobTypeJXL:
-			b.contentType = "image/jxl"
-		case BlobTypeAVIF:
-			b.contentType = "image/avif"
-		case BlobTypeHEIF:
-			b.contentType = "image/heif"
-		case BlobTypeTIFF:
-			b.contentType = "image/tiff"
-		case BlobTypeJP2:
-			b.contentType = "image/jp2"
-		case BlobTypePDF:
-			b.contentType = "application/pdf"
-		case BlobTypeBMP:
-			b.contentType = "image/bmp"
-		case BlobTypeSVG:
-			b.contentType = "image/svg+xml"
-		case BlobTypeRAF:
-			b.contentType = "image/x-fuji-raf"
-		case BlobTypeORF:
-			b.contentType = "image/x-olympus-orf"
-		case BlobTypeRW2:
-			b.contentType = "image/x-panasonic-rw2"
-		case BlobTypeX3F:
-			b.contentType = "image/x-sigma-x3f"
-		case BlobTypeCR3:
-			b.contentType = "image/x-canon-cr3"
-		case BlobTypeCR2:
-			b.contentType = "image/x-canon-cr2"
-		default:
+		if mt := mimeTypeOf(b.blobType); mt != "" {
+			b.contentType = mt
+		} else {
 			b.contentType = http.DetectContentType(b.sniffBuf)
 		}
 	}
@@ -545,10 +508,62 @@ func (b *Blob) IsRaw() bool {
 	return false
 }
 
+// mimeTypeOf returns the content type of a sniffed blob type.
+func mimeTypeOf(t BlobType) string {
+	switch t {
+	case BlobTypeJSON:
+		return "application/json"
+	case BlobTypeJPEG:
+		return "image/jpeg"
+	case BlobTypePNG:
+		return "image/png"
+	case BlobTypeGIF:
+		return "image/gif"
+	case BlobTypeWEBP:
+		return "image/webp"
+	case BlobTypeJXL:
+		return "image/jxl"
+	case BlobTypeAVIF:
+		return "image/avif"
+	case BlobTypeHEIF:
+		return "image/heif"
+	case BlobTypeTIFF:
+		return "image/tiff"
+	case BlobTypeJP2:
+		return "image/jp2"
+	case BlobTypePDF:
+		return "application/pdf"
+	case BlobTypeBMP:
+		return "image/bmp"
+	case BlobTypeSVG:
+		return "image/svg+xml"
+	case BlobTypeRAF:
+		return "image/x-fuji-raf"
+	case BlobTypeORF:
+		return "image/x-olympus-orf"
+	case BlobTypeRW2:
+		return "image/x-panasonic-rw2"
+	case BlobTypeX3F:
+		return "image/x-sigma-x3f"
+	case BlobTypeCR3:
+		return "image/x-canon-cr3"
+	case BlobTypeCR2:
+		return "image/x-canon-cr2"
+	}
+	return ""
+}
+
 // BlobType returns BlobType
 func (b *Blob) BlobType() BlobType {
 	b.init()
 	return b.blobType
+}
+
+// SniffedContentType returns the content type of the bytes, ignoring what a
+// loader may have claimed.
+func (b *Blob) SniffedContentType() string {
+	b.init()
+	return mimeTypeOf(b.blobType)
 }
 
 // Sniff returns first 512 bytes of blob data for type sniffing
